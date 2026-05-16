@@ -4,6 +4,7 @@ import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/modules/onboarding/controllers/onboarding_controller.dart';
+import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -33,13 +34,17 @@ class OnboardingScreen extends GetView<OnboardingController> {
               top: responsive.h(16),
               right: responsive.w(24),
               child: GetBuilder<OnboardingController>(
-                builder: (controller) => controller.isLastPage
-                    ? const SizedBox.shrink()
-                    : _SkipChip(
-                        responsive: responsive,
-                        onTap: controller.skip,
-                        label: AppStrings.onboardingSkip,
-                      ),
+                builder: (controller) {
+                  if (controller.isLastPage) {
+                    return const SizedBox.shrink();
+                  }
+
+                  return AppChipButton(
+                    responsive: responsive,
+                    label: AppStrings.onboardingSkip,
+                    onTap: controller.skip,
+                  );
+                },
               ),
             ),
             Align(
@@ -198,34 +203,6 @@ class _OnboardingSlide extends StatelessWidget {
   }
 }
 
-class _SkipChip extends StatelessWidget {
-  const _SkipChip({required this.responsive, required this.label, required this.onTap});
-
-  final AppResponsive responsive;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: responsive.w(16),
-          vertical: responsive.h(8),
-        ),
-        decoration: ShapeDecoration(
-          shape: RoundedRectangleBorder(
-            side: const BorderSide(color: AppColors.border),
-            borderRadius: BorderRadius.circular(9999),
-          ),
-        ),
-        child: Text(label, style: AppTextStyles.onboardingSkip(responsive)),
-      ),
-    );
-  }
-}
-
 class _PagerActions extends StatelessWidget {
   const _PagerActions({required this.responsive, required this.controller});
 
@@ -242,18 +219,18 @@ class _PagerActions extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _NavCircleButton(
+            AppCircularButton(
               responsive: responsive,
               icon: Icons.arrow_back_ios_new_rounded,
               enabled: !controller.isFirstPage,
               onTap: controller.previousPage,
             ),
-            _NavCircleButton(
+            AppCircularButton(
               responsive: responsive,
               icon: Icons.arrow_forward_ios_rounded,
               enabled: true,
-              onTap: controller.nextPage,
               filled: true,
+              onTap: controller.nextPage,
             ),
           ],
         ),
@@ -273,16 +250,19 @@ class _FinalActions extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _ActionButton(
+        AppPrimaryButton(
           responsive: responsive,
           label: AppStrings.onboarding4CreateAccount,
           onTap: controller.createAccount,
         ),
         SizedBox(height: responsive.h(12)),
-        _ActionButton(
+        AppPrimaryButton(
           responsive: responsive,
           label: AppStrings.onboarding4Login,
           onTap: controller.login,
+          backgroundColor: Colors.white,
+          textColor: AppColors.primary,
+          borderColor: AppColors.border,
         ),
       ],
     );
@@ -322,92 +302,6 @@ class _DotsRow extends StatelessWidget {
           ],
         );
       }),
-    );
-  }
-}
-
-class _NavCircleButton extends StatelessWidget {
-  const _NavCircleButton({
-    required this.responsive,
-    required this.icon,
-    required this.enabled,
-    required this.onTap,
-    this.filled = false,
-  });
-
-  final AppResponsive responsive;
-  final IconData icon;
-  final bool enabled;
-  final VoidCallback onTap;
-  final bool filled;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color fillColor = filled ? AppColors.primary : Colors.white;
-    final Color borderColor = enabled ? (filled ? AppColors.primary : const Color(0xFFD1D5DB)) : const Color(0xFFD1D5DB);
-    final Color iconColor = enabled ? (filled ? Colors.white : const Color(0xFFD1D5DB)) : const Color(0xFFD1D5DB);
-
-    return GestureDetector(
-      onTap: enabled ? onTap : null,
-      child: Opacity(
-        opacity: enabled ? 1 : 0.50,
-        child: Container(
-          width: responsive.w(48),
-          height: responsive.w(48),
-          decoration: ShapeDecoration(
-            color: fillColor,
-            shape: RoundedRectangleBorder(
-              side: BorderSide(width: responsive.w(2), color: borderColor),
-              borderRadius: BorderRadius.circular(9999),
-            ),
-            shadows: filled
-                ? const [
-                    BoxShadow(color: Color(0x19000000), blurRadius: 15, offset: Offset(0, 10)),
-                    BoxShadow(color: Color(0x19000000), blurRadius: 6, offset: Offset(0, 4)),
-                  ]
-                : const [],
-          ),
-          child: Icon(icon, size: responsive.text(18), color: iconColor),
-        ),
-      ),
-    );
-  }
-}
-
-class _ActionButton extends StatelessWidget {
-  const _ActionButton({required this.responsive, required this.label, required this.onTap});
-
-  final AppResponsive responsive;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.symmetric(
-          horizontal: responsive.w(32),
-          vertical: responsive.h(16),
-        ),
-        decoration: ShapeDecoration(
-          color: Colors.white,
-          shape: RoundedRectangleBorder(
-            side: const BorderSide(color: AppColors.border),
-            borderRadius: BorderRadius.circular(responsive.radius(16)),
-          ),
-          shadows: const [
-            BoxShadow(color: Color(0x19000000), blurRadius: 15, offset: Offset(0, 10)),
-            BoxShadow(color: Color(0x19000000), blurRadius: 6, offset: Offset(0, 4)),
-          ],
-        ),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: AppTextStyles.onboardingButton(responsive),
-        ),
-      ),
     );
   }
 }

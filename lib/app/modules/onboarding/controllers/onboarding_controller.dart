@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import 'package:covoiturage_benin_app/app/modules/auth/roles/bindings/roles_binding.dart';
+import 'package:covoiturage_benin_app/app/modules/auth/roles/views/roles_view.dart';
+
 class OnboardingController extends GetxController {
 	final PageController pageController = PageController();
 	final RxInt currentPage = 0.obs;
@@ -51,7 +54,7 @@ class OnboardingController extends GetxController {
 	}
 
 	void createAccount() {
-		Get.snackbar('MINIZON', 'L\'écran d\'inscription sera branché ici.');
+		Get.to(() => const RolesView(), binding: RolesBinding());
 	}
 
 	void login() {
