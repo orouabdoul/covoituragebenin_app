@@ -16,7 +16,7 @@ class OtpCodeView extends GetView<OtpCodeController> {
     final responsive = AppResponsive(context);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.white,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Center(
@@ -52,7 +52,7 @@ class OtpCodeView extends GetView<OtpCodeController> {
                                     gradient: const LinearGradient(
                                       begin: Alignment(-0.00, 0.00),
                                       end: Alignment(1.00, 1.00),
-                                      colors: [Color(0x1900A86B), Color(0x19008F5A)],
+                                      colors: [AppColors.surfaceAccentStrong, AppColors.surfaceAccentStrong],
                                     ),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(9999),
@@ -64,18 +64,18 @@ class OtpCodeView extends GetView<OtpCodeController> {
                                       gradient: const LinearGradient(
                                         begin: Alignment.topLeft,
                                         end: Alignment.bottomRight,
-                                        colors: [Color(0xFF00A86B), Color(0xFF008F5A)],
+                                        colors: [AppColors.primary, AppColors.success],
                                       ),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(9999),
                                       ),
                                       shadows: const [
-                                        BoxShadow(color: Color(0x19000000), blurRadius: 15, offset: Offset(0, 10)),
-                                        BoxShadow(color: Color(0x19000000), blurRadius: 6, offset: Offset(0, 4)),
+                                        BoxShadow(color: AppColors.shadow, blurRadius: 15, offset: Offset(0, 10)),
+                                        BoxShadow(color: AppColors.shadow, blurRadius: 6, offset: Offset(0, 4)),
                                       ],
                                     ),
                                     child: Center(
-                                      child: Icon(Icons.lock_outline_rounded, color: Colors.white, size: responsive.text(48)),
+                                      child: Icon(Icons.lock_outline_rounded, color: AppColors.white, size: responsive.text(48)),
                                     ),
                                   ),
                                 ),
@@ -146,10 +146,10 @@ class OtpCodeView extends GetView<OtpCodeController> {
                               gradient: const LinearGradient(
                                 begin: Alignment(-0.00, 0.50),
                                 end: Alignment(1.00, 0.50),
-                                colors: [Color(0x0C00A86B), Color(0x0C008F5A)],
+                                colors: [AppColors.surfaceAccentVeryWeak, AppColors.surfaceAccent],
                               ),
                               shape: RoundedRectangleBorder(
-                                side: const BorderSide(width: 1, color: Color(0x1900A86B)),
+                                side: const BorderSide(width: 1, color: AppColors.surfaceAccentStrong),
                                 borderRadius: BorderRadius.circular(responsive.radius(16)),
                               ),
                             ),
@@ -160,7 +160,7 @@ class OtpCodeView extends GetView<OtpCodeController> {
                                   width: responsive.w(40),
                                   height: responsive.w(40),
                                   decoration: ShapeDecoration(
-                                    color: const Color(0x1900A86B),
+                                    color: AppColors.surfaceAccentStrong,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(9999),
                                     ),

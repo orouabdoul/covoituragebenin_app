@@ -16,7 +16,7 @@ class OnboardingScreen extends GetView<OnboardingController> {
     final responsive = AppResponsive(context);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+        backgroundColor: AppColors.white,
       body: SafeArea(
         child: Stack(
           children: [
@@ -30,24 +30,27 @@ class OnboardingScreen extends GetView<OnboardingController> {
                 _OnboardingSlide(responsive: responsive, data: _SlideData.fourth()),
               ],
             ),
-            Positioned(
-              top: responsive.h(16),
-              right: responsive.w(24),
-              child: GetBuilder<OnboardingController>(
-                builder: (controller) {
-                  if (controller.isLastPage) {
-                    return const SizedBox.shrink();
-                  }
+           Positioned(
+                top: responsive.h(16),
+                right: responsive.w(16),
+                child: Material(
+                  color: AppColors.white,
+                  child: GetBuilder<OnboardingController>(
+                    builder: (controller) {
+                      if (controller.isLastPage) {
+                        return const SizedBox.shrink();
+                      }
 
-                  return AppChipButton(
-                    responsive: responsive,
-                    label: AppStrings.onboardingSkip,
-                    onTap: controller.skip,
-                  );
-                },
+                      return AppChipButton(
+                        responsive: responsive,
+                        label: AppStrings.onboardingSkip,
+                        onTap: controller.skip,
+                      );
+                    },
+                  ),
+                ),
               ),
-            ),
-            Align(
+              Align(
               alignment: Alignment.bottomCenter,
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
@@ -260,7 +263,7 @@ class _FinalActions extends StatelessWidget {
           responsive: responsive,
           label: AppStrings.onboarding4Login,
           onTap: controller.login,
-          backgroundColor: Colors.white,
+          backgroundColor: AppColors.white,
           textColor: AppColors.primary,
           borderColor: AppColors.border,
         ),
@@ -283,7 +286,7 @@ class _DotsRow extends StatelessWidget {
       children: List.generate(count, (index) {
         final bool isActive = index == activeIndex;
         final double size = isActive ? responsive.w(14) : responsive.w(12);
-        final Color color = isActive ? AppColors.primary : const Color(0xFFD1D5DB);
+            final Color color = isActive ? AppColors.primary : AppColors.borderStrong;
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: [

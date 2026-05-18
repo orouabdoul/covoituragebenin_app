@@ -172,6 +172,21 @@ class AppTextStyles {
     );
   }
 
+  static TextStyle bottomNavLabel(
+    AppResponsive responsive, {
+    required Color color,
+    required FontWeight fontWeight,
+  }) {
+    return TextStyle(
+      color: color,
+      fontSize: responsive.text(12),
+      fontFamily: _fontFamily,
+      fontWeight: fontWeight,
+      height: 1.33,
+      letterSpacing: -0.50,
+    );
+  }
+
   static TextStyle registerHeroTitle(AppResponsive responsive) {
     return TextStyle(
       color: Colors.white,
@@ -316,6 +331,39 @@ class AppTextStyles {
   }
 
   static TextStyle otpHint(AppResponsive responsive) {
+    return TextStyle(
+      color: const Color(0xFF6B7280),
+      fontSize: responsive.text(14),
+      fontFamily: _fontFamily,
+      fontWeight: FontWeight.w400,
+      height: 1.43,
+      letterSpacing: -0.50,
+    );
+  }
+
+  static TextStyle dialogTitle(AppResponsive responsive) {
+    return TextStyle(
+      color: const Color(0xFF111111),
+      fontSize: responsive.text(20),
+      fontFamily: _fontFamily,
+      fontWeight: FontWeight.w700,
+      height: 1.33,
+      letterSpacing: -0.50,
+    );
+  }
+
+  static TextStyle dialogBody(AppResponsive responsive) {
+    return TextStyle(
+      color: const Color(0xFF111827),
+      fontSize: responsive.text(16),
+      fontFamily: _fontFamily,
+      fontWeight: FontWeight.w600,
+      height: 1.50,
+      letterSpacing: -0.50,
+    );
+  }
+
+  static TextStyle dialogHint(AppResponsive responsive) {
     return TextStyle(
       color: const Color(0xFF6B7280),
       fontSize: responsive.text(14),

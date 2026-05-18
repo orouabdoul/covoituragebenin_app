@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:get/get.dart';
+import 'package:covoiturage_benin_app/app/modules/widgets/complete_profile_dialog.dart';
 
 class OtpCodeController extends GetxController {
   static const int _initialResendSeconds = 55;
@@ -38,6 +39,17 @@ class OtpCodeController extends GetxController {
     }
 
     Get.snackbar('MINIZON', 'Code vérifié avec succès.');
+
+    // Use a polished, responsive dialog that matches project styles
+    Get.dialog(
+      CompleteProfileDialog(
+        onLater: () => Get.snackbar(
+          'MINIZON',
+          'Vous pouvez compléter votre profil plus tard.',
+        ),
+      ),
+      barrierDismissible: true,
+    );
   }
 
   void resendCode() {

@@ -15,7 +15,7 @@ class RolesView extends GetView<RolesController> {
     final responsive = AppResponsive(context);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+          backgroundColor: AppColors.white,
       body: SafeArea(
         child: SingleChildScrollView(
           child: ConstrainedBox(
@@ -134,8 +134,8 @@ class _RoleCardData {
   factory _RoleCardData.driver() => const _RoleCardData(
         title: 'Conducteur',
         description: 'Générez des revenus \nsupplémentaires en \npartageant vos trajets \nquotidiens',
-        gradientColors: [Color(0xFF00A86B), Color(0xFF008F5A)],
-        badgeColor: Color(0xFFF4B400),
+        gradientColors: [AppColors.primary, AppColors.success],
+        badgeColor: AppColors.warning,
         icon: Icons.directions_car_rounded,
         benefits: [
           'Revenus jusqu\'à 150 000 \nFCFA/mois',
@@ -147,8 +147,8 @@ class _RoleCardData {
   factory _RoleCardData.passenger() => const _RoleCardData(
         title: 'Passager',
         description: 'Voyagez confortablement et \néconomiquement vers votre \ndestination',
-        gradientColors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
-        badgeColor: Color(0xFFF4B400),
+        gradientColors: [AppColors.blue, AppColors.blueDark],
+        badgeColor: AppColors.warning,
         icon: Icons.person_rounded,
         benefits: [
           'Économisez jusqu\'à 60% \nsur vos trajets',
@@ -181,7 +181,7 @@ class _RoleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
+      color: AppColors.white,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(responsive.radius(24)),
@@ -189,11 +189,11 @@ class _RoleCard extends StatelessWidget {
           width: double.infinity,
           padding: EdgeInsets.all(responsive.w(24)),
           decoration: ShapeDecoration(
-            color: Colors.white,
+            color: AppColors.white,
             shape: RoundedRectangleBorder(
               side: BorderSide(
                 width: responsive.w(2),
-                color: selected ? AppColors.primary : const Color(0xFFF3F4F6),
+                color: selected ? AppColors.primary : AppColors.surfaceSoft,
               ),
               borderRadius: BorderRadius.circular(responsive.radius(24)),
             ),
@@ -208,11 +208,11 @@ class _RoleCard extends StatelessWidget {
                   width: responsive.w(24),
                   height: responsive.w(24),
                   decoration: ShapeDecoration(
-                    color: selected ? AppColors.primary : Colors.white,
+                    color: selected ? AppColors.primary : AppColors.white,
                     shape: RoundedRectangleBorder(
                       side: BorderSide(
                         width: responsive.w(2),
-                        color: selected ? AppColors.primary : const Color(0xFFD1D5DB),
+                        color: selected ? AppColors.primary : AppColors.borderStrong,
                       ),
                       borderRadius: BorderRadius.circular(9999),
                     ),
@@ -221,7 +221,7 @@ class _RoleCard extends StatelessWidget {
                       ? Icon(
                           Icons.check_rounded,
                           size: responsive.text(14),
-                          color: Colors.white,
+                          color: AppColors.white,
                         )
                       : const SizedBox.shrink(),
                 ),
@@ -264,8 +264,8 @@ class _RoleCard extends StatelessWidget {
                                   child: _BenefitItem(
                                     responsive: responsive,
                                     color: data.title == 'Passager'
-                                        ? const Color(0xFFDBEAFE)
-                                        : const Color(0xFFDCFCE7),
+                                        ? AppColors.blueLight
+                                        : AppColors.successLight,
                                     text: benefit,
                                   ),
                                 ),
@@ -322,7 +322,7 @@ class _RoleAvatar extends StatelessWidget {
             child: Icon(
               icon,
               size: responsive.text(30),
-              color: Colors.white,
+              color: AppColors.white,
             ),
           ),
           Positioned(
@@ -341,7 +341,7 @@ class _RoleAvatar extends StatelessWidget {
               child: Icon(
                 Icons.star_rounded,
                 size: responsive.text(14),
-                color: Colors.white,
+                color: AppColors.white,
               ),
             ),
           ),
@@ -378,7 +378,7 @@ class _BenefitItem extends StatelessWidget {
             child: Icon(
               Icons.check_rounded,
               size: responsive.text(12),
-              color: const Color(0xFF6B7280),
+              color: AppColors.textHint,
             ),
           ),
         ),

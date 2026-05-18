@@ -20,10 +20,7 @@ class InputPhoneController extends GetxController {
       Get.snackbar('MINIZON', 'Entrez votre numéro de téléphone.');
       return;
     }
-    Get.toNamed(
-       '/otp-code',
-      arguments: phoneController.text.trim(),
-    );
+    Get.toNamed(AppRoutes.otpCode, arguments: phoneController.text.trim());
   }
 
   void continueWithEmail() {

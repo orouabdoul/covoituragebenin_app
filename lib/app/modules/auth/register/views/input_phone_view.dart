@@ -16,14 +16,14 @@ class InputPhoneView extends GetView<InputPhoneController> {
 		final responsive = AppResponsive(context);
 
 		return Scaffold(
-			backgroundColor: const Color(0xFFF5F5F5),
+			backgroundColor: AppColors.surfaceMuted,
 			body: SafeArea(
 				child: Container(
 					decoration: const BoxDecoration(
 						gradient: LinearGradient(
 							begin: Alignment.topLeft,
 							end: Alignment.bottomRight,
-							colors: [Color(0xFF00A86B), Color(0xFF008F5A)],
+							colors: [AppColors.primary, AppColors.success],
 						),
 					),
 					child: SingleChildScrollView(
@@ -42,13 +42,13 @@ class InputPhoneView extends GetView<InputPhoneController> {
 												width: responsive.w(80),
 												height: responsive.w(80),
 												decoration: ShapeDecoration(
-													color: Colors.white,
+													color: AppColors.white,
 													shape: RoundedRectangleBorder(
 														borderRadius: BorderRadius.circular(responsive.radius(16)),
 													),
 													shadows: const [
-														BoxShadow(color: Color(0x19000000), blurRadius: 15, offset: Offset(0, 10)),
-														BoxShadow(color: Color(0x19000000), blurRadius: 6, offset: Offset(0, 4)),
+														BoxShadow(color: AppColors.shadow, blurRadius: 15, offset: Offset(0, 10)),
+														BoxShadow(color: AppColors.shadow, blurRadius: 6, offset: Offset(0, 4)),
 													],
 												),
 												child: Center(
@@ -72,7 +72,7 @@ class InputPhoneView extends GetView<InputPhoneController> {
 										responsive.h(48),
 									),
 									decoration: ShapeDecoration(
-										color: Colors.white,
+										color: AppColors.white,
 										shape: RoundedRectangleBorder(
 											borderRadius: BorderRadius.only(
 												topLeft: Radius.circular(responsive.radius(32)),
@@ -96,8 +96,8 @@ class InputPhoneView extends GetView<InputPhoneController> {
 																	children: [
 																		Text('🇧🇯', style: AppTextStyles.registerSectionTitle(responsive).copyWith(fontSize: responsive.text(24))),
 																		SizedBox(width: responsive.w(12)),
-																		Expanded(child: Text(AppStrings.registerCountryValue, style: AppTextStyles.registerBody(responsive).copyWith(color: Colors.black, fontWeight: FontWeight.w500))),
-																		Icon(Icons.keyboard_arrow_down_rounded, size: responsive.text(20), color: const Color(0xFF6B7280)),
+																		Expanded(child: Text(AppStrings.registerCountryValue, style: AppTextStyles.registerBody(responsive).copyWith(color: AppColors.textStrong, fontWeight: FontWeight.w500))),
+																		Icon(Icons.keyboard_arrow_down_rounded, size: responsive.text(20), color: AppColors.textHint),
 																	],
 																),
 															),
@@ -114,7 +114,7 @@ class InputPhoneView extends GetView<InputPhoneController> {
 																	style: AppTextStyles.registerField(responsive),
 																	decoration: InputDecoration.collapsed(
 																		hintText: AppStrings.registerPhoneHint,
-																		hintStyle: AppTextStyles.registerField(responsive).copyWith(color: const Color(0xFF9CA3AF)),
+																		hintStyle: AppTextStyles.registerField(responsive).copyWith(color: AppColors.textGhost),
 																	),
 																),
 															),
@@ -135,7 +135,7 @@ class InputPhoneView extends GetView<InputPhoneController> {
 															borderRadius: BorderRadius.circular(responsive.radius(16)),
 														),
 														minimumSize: Size(double.infinity, responsive.h(56)),
-														foregroundColor: const Color(0xFF374151),
+														foregroundColor: AppColors.textSecondary,
 													),
 													onPressed: controller.continueWithEmail,
 													icon: Icon(Icons.email_outlined, size: responsive.text(18)),
@@ -159,7 +159,7 @@ class InputPhoneView extends GetView<InputPhoneController> {
 													child: Row(
 														mainAxisSize: MainAxisSize.min,
 														children: [
-															Icon(Icons.verified_user_outlined, size: responsive.text(14), color: const Color(0xFF9CA3AF)),
+															Icon(Icons.verified_user_outlined, size: responsive.text(14), color: AppColors.textGhost),
 															SizedBox(width: responsive.w(8)),
 															Text(AppStrings.registerSsl, style: AppTextStyles.registerMuted(responsive)),
 														],

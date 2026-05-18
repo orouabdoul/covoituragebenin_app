@@ -7,7 +7,16 @@ class AppField extends StatelessWidget {
     super.key,
     required this.responsive,
     required this.label,
-    required this.child,
+    this.child,
+    this.controller,
+    this.hintText,
+    this.keyboardType,
+    this.textStyle,
+    this.hintStyle,
+    this.readOnly = false,
+    this.obscureText = false,
+    this.maxLines = 1,
+    this.onTap,
     this.helperText,
     this.borderRadius,
     this.backgroundColor,
@@ -19,7 +28,16 @@ class AppField extends StatelessWidget {
 
   final AppResponsive responsive;
   final String label;
-  final Widget child;
+  final Widget? child;
+  final TextEditingController? controller;
+  final String? hintText;
+  final TextInputType? keyboardType;
+  final TextStyle? textStyle;
+  final TextStyle? hintStyle;
+  final bool readOnly;
+  final bool obscureText;
+  final int? maxLines;
+  final VoidCallback? onTap;
   final String? helperText;
   final double? borderRadius;
   final Color? backgroundColor;
@@ -33,6 +51,19 @@ class AppField extends StatelessWidget {
     final double radius = borderRadius ?? responsive.radius(16);
     final Color resolvedBackgroundColor = backgroundColor ?? const Color(0xFFF5F5F5);
     final Color resolvedBorderColor = borderColor ?? AppColors.border;
+    final Widget resolvedChild = child ?? TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      style: textStyle,
+      readOnly: readOnly,
+      obscureText: obscureText,
+      maxLines: maxLines,
+      onTap: onTap,
+      decoration: InputDecoration.collapsed(
+        hintText: hintText,
+        hintStyle: hintStyle,
+      ),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -49,7 +80,7 @@ class AppField extends StatelessWidget {
               borderRadius: BorderRadius.circular(radius),
             ),
           ),
-          child: child,
+          child: resolvedChild,
         ),
         if (helperText != null) ...[
           SizedBox(height: responsive.h(8)),

@@ -109,13 +109,13 @@ class _LogoBlock extends StatelessWidget {
                     vertical: responsive.h(40),
                   ),
                   decoration: ShapeDecoration(
-                    color: Colors.white,
+                        color: AppColors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(responsive.radius(24)),
                     ),
                     shadows: const [
                       BoxShadow(
-                        color: Color(0x3F000000),
+                        color: AppColors.shadow,
                         blurRadius: 50,
                         offset: Offset(0, 25),
                       ),
@@ -262,8 +262,8 @@ class _TextBlock extends StatelessWidget {
                     width: responsive.w(58),
                     height: responsive.h(58),
                     decoration: ShapeDecoration(
-                      shape: RoundedRectangleBorder(
-                        side: const BorderSide(width: 4, color: Colors.white),
+                          shape: RoundedRectangleBorder(
+                            side: const BorderSide(width: 4, color: AppColors.white),
                         borderRadius: BorderRadius.circular(9999),
                       ),
                     ),
