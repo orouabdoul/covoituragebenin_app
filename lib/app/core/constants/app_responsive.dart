@@ -7,14 +7,51 @@ class AppResponsive {
 
   final BuildContext context;
 
+  static const double smallPhoneMaxWidth = 360;
+  static const double phoneMaxWidth = 600;
+  static const double tabletMaxWidth = 1024;
+
+  static const double minScale = 0.85;
+  static const double maxScale = 1.20;
+
   static const double designWidth = 375;
   static const double designHeight = 840;
+
+  bool get isSmallPhone => MediaQuery.sizeOf(context).width < smallPhoneMaxWidth;
+
+  bool get isPhone => !isSmallPhone && MediaQuery.sizeOf(context).width < phoneMaxWidth;
+
+  bool get isTablet =>
+      MediaQuery.sizeOf(context).width >= phoneMaxWidth && MediaQuery.sizeOf(context).width < tabletMaxWidth;
+
+  bool get isDesktop => MediaQuery.sizeOf(context).width >= tabletMaxWidth;
+
+  T adaptive<T>({
+    required T phone,
+    T? smallPhone,
+    T? tablet,
+    T? desktop,
+  }) {
+    if (isDesktop) {
+      return desktop ?? tablet ?? phone;
+    }
+
+    if (isTablet) {
+      return tablet ?? phone;
+    }
+
+    if (isSmallPhone) {
+      return smallPhone ?? phone;
+    }
+
+    return phone;
+  }
 
   double get _scale {
     final size = MediaQuery.sizeOf(context);
     final widthScale = size.width / designWidth;
     final heightScale = size.height / designHeight;
-    return math.min(widthScale, heightScale).clamp(0.85, 1.20);
+    return math.min(widthScale, heightScale).clamp(minScale, maxScale);
   }
 
   double w(double value) => value * _scale;

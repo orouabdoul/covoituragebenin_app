@@ -391,7 +391,7 @@ class _ProgressCard extends StatelessWidget {
               AppStrings.profileProgressLabel,
               style: AppTextStyles.profileMeta(responsive),
             ),
-            Text('${progress}%', style: AppTextStyles.profileMeta(responsive)),
+            Text('$progress%', style: AppTextStyles.profileMeta(responsive)),
           ],
         ),
         SizedBox(height: responsive.h(8)),

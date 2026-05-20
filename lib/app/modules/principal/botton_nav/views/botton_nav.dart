@@ -5,6 +5,7 @@ import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controlle
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'botton_nav_header.dart';
 
 class BottonNavView extends GetView<BottonNavController> {
   const BottonNavView({super.key});
@@ -16,11 +17,26 @@ class BottonNavView extends GetView<BottonNavController> {
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: SafeArea(
-        child: PageView(
-          controller: controller.pageController,
-          physics: const NeverScrollableScrollPhysics(),
-          onPageChanged: controller.onPageChanged,
-          children: controller.pages,
+        child: Column(
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                responsive.w(12),
+                responsive.h(12),
+                responsive.w(12),
+                responsive.h(8),
+              ),
+              child: BottonNavHeader(responsive: responsive, controller: controller),
+            ),
+            Expanded(
+              child: PageView(
+                controller: controller.pageController,
+                physics: const NeverScrollableScrollPhysics(),
+                onPageChanged: controller.onPageChanged,
+                children: controller.pages,
+              ),
+            ),
+          ],
         ),
       ),
       bottomNavigationBar: Obx(

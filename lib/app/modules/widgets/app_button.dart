@@ -137,11 +137,23 @@ class AppChipButton extends StatelessWidget {
     required this.responsive,
     required this.label,
     required this.onTap,
+    this.height,
+    this.borderRadius,
+    this.backgroundColor,
+    this.textColor,
+    this.borderColor,
+    this.shadows,
   });
 
   final AppResponsive responsive;
   final String label;
   final VoidCallback onTap;
+  final double? height;
+  final double? borderRadius;
+  final Color? backgroundColor;
+  final Color? textColor;
+  final Color? borderColor;
+  final List<BoxShadow>? shadows;
 
   @override
   Widget build(BuildContext context) {
@@ -149,22 +161,25 @@ class AppChipButton extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(9999),
+        borderRadius: BorderRadius.circular(borderRadius ?? 9999),
         child: Container(
+          height: height,
           padding: EdgeInsets.symmetric(
             horizontal: responsive.w(16),
             vertical: responsive.h(8),
           ),
           decoration: ShapeDecoration(
+            color: backgroundColor ?? Colors.transparent,
             shape: RoundedRectangleBorder(
-              side: const BorderSide(color: AppColors.border),
-              borderRadius: BorderRadius.circular(9999),
+              side: BorderSide(color: borderColor ?? AppColors.border),
+              borderRadius: BorderRadius.circular(borderRadius ?? 9999),
             ),
+            shadows: shadows ?? const [],
           ),
           child: Text(
             label,
             style: TextStyle(
-              color: const Color(0xFF9CA3AF),
+              color: textColor ?? const Color(0xFF9CA3AF),
               fontSize: responsive.text(14),
               fontFamily: 'Inter',
               fontWeight: FontWeight.w500,
@@ -185,12 +200,16 @@ class AppTextButton extends StatelessWidget {
     required this.label,
     required this.onTap,
     this.underlined = false,
+    this.textColor,
+    this.fontWeight,
   });
 
   final AppResponsive responsive;
   final String label;
   final VoidCallback onTap;
   final bool underlined;
+  final Color? textColor;
+  final FontWeight? fontWeight;
 
   @override
   Widget build(BuildContext context) {
@@ -204,10 +223,10 @@ class AppTextButton extends StatelessWidget {
             label,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: const Color(0xFF6B7280),
+              color: textColor ?? const Color(0xFF6B7280),
               fontSize: responsive.text(14),
               fontFamily: 'Inter',
-              fontWeight: FontWeight.w400,
+              fontWeight: fontWeight ?? FontWeight.w400,
               decoration: underlined ? TextDecoration.underline : TextDecoration.none,
               height: 1.43,
               letterSpacing: -0.50,

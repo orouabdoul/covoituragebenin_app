@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/passager/home/views/home_view.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/passager/search/views/search_view.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/passager/reservation/views/reservation_view.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/passager/messager/views/messager_view.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/passager/profil/views/profil_view.dart';
 import 'botton_nav_role.dart';
 
 class BottonNavController extends GetxController {
@@ -17,12 +22,39 @@ class BottonNavController extends GetxController {
       role == BottonNavRole.driver ? _driverItems : _passengerItems;
 
   List<Widget> get pages => items
+      .asMap()
+      .entries
       .map(
-        (item) => _TabPlaceholder(
-          title: item.label,
-          subtitle: item.description,
-          icon: item.icon,
-        ),
+        (entry) {
+          final int index = entry.key;
+          final BottonNavItemData item = entry.value;
+
+          if (role == BottonNavRole.passenger && index == 0) {
+            return const HomeView();
+          }
+
+          if (role == BottonNavRole.passenger && index == 1) {
+            return const SearchView();
+          }
+
+          if (role == BottonNavRole.passenger && index == 2) {
+            return const ReservationView();
+          }
+
+          if (role == BottonNavRole.passenger && index == 3) {
+            return const MessagerView();
+          }
+
+          if (role == BottonNavRole.passenger && index == 4) {
+            return const ProfilView();
+          }
+
+          return _TabPlaceholder(
+            title: item.label,
+            subtitle: item.description,
+            icon: item.icon,
+          );
+        },
       )
       .toList(growable: false);
 
@@ -91,6 +123,11 @@ class BottonNavController extends GetxController {
       icon: Icons.home_rounded,
     ),
     BottonNavItemData(
+      label: AppStrings.navSearch,
+      description: 'Rechercher un trajet',
+      icon: Icons.search_rounded,
+    ),
+    BottonNavItemData(
       label: AppStrings.navReservations,
       description: 'Vos réservations',
       icon: Icons.event_note_rounded,
@@ -99,11 +136,6 @@ class BottonNavController extends GetxController {
       label: AppStrings.navMessages,
       description: 'Messages reçus',
       icon: Icons.chat_bubble_outline_rounded,
-    ),
-    BottonNavItemData(
-      label: AppStrings.navNotifications,
-      description: 'Alertes et mises à jour',
-      icon: Icons.notifications_none_rounded,
     ),
     BottonNavItemData(
       label: AppStrings.navProfile,

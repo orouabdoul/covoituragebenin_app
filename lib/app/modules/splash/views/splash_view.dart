@@ -206,6 +206,10 @@ class _IllustrationBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final double pixelRatio = MediaQuery.devicePixelRatioOf(context);
+    final int cacheWidth = (responsive.w(192) * pixelRatio).round();
+    final int cacheHeight = (responsive.h(158) * pixelRatio).round();
+
     return Opacity(
       opacity: 0.90,
       child: Container(
@@ -216,8 +220,12 @@ class _IllustrationBlock extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(responsive.radius(16)),
           ),
-          image: const DecorationImage(
-            image: AssetImage(AppImages.splash),
+          image: DecorationImage(
+            image: ResizeImage(
+              const AssetImage(AppImages.splash),
+              width: cacheWidth,
+              height: cacheHeight,
+            ),
             fit: BoxFit.fill,
           ),
         ),

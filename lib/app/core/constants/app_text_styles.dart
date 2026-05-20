@@ -172,6 +172,28 @@ class AppTextStyles {
     );
   }
 
+  static TextStyle h6(AppResponsive responsive) {
+    return TextStyle(
+      color: const Color(0xFF111111),
+      fontSize: responsive.text(16),
+      fontFamily: _fontFamily,
+      fontWeight: FontWeight.w700,
+      height: 1.50,
+      letterSpacing: -0.50,
+    );
+  }
+
+  static TextStyle caption(AppResponsive responsive) {
+    return TextStyle(
+      color: const Color(0xFF6B7280),
+      fontSize: responsive.text(12),
+      fontFamily: _fontFamily,
+      fontWeight: FontWeight.w400,
+      height: 1.33,
+      letterSpacing: -0.50,
+    );
+  }
+
   static TextStyle bottomNavLabel(
     AppResponsive responsive, {
     required Color color,
@@ -469,6 +491,94 @@ class AppTextStyles {
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w500,
       height: 1.43,
+      letterSpacing: -0.50,
+    );
+  }
+
+  static TextStyle homeHeroTitle(AppResponsive responsive) {
+    return TextStyle(
+      color: Colors.white,
+      fontSize: responsive.text(20),
+      fontFamily: _fontFamily,
+      fontWeight: FontWeight.w700,
+      height: 1.40,
+      letterSpacing: -0.50,
+    );
+  }
+
+  static TextStyle homeMetricLabel(AppResponsive responsive) {
+    return TextStyle(
+      color: Colors.white.withValues(alpha: 0.80),
+      fontSize: responsive.text(10),
+      fontFamily: _fontFamily,
+      fontWeight: FontWeight.w500,
+      height: 1.50,
+      letterSpacing: -0.50,
+    );
+  }
+
+  static TextStyle homeMetricValue(AppResponsive responsive) {
+    return TextStyle(
+      color: Colors.white,
+      fontSize: responsive.text(16),
+      fontFamily: _fontFamily,
+      fontWeight: FontWeight.w700,
+      height: 1.50,
+      letterSpacing: -0.50,
+    );
+  }
+
+  static TextStyle homeSectionTitle(AppResponsive responsive) {
+    return TextStyle(
+      color: const Color(0xFF111111),
+      fontSize: responsive.text(16),
+      fontFamily: _fontFamily,
+      fontWeight: FontWeight.w700,
+      height: 1.50,
+      letterSpacing: -0.50,
+    );
+  }
+
+  static TextStyle homeCardTitle(AppResponsive responsive) {
+    return TextStyle(
+      color: const Color(0xFF111111),
+      fontSize: responsive.text(14),
+      fontFamily: _fontFamily,
+      fontWeight: FontWeight.w700,
+      height: 1.43,
+      letterSpacing: -0.50,
+    );
+  }
+
+  static TextStyle homeCardBody(AppResponsive responsive) {
+    return TextStyle(
+      color: const Color(0xFF6B7280),
+      fontSize: responsive.text(12),
+      fontFamily: _fontFamily,
+      fontWeight: FontWeight.w400,
+      height: 1.33,
+      letterSpacing: -0.50,
+    );
+  }
+
+  static TextStyle homePrice(AppResponsive responsive) {
+    return TextStyle(
+      color: AppColors.primary,
+      fontSize: responsive.text(18),
+      fontFamily: _fontFamily,
+      fontWeight: FontWeight.w700,
+      height: 1.56,
+      letterSpacing: -0.50,
+    );
+  }
+
+  static TextStyle homeAction(AppResponsive responsive) {
+    return TextStyle(
+      color: AppColors.primary,
+      fontSize: responsive.text(12),
+      fontFamily: _fontFamily,
+      fontWeight: FontWeight.w600,
+      height: 1.33,
       letterSpacing: -0.50,
     );
   }

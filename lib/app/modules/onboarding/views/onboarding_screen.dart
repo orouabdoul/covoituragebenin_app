@@ -16,40 +16,39 @@ class OnboardingScreen extends GetView<OnboardingController> {
     final responsive = AppResponsive(context);
 
     return Scaffold(
-        backgroundColor: AppColors.white,
+      backgroundColor: AppColors.white,
       body: SafeArea(
         child: Stack(
           children: [
-            PageView(
+            PageView.builder(
               controller: controller.pageController,
               onPageChanged: controller.onPageChanged,
-              children: [
-                _OnboardingSlide(responsive: responsive, data: _SlideData.first()),
-                _OnboardingSlide(responsive: responsive, data: _SlideData.second()),
-                _OnboardingSlide(responsive: responsive, data: _SlideData.third()),
-                _OnboardingSlide(responsive: responsive, data: _SlideData.fourth()),
-              ],
+              itemCount: OnboardingController.pagesCount,
+              itemBuilder: (context, index) => _OnboardingSlide(
+                responsive: responsive,
+                data: _slides[index],
+              ),
             ),
-           Positioned(
-                top: responsive.h(16),
-                right: responsive.w(16),
-                child: Material(
-                  color: AppColors.white,
-                  child: GetBuilder<OnboardingController>(
-                    builder: (controller) {
-                      if (controller.isLastPage) {
-                        return const SizedBox.shrink();
-                      }
+            Positioned(
+              top: responsive.h(16),
+              right: responsive.w(16),
+              child: Material(
+                color: AppColors.white,
+                child: GetBuilder<OnboardingController>(
+                  builder: (controller) {
+                    if (controller.isLastPage) {
+                      return const SizedBox.shrink();
+                    }
 
-                      return AppChipButton(
-                        responsive: responsive,
-                        label: AppStrings.onboardingSkip,
-                        onTap: controller.skip,
-                      );
-                    },
-                  ),
+                    return AppChipButton(
+                      responsive: responsive,
+                      label: AppStrings.onboardingSkip,
+                      onTap: controller.skip,
+                    );
+                  },
                 ),
               ),
+            ),
               Align(
               alignment: Alignment.bottomCenter,
               child: Padding(
@@ -156,6 +155,14 @@ class _OnboardingSlide extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final double pixelRatio = MediaQuery.devicePixelRatioOf(context);
+    final int cacheWidth = (responsive.w(data.imageWidth) * pixelRatio).round() > 512
+      ? 512
+      : (responsive.w(data.imageWidth) * pixelRatio).round();
+    final int cacheHeight = (responsive.h(data.imageHeight) * pixelRatio).round() > 512
+      ? 512
+      : (responsive.h(data.imageHeight) * pixelRatio).round();
+
     return SafeArea(
       child: SingleChildScrollView(
         child: ConstrainedBox(
@@ -176,7 +183,13 @@ class _OnboardingSlide extends StatelessWidget {
                   height: responsive.h(data.imageHeight),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(responsive.radius(24)),
-                    child: Image.asset(data.image, fit: data.fit),
+                    child: Image.asset(
+                      data.image,
+                      fit: data.fit,
+                      cacheWidth: cacheWidth,
+                      cacheHeight: cacheHeight,
+                      filterQuality: FilterQuality.low,
+                    ),
                   ),
                 ),
                 SizedBox(height: responsive.h(32)),
@@ -205,6 +218,53 @@ class _OnboardingSlide extends StatelessWidget {
     );
   }
 }
+
+const List<_SlideData> _slides = [
+  _SlideData(
+    image: AppImages.onboarding1,
+    imageWidth: 320,
+    imageHeight: 250,
+    title: AppStrings.onboarding1Title,
+    description: AppStrings.onboarding1Description,
+    titleWidth: 278,
+    descriptionWidth: 278,
+    bottomPadding: 150,
+    fit: BoxFit.cover,
+  ),
+  _SlideData(
+    image: AppImages.onboarding2,
+    imageWidth: 309,
+    imageHeight: 262,
+    title: AppStrings.onboarding2Title,
+    description: AppStrings.onboarding2Description,
+    titleWidth: 269,
+    descriptionWidth: 269,
+    bottomPadding: 150,
+    fit: BoxFit.cover,
+  ),
+  _SlideData(
+    image: AppImages.onboarding3,
+    imageWidth: 288,
+    imageHeight: 257,
+    title: AppStrings.onboarding3Title,
+    description: AppStrings.onboarding3Description,
+    titleWidth: 282,
+    descriptionWidth: 282,
+    bottomPadding: 150,
+    fit: BoxFit.contain,
+  ),
+  _SlideData(
+    image: AppImages.onboarding4,
+    imageWidth: 320,
+    imageHeight: 320,
+    title: AppStrings.onboarding4Title,
+    description: AppStrings.onboarding4Description,
+    titleWidth: 253,
+    descriptionWidth: 253,
+    bottomPadding: 300,
+    fit: BoxFit.contain,
+  ),
+];
 
 class _PagerActions extends StatelessWidget {
   const _PagerActions({required this.responsive, required this.controller});

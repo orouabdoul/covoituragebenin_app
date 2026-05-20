@@ -139,12 +139,123 @@ class AppStrings {
   static const String passengerPrimaryAction = 'Créer mon profil';
   static const String passengerSecondaryAction = 'Continuer plus tard';
 
+    // Passenger profile
+    static const String passengerProfileTitle = 'Mon Profil';
+    static const String passengerProfileName = 'Koffi Mensah';
+    static const String passengerProfilePhone = '+229 97 85 42 63';
+    static const String passengerProfileVerified = 'Profil Vérifié';
+    static const String passengerProfileTrustTitle = 'Niveau de Confiance';
+    static const String passengerProfileTrustLevel = 'Expert';
+    static const String passengerProfileSettingsTitle = 'Paramètres';
+    static const String passengerProfilePaymentTitle = 'Moyens de Paiement';
+    static const String passengerProfileRecentTripsTitle = 'Trajets Récents';
+    static const String passengerProfileSeeAll = 'Voir tout';
+    static const String passengerProfileAdd = 'Ajouter';
+    static const String passengerProfileEditProfile = 'Modifier le profil';
+    static const String passengerProfileSecurity = 'Sécurité';
+    static const String passengerProfileNotifications = 'Notifications';
+    static const String passengerProfileSupport = 'Support';
+    static const String passengerProfileRating = '5.0';
+    static const String passengerProfileRatingLabel = 'Évaluation';
+    static const String passengerProfileTripsCount = '147';
+    static const String passengerProfileTripsLabel = 'Trajets terminés';
+    static const String passengerProfileVerifiedNumber = 'Numéro vérifié';
+    static const String passengerProfileIdentityDocument = 'Pièce d\'identité';
+    static const String passengerProfileVerifiedEmail = 'Email confirmé';
+    static const String passengerProfileCardProvider = 'VISA';
+    static const String passengerProfileMtn = 'MTN';
+    static const String passengerProfileCardNumber = '•••• 4532';
+    static const String passengerProfileCardExpiry = 'Expire 03/26';
+    static const String passengerProfileMobileMoney = 'Mobile Money';
+    static const String passengerProfileMobileMoneyNumber = '+229 97 85 42 63';
+    static const String passengerProfileRecentTripOneTitle = 'Cotonou → Porto-Novo';
+    static const String passengerProfileRecentTripOneTime = 'Aujourd\'hui, 14:30';
+    static const String passengerProfileRecentTripOnePrice = '2,500 F';
+    static const String passengerProfileRecentTripOneDriver = 'Avec Marie K.';
+    static const String passengerProfileRecentTripTwoTitle = 'Calavi → Cotonou';
+    static const String passengerProfileRecentTripTwoTime = 'Hier, 08:15';
+    static const String passengerProfileRecentTripTwoPrice = '1,800 F';
+    static const String passengerProfileRecentTripTwoDriver = 'Avec Jean-Paul A.';
+
   // Bottom navigation
   static const String navHome = 'Accueil';
   static const String navTrips = 'Trajets';
   static const String navEarnings = 'Revenus';
   static const String navReservations = 'Réservations';
   static const String navMessages = 'Messages';
+    static const String navSearch = 'Recherche';
   static const String navNotifications = 'Notifications';
   static const String navProfile = 'Profil';
+
+    // Passenger messenger
+    static const String messengerSearchHint = 'Rechercher conversations...';
+    static const String messengerFilterAll = 'Tous';
+    static const String messengerFilterDrivers = 'Conducteurs';
+    static const String messengerFilterPassengers = 'Passagers';
+    static const String messengerFilterSupport = 'Support';
+    static const String messengerFilterUnread = 'Non lus';
+    static const String messengerRoleDriver = 'Conducteur';
+    static const String messengerRolePassenger = 'Passager';
+    static const String messengerRoleSupport = 'Support';
+    static const String messengerOpen = 'Ouvrir';
+    static const String messengerDetailToday = 'Aujourd\'hui';
+    static const String messengerDetailMapAction = 'Voir sur la carte';
+    static const String messengerDetailInputHint = 'Tapez votre message...';
+    static const String messengerDetailReminder =
+        'Rappel : Partagez uniquement les informations nécessaires pour le trajet.';
+    static const String messengerDetailNow = 'À l\'instant';
+
+    // Passenger reservations
+    static const String reservationTitle = 'Mes Réservations';
+    static const String reservationStatusPending = 'En attente';
+    static const String reservationStatusConfirmed = 'Confirmés';
+    static const String reservationStatusCompleted = 'Terminés';
+    static const String reservationStatusCancelled = 'Annulés';
+    static const String reservationPerSeat = 'par place';
+    static const String reservationCancel = 'Annuler';
+    static const String reservationContact = 'Contacter';
+
+    // Passenger search
+    static const String searchTitle = 'Rechercher un trajet';
+    static const String searchSubtitle =
+            'Trouvez rapidement un trajet adapté à votre départ et à votre arrivée.';
+    static const String searchFromLabel = 'Départ';
+    static const String searchToLabel = 'Arrivée';
+    static const String searchDateLabel = 'Date';
+    static const String searchPassengersLabel = 'Passagers';
+    static const String searchPopularTrips = 'Trajets populaires';
+    static const String searchAvailableNow = 'Disponibles maintenant';
+    static const String searchRecommendedDrivers = 'Conducteurs recommandés';
+    static const String searchQuickFilters = 'Filtres rapides';
+    static const String searchSeeAll = 'Voir tout';
+    static const String searchReserve = 'Réserver maintenant';
+    static const String searchPeopleUnit = 'par personne';
+    static const String searchDurationUnit = 'min';
+    static const String searchSeatsUnit = 'places';
+    static const String searchNoResults = 'Aucun trajet trouvé pour ces critères.';
+    static const String searchReset = 'Réinitialiser';
+    static const String searchApply = 'Appliquer';
+
+    // Passenger home
+    static const String homeHeroTitle =
+            'Voyagez simplement,\nrapidement et en toute\nconfiance.';
+    static const String homeDriversStat = 'Conducteurs';
+    static const String homeActiveTripsStat = 'Trajets actifs';
+    static const String homeSatisfactionStat = 'Satisfaction';
+    static const String homePopularTrips = 'Trajets populaires';
+    static const String homeAvailableNow = 'Disponibles maintenant';
+    static const String homeRecommendedDrivers = 'Conducteurs recommandés';
+    static const String homeSpecialOffers = 'Offres spéciales';
+    static const String homeRecentActivity = 'Activité récente';
+    static const String homeViewAll = 'Voir tout';
+    static const String homePerSeat = 'par place';
+    static const String homeRepeat = 'Refaire';
+    static const String homeToday = 'Aujourd\'hui';
+    static const String homeTomorrow = 'Demain';
+
+    // Dashboard header
+    static const String dashboardHeaderDriverTitle = 'Bonjour chauffeur 👋';
+    static const String dashboardHeaderPassengerTitle = 'Bonjour passager 👋';
+    static const String dashboardHeaderLocation = 'Cotonou';
+    static const String dashboardHeaderNotifications = 'Notifications';
 }
