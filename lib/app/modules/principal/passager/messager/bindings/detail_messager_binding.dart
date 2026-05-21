@@ -1,6 +1,6 @@
 import 'package:get/get.dart';
 
-import '../controller/detail_messager_controller.dart';
+import '../controllers/detail_messager_controller.dart';
 
 class DetailMessagerBinding extends Bindings {
   @override

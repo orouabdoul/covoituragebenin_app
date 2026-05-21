@@ -582,4 +582,55 @@ class AppTextStyles {
       letterSpacing: -0.50,
     );
   }
+
+  static TextStyle body(AppResponsive responsive) {
+    return TextStyle(
+      color: const Color(0xFF374151),
+      fontSize: responsive.text(14),
+      fontFamily: _fontFamily,
+      fontWeight: FontWeight.w400,
+      height: 1.64,
+      letterSpacing: -0.50,
+    );
+  }
+
+  // Convenience / legacy mappings used across views
+  static TextStyle title(AppResponsive responsive) => profileSectionTitle(responsive);
+
+  static TextStyle sectionTitle(AppResponsive responsive) => profileSectionTitle(responsive);
+
+  static TextStyle subtitle(AppResponsive responsive) {
+    return TextStyle(
+      color: const Color(0xFF111111),
+      fontSize: responsive.text(16),
+      fontFamily: _fontFamily,
+      fontWeight: FontWeight.w600,
+      height: 1.35,
+      letterSpacing: -0.50,
+    );
+  }
+
+  static TextStyle muted(AppResponsive responsive) {
+    return TextStyle(
+      color: const Color(0xFF6B7280),
+      fontSize: responsive.text(14),
+      fontFamily: _fontFamily,
+      fontWeight: FontWeight.w400,
+      height: 1.43,
+      letterSpacing: -0.50,
+    );
+  }
+
+  static TextStyle price(AppResponsive responsive) => homePrice(responsive);
+
+  static TextStyle button(AppResponsive responsive) {
+    return TextStyle(
+      color: Colors.white,
+      fontSize: responsive.text(16),
+      fontFamily: _fontFamily,
+      fontWeight: FontWeight.w700,
+      height: 1.20,
+      letterSpacing: -0.50,
+    );
+  }
 }

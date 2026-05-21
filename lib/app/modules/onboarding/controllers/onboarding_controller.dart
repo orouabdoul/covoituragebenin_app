@@ -8,7 +8,7 @@ class OnboardingController extends GetxController {
 	final PageController pageController = PageController();
 	final RxInt currentPage = 0.obs;
 
-	static const int pagesCount = 4;
+	static const int pagesCount = 3;
 
 	bool get isFirstPage => currentPage.value == 0;
 

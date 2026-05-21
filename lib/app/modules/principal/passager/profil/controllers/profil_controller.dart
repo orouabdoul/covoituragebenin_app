@@ -6,7 +6,7 @@ class ProfilController extends GetxController {
   final ProfileSummary profileSummary = const ProfileSummary(
     name: AppStrings.passengerProfileName,
     phone: AppStrings.passengerProfilePhone,
-    avatarUrl: 'https://placehold.co/88x88',
+    avatarUrl: 'https://placehold.co/88x88.png',
   );
 
   final ProfileTrustCard trustCard = const ProfileTrustCard(

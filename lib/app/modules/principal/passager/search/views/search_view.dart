@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart' hide SearchController;
 import 'package:get/get.dart';
-
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
-
+import '../../reservation/views/detail_journey_view.dart';
 import '../controllers/search_controller.dart';
 
 class SearchView extends StatelessWidget {
@@ -421,22 +420,30 @@ class _RideCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final double cardPadding = responsive.adaptive(phone: 16, smallPhone: 14, tablet: 18, desktop: 20);
 
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(cardPadding),
-      decoration: ShapeDecoration(
-        color: AppColors.white,
-        shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.border),
-          borderRadius: BorderRadius.circular(responsive.radius(24)),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => Get.to(
+          () => const DetailJourneyView(),
+          arguments: {'ride': ride},
         ),
-        shadows: const [
-          BoxShadow(color: Color(0x0C000000), blurRadius: 2, offset: Offset(0, 1)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        borderRadius: BorderRadius.circular(responsive.radius(24)),
+        child: Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(cardPadding),
+          decoration: ShapeDecoration(
+            color: AppColors.white,
+            shape: RoundedRectangleBorder(
+              side: const BorderSide(color: AppColors.border),
+              borderRadius: BorderRadius.circular(responsive.radius(24)),
+            ),
+            shadows: const [
+              BoxShadow(color: Color(0x0C000000), blurRadius: 2, offset: Offset(0, 1)),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
           Row(
             children: [
               _Avatar(responsive: responsive, initials: _initials(ride.driverName)),
@@ -521,6 +528,8 @@ class _RideCard extends StatelessWidget {
             borderRadius: responsive.radius(16),
           ),
         ],
+          ),
+        ),
       ),
     );
   }

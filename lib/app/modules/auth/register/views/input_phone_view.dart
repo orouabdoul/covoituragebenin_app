@@ -80,93 +80,94 @@ class InputPhoneView extends GetView<InputPhoneController> {
 											),
 										),
 									),
-									child: GetBuilder<InputPhoneController>(
-										builder: (controller) => Column(
-											crossAxisAlignment: CrossAxisAlignment.start,
-											children: [
-												Text(AppStrings.registerTitle, style: AppTextStyles.registerSectionTitle(responsive)),
-												SizedBox(height: responsive.h(8)),
-												Text(AppStrings.registerSubtitle, style: AppTextStyles.registerBody(responsive)),
-												SizedBox(height: responsive.h(24)),
-															AppField(
-																responsive: responsive,
-																label: AppStrings.registerCountryLabel,
-																labelStyle: AppTextStyles.registerLabel(responsive),
-																child: Row(
-																	children: [
-																		Text('🇧🇯', style: AppTextStyles.registerSectionTitle(responsive).copyWith(fontSize: responsive.text(24))),
-																		SizedBox(width: responsive.w(12)),
-																		Expanded(child: Text(AppStrings.registerCountryValue, style: AppTextStyles.registerBody(responsive).copyWith(color: AppColors.textStrong, fontWeight: FontWeight.w500))),
-																		Icon(Icons.keyboard_arrow_down_rounded, size: responsive.text(20), color: AppColors.textHint),
-																	],
-																),
-															),
-															SizedBox(height: responsive.h(16)),
-															AppField(
-																responsive: responsive,
-																label: AppStrings.registerPhoneLabel,
-																labelStyle: AppTextStyles.registerLabel(responsive),
-																helperText: AppStrings.registerPhoneHelp,
-																helperStyle: AppTextStyles.registerHelp(responsive),
-																child: TextField(
-																	controller: controller.phoneController,
-																	keyboardType: TextInputType.phone,
-																	style: AppTextStyles.registerField(responsive),
-																	decoration: InputDecoration.collapsed(
-																		hintText: AppStrings.registerPhoneHint,
-																		hintStyle: AppTextStyles.registerField(responsive).copyWith(color: AppColors.textGhost),
-																	),
-																),
-															),
-												SizedBox(height: responsive.h(24)),
-												AppPrimaryButton(
+									child: Column(
+										crossAxisAlignment: CrossAxisAlignment.start,
+										children: [
+											Text(AppStrings.registerTitle, style: AppTextStyles.registerSectionTitle(responsive)),
+											SizedBox(height: responsive.h(8)),
+											Text(AppStrings.registerSubtitle, style: AppTextStyles.registerBody(responsive)),
+											SizedBox(height: responsive.h(24)),
+											AppField(
+												responsive: responsive,
+												label: AppStrings.registerCountryLabel,
+												labelStyle: AppTextStyles.registerLabel(responsive),
+												child: Row(
+													children: [
+														Text('🇧🇯', style: AppTextStyles.registerSectionTitle(responsive).copyWith(fontSize: responsive.text(24))),
+														SizedBox(width: responsive.w(12)),
+														Expanded(child: Text(AppStrings.registerCountryValue, style: AppTextStyles.registerBody(responsive).copyWith(color: AppColors.textStrong, fontWeight: FontWeight.w500))),
+														Icon(Icons.keyboard_arrow_down_rounded, size: responsive.text(20), color: AppColors.textHint),
+													],
+												),
+											),
+											SizedBox(height: responsive.h(16)),
+											AppField(
+												responsive: responsive,
+												label: AppStrings.registerPhoneLabel,
+												labelStyle: AppTextStyles.registerLabel(responsive),
+												helperText: AppStrings.registerPhoneHelp,
+												helperStyle: AppTextStyles.registerHelp(responsive),
+												child: TextField(
+													controller: controller.phoneController,
+													onChanged: controller.onPhoneChanged,
+													keyboardType: TextInputType.phone,
+													style: AppTextStyles.registerField(responsive),
+													decoration: InputDecoration.collapsed(
+														hintText: AppStrings.registerPhoneHint,
+														hintStyle: AppTextStyles.registerField(responsive).copyWith(color: AppColors.textGhost),
+													),
+												),
+											),
+											SizedBox(height: responsive.h(24)),
+											Obx(
+												() => AppPrimaryButton(
 													responsive: responsive,
 													label: AppStrings.rolesContinue,
-													enabled: controller.canContinue,
+													enabled: controller.canContinueRx.value,
 													onTap: controller.continueWithPhone,
 												),
-												SizedBox(height: responsive.h(24)),
-												Center(child: Text(AppStrings.registerAlternative, style: AppTextStyles.registerBody(responsive))),
-												SizedBox(height: responsive.h(16)),
-												OutlinedButton.icon(
-													style: OutlinedButton.styleFrom(
-														side: const BorderSide(width: 2, color: AppColors.border),
-														shape: RoundedRectangleBorder(
-															borderRadius: BorderRadius.circular(responsive.radius(16)),
-														),
-														minimumSize: Size(double.infinity, responsive.h(56)),
-														foregroundColor: AppColors.textSecondary,
+											),
+											SizedBox(height: responsive.h(24)),
+											Center(child: Text(AppStrings.registerAlternative, style: AppTextStyles.registerBody(responsive))),
+											SizedBox(height: responsive.h(16)),
+											OutlinedButton.icon(
+												style: OutlinedButton.styleFrom(
+													side: const BorderSide(width: 2, color: AppColors.border),
+													shape: RoundedRectangleBorder(
+														borderRadius: BorderRadius.circular(responsive.radius(16)),
 													),
-													onPressed: controller.continueWithEmail,
-													icon: Icon(Icons.email_outlined, size: responsive.text(18)),
-													label: Text(AppStrings.registerEmail, style: AppTextStyles.registerLabel(responsive).copyWith(fontSize: responsive.text(16))),
+													minimumSize: Size(double.infinity, responsive.h(56)),
+													foregroundColor: AppColors.textSecondary,
 												),
-												SizedBox(height: responsive.h(20)),
-												Text.rich(
-													TextSpan(
-														style: AppTextStyles.registerBody(responsive).copyWith(fontSize: responsive.text(14)),
-														children: [
-															const TextSpan(text: AppStrings.registerTermsPrefix),
-															TextSpan(text: AppStrings.registerTerms, style: AppTextStyles.registerBody(responsive).copyWith(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: responsive.text(14))),
-															const TextSpan(text: AppStrings.registerAnd),
-															TextSpan(text: AppStrings.registerPrivacy, style: AppTextStyles.registerBody(responsive).copyWith(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: responsive.text(14))),
-														],
-													),
-													textAlign: TextAlign.center,
+												onPressed: controller.continueWithEmail,
+												icon: Icon(Icons.email_outlined, size: responsive.text(18)),
+												label: Text(AppStrings.registerEmail, style: AppTextStyles.registerLabel(responsive).copyWith(fontSize: responsive.text(16))),
+											),
+											SizedBox(height: responsive.h(20)),
+											Text.rich(
+												TextSpan(
+													style: AppTextStyles.registerBody(responsive).copyWith(fontSize: responsive.text(14)),
+													children: [
+														const TextSpan(text: AppStrings.registerTermsPrefix),
+														TextSpan(text: AppStrings.registerTerms, style: AppTextStyles.registerBody(responsive).copyWith(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: responsive.text(14))),
+														const TextSpan(text: AppStrings.registerAnd),
+														TextSpan(text: AppStrings.registerPrivacy, style: AppTextStyles.registerBody(responsive).copyWith(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: responsive.text(14))),
+													],
 												),
-												SizedBox(height: responsive.h(24)),
-												Center(
-													child: Row(
-														mainAxisSize: MainAxisSize.min,
-														children: [
-															Icon(Icons.verified_user_outlined, size: responsive.text(14), color: AppColors.textGhost),
-															SizedBox(width: responsive.w(8)),
-															Text(AppStrings.registerSsl, style: AppTextStyles.registerMuted(responsive)),
-														],
-													),
+												textAlign: TextAlign.center,
+											),
+											SizedBox(height: responsive.h(24)),
+											Center(
+												child: Row(
+													mainAxisSize: MainAxisSize.min,
+													children: [
+														Icon(Icons.verified_user_outlined, size: responsive.text(14), color: AppColors.textGhost),
+														SizedBox(width: responsive.w(8)),
+														Text(AppStrings.registerSsl, style: AppTextStyles.registerMuted(responsive)),
+													],
 												),
-											],
-										),
+											),
+										],
 									),
 								),
 							],

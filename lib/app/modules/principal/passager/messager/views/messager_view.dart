@@ -8,7 +8,7 @@ import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_field.dart';
 
-import '../controller/messager_controller.dart';
+import '../controllers/messager_controller.dart';
 
 class MessagerView extends StatelessWidget {
   const MessagerView({super.key});

@@ -17,6 +17,8 @@ import '../modules/principal/passager/search/bindings/search_binding.dart';
 import '../modules/principal/passager/search/views/search_view.dart';
 import '../modules/principal/passager/reservation/bindings/reservation_binding.dart';
 import '../modules/principal/passager/reservation/views/reservation_view.dart';
+import '../modules/principal/passager/reservation/bindings/detail_reservation_binding.dart';
+import '../modules/principal/passager/reservation/views/detail_journey_view.dart';
 import '../modules/principal/passager/messager/bindings/messager_binding.dart';
 import '../modules/principal/passager/messager/bindings/detail_messager_binding.dart';
 import '../modules/principal/passager/messager/views/detail_messager_view.dart';
@@ -66,6 +68,11 @@ class AppPages {
       name: AppRoutes.passengerReservations,
       page: () => const ReservationView(),
       binding: ReservationBinding(),
+    ),
+    _page(
+      name: AppRoutes.passengerReservationDetail,
+      page: () => const DetailJourneyView(),
+      binding: DetailReservationBinding(),
     ),
     _page(
       name: AppRoutes.passengerMessages,

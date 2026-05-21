@@ -6,13 +6,12 @@ import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 class InputPhoneController extends GetxController {
   final TextEditingController phoneController = TextEditingController();
   final RxString selectedCountry = 'Bénin (+229)'.obs;
+  final RxBool canContinueRx = false.obs;
 
   bool get canContinue => phoneController.text.trim().isNotEmpty;
 
-  @override
-  void onInit() {
-    super.onInit();
-    phoneController.addListener(update);
+  void onPhoneChanged(String value) {
+    canContinueRx.value = value.trim().isNotEmpty;
   }
 
   void continueWithPhone() {
@@ -29,9 +28,7 @@ class InputPhoneController extends GetxController {
 
   @override
   void onClose() {
-    phoneController
-      ..removeListener(update)
-      ..dispose();
+    phoneController.dispose();
     super.onClose();
   }
 }

@@ -61,7 +61,7 @@ class DetailMessagerController extends GetxController {
             statusLabel: '',
             statusLabelColor: 0,
             statusBackgroundColor: 0,
-            avatarUrl: 'https://placehold.co/32x32',
+            avatarUrl: 'https://placehold.co/32x32.png',
             roleLabel: 'Conducteur',
             roleLabelColor: 0,
             messageType: MessengerType.driver,

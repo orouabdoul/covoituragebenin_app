@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart' hide SearchController;
 import 'package:get/get.dart';
-
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';

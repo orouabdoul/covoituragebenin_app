@@ -10,6 +10,8 @@ abstract class AppRoutes {
   static const passengerHome = '/passenger-home';
   static const passengerSearch = '/passenger-search';
   static const passengerReservations = '/passenger-reservations';
+  static const passengerReservationDetail = '/passenger-reservation-detail';
+  static const passengerReservationConfirmation = '/passenger-reservation-confirmation';
   static const passengerMessages = '/passenger-messages';
   static const passengerMessageDetail = '/passenger-message-detail';
   static const passengerProfile = '/passenger-profile';

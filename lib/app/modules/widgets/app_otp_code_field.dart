@@ -1,6 +1,7 @@
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class AppOtpCodeField extends StatefulWidget {
   const AppOtpCodeField({
@@ -45,20 +46,11 @@ class _AppOtpCodeFieldState extends State<AppOtpCodeField> {
   }
 
   void _handleChanged(int index, String value) {
-    final String digit = value.replaceAll(RegExp(r'\D'), '');
-    if (digit.isEmpty) {
-      _controllers[index].clear();
-      _notifyChange();
-      return;
-    }
-
-    _controllers[index].text = digit.substring(0, 1);
-    _controllers[index].selection = TextSelection.collapsed(offset: _controllers[index].text.length);
     _notifyChange();
 
-    if (index < widget.length - 1) {
+    if (value.isNotEmpty && index < widget.length - 1) {
       _focusNodes[index + 1].requestFocus();
-    } else {
+    } else if (value.isNotEmpty) {
       _focusNodes[index].unfocus();
     }
   }
@@ -78,8 +70,13 @@ class _AppOtpCodeFieldState extends State<AppOtpCodeField> {
             controller: _controllers[index],
             focusNode: _focusNodes[index],
             keyboardType: TextInputType.number,
+            textInputAction: index == widget.length - 1 ? TextInputAction.done : TextInputAction.next,
             textAlign: TextAlign.center,
             maxLength: 1,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(1),
+            ],
             style: TextStyle(
               color: const Color(0xFF111111),
               fontSize: widget.responsive.text(20),

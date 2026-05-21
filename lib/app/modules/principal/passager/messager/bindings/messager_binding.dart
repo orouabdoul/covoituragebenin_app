@@ -1,6 +1,6 @@
 import 'package:get/get.dart';
 
-import '../controller/messager_controller.dart';
+import '../controllers/messager_controller.dart';
 
 class MessagerBinding extends Bindings {
   @override

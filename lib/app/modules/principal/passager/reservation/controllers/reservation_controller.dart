@@ -1,5 +1,4 @@
 import 'package:get/get.dart';
-
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 
 class ReservationController extends GetxController {

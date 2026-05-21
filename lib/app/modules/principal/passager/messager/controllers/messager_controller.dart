@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
-import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 class MessagerController extends GetxController {
   final RxInt selectedFilterIndex = 0.obs;
@@ -26,7 +24,7 @@ class MessagerController extends GetxController {
       statusLabel: 'Cotonou → Porto-Novo',
       statusLabelColor: 0xFF00A86B,
       statusBackgroundColor: 0x1900A86B,
-      avatarUrl: 'https://placehold.co/56x56',
+      avatarUrl: 'https://placehold.co/56x56.png',
       roleLabel: AppStrings.messengerRoleDriver,
       roleLabelColor: 0xFF00A86B,
       messageType: MessengerType.driver,
@@ -41,7 +39,7 @@ class MessagerController extends GetxController {
       statusLabel: 'Trajet terminé',
       statusLabelColor: 0xFF4B5563,
       statusBackgroundColor: 0xFFF3F4F6,
-      avatarUrl: 'https://placehold.co/56x56',
+      avatarUrl: 'https://placehold.co/56x56.png',
       roleLabel: AppStrings.messengerRolePassenger,
       roleLabelColor: 0xFF4B5563,
       messageType: MessengerType.passenger,
@@ -56,7 +54,7 @@ class MessagerController extends GetxController {
       statusLabel: 'Support',
       statusLabelColor: 0xFF2563EB,
       statusBackgroundColor: 0xFFDBEAFE,
-      avatarUrl: 'https://placehold.co/56x56',
+      avatarUrl: 'https://placehold.co/56x56.png',
       roleLabel: AppStrings.messengerRoleSupport,
       roleLabelColor: 0xFF2563EB,
       messageType: MessengerType.support,
@@ -71,7 +69,7 @@ class MessagerController extends GetxController {
       statusLabel: 'En attente',
       statusLabelColor: 0xFFEA580C,
       statusBackgroundColor: 0xFFFFEDD5,
-      avatarUrl: 'https://placehold.co/56x56',
+      avatarUrl: 'https://placehold.co/56x56.png',
       roleLabel: AppStrings.messengerRoleDriver,
       roleLabelColor: 0xFFEA580C,
       messageType: MessengerType.driver,

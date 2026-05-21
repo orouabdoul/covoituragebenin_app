@@ -6,7 +6,7 @@ import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 
-import '../controller/profil_controller.dart';
+import '../controllers/profil_controller.dart';
 
 class ProfilView extends GetView<ProfilController> {
 	const ProfilView({super.key});
@@ -41,7 +41,13 @@ class ProfilView extends GetView<ProfilController> {
 												children: [
 													_SummaryCard(responsive: responsive, controller: controller),
 													SizedBox(height: responsive.h(24)),
-													_StatCard(responsive: responsive, controller: controller, value: '', label: '', leadingIcon: null,),
+													_StatCard(
+														responsive: responsive,
+														value: controller.metrics[0].value,
+														label: controller.metrics[0].label,
+														leadingIcon: Icons.star_rounded,
+														trailingStars: true,
+													),
 													SizedBox(height: responsive.h(24)),
 													_TrustCard(responsive: responsive, controller: controller),
 													SizedBox(height: responsive.h(24)),
@@ -239,7 +245,7 @@ class _SummaryCard extends StatelessWidget {
 									value: controller.metrics[0].value,
 									label: controller.metrics[0].label,
 									leadingIcon: Icons.star_rounded,
-                  trailingStars: true, controller: controller,
+									trailingStars: true,
 								),
 							),
 							SizedBox(width: responsive.w(16)),
@@ -248,7 +254,7 @@ class _SummaryCard extends StatelessWidget {
 									responsive: responsive,
 									value: controller.metrics[1].value,
 									label: controller.metrics[1].label,
-									leadingIcon: Icons.route_rounded, controller: null,
+									leadingIcon: Icons.route_rounded,
 								),
 							),
 						],
@@ -268,7 +274,7 @@ class _StatCard extends StatelessWidget {
 		required this.value,
 		required this.label,
 		required this.leadingIcon,
-		this.trailingStars = false, required ProfilController controller,
+		this.trailingStars = false,
 	});
 
 	final AppResponsive responsive;

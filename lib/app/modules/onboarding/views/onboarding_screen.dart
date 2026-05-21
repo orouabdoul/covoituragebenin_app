@@ -88,54 +88,6 @@ class _SlideData {
     required this.fit,
   });
 
-  factory _SlideData.first() => const _SlideData(
-        image: AppImages.onboarding1,
-        imageWidth: 320,
-        imageHeight: 250,
-        title: AppStrings.onboarding1Title,
-        description: AppStrings.onboarding1Description,
-        titleWidth: 278,
-        descriptionWidth: 278,
-        bottomPadding: 150,
-        fit: BoxFit.cover,
-      );
-
-  factory _SlideData.second() => const _SlideData(
-        image: AppImages.onboarding2,
-        imageWidth: 309,
-        imageHeight: 262,
-        title: AppStrings.onboarding2Title,
-        description: AppStrings.onboarding2Description,
-        titleWidth: 269,
-        descriptionWidth: 269,
-        bottomPadding: 150,
-        fit: BoxFit.cover,
-      );
-
-  factory _SlideData.third() => const _SlideData(
-        image: AppImages.onboarding3,
-        imageWidth: 288,
-        imageHeight: 257,
-        title: AppStrings.onboarding3Title,
-        description: AppStrings.onboarding3Description,
-        titleWidth: 282,
-        descriptionWidth: 282,
-        bottomPadding: 150,
-        fit: BoxFit.contain,
-      );
-
-  factory _SlideData.fourth() => const _SlideData(
-        image: AppImages.onboarding4,
-        imageWidth: 320,
-        imageHeight: 320,
-        title: AppStrings.onboarding4Title,
-        description: AppStrings.onboarding4Description,
-        titleWidth: 253,
-        descriptionWidth: 253,
-        bottomPadding: 300,
-        fit: BoxFit.contain,
-      );
-
   final String image;
   final double imageWidth;
   final double imageHeight;
@@ -277,7 +229,7 @@ class _PagerActions extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _DotsRow(responsive: responsive, activeIndex: controller.currentPage.value, count: 3),
+        _DotsRow(responsive: responsive, activeIndex: controller.currentPage.value, count: OnboardingController.pagesCount),
         SizedBox(height: responsive.h(32)),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,

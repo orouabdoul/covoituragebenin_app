@@ -8,7 +8,7 @@ import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_field.dart';
 
-import '../controller/detail_messager_controller.dart';
+import '../controllers/detail_messager_controller.dart';
 
 class DetailMessagerView extends GetView<DetailMessagerController> {
   const DetailMessagerView({super.key});
@@ -44,7 +44,7 @@ class DetailMessagerView extends GetView<DetailMessagerController> {
                         responsive.h(12),
                       ),
                       itemCount: controller.messages.length,
-                      separatorBuilder: (_, __) => SizedBox(height: responsive.h(16)),
+                      separatorBuilder: (_, _) => SizedBox(height: responsive.h(16)),
                       itemBuilder: (context, index) {
                         final message = controller.messages[index];
 
