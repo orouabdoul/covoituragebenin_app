@@ -16,8 +16,12 @@ import '../modules/principal/passager/home/views/home_view.dart';
 import '../modules/principal/passager/search/bindings/search_binding.dart';
 import '../modules/principal/passager/search/views/search_view.dart';
 import '../modules/principal/passager/reservation/bindings/reservation_binding.dart';
+import '../modules/principal/passager/reservation/bindings/confirmation_reservation_binding.dart';
+import '../modules/principal/passager/reservation/bindings/confirmation_payment_binding.dart';
 import '../modules/principal/passager/reservation/views/reservation_view.dart';
 import '../modules/principal/passager/reservation/bindings/detail_reservation_binding.dart';
+import '../modules/principal/passager/reservation/views/confirmation_reservation_view.dart';
+import '../modules/principal/passager/reservation/views/confirmation_payment_view.dart';
 import '../modules/principal/passager/reservation/views/detail_journey_view.dart';
 import '../modules/principal/passager/messager/bindings/messager_binding.dart';
 import '../modules/principal/passager/messager/bindings/detail_messager_binding.dart';
@@ -73,6 +77,16 @@ class AppPages {
       name: AppRoutes.passengerReservationDetail,
       page: () => const DetailJourneyView(),
       binding: DetailReservationBinding(),
+    ),
+    _page(
+      name: AppRoutes.passengerReservationConfirmation,
+      page: () => const ConfirmationReservationView(),
+      binding: ConfirmationReservationBinding(),
+    ),
+    _page(
+      name: AppRoutes.passengerReservationPayment,
+      page: () => const ConfirmationPaymentView(),
+      binding: ConfirmationPaymentBinding(),
     ),
     _page(
       name: AppRoutes.passengerMessages,

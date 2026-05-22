@@ -653,9 +653,7 @@ class _PaymentCard extends StatelessWidget {
 																borderRadius: BorderRadius.circular(9999),
 															),
 														),
-														child: Center(
-															child: Text(method.icon, style: AppTextStyles.h6(responsive)),
-														),
+																		child: Icon(_paymentMethodIcon(index, method.title), size: responsive.text(22), color: AppColors.primary),
 													),
 													SizedBox(width: responsive.w(12)),
 													Expanded(
@@ -784,4 +782,26 @@ String _initials(String name) {
 	final first = parts.first.isNotEmpty ? parts.first[0] : 'M';
 	final second = parts.length > 1 && parts[1].isNotEmpty ? parts[1][0] : '';
 	return (first + second).toUpperCase();
+}
+
+IconData _paymentMethodIcon(int index, String title) {
+	switch (index) {
+		case 0:
+			return Icons.payments_outlined;
+		case 1:
+			return Icons.phone_android_rounded;
+		case 2:
+			return Icons.credit_card_rounded;
+		default:
+			if (title.toLowerCase().contains('cash')) {
+				return Icons.payments_outlined;
+			}
+			if (title.toLowerCase().contains('mobile') || title.toLowerCase().contains('money')) {
+				return Icons.phone_android_rounded;
+			}
+			if (title.toLowerCase().contains('card')) {
+				return Icons.credit_card_rounded;
+			}
+			return Icons.payment_rounded;
+	}
 }

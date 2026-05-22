@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
 
+import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
+
 class SearchController extends GetxController {
   final RxString selectedDateLabel = 'Aujourd\'hui'.obs;
   final RxInt passengerCount = 1.obs;
@@ -83,7 +85,10 @@ class SearchController extends GetxController {
   }
 
   void reserveRide(SearchRide ride) {
-    Get.snackbar('MINIZON', 'Réservation lancée pour ${ride.origin} → ${ride.destination}.');
+    Get.toNamed(
+      AppRoutes.passengerReservationConfirmation,
+      arguments: {'ride': ride},
+    );
   }
 }
 

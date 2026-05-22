@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
 
+import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
+
 import '../../search/controllers/search_controller.dart';
 
 class DetailReservationController extends GetxController {
@@ -19,7 +21,11 @@ class DetailReservationController extends GetxController {
   }
 
   void bookNow() {
-    // Implement booking flow
+    final SearchRide? selectedRide = ride.value;
+    Get.toNamed(
+      AppRoutes.passengerReservationConfirmation,
+      arguments: {'ride': selectedRide},
+    );
   }
 
   void toggleFavorite() {
