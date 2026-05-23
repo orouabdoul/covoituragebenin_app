@@ -26,25 +26,25 @@ class AppResponsive {
 
   bool get isDesktop => MediaQuery.sizeOf(context).width >= tabletMaxWidth;
 
-  T adaptive<T>({
-    required T phone,
-    T? smallPhone,
-    T? tablet,
-    T? desktop,
+  double adaptive({
+    required num phone,
+    num? smallPhone,
+    num? tablet,
+    num? desktop,
   }) {
     if (isDesktop) {
-      return desktop ?? tablet ?? phone;
+      return (desktop ?? tablet ?? phone).toDouble();
     }
 
     if (isTablet) {
-      return tablet ?? phone;
+      return (tablet ?? phone).toDouble();
     }
 
     if (isSmallPhone) {
-      return smallPhone ?? phone;
+      return (smallPhone ?? phone).toDouble();
     }
 
-    return phone;
+    return phone.toDouble();
   }
 
   double get _scale {
