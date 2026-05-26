@@ -6,12 +6,17 @@ abstract class AppRoutes {
   static const completeProfileDriver = '/complete-profile-driver';
   static const completeProfilePassenger = '/complete-profile-passenger';
   static const dashboardDriver = '/dashboard-driver';
+  static const driverTrips = '/driver-trips';
+  static const driverAddTrip = '/driver-add-trip';
+  static const driverRevenus = '/driver-revenus';
+  static const driverProfile = '/driver-profile';
   static const dashboardPassenger = '/dashboard-passenger';
   static const passengerHome = '/passenger-home';
   static const passengerSearch = '/passenger-search';
   static const passengerReservations = '/passenger-reservations';
   static const passengerReservationDetail = '/passenger-reservation-detail';
-  static const passengerReservationConfirmation = '/passenger-reservation-confirmation';
+  static const passengerReservationConfirmation =
+      '/passenger-reservation-confirmation';
   static const passengerReservationPayment = '/passenger-reservation-payment';
   static const passengerMessages = '/passenger-messages';
   static const passengerMessageDetail = '/passenger-message-detail';

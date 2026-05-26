@@ -2,11 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
-import 'package:covoiturage_benin_app/app/modules/principal/passager/home/views/home_view.dart';
-import 'package:covoiturage_benin_app/app/modules/principal/passager/search/views/search_view.dart';
-import 'package:covoiturage_benin_app/app/modules/principal/passager/reservation/views/reservation_view.dart';
-import 'package:covoiturage_benin_app/app/modules/principal/passager/messager/views/messager_view.dart';
-import 'package:covoiturage_benin_app/app/modules/principal/passager/profil/views/profil_view.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/driver/home/views/home_view.dart'
+    as driver_home;
+import 'package:covoiturage_benin_app/app/modules/principal/driver/messager/views/messager_view.dart'
+    as driver_messager;
+import 'package:covoiturage_benin_app/app/modules/principal/driver/profil/views/profil_driver_view.dart'
+    as driver_profile;
+import 'package:covoiturage_benin_app/app/modules/principal/driver/revenus/views/revenus_view.dart'
+    as driver_revenus;
+import 'package:covoiturage_benin_app/app/modules/principal/driver/trajet/views/trajet_view.dart'
+    as driver_trajet;
+import 'package:covoiturage_benin_app/app/modules/principal/passager/home/views/home_view.dart'
+    as passenger_home;
+import 'package:covoiturage_benin_app/app/modules/principal/passager/search/views/search_view.dart'
+    as passenger_search;
+import 'package:covoiturage_benin_app/app/modules/principal/passager/reservation/views/reservation_view.dart'
+    as passenger_reservation;
+import 'package:covoiturage_benin_app/app/modules/principal/passager/messager/views/messager_view.dart'
+    as passenger_messager;
+import 'package:covoiturage_benin_app/app/modules/principal/passager/profil/views/profil_view.dart'
+    as passenger_profile;
 import 'botton_nav_role.dart';
 
 class BottonNavController extends GetxController {
@@ -15,6 +30,7 @@ class BottonNavController extends GetxController {
   final BottonNavRole role;
   final RxInt currentIndex = 0.obs;
   late final PageController pageController;
+  late final int initialIndex;
 
   static const Duration _pageTransitionDuration = Duration(milliseconds: 280);
 
@@ -24,44 +40,91 @@ class BottonNavController extends GetxController {
   List<Widget> get pages => items
       .asMap()
       .entries
-      .map(
-        (entry) {
-          final int index = entry.key;
-          final BottonNavItemData item = entry.value;
-
-          if (role == BottonNavRole.passenger && index == 0) {
-            return const HomeView();
-          }
-
-          if (role == BottonNavRole.passenger && index == 1) {
-            return const SearchView();
-          }
-
-          if (role == BottonNavRole.passenger && index == 2) {
-            return const ReservationView();
-          }
-
-          if (role == BottonNavRole.passenger && index == 3) {
-            return const MessagerView();
-          }
-
-          if (role == BottonNavRole.passenger && index == 4) {
-            return const ProfilView();
-          }
-
-          return _TabPlaceholder(
-            title: item.label,
-            subtitle: item.description,
-            icon: item.icon,
-          );
-        },
-      )
+      .map((entry) {
+        final int index = entry.key;
+        return _buildPage(index, entry.value);
+      })
       .toList(growable: false);
+
+  Widget _buildPage(int index, BottonNavItemData item) {
+    if (role == BottonNavRole.driver) {
+      if (index == 0) {
+        return const driver_home.DriverHomeView();
+      }
+
+      if (index == 1) {
+        return const driver_trajet.TrajetView();
+      }
+
+      if (index == 2) {
+        return const driver_revenus.RevenusView();
+      }
+
+      if (index == 3) {
+        return const driver_messager.MessagerView();
+      }
+
+      if (index == 4) {
+        return const driver_profile.ProfilDriverView();
+      }
+
+      return _TabPlaceholder(
+        title: item.label,
+        subtitle: item.description,
+        icon: item.icon,
+      );
+    }
+
+    if (index == 0) {
+      return const passenger_home.HomeView();
+    }
+
+    if (index == 1) {
+      return const passenger_search.SearchView();
+    }
+
+    if (index == 2) {
+      return const passenger_reservation.ReservationView();
+    }
+
+    if (index == 3) {
+      return const passenger_messager.MessagerView();
+    }
+
+    if (index == 4) {
+      return const passenger_profile.ProfilView();
+    }
+
+    return _TabPlaceholder(
+      title: item.label,
+      subtitle: item.description,
+      icon: item.icon,
+    );
+  }
 
   @override
   void onInit() {
     super.onInit();
-    pageController = PageController();
+    initialIndex = _resolveInitialIndex();
+    currentIndex.value = initialIndex;
+    pageController = PageController(initialPage: initialIndex);
+  }
+
+  int _resolveInitialIndex() {
+    final Object? argument = Get.arguments;
+
+    if (argument is int) {
+      return argument;
+    }
+
+    if (argument is Map<String, dynamic>) {
+      final dynamic value = argument['index'];
+      if (value is int) {
+        return value;
+      }
+    }
+
+    return 0;
   }
 
   void onTabSelected(int index) {

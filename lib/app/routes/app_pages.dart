@@ -11,6 +11,14 @@ import '../modules/auth/complete_profile/views/profile_passager_view.dart';
 import '../modules/principal/botton_nav/bindings/botton_nav_binding.dart';
 import '../modules/principal/botton_nav/controllers/botton_nav_role.dart';
 import '../modules/principal/botton_nav/views/botton_nav.dart';
+import '../modules/principal/driver/revenus/bindings/revenus_binding.dart';
+import '../modules/principal/driver/revenus/views/revenus_view.dart';
+import '../modules/principal/driver/trajet/bindings/add_trajet_binding.dart';
+import '../modules/principal/driver/trajet/bindings/trajet_binding.dart';
+import '../modules/principal/driver/trajet/views/add_trajet_view.dart';
+import '../modules/principal/driver/trajet/views/trajet_view.dart';
+import '../modules/principal/driver/profil/bindings/profil_driver_binding.dart';
+import '../modules/principal/driver/profil/views/profil_driver_view.dart';
 import '../modules/principal/passager/home/bindings/home_binding.dart';
 import '../modules/principal/passager/home/views/home_view.dart';
 import '../modules/principal/passager/search/bindings/search_binding.dart';
@@ -47,11 +55,31 @@ class AppPages {
   }
 
   static final pages = [
-    _page(name: AppRoutes.splash, page: () => const SplashView(), binding: SplashBinding()),
-    _page(name: AppRoutes.onboarding, page: () => const OnboardingScreen(), binding: OnboardingBinding()),
-    _page(name: AppRoutes.roles, page: () => const RolesView(), binding: RolesBinding()),
-    _page(name: AppRoutes.register, page: () => const InputPhoneView(), binding: RegisterBinding()),
-    _page(name: AppRoutes.otpCode, page: () => const OtpCodeView(), binding: OtpCodeBinding()),
+    _page(
+      name: AppRoutes.splash,
+      page: () => const SplashView(),
+      binding: SplashBinding(),
+    ),
+    _page(
+      name: AppRoutes.onboarding,
+      page: () => const OnboardingScreen(),
+      binding: OnboardingBinding(),
+    ),
+    _page(
+      name: AppRoutes.roles,
+      page: () => const RolesView(),
+      binding: RolesBinding(),
+    ),
+    _page(
+      name: AppRoutes.register,
+      page: () => const InputPhoneView(),
+      binding: RegisterBinding(),
+    ),
+    _page(
+      name: AppRoutes.otpCode,
+      page: () => const OtpCodeView(),
+      binding: OtpCodeBinding(),
+    ),
     _page(
       name: AppRoutes.completeProfileDriver,
       page: () => const ProfileDriverView(),
@@ -62,7 +90,11 @@ class AppPages {
       page: () => const ProfilePassagerView(),
       binding: ProfilePassagerBinding(),
     ),
-    _page(name: AppRoutes.passengerHome, page: () => const HomeView(), binding: HomeBinding()),
+    _page(
+      name: AppRoutes.passengerHome,
+      page: () => const HomeView(),
+      binding: HomeBinding(),
+    ),
     _page(
       name: AppRoutes.passengerSearch,
       page: () => const SearchView(),
@@ -107,6 +139,26 @@ class AppPages {
       name: AppRoutes.dashboardDriver,
       page: () => const BottonNavView(),
       binding: BottonNavBinding(role: BottonNavRole.driver),
+    ),
+    _page(
+      name: AppRoutes.driverTrips,
+      page: () => const TrajetView(),
+      binding: TrajetBinding(),
+    ),
+    _page(
+      name: AppRoutes.driverAddTrip,
+      page: () => const AddTrajetView(),
+      binding: AddTrajetBinding(),
+    ),
+    _page(
+      name: AppRoutes.driverRevenus,
+      page: () => const RevenusView(),
+      binding: RevenusBinding(),
+    ),
+    _page(
+      name: AppRoutes.driverProfile,
+      page: () => const ProfilDriverView(),
+      binding: ProfilDriverBinding(),
     ),
     _page(
       name: AppRoutes.dashboardPassenger,
