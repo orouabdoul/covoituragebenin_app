@@ -17,6 +17,10 @@ import '../modules/principal/driver/trajet/bindings/add_trajet_binding.dart';
 import '../modules/principal/driver/trajet/bindings/trajet_binding.dart';
 import '../modules/principal/driver/trajet/views/add_trajet_view.dart';
 import '../modules/principal/driver/trajet/views/trajet_view.dart';
+import '../modules/principal/driver/reservation/bindings/reservations_binding.dart';
+import '../modules/principal/driver/reservation/views/reservations_view.dart';
+import '../modules/principal/driver/vehicles/bindings/add_vehicle_binding.dart';
+import '../modules/principal/driver/vehicles/views/add_vehicle_view.dart';
 import '../modules/principal/driver/profil/bindings/profil_driver_binding.dart';
 import '../modules/principal/driver/profil/views/profil_driver_view.dart';
 import '../modules/principal/passager/home/bindings/home_binding.dart';
@@ -149,6 +153,16 @@ class AppPages {
       name: AppRoutes.driverAddTrip,
       page: () => const AddTrajetView(),
       binding: AddTrajetBinding(),
+    ),
+    _page(
+      name: AppRoutes.driverReservations,
+      page: () => const ReservationsView(),
+      binding: ReservationsBinding(),
+    ),
+    _page(
+      name: AppRoutes.driverAddVehicle,
+      page: () => const AddVehicleView(),
+      binding: AddVehicleBinding(),
     ),
     _page(
       name: AppRoutes.driverRevenus,

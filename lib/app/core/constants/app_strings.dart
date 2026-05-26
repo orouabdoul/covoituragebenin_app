@@ -245,6 +245,23 @@ class AppStrings {
   static const String driverProfileLanguage = 'Langue';
   static const String driverProfileFrench = 'Français';
 
+  // Driver reservations
+  static const String driverReservationsTitle = 'Demandes passagers';
+  static const String driverReservationsSubtitle = '3 nouvelles demandes';
+  static const String driverReservationsAll = 'Toutes';
+  static const String driverReservationsNew = 'Nouvelles';
+  static const String driverReservationsPending = 'En attente';
+  static const String driverReservationsNewLabel = 'Nouveau';
+  static const String driverReservationsAcceptedLabel = 'Accepter';
+  static const String driverReservationsRejectedLabel = 'Refuser';
+  static const String driverReservationsPaymentConfirmed =
+      'Paiement mobile confirmé';
+  static const String driverReservationsPaymentPending =
+      'En attente de confirmation';
+  static const String driverReservationsSeeDetails = 'Détails';
+  static const String driverReservationsNotifications =
+      'Aucune nouvelle notification.';
+
   // Bottom navigation
   static const String navHome = 'Accueil';
   static const String navTrips = 'Trajets';
@@ -470,4 +487,30 @@ class AppStrings {
   static const String driverCreateTripHeroSubtitle =
       'Publication rapide en 2 minutes';
   static const String driverCreateTripPublish = 'Publier le trajet';
+
+  // Driver vehicles
+  static const String driverVehicleTitle = 'Ajouter un véhicule';
+  static const String driverVehicleSaveDraft = 'Brouillon enregistré';
+  static const String driverVehicleRegister = 'Véhicule enregistré';
+  static const String driverVehicleHeroTitle = 'Ajoutez votre véhicule';
+  static const String driverVehicleHeroSubtitle =
+      'Commencez à recevoir des passagers et augmentez vos revenus.';
+  static const String driverVehicleHeroTime = '2 à 3 minutes';
+  static const String driverVehicleTypeTitle = 'Type de véhicule';
+  static const String driverVehicleInfoTitle = 'Informations du véhicule';
+  static const String driverVehicleBrand = 'Marque';
+  static const String driverVehicleModel = 'Modèle';
+  static const String driverVehicleColor = 'Couleur';
+  static const String driverVehicleYear = 'Année';
+  static const String driverVehiclePlate = 'Plaque d\'immatriculation';
+  static const String driverVehicleSeats = 'Places';
+  static const String driverVehicleFuel = 'Carburant';
+  static const String driverVehiclePhotosTitle = 'Photos du véhicule';
+  static const String driverVehiclePhotosSubtitle =
+      'Ajoutez des photos claires pour rassurer les passagers';
+  static const String driverVehicleDocumentsTitle = 'Documents requis';
+  static const String driverVehicleDocumentsSubtitle =
+      'Vos documents sont sécurisés et vérifiés automatiquement';
+  static const String driverVehicleSecurityTitle = 'Sécurité MINIZON';
+  static const String driverVehicleRegisterButton = 'Enregistrer le véhicule';
 }

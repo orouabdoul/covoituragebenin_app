@@ -8,6 +8,8 @@ abstract class AppRoutes {
   static const dashboardDriver = '/dashboard-driver';
   static const driverTrips = '/driver-trips';
   static const driverAddTrip = '/driver-add-trip';
+  static const driverReservations = '/driver-reservations';
+  static const driverAddVehicle = '/driver-add-vehicle';
   static const driverRevenus = '/driver-revenus';
   static const driverProfile = '/driver-profile';
   static const dashboardPassenger = '/dashboard-passenger';

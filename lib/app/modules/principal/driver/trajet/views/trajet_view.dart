@@ -7,7 +7,7 @@ import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 
-import '../controller/trajet_controller.dart';
+import '../controllers/trajet_controller.dart';
 
 class TrajetView extends StatelessWidget {
 	const TrajetView({super.key});

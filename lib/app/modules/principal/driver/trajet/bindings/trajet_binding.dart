@@ -1,6 +1,6 @@
 import 'package:get/get.dart';
 
-import '../controller/trajet_controller.dart';
+import '../controllers/trajet_controller.dart';
 
 class TrajetBinding extends Bindings {
   @override
