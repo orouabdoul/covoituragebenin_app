@@ -6,7 +6,74 @@ import 'package:covoiturage_benin_app/app/modules/auth/register/controllers/otp_
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_otp_code_field.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+
+class _TestOtpBanner extends StatelessWidget {
+  const _TestOtpBanner({required this.responsive, required this.code});
+  final AppResponsive responsive;
+  final String code;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Clipboard.setData(ClipboardData(text: code));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Code copié'),
+            duration: Duration(seconds: 1),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(
+          horizontal: responsive.w(16),
+          vertical: responsive.h(12),
+        ),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF8E1),
+          border: Border.all(color: const Color(0xFFFFCA28), width: 1.2),
+          borderRadius: BorderRadius.circular(responsive.radius(12)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.bug_report_rounded, color: Color(0xFFF57F17), size: 20),
+            SizedBox(width: responsive.w(10)),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Mode test — appuyez pour copier',
+                    style: TextStyle(
+                      fontSize: responsive.text(10),
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFFF57F17),
+                    ),
+                  ),
+                  SizedBox(height: responsive.h(2)),
+                  Text(
+                    code,
+                    style: TextStyle(
+                      fontSize: responsive.text(22),
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFFE65100),
+                      letterSpacing: 6,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.copy_rounded, color: Color(0xFFF57F17), size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class OtpCodeView extends GetView<OtpCodeController> {
   const OtpCodeView({super.key});
@@ -112,6 +179,12 @@ class OtpCodeView extends GetView<OtpCodeController> {
                             length: 6,
                             onChanged: controller.onCodeChanged,
                           ),
+                          SizedBox(height: responsive.h(16)),
+                          if (controller.testOtpCode.value.isNotEmpty)
+                            _TestOtpBanner(
+                              responsive: responsive,
+                              code: controller.testOtpCode.value,
+                            ),
                           SizedBox(height: responsive.h(24)),
                           Center(
                             child: Text(
@@ -133,8 +206,7 @@ class OtpCodeView extends GetView<OtpCodeController> {
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Text(AppStrings.otpResendPrefix, style: AppTextStyles.otpCountdown(responsive)),
-                                      Text(controller.resendSeconds.value.toString(), style: AppTextStyles.otpCountdown(responsive)),
-                                      Text(AppStrings.otpResendSuffix, style: AppTextStyles.otpCountdown(responsive)),
+                                      Text(controller.formattedResendTime, style: AppTextStyles.otpCountdown(responsive)),
                                     ],
                                   ),
                           ),

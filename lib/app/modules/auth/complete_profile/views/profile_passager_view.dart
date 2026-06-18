@@ -5,8 +5,13 @@ import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/modules/auth/complete_profile/controllers/profile_passager_controller.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_field.dart';
+import 'package:covoiturage_benin_app/app/modules/widgets/face_verification_section.dart';
+import 'package:covoiturage_benin_app/app/modules/widgets/id_card_preview_tile.dart';
+import 'package:covoiturage_benin_app/app/modules/widgets/phone_field_widget.dart';
+import 'package:covoiturage_benin_app/app/modules/widgets/selfie_capture_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ProfilePassagerView extends GetView<ProfilePassagerController> {
   const ProfilePassagerView({super.key});
@@ -43,15 +48,77 @@ class ProfilePassagerView extends GetView<ProfilePassagerController> {
                         SizedBox(height: responsive.h(20)),
                         _HeroCard(responsive: responsive),
                         SizedBox(height: responsive.h(20)),
-                        _AvatarCard(
-                          responsive: responsive,
-                          onTap: controller.addAvatarPhoto,
-                          selectedValue: controller.avatarImageName.value,
-                        ),
+
                         SizedBox(height: responsive.h(20)),
                         _PersonalCard(
                           responsive: responsive,
                           controller: controller,
+                        ),
+                        SizedBox(height: responsive.h(20)),
+                        // Selfie section
+                        _SectionContainer(
+                          responsive: responsive,
+                          title: AppStrings.profileSelfieSection,
+                          icon: Icons.face_rounded,
+                          subtitle: AppStrings.profileSelfieSectionHint,
+                          child: SelfieCaptureWidget(
+                            responsive: responsive,
+                            onChanged: controller.onSelfiesChanged,
+                          ),
+                        ),
+                        SizedBox(height: responsive.h(20)),
+                        // ID card section
+                        _SectionContainer(
+                          responsive: responsive,
+                          title: AppStrings.profileIdCardSection,
+                          icon: Icons.credit_card_rounded,
+                          child: Column(
+                            children: [
+                              IdCardPreviewTile(
+                                responsive: responsive,
+                                title: AppStrings.profileIdCardFront,
+                                subtitle: AppStrings.profileIdCardFrontHint,
+                                actionLabel: AppStrings.profileUploadPhoto,
+                                onTap: () {
+                                  _showImageSourcePicker(context, responsive).then((src) {
+                                    if (src != null) controller.pickIdCard(isFront: true, source: src);
+                                  });
+                                },
+                                imageFile: controller.idCardFrontFile,
+                                faceBox: controller.idCardFaceBox,
+                                imageSize: controller.idCardImageSize,
+                                isDetecting: controller.isDetectingCardFace,
+                                detectionError: controller.idCardDetectionError,
+                              ),
+                              SizedBox(height: responsive.h(16)),
+                              _DocumentUploadTile(
+                                responsive: responsive,
+                                title: AppStrings.profileIdCardBack,
+                                subtitle: AppStrings.profileIdCardBackHint,
+                                actionLabel: AppStrings.profileUploadPhoto,
+                                icon: Icons.photo_camera_outlined,
+                                onTap: () {
+                                  _showImageSourcePicker(context, responsive).then((src) {
+                                    if (src != null) controller.pickIdCard(isFront: false, source: src);
+                                  });
+                                },
+                                selectedValue:
+                                    controller.idCardBackName.value,
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(height: responsive.h(20)),
+
+                        // ── Vérification d'identité ────────────────────────
+                        FaceVerificationSection(
+                          responsive: responsive,
+                          hasSelfie: controller.selfieFront.value != null,
+                          hasCni: controller.idCardFrontName.value.isNotEmpty,
+                          status: controller.verificationStatus.value,
+                          message: controller.verificationMessage.value,
+                          score: controller.verificationScore.value,
+                          onVerify: controller.runVerification,
                         ),
                         SizedBox(height: responsive.h(20)),
                         _BenefitsCard(responsive: responsive),
@@ -80,6 +147,14 @@ class ProfilePassagerView extends GetView<ProfilePassagerController> {
           ),
         ),
       ),
+    );
+  }
+  static Future<ImageSource?> _showImageSourcePicker(
+      BuildContext context, AppResponsive responsive) {
+    return showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ImageSourceSheet(responsive: responsive),
     );
   }
 }
@@ -261,11 +336,7 @@ class _HeroCard extends StatelessWidget {
           SizedBox(height: responsive.h(12)),
           Row(
             children: [
-              const Icon(
-                Icons.timer_outlined,
-                color: AppColors.white,
-                size: 16,
-              ),
+              const Icon(Icons.timer_outlined, color: AppColors.white, size: 16),
               SizedBox(width: responsive.w(8)),
               Text(
                 AppStrings.passengerHeroTime,
@@ -281,93 +352,6 @@ class _HeroCard extends StatelessWidget {
   }
 }
 
-class _AvatarCard extends StatelessWidget {
-  const _AvatarCard({
-    required this.responsive,
-    required this.onTap,
-    required this.selectedValue,
-  });
-
-  final AppResponsive responsive;
-  final VoidCallback onTap;
-  final String selectedValue;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(responsive.w(24)),
-      decoration: ShapeDecoration(
-        color: AppColors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(responsive.radius(12)),
-          side: const BorderSide(color: AppColors.border),
-        ),
-      ),
-      child: Column(
-        children: [
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onTap,
-            child: Stack(
-              alignment: Alignment.bottomRight,
-              children: [
-                Container(
-                  width: responsive.w(96),
-                  height: responsive.w(96),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [AppColors.border, AppColors.borderStrong],
-                    ),
-                    border: Border.all(
-                      color: AppColors.white,
-                      width: responsive.w(4),
-                    ),
-                  ),
-                  child: Icon(
-                    Icons.person_rounded,
-                    color: AppColors.white,
-                    size: responsive.text(42),
-                  ),
-                ),
-                Container(
-                  width: responsive.w(32),
-                  height: responsive.w(32),
-                  decoration: const BoxDecoration(
-                    color: AppColors.success,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.add,
-                    color: AppColors.white,
-                    size: 18,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: responsive.h(12)),
-          Text(
-            AppStrings.passengerPhotoTitle,
-            textAlign: TextAlign.center,
-            style: AppTextStyles.profileMeta(responsive),
-          ),
-          if (selectedValue.isNotEmpty) ...[
-            SizedBox(height: responsive.h(6)),
-            Text(
-              selectedValue,
-              textAlign: TextAlign.center,
-              style: AppTextStyles.profileMeta(
-                responsive,
-              ).copyWith(color: AppColors.primary, fontWeight: FontWeight.w600),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
 
 class _PersonalCard extends StatelessWidget {
   const _PersonalCard({required this.responsive, required this.controller});
@@ -407,6 +391,12 @@ class _PersonalCard extends StatelessWidget {
             ).copyWith(color: AppColors.textGhost),
           ),
           SizedBox(height: responsive.h(16)),
+          _GenderSelector(
+            responsive: responsive,
+            selected: controller.selectedGender.value,
+            onSelected: controller.selectGender,
+          ),
+          SizedBox(height: responsive.h(16)),
           AppField(
             responsive: responsive,
             label: AppStrings.passengerFieldEmail,
@@ -419,6 +409,219 @@ class _PersonalCard extends StatelessWidget {
             hintStyle: AppTextStyles.profileFieldValue(
               responsive,
             ).copyWith(color: AppColors.textGhost),
+          ),
+          SizedBox(height: responsive.h(16)),
+          PhoneFieldWidget(
+            responsive: responsive,
+            controller: controller.phoneController,
+            label: AppStrings.profileFieldPhone,
+            labelStyle: AppTextStyles.profileSectionLabel(responsive),
+          ),
+          SizedBox(height: responsive.h(16)),
+          Row(
+            children: [
+              Expanded(
+                child: AppField(
+                  responsive: responsive,
+                  label: AppStrings.profileFieldCity,
+                  labelStyle: AppTextStyles.profileSectionLabel(responsive),
+                  controller: controller.cityController,
+                  hintText: AppStrings.profileFieldCityHint,
+                  textStyle: AppTextStyles.profileFieldValue(responsive),
+                  hintStyle: AppTextStyles.profileFieldValue(
+                    responsive,
+                  ).copyWith(color: AppColors.textGhost),
+                ),
+              ),
+              SizedBox(width: responsive.w(12)),
+              Expanded(
+                child: AppField(
+                  responsive: responsive,
+                  label: AppStrings.profileFieldNeighborhood,
+                  labelStyle: AppTextStyles.profileSectionLabel(responsive),
+                  controller: controller.neighborhoodController,
+                  hintText: AppStrings.profileFieldNeighborhoodHint,
+                  textStyle: AppTextStyles.profileFieldValue(responsive),
+                  hintStyle: AppTextStyles.profileFieldValue(
+                    responsive,
+                  ).copyWith(color: AppColors.textGhost),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: responsive.h(16)),
+          AppField(
+            responsive: responsive,
+            label: AppStrings.profileFieldAddress,
+            labelStyle: AppTextStyles.profileSectionLabel(responsive),
+            controller: controller.addressController,
+            hintText: AppStrings.profileFieldAddressHint,
+            textStyle: AppTextStyles.profileFieldValue(responsive),
+            hintStyle: AppTextStyles.profileFieldValue(
+              responsive,
+            ).copyWith(color: AppColors.textGhost),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GenderSelector extends StatelessWidget {
+  const _GenderSelector({
+    required this.responsive,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final AppResponsive responsive;
+  final String? selected;
+  final void Function(String) onSelected;
+
+  static const _genders = [
+    (label: AppStrings.profileFieldGenderMale, icon: Icons.male_rounded),
+    (label: AppStrings.profileFieldGenderFemale, icon: Icons.female_rounded),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          AppStrings.profileFieldGender,
+          style: AppTextStyles.profileSectionLabel(responsive),
+        ),
+        SizedBox(height: responsive.h(8)),
+        Row(
+          children: List.generate(_genders.length, (i) {
+            final g = _genders[i];
+            final isSelected = selected == g.label;
+            return Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(right: i < _genders.length - 1 ? responsive.w(10) : 0),
+                child: GestureDetector(
+                  onTap: () => onSelected(g.label),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    height: responsive.h(44),
+                    padding: EdgeInsets.symmetric(horizontal: responsive.w(12)),
+                    decoration: ShapeDecoration(
+                      color: isSelected ? AppColors.primary : AppColors.surfaceMuted,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(responsive.radius(10)),
+                        side: BorderSide(
+                          color: isSelected ? AppColors.primary : AppColors.border,
+                          width: isSelected ? 2 : 1,
+                        ),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(g.icon, size: responsive.text(16),
+                            color: isSelected ? AppColors.white : AppColors.textMuted),
+                        SizedBox(width: responsive.w(6)),
+                        Text(
+                          g.label,
+                          style: AppTextStyles.profileFieldValue(responsive).copyWith(
+                            color: isSelected ? AppColors.white : AppColors.textSecondary,
+                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ],
+    );
+  }
+}
+
+class _DocumentUploadTile extends StatelessWidget {
+  const _DocumentUploadTile({
+    required this.responsive,
+    required this.title,
+    required this.subtitle,
+    required this.actionLabel,
+    required this.icon,
+    required this.onTap,
+    required this.selectedValue,
+  });
+
+  final AppResponsive responsive;
+  final String title;
+  final String subtitle;
+  final String actionLabel;
+  final IconData icon;
+  final VoidCallback onTap;
+  final String selectedValue;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppField(
+      responsive: responsive,
+      label: title,
+      labelStyle: AppTextStyles.profileSectionLabel(responsive),
+      backgroundColor: AppColors.white,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: responsive.w(48),
+            height: responsive.w(48),
+            decoration: ShapeDecoration(
+              color: selectedValue.isNotEmpty
+                  ? AppColors.successLight
+                  : AppColors.surfaceAccent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(responsive.radius(12)),
+              ),
+            ),
+            child: Icon(
+              selectedValue.isNotEmpty ? Icons.check_rounded : icon,
+              color: selectedValue.isNotEmpty
+                  ? AppColors.success
+                  : AppColors.primary,
+              size: responsive.text(20),
+            ),
+          ),
+          SizedBox(height: responsive.h(12)),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: AppTextStyles.profileSectionTitle(
+              responsive,
+            ).copyWith(fontSize: responsive.text(15)),
+          ),
+          SizedBox(height: responsive.h(4)),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: AppTextStyles.profileMeta(responsive),
+          ),
+          if (selectedValue.isNotEmpty) ...[
+            SizedBox(height: responsive.h(6)),
+            Text(
+              selectedValue,
+              textAlign: TextAlign.center,
+              style: AppTextStyles.profileMeta(
+                responsive,
+              ).copyWith(
+                color: AppColors.success,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+          SizedBox(height: responsive.h(12)),
+          AppChipButton(
+            responsive: responsive,
+            label: selectedValue.isNotEmpty ? 'Remplacer' : actionLabel,
+            onTap: onTap,
           ),
         ],
       ),
@@ -491,11 +694,7 @@ class _BenefitRow extends StatelessWidget {
               borderRadius: BorderRadius.circular(9999),
             ),
           ),
-          child: Icon(
-            icon,
-            size: responsive.text(16),
-            color: AppColors.primary,
-          ),
+          child: Icon(icon, size: responsive.text(16), color: AppColors.primary),
         ),
         SizedBox(width: responsive.w(12)),
         Expanded(
@@ -527,16 +726,8 @@ class _TrustCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(responsive.radius(12)),
         ),
         shadows: const [
-          BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 15,
-            offset: Offset(0, 10),
-          ),
-          BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 6,
-            offset: Offset(0, 4),
-          ),
+          BoxShadow(color: AppColors.shadow, blurRadius: 15, offset: Offset(0, 10)),
+          BoxShadow(color: AppColors.shadow, blurRadius: 6, offset: Offset(0, 4)),
         ],
       ),
       child: Row(
@@ -575,12 +766,14 @@ class _SectionContainer extends StatelessWidget {
     required this.title,
     required this.icon,
     required this.child,
+    this.subtitle,
   });
 
   final AppResponsive responsive;
   final String title;
   final IconData icon;
   final Widget child;
+  final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -605,7 +798,8 @@ class _SectionContainer extends StatelessWidget {
                 decoration: ShapeDecoration(
                   color: AppColors.surfaceAccent,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(responsive.radius(12)),
+                    borderRadius:
+                        BorderRadius.circular(responsive.radius(12)),
                   ),
                 ),
                 child: Icon(
@@ -616,9 +810,21 @@ class _SectionContainer extends StatelessWidget {
               ),
               SizedBox(width: responsive.w(12)),
               Expanded(
-                child: Text(
-                  title,
-                  style: AppTextStyles.profileSectionTitle(responsive),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: AppTextStyles.profileSectionTitle(responsive),
+                    ),
+                    if (subtitle != null) ...[
+                      SizedBox(height: responsive.h(2)),
+                      Text(
+                        subtitle!,
+                        style: AppTextStyles.profileMeta(responsive),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ],
@@ -630,3 +836,119 @@ class _SectionContainer extends StatelessWidget {
     );
   }
 }
+
+// ── Image source picker ───────────────────────────────────────────────────────
+
+class _ImageSourceSheet extends StatelessWidget {
+  const _ImageSourceSheet({required this.responsive});
+  final AppResponsive responsive;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+          responsive.w(16), responsive.h(12), responsive.w(16), responsive.h(32)),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(responsive.radius(24))),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: responsive.w(40),
+            height: responsive.h(4),
+            margin: EdgeInsets.only(bottom: responsive.h(20)),
+            decoration: BoxDecoration(
+              color: AppColors.border,
+              borderRadius: BorderRadius.circular(9999),
+            ),
+          ),
+          Text('Choisir une source', style: AppTextStyles.profileSectionTitle(responsive)),
+          SizedBox(height: responsive.h(16)),
+          _SourceTile(
+            responsive: responsive,
+            icon: Icons.camera_alt_rounded,
+            label: 'Prendre une photo',
+            subtitle: 'Utiliser l\'appareil photo',
+            onTap: () => Navigator.of(context).pop(ImageSource.camera),
+          ),
+          SizedBox(height: responsive.h(12)),
+          _SourceTile(
+            responsive: responsive,
+            icon: Icons.photo_library_rounded,
+            label: 'Galerie',
+            subtitle: 'Choisir depuis les photos',
+            onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SourceTile extends StatelessWidget {
+  const _SourceTile({
+    required this.responsive,
+    required this.icon,
+    required this.label,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final AppResponsive responsive;
+  final IconData icon;
+  final String label;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(responsive.radius(16)),
+        child: Container(
+          padding: EdgeInsets.all(responsive.w(16)),
+          decoration: ShapeDecoration(
+            color: AppColors.surfaceMuted,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(responsive.radius(16)),
+              side: const BorderSide(color: AppColors.border),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: responsive.w(44),
+                height: responsive.w(44),
+                decoration: ShapeDecoration(
+                  color: AppColors.surfaceAccent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(responsive.radius(12)),
+                  ),
+                ),
+                child: Icon(icon, color: AppColors.primary, size: responsive.text(20)),
+              ),
+              SizedBox(width: responsive.w(16)),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label, style: AppTextStyles.profileSectionLabel(responsive)),
+                    SizedBox(height: responsive.h(2)),
+                    Text(subtitle, style: AppTextStyles.profileMeta(responsive)),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded,
+                  color: AppColors.textMuted, size: responsive.text(20)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+

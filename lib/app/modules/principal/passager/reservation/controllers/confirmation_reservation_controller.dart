@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
+import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/passager/reservation/views/confirmation_payment_view.dart';
 
@@ -108,7 +109,7 @@ class ConfirmationReservationController extends GetxController {
   }
 
   void confirmPayment() {
-    Get.snackbar(AppStrings.appName, 'Paiement confirmé avec succès.');
+    UIHelper().showSnackBar(AppStrings.appName, 'Paiement confirmé avec succès.', 0);
     Get.back();
   }
 

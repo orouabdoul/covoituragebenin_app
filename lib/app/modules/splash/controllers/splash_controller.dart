@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'package:get/get.dart';
 
@@ -36,8 +37,27 @@ class SplashController extends GetxController {
 			loadingProgress.value = index / ticks;
 		}
 
-		if (!isClosed) {
+		if (isClosed) return;
+		await _navigateFromSplash();
+	}
+
+	Future<void> _navigateFromSplash() async {
+		final uc = UserController.instance;
+		final sessionToken = await uc.getSessionToken();
+
+		if (sessionToken.isEmpty) {
 			Get.offNamed(AppRoutes.onboarding);
+			return;
 		}
+
+		if (!uc.profileComplete.value) {
+			Get.offAllNamed(AppRoutes.roles, arguments: {'skipAuth': true});
+			return;
+		}
+
+		final isDriver = uc.role.value == 'driver' || uc.role.value == 'conducteur';
+		Get.offAllNamed(
+			isDriver ? AppRoutes.dashboardDriver : AppRoutes.dashboardPassenger,
+		);
 	}
 }

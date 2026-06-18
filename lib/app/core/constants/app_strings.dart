@@ -30,6 +30,7 @@ class AppStrings {
       'Rejoignez des milliers \nd\'utilisateurs qui voyagent déjà \nintelligemment avec MINIZON';
   static const String onboarding4CreateAccount = 'Créer un compte';
   static const String onboarding4Login = 'Se connecter';
+  static const String onboarding4Start = 'Démarrer';
 
   // Register / input phone
   static const String registerWelcome = 'Bienvenue sur';
@@ -111,6 +112,30 @@ class AppStrings {
   static const String profilePrimaryAction = 'Continuer';
   static const String profileUploadPhoto = 'Ajouter photo';
   static const String profileUploadDocument = 'Ajouter document';
+
+  // Champs communs profil (genre, localisation, selfie, CNI)
+  static const String profileFieldGender = 'Genre';
+  static const String profileFieldGenderMale = 'Homme';
+  static const String profileFieldGenderFemale = 'Femme';
+  static const String profileFieldGenderOther = 'Autre';
+  static const String profileFieldCity = 'Ville';
+  static const String profileFieldCityHint = 'Ex : Cotonou';
+  static const String profileFieldNeighborhood = 'Quartier';
+  static const String profileFieldNeighborhoodHint = 'Ex : Akpakpa';
+  static const String profileFieldAddress = 'Adresse (optionnel)';
+  static const String profileFieldAddressHint = 'Détails supplémentaires';
+  static const String profileSelfieSection = 'Vérification de visage';
+  static const String profileSelfieSectionHint =
+      'Prenez 3 photos : face avant, profil gauche, profil droit';
+  static const String profileIdCardSection = 'Pièce d\'identité';
+  static const String profileIdCardFront = 'Recto CNI / Passeport';
+  static const String profileIdCardFrontHint = 'Face avant de votre pièce';
+  static const String profileIdCardBack = 'Verso CNI';
+  static const String profileIdCardBackHint = 'Face arrière de votre pièce';
+  static const String profileLicenseNumber = 'Numéro de permis';
+  static const String profileLicenseNumberHint = 'Numéro figurant sur le permis';
+  static const String profileInsuranceDoc = 'Assurance véhicule';
+  static const String profileInsuranceDocHint = 'Document d\'assurance valide';
 
   // Complete profile / passenger
   static const String passengerProgressLabel = 'Progression du profil';
@@ -476,8 +501,7 @@ class AppStrings {
   static const String trajetSeeReceipt = 'Voir reçu';
   static const String trajetNoPassengers = 'Aucun passager';
   static const String trajetEmptyTitle = 'Aucun trajet disponible';
-  static const String trajetEmptySubtitle =
-      'Les trajets correspondant à ce filtre s’afficheront ici.';
+  static const String trajetEmptySubtitle = 'Les trajets correspondant à ce filtre s\'afficheront ici.';
 
   // Driver create trip
   static const String driverCreateTripTitle = 'Publier un trajet';

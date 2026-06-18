@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
+import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_field.dart';
@@ -238,7 +239,7 @@ class _TopBar extends StatelessWidget {
             responsive: responsive,
             icon: Icons.save_outlined,
             onTap: () =>
-                Get.snackbar(AppStrings.appName, 'Brouillon sauvegardé.'),
+                UIHelper().showSnackBar(AppStrings.appName, 'Brouillon sauvegardé.', 0),
             size: responsive.w(40),
           ),
         ],

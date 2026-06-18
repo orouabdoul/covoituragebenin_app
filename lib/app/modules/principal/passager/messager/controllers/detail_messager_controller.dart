@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
+import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 
 import 'messager_controller.dart';
 
@@ -86,7 +87,7 @@ class DetailMessagerController extends GetxController {
   }
 
   void openMap() {
-    Get.snackbar('MINIZON', 'Carte ouverte pour ${thread.name}.');
+    UIHelper().showSnackBar('MINIZON', 'Carte ouverte pour ${thread.name}.', 1);
   }
 
   @override

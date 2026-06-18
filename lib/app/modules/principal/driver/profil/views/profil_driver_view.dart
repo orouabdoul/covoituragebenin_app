@@ -383,7 +383,7 @@ class _SectionTitle extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(title, style: AppTextStyles.h6(responsive)),
-        if (trailing != null) trailing!,
+        ?trailing,
       ],
     );
   }
@@ -1246,6 +1246,7 @@ class _PreferenceSwitchRow extends StatelessWidget {
       subtitle: Text(subtitle, style: AppTextStyles.caption(responsive)),
       trailing: Switch.adaptive(
         value: value,
+        // ignore: deprecated_member_use
         activeColor: AppColors.primary,
         onChanged: onChanged,
       ),

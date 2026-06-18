@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
+import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 
 class RevenusController extends GetxController {
   final RxDouble chartProgress = 0.82.obs;
@@ -75,7 +76,7 @@ class RevenusController extends GetxController {
   void onAddMethod() => showInfo('Ajout d’une méthode de retrait bientôt disponible.');
 
   void showInfo(String message) {
-    Get.snackbar(AppStrings.appName, message);
+    UIHelper().showSnackBar(AppStrings.appName, message, 1);
   }
 }
 

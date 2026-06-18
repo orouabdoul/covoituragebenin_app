@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
 
+import 'package:covoiturage_benin_app/app/core/constants/auth_mode.dart';
+import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 enum RoleType {
@@ -9,28 +11,48 @@ enum RoleType {
 
 class RolesController extends GetxController {
   final Rxn<RoleType> selectedRole = Rxn<RoleType>();
+  bool _skipAuth = false;
 
   bool get hasSelection => selectedRole.value != null;
 
-  void selectRole(RoleType role) {
-    if (selectedRole.value == role) {
-      return;
+  @override
+  void onInit() {
+    super.onInit();
+    final args = Get.arguments;
+    if (args is Map) {
+      _skipAuth = args['skipAuth'] == true;
     }
+  }
 
+  void selectRole(RoleType role) {
+    if (selectedRole.value == role) return;
     selectedRole.value = role;
     update();
   }
 
   void continueAction() {
     if (!hasSelection) {
-      Get.snackbar('MINIZON', 'Veuillez choisir un profil avant de continuer.');
+      UIHelper().showSnackBar('MINIZON', 'Veuillez choisir un profil avant de continuer.', 2);
       return;
     }
 
-    Get.toNamed(AppRoutes.register);
+    if (_skipAuth) {
+      final isDriver = selectedRole.value == RoleType.driver;
+      Get.offAllNamed(
+        isDriver
+            ? AppRoutes.completeProfileDriver
+            : AppRoutes.completeProfilePassenger,
+      );
+      return;
+    }
+
+    Get.toNamed(
+      AppRoutes.register,
+      arguments: {'role': selectedRole.value, 'mode': AuthMode.register},
+    );
   }
 
   void chooseLater() {
-    Get.snackbar('MINIZON', 'Vous pourrez choisir votre profil plus tard.');
+    UIHelper().showSnackBar('MINIZON', 'Vous pourrez choisir votre profil plus tard.', 1);
   }
 }

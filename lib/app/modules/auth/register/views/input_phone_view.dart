@@ -6,6 +6,7 @@ import 'package:covoiturage_benin_app/app/modules/auth/register/controllers/inpu
 import 'package:covoiturage_benin_app/app/modules/widgets/app_field.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 class InputPhoneView extends GetView<InputPhoneController> {
@@ -110,7 +111,11 @@ class InputPhoneView extends GetView<InputPhoneController> {
 												child: TextField(
 													controller: controller.phoneController,
 													onChanged: controller.onPhoneChanged,
-													keyboardType: TextInputType.phone,
+													keyboardType: TextInputType.number,
+													inputFormatters: [
+														FilteringTextInputFormatter.digitsOnly,
+														LengthLimitingTextInputFormatter(10),
+													],
 													style: AppTextStyles.registerField(responsive),
 													decoration: InputDecoration.collapsed(
 														hintText: AppStrings.registerPhoneHint,

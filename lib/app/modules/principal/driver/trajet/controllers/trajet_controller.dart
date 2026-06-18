@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
+import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 enum TrajetFilterType { active, pending, completed, canceled }
@@ -48,7 +49,7 @@ class TrajetController extends GetxController {
         seatsValue: '2/4',
         priceLabel: AppStrings.trajetPrice,
         priceValue: '2500 CFA',
-        passengers: const ['A', 'K', 'M'],
+        passengers: ['A', 'K', 'M'],
         passengerActionLabel: AppStrings.trajetViewPassengers,
       ),
       TrajetCardData(
@@ -64,10 +65,10 @@ class TrajetController extends GetxController {
         seatsValue: '4/4',
         priceLabel: AppStrings.trajetPrice,
         priceValue: '1800 CFA',
-        passengers: const ['B', 'S'],
+        passengers:  ['B', 'S'],
         note: 'Trajet complet - En attente de départ',
-        noteBackground: const Color(0x33F4B400),
-        noteColor: const Color(0xFFF4B400),
+        noteBackground:  Color(0x33F4B400),
+        noteColor:  Color(0xFFF4B400),
         passengerActionLabel: AppStrings.trajetViewPassengers,
       ),
       TrajetCardData(
@@ -83,7 +84,7 @@ class TrajetController extends GetxController {
         seatsValue: '0/3',
         priceLabel: AppStrings.trajetPrice,
         priceValue: '3000 CFA',
-        passengers: const [],
+        passengers:  [],
         passengerActionLabel: AppStrings.trajetNoPassengers,
         passengerActionEnabled: false,
       ),
@@ -102,7 +103,7 @@ class TrajetController extends GetxController {
         seatsValue: '1/4',
         priceLabel: AppStrings.trajetPrice,
         priceValue: '2200 CFA',
-        passengers: const ['J'],
+        passengers:  ['J'],
         note: 'En attente de validation',
         noteBackground: Color(0x19F4B400),
         noteColor: Color(0xFFF4B400),
@@ -123,7 +124,7 @@ class TrajetController extends GetxController {
         seatsValue: '4/4',
         priceLabel: AppStrings.trajetPrice,
         priceValue: '2500 CFA',
-        passengers: const ['D', 'E', 'F'],
+        passengers: ['D', 'E', 'F'],
         passengerActionLabel: AppStrings.trajetSeeReceipt,
       ),
     ],
@@ -141,7 +142,7 @@ class TrajetController extends GetxController {
         seatsValue: '0/4',
         priceLabel: AppStrings.trajetPrice,
         priceValue: '3200 CFA',
-        passengers: const [],
+        passengers: [],
         passengerActionLabel: AppStrings.trajetNoPassengers,
         passengerActionEnabled: false,
       ),
@@ -172,7 +173,7 @@ class TrajetController extends GetxController {
   }
 
   void showInfo(String message) {
-    Get.snackbar('MINIZON', message);
+    UIHelper().showSnackBar('MINIZON', message, 1);
   }
 }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
+import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 enum TripVehicleType { car, moto }
@@ -167,7 +168,7 @@ class AddTrajetController extends GetxController {
   }
 
   void publishTrip() {
-    Get.snackbar(AppStrings.appName, 'Trajet prêt à être publié.');
+    UIHelper().showSnackBar(AppStrings.appName, 'Trajet prêt à être publié.', 0);
     Get.offNamed(AppRoutes.driverTrips);
   }
 

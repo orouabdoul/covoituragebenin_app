@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
+import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 
 class ReservationController extends GetxController {
   final RxInt selectedStatusIndex = 0.obs;
@@ -35,11 +36,11 @@ class ReservationController extends GetxController {
   }
 
   void cancelReservation(ReservationItem reservation) {
-    Get.snackbar('MINIZON', 'Réservation annulée pour ${reservation.departureCity} → ${reservation.arrivalCity}.');
+    UIHelper().showSnackBar('MINIZON', 'Réservation annulée pour ${reservation.departureCity} → ${reservation.arrivalCity}.', 2);
   }
 
   void contactDriver(ReservationItem reservation) {
-    Get.snackbar('MINIZON', 'Contact avec ${reservation.driverName}.');
+    UIHelper().showSnackBar('MINIZON', 'Contact avec ${reservation.driverName}.', 1);
   }
 }
 

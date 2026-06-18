@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
+import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 
 class HomeController extends GetxController {
   final List<HomeMetric> heroMetrics = const [
@@ -88,11 +89,11 @@ class HomeController extends GetxController {
   ];
 
   void onSeeAllTrips() {
-    Get.snackbar('MINIZON', 'La liste complète des trajets arrive bientôt.');
+    UIHelper().showSnackBar('MINIZON', 'La liste complète des trajets arrive bientôt.', 1);
   }
 
   void onRepeatTrip(HomeActivity activity) {
-    Get.snackbar('MINIZON', 'Recherche lancée pour ${activity.route}.');
+    UIHelper().showSnackBar('MINIZON', 'Recherche lancée pour ${activity.route}.', 1);
   }
 }
 

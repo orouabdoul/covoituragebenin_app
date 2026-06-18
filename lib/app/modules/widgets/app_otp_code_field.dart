@@ -27,7 +27,20 @@ class _AppOtpCodeFieldState extends State<AppOtpCodeField> {
   void initState() {
     super.initState();
     _controllers = List.generate(widget.length, (_) => TextEditingController());
-    _focusNodes = List.generate(widget.length, (_) => FocusNode());
+    _focusNodes = List.generate(widget.length, (index) {
+      final node = FocusNode();
+      node.onKeyEvent = (_, event) {
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.backspace &&
+            _controllers[index].text.isEmpty &&
+            index > 0) {
+          _focusNodes[index - 1].requestFocus();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      };
+      return node;
+    });
   }
 
   @override
@@ -52,6 +65,8 @@ class _AppOtpCodeFieldState extends State<AppOtpCodeField> {
       _focusNodes[index + 1].requestFocus();
     } else if (value.isNotEmpty) {
       _focusNodes[index].unfocus();
+    } else if (value.isEmpty && index > 0) {
+      _focusNodes[index - 1].requestFocus();
     }
   }
 

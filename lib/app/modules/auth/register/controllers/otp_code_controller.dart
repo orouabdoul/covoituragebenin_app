@@ -1,27 +1,50 @@
 import 'dart:async';
 
 import 'package:get/get.dart';
-import 'package:covoiturage_benin_app/app/modules/widgets/complete_profile_dialog.dart';
+
+import 'package:covoiturage_benin_app/app/core/constants/auth_mode.dart';
+import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
+import 'package:covoiturage_benin_app/app/core/services/auth/auth_service.dart';
+import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
+import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
+import 'package:covoiturage_benin_app/app/modules/auth/roles/controllers/roles_controller.dart';
+import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 class OtpCodeController extends GetxController {
-  static const int _initialResendSeconds = 55;
+  static const int _initialResendSeconds = 210; // 3min 30s
 
   final RxString phoneNumber = ''.obs;
   final RxString enteredCode = ''.obs;
   final RxInt resendSeconds = _initialResendSeconds.obs;
+  final RxBool isLoading = false.obs;
+  final RxString testOtpCode = ''.obs;
 
   Timer? _timer;
+  RoleType? _role;
+  AuthMode _mode = AuthMode.register;
 
   bool get canVerify => enteredCode.value.length == 6;
-
   bool get canResend => resendSeconds.value == 0;
+
+  String get formattedResendTime {
+    final m = resendSeconds.value ~/ 60;
+    final s = resendSeconds.value % 60;
+    return '$m:${s.toString().padLeft(2, '0')}';
+  }
 
   @override
   void onInit() {
     super.onInit();
-    final Object? argument = Get.arguments;
-    if (argument is String && argument.trim().isNotEmpty) {
-      phoneNumber.value = argument.trim();
+    final arg = Get.arguments;
+    if (arg is Map) {
+      final phone = arg['phone'] as String?;
+      if (phone != null && phone.isNotEmpty) phoneNumber.value = phone;
+      _role = arg['role'] as RoleType?;
+      _mode = arg['mode'] as AuthMode? ?? AuthMode.register;
+      final otp = arg['testOtp'] as String?;
+      if (otp != null && otp.isNotEmpty) testOtpCode.value = otp;
+    } else if (arg is String && arg.trim().isNotEmpty) {
+      phoneNumber.value = arg.trim();
     }
     _startResendTimer();
   }
@@ -32,35 +55,81 @@ class OtpCodeController extends GetxController {
     update();
   }
 
-  void verifyCode() {
+  Future<void> verifyCode() async {
     if (!canVerify) {
-      Get.snackbar('MINIZON', 'Saisissez le code complet.');
+      UIHelper().showSnackBar('MINIZON', 'Saisissez le code complet.', 2);
       return;
     }
 
-    Get.snackbar('MINIZON', 'Code vérifié avec succès.');
-
-    // Use a polished, responsive dialog that matches project styles
-    Get.dialog(
-      CompleteProfileDialog(
-        onLater: () => Get.snackbar(
-          'MINIZON',
-          'Vous pouvez compléter votre profil plus tard.',
-        ),
-      ),
-      barrierDismissible: true,
+    isLoading.value = true;
+    final result = await Get.find<AuthService>().verifyOtp(
+      phone: phoneNumber.value,
+      otpCode: enteredCode.value,
     );
+    isLoading.value = false;
+
+    if (!result.isSuccess) {
+      UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+      return;
+    }
+
+    final auth = result.data!;
+    final uc = UserController.instance;
+    await uc.setUserAndToken(
+      auth.user,
+      auth.token,
+      isProfileComplete: auth.profileComplete,
+    );
+    uc.setRole(auth.user.role);
+
+    _navigateAfterAuth(auth.profileComplete, auth.user.role);
   }
 
-  void resendCode() {
-    if (!canResend) {
+  void _navigateAfterAuth(bool profileComplete, String serverRole) {
+    final bool isDriver = serverRole == 'driver' ||
+        serverRole == 'conducteur' ||
+        _role == RoleType.driver;
+
+    if (_mode == AuthMode.login && !profileComplete) {
+      UIHelper().showSnackBar(
+        'MINIZON',
+        'Bienvenue ! Finalisez votre inscription pour accéder à l\'application.',
+        1,
+      );
+      Get.offAllNamed(AppRoutes.roles, arguments: {'skipAuth': true});
       return;
     }
 
-    resendSeconds.value = _initialResendSeconds;
-    _startResendTimer();
-    update();
-    Get.snackbar('MINIZON', 'Nouveau code envoyé.');
+    if (!profileComplete) {
+      Get.offAllNamed(
+        isDriver
+            ? AppRoutes.completeProfileDriver
+            : AppRoutes.completeProfilePassenger,
+      );
+    } else {
+      Get.offAllNamed(
+        isDriver ? AppRoutes.dashboardDriver : AppRoutes.dashboardPassenger,
+      );
+    }
+  }
+
+  Future<void> resendCode() async {
+    if (!canResend) return;
+
+    isLoading.value = true;
+    final result = await Get.find<AuthService>().sendOtp(phone: phoneNumber.value);
+    isLoading.value = false;
+
+    if (result.isSuccess) {
+      resendSeconds.value = _initialResendSeconds;
+      _startResendTimer();
+      final newOtp = result.data;
+      if (newOtp != null && newOtp.isNotEmpty) testOtpCode.value = newOtp;
+      update();
+      UIHelper().showSnackBar('MINIZON', 'Nouveau code envoyé.', 0);
+    } else {
+      UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+    }
   }
 
   void _startResendTimer() {

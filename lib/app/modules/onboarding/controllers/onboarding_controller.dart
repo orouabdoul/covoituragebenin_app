@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import 'package:covoiturage_benin_app/app/modules/auth/roles/bindings/roles_binding.dart';
-import 'package:covoiturage_benin_app/app/modules/auth/roles/views/roles_view.dart';
+import 'package:covoiturage_benin_app/app/core/constants/auth_mode.dart';
+import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 class OnboardingController extends GetxController {
 	final PageController pageController = PageController();
 	final RxInt currentPage = 0.obs;
 
-	static const int pagesCount = 3;
+	static const int pagesCount = 4;
 
 	bool get isFirstPage => currentPage.value == 0;
 
@@ -20,10 +20,7 @@ class OnboardingController extends GetxController {
 	}
 
 	Future<void> nextPage() async {
-		if (isLastPage) {
-			return;
-		}
-
+		if (isLastPage) return;
 		await pageController.animateToPage(
 			currentPage.value + 1,
 			duration: const Duration(milliseconds: 350),
@@ -32,10 +29,7 @@ class OnboardingController extends GetxController {
 	}
 
 	Future<void> previousPage() async {
-		if (isFirstPage) {
-			return;
-		}
-
+		if (isFirstPage) return;
 		await pageController.animateToPage(
 			currentPage.value - 1,
 			duration: const Duration(milliseconds: 350),
@@ -44,21 +38,17 @@ class OnboardingController extends GetxController {
 	}
 
 	Future<void> skip() async {
-		if (isLastPage) {
-			return;
-		}
-
+		if (isLastPage) return;
 		currentPage.value = pagesCount - 1;
 		update();
 		pageController.jumpToPage(pagesCount - 1);
 	}
 
-	void createAccount() {
-		Get.to(() => const RolesView(), binding: RolesBinding());
-	}
-
-	void login() {
-		Get.snackbar('MINIZON', 'L\'écran de connexion sera branché ici.');
+	void start() {
+		Get.toNamed(
+			AppRoutes.register,
+			arguments: {'mode': AuthMode.login},
+		);
 	}
 
 	@override

@@ -208,12 +208,12 @@ class _HeroBalanceCard extends StatelessWidget {
 									Expanded(
 										child: Row(
 											children: [
-												Icon(Icons.account_balance_wallet_outlined, size: responsive.text(16), color: AppColors.white.withOpacity(0.85)),
+												Icon(Icons.account_balance_wallet_outlined, size: responsive.text(16), color: AppColors.white.withValues(alpha: 0.85)),
 												SizedBox(width: responsive.w(8)),
 												Text(
 													AppStrings.revenuesAvailableBalance,
 													style: AppTextStyles.caption(responsive).copyWith(
-														color: AppColors.white.withOpacity(0.90),
+														color: AppColors.white.withValues(alpha: 0.90),
 														fontSize: responsive.text(14),
 														fontWeight: FontWeight.w600,
 													),
@@ -224,7 +224,7 @@ class _HeroBalanceCard extends StatelessWidget {
 									Text(
 										AppStrings.revenuesCurrency,
 										style: AppTextStyles.caption(responsive).copyWith(
-											color: AppColors.white.withOpacity(0.90),
+											color: AppColors.white.withValues(alpha: 0.90),
 											fontSize: responsive.text(14),
 											fontWeight: FontWeight.w600,
 										),
@@ -634,7 +634,7 @@ class _TransactionCard extends StatelessWidget {
 							Container(
 								padding: EdgeInsets.symmetric(horizontal: responsive.w(8), vertical: responsive.h(4)),
 								decoration: ShapeDecoration(
-									color: transaction.statusColor.withOpacity(0.10),
+									color: transaction.statusColor.withValues(alpha: 0.10),
 									shape: RoundedRectangleBorder(
 										borderRadius: BorderRadius.circular(9999),
 										side: const BorderSide(color: AppColors.border),

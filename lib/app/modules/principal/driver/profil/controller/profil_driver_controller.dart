@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
+import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 
 class DriverProfileController extends GetxController {
   final RxBool autoAvailability = true.obs;
@@ -153,7 +154,7 @@ class DriverProfileController extends GetxController {
   void toggleNotifications(bool value) => notificationsEnabled.value = value;
 
   void _showInfo(String action) {
-    Get.snackbar(AppStrings.appName, '$action bientôt disponible.');
+    UIHelper().showSnackBar(AppStrings.appName, '$action bientôt disponible.', 1);
   }
 }
 

@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
+import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 
 class ProfilController extends GetxController {
   final ProfileSummary profileSummary = const ProfileSummary(
@@ -98,7 +99,7 @@ class ProfilController extends GetxController {
   void openTrip(RecentTrip trip) => _showPlaceholder(trip.title);
 
   void _showPlaceholder(String label) {
-    Get.snackbar('MINIZON', '$label bientôt disponible.');
+    UIHelper().showSnackBar('MINIZON', '$label bientôt disponible.', 1);
   }
 }
 

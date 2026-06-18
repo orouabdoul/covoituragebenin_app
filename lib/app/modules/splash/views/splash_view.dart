@@ -1,5 +1,6 @@
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_images.dart';
+import 'package:covoiturage_benin_app/app/core/utils/loading_indicator.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
@@ -258,24 +259,16 @@ class _TextBlock extends StatelessWidget {
           style: AppTextStyles.splashHighlight(responsive),
         ),
         SizedBox(height: responsive.h(24)),
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.symmetric(horizontal: responsive.w(47)),
-          child: Column(
+        Obx(
+          () => Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Obx(
-                () => Transform.scale(
-                  scale: 0.92 + (splashController.loadingProgress.value * 0.05),
-                  child: Container(
-                    width: responsive.w(58),
-                    height: responsive.h(58),
-                    decoration: ShapeDecoration(
-                          shape: RoundedRectangleBorder(
-                            side: const BorderSide(width: 4, color: AppColors.white),
-                        borderRadius: BorderRadius.circular(9999),
-                      ),
-                    ),
-                  ),
+              Transform.scale(
+                scale: 0.92 + (splashController.loadingProgress.value * 0.05),
+                child: SizedBox(
+                  width: responsive.w(58),
+                  height: responsive.h(58),
+                  child: const LoadingIndicator(color: AppColors.white),
                 ),
               ),
               SizedBox(height: responsive.h(11)),

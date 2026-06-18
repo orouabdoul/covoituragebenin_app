@@ -265,19 +265,16 @@ class _FinalActions extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        AppPrimaryButton(
+        _DotsRow(
           responsive: responsive,
-          label: AppStrings.onboarding4CreateAccount,
-          onTap: controller.createAccount,
+          activeIndex: controller.currentPage.value,
+          count: OnboardingController.pagesCount,
         ),
-        SizedBox(height: responsive.h(12)),
+        SizedBox(height: responsive.h(24)),
         AppPrimaryButton(
           responsive: responsive,
-          label: AppStrings.onboarding4Login,
-          onTap: controller.login,
-          backgroundColor: AppColors.white,
-          textColor: AppColors.primary,
-          borderColor: AppColors.border,
+          label: AppStrings.onboarding4Start,
+          onTap: controller.start,
         ),
       ],
     );

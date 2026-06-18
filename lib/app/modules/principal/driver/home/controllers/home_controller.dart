@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
+
 class DriverHomeController extends GetxController {
   final RxBool isOnline = true.obs;
   final RxInt selectedWalletMethod = 0.obs;
@@ -197,7 +199,7 @@ class DriverHomeController extends GetxController {
   }
 
   void showInfo(String message) {
-    Get.snackbar('MINIZON', message);
+    UIHelper().showSnackBar('MINIZON', message, 1);
   }
 
   void onSeeDetails() {

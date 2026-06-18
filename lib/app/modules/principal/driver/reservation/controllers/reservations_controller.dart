@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
+import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 
 enum ReservationFilterType { all, newRequests, pending }
 
@@ -162,19 +163,19 @@ class ReservationsController extends GetxController {
   }
 
   void onNotificationTap() {
-    Get.snackbar(AppStrings.appName, 'Aucune nouvelle notification.');
+    UIHelper().showSnackBar(AppStrings.appName, 'Aucune nouvelle notification.', 1);
   }
 
   void onShowReservation(DriverReservationRequest reservation) {
-    Get.snackbar(AppStrings.appName, 'Ouvrir ${reservation.passengerName}.');
+    UIHelper().showSnackBar(AppStrings.appName, 'Ouvrir ${reservation.passengerName}.', 1);
   }
 
   void onRejectReservation(DriverReservationRequest reservation) {
-    Get.snackbar(AppStrings.appName, '${reservation.passengerName} refusé.');
+    UIHelper().showSnackBar(AppStrings.appName, '${reservation.passengerName} refusé.', 2);
   }
 
   void onAcceptReservation(DriverReservationRequest reservation) {
-    Get.snackbar(AppStrings.appName, '${reservation.passengerName} accepté.');
+    UIHelper().showSnackBar(AppStrings.appName, '${reservation.passengerName} accepté.', 0);
   }
 }
 
