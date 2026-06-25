@@ -48,6 +48,7 @@ class ProfilePassagerController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    phoneController.text = '01';
     FaceVerificationService.initialize();
   }
 

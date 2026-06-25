@@ -38,6 +38,8 @@ class ConfirmationReservationView extends StatelessWidget {
 								SizedBox(height: responsive.h(16)),
 								_TripCard(responsive: responsive, ride: ride),
 								SizedBox(height: responsive.h(16)),
+								_StopsCard(responsive: responsive, controller: controller),
+								SizedBox(height: responsive.h(16)),
 								_DriverCard(responsive: responsive, ride: ride),
 								SizedBox(height: responsive.h(16)),
 								_SeatsCard(responsive: responsive, controller: controller),
@@ -152,6 +154,176 @@ class _SectionCard extends StatelessWidget {
 				],
 			),
 			child: child,
+		);
+	}
+}
+
+// ── Stops Card ─────────────────────────────────────────────────────────────
+
+class _StopsCard extends StatelessWidget {
+	const _StopsCard({required this.responsive, required this.controller});
+
+	final AppResponsive responsive;
+	final ConfirmationReservationController controller;
+
+	@override
+	Widget build(BuildContext context) {
+		return Container(
+			padding: EdgeInsets.all(responsive.w(16)),
+			decoration: ShapeDecoration(
+				color: AppColors.white,
+				shape: RoundedRectangleBorder(
+					side: BorderSide(color: AppColors.primary.withValues(alpha: 0.30)),
+					borderRadius: BorderRadius.circular(responsive.radius(16)),
+				),
+				shadows: const [BoxShadow(color: Color(0x08000000), blurRadius: 8, offset: Offset(0, 2))],
+			),
+			child: Column(
+				crossAxisAlignment: CrossAxisAlignment.start,
+				children: [
+					// Header
+					Row(
+						children: [
+							Container(
+								padding: EdgeInsets.symmetric(horizontal: responsive.w(8), vertical: responsive.h(4)),
+								decoration: BoxDecoration(
+									color: AppColors.primary.withValues(alpha: 0.10),
+									borderRadius: BorderRadius.circular(9999),
+								),
+								child: Row(
+									children: [
+										Icon(Icons.pin_drop_rounded, size: responsive.text(12), color: AppColors.primary),
+										SizedBox(width: responsive.w(4)),
+										Text(
+											'Obligatoire',
+											style: AppTextStyles.caption(responsive).copyWith(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: responsive.text(10)),
+										),
+									],
+								),
+							),
+							SizedBox(width: responsive.w(8)),
+							Expanded(
+								child: Text('Votre itinéraire précis', style: AppTextStyles.subtitle(responsive)),
+							),
+						],
+					),
+					SizedBox(height: responsive.h(4)),
+					Text(
+						'Indiquez exactement où vous prendre et déposer. Le conducteur utilise ces points pour optimiser son trajet.',
+						style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint, height: 1.4),
+					),
+					SizedBox(height: responsive.h(16)),
+					// Pickup field
+					_StopField(
+						responsive: responsive,
+						icon: Icons.trip_origin_rounded,
+						iconColor: AppColors.primary,
+						label: 'Point de prise en charge',
+						hint: 'Ex: Carrefour Tokpa, devant Ecobank…',
+						controller: controller.pickupController,
+					),
+					// Connector line
+					Padding(
+						padding: EdgeInsets.only(left: responsive.w(15)),
+						child: Column(
+							children: List.generate(3, (_) => Padding(
+								padding: EdgeInsets.symmetric(vertical: responsive.h(2)),
+								child: Container(width: 2, height: responsive.h(4), color: AppColors.border),
+							)),
+						),
+					),
+					// Dropoff field
+					_StopField(
+						responsive: responsive,
+						icon: Icons.location_on_rounded,
+						iconColor: const Color(0xFFEF4444),
+						label: 'Point de dépose',
+						hint: 'Ex: Université, Marché central, Arrêt bus…',
+						controller: controller.dropoffController,
+					),
+					SizedBox(height: responsive.h(12)),
+					Container(
+						padding: EdgeInsets.symmetric(horizontal: responsive.w(12), vertical: responsive.h(8)),
+						decoration: BoxDecoration(
+							color: const Color(0xFFFFF7ED),
+							borderRadius: BorderRadius.circular(responsive.radius(10)),
+							border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.30)),
+						),
+						child: Row(
+							children: [
+								Icon(Icons.info_outline_rounded, size: responsive.text(14), color: const Color(0xFFF59E0B)),
+								SizedBox(width: responsive.w(8)),
+								Expanded(
+									child: Text(
+										'Vous n\'êtes pas obligé d\'aller jusqu\'à la destination finale du conducteur.',
+										style: AppTextStyles.caption(responsive).copyWith(color: const Color(0xFF92400E), height: 1.3, fontSize: responsive.text(11)),
+									),
+								),
+							],
+						),
+					),
+				],
+			),
+		);
+	}
+}
+
+class _StopField extends StatelessWidget {
+	const _StopField({
+		required this.responsive,
+		required this.icon,
+		required this.iconColor,
+		required this.label,
+		required this.hint,
+		required this.controller,
+	});
+
+	final AppResponsive responsive;
+	final IconData icon;
+	final Color iconColor;
+	final String label;
+	final String hint;
+	final TextEditingController controller;
+
+	@override
+	Widget build(BuildContext context) {
+		return Container(
+			padding: EdgeInsets.symmetric(horizontal: responsive.w(12), vertical: responsive.h(10)),
+			decoration: BoxDecoration(
+				color: AppColors.surfaceMuted,
+				borderRadius: BorderRadius.circular(responsive.radius(12)),
+				border: Border.all(color: AppColors.border),
+			),
+			child: Row(
+				children: [
+					Icon(icon, size: responsive.text(18), color: iconColor),
+					SizedBox(width: responsive.w(10)),
+					Expanded(
+						child: Column(
+							crossAxisAlignment: CrossAxisAlignment.start,
+							children: [
+								Text(
+									label,
+									style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint, fontSize: responsive.text(10)),
+								),
+								SizedBox(height: responsive.h(2)),
+								TextField(
+									controller: controller,
+									style: AppTextStyles.subtitle(responsive),
+									decoration: InputDecoration(
+										hintText: hint,
+										hintStyle: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint),
+										isDense: true,
+										contentPadding: EdgeInsets.zero,
+										border: InputBorder.none,
+									),
+									textCapitalization: TextCapitalization.words,
+								),
+							],
+						),
+					),
+				],
+			),
 		);
 	}
 }
@@ -787,21 +959,13 @@ String _initials(String name) {
 IconData _paymentMethodIcon(int index, String title) {
 	switch (index) {
 		case 0:
-			return Icons.payments_outlined;
-		case 1:
 			return Icons.phone_android_rounded;
-		case 2:
+		case 1:
 			return Icons.credit_card_rounded;
 		default:
-			if (title.toLowerCase().contains('cash')) {
-				return Icons.payments_outlined;
-			}
 			if (title.toLowerCase().contains('mobile') || title.toLowerCase().contains('money')) {
 				return Icons.phone_android_rounded;
 			}
-			if (title.toLowerCase().contains('card')) {
-				return Icons.credit_card_rounded;
-			}
-			return Icons.payment_rounded;
+			return Icons.credit_card_rounded;
 	}
 }

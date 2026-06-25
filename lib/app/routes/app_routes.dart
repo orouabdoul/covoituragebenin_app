@@ -24,4 +24,19 @@ abstract class AppRoutes {
   static const passengerMessageDetail = '/passenger-message-detail';
   static const passengerProfile = '/passenger-profile';
   static const roles = '/roles';
+  static const passengerWaitingApproval = '/passenger-waiting-approval';
+  static const passengerPaymentSuccess = '/passenger-payment-success';
+  static const passengerLiveTracking = '/passenger-live-tracking';
+  static const passengerDriverArrival = '/passenger-driver-arrival';
+  static const passengerTripConfirmation = '/passenger-trip-confirmation';
+  static const passengerNotifications = '/passenger-notifications';
+  static const passengerSafetyCenter = '/passenger-safety-center';
+  static const passengerRefundRequest = '/passenger-refund-request';
+  static const passengerRefundHistory = '/passenger-refund-history';
+  static const passengerEditProfile = '/passenger-edit-profile';
+  static const passengerSupportCenter = '/passenger-support-center';
+  static const passengerTripHistory = '/passenger-trip-history';
+  static const passengerMyReviews = '/passenger-my-reviews';
+  static const passengerTrustHub = '/passenger-trust-hub';
+  static const driverInteractiveMap = '/driver-interactive-map';
 }

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SplashController extends GetxController {
 	final RxBool isLogoVisible = false.obs;
@@ -42,16 +43,19 @@ class SplashController extends GetxController {
 	}
 
 	Future<void> _navigateFromSplash() async {
-		final uc = UserController.instance;
-		final sessionToken = await uc.getSessionToken();
+		final prefs = await SharedPreferences.getInstance();
+		final hasSeenOnboarding = prefs.getBool('has_seen_onboarding') ?? false;
 
-		if (sessionToken.isEmpty) {
-			Get.offNamed(AppRoutes.onboarding);
+		if (!hasSeenOnboarding) {
+			Get.offAllNamed(AppRoutes.onboarding);
 			return;
 		}
 
-		if (!uc.profileComplete.value) {
-			Get.offAllNamed(AppRoutes.roles, arguments: {'skipAuth': true});
+		final uc = UserController.instance;
+		final sessionToken = await uc.getSessionToken();
+
+		if (sessionToken.isEmpty || !uc.profileComplete.value) {
+			Get.offAllNamed(AppRoutes.register);
 			return;
 		}
 

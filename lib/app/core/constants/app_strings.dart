@@ -23,7 +23,7 @@ class AppStrings {
   // Onboarding 3
   static const String onboarding3Title = 'Paiements \nsécurisés';
   static const String onboarding3Description =
-      'Payez facilement via Mobile \nMoney, carte bancaire ou espèces \navec des transactions 100% \nsécurisées';
+      'Payez facilement via Mobile \nMoney ou carte bancaire avec \ndes transactions 100% sécurisées';
   // Onboarding 4
   static const String onboarding4Title = 'Commencez \nmaintenant';
   static const String onboarding4Description =
@@ -376,9 +376,6 @@ class AppStrings {
   static const String reservationConfirmedBadge = 'Confirmé';
   static const String reservationSeatsTitle = 'Nombre de places';
   static const String reservationSeatsReserved = 'places réservées';
-  static const String reservationCashPaymentTitle = 'Paiement en espèces';
-  static const String reservationCashPaymentDescription =
-      'Payer directement le conducteur';
   static const String reservationMobileMoneyPaymentTitle = 'MTN Mobile Money';
   static const String reservationMobileMoneyPaymentDescription =
       'Paiement mobile sécurisé';

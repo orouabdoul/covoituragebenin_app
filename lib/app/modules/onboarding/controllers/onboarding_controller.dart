@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/auth_mode.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
@@ -44,7 +45,9 @@ class OnboardingController extends GetxController {
 		pageController.jumpToPage(pagesCount - 1);
 	}
 
-	void start() {
+	Future<void> start() async {
+		final prefs = await SharedPreferences.getInstance();
+		await prefs.setBool('has_seen_onboarding', true);
 		Get.toNamed(
 			AppRoutes.register,
 			arguments: {'mode': AuthMode.login},

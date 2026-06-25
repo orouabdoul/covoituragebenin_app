@@ -1,7 +1,12 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
+import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
-import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
+import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
+import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
+import '../../trip_history/controllers/trip_history_controller.dart';
 
 class ProfilController extends GetxController {
   final ProfileSummary profileSummary = const ProfileSummary(
@@ -18,16 +23,22 @@ class ProfilController extends GetxController {
     verifiedEmail: AppStrings.passengerProfileVerifiedEmail,
   );
 
-  final List<ProfileMetric> metrics = const [
-    ProfileMetric(
-      value: AppStrings.passengerProfileRating,
-      label: AppStrings.passengerProfileRatingLabel,
-    ),
-    ProfileMetric(
-      value: AppStrings.passengerProfileTripsCount,
-      label: AppStrings.passengerProfileTripsLabel,
-    ),
-  ];
+  List<ProfileMetric> get metrics {
+    final tripHistory = Get.isRegistered<TripHistoryController>()
+        ? Get.find<TripHistoryController>()
+        : null;
+    final completedCount = tripHistory?.countByStatus('completed') ?? int.tryParse(AppStrings.passengerProfileTripsCount) ?? 12;
+    return [
+      const ProfileMetric(
+        value: AppStrings.passengerProfileRating,
+        label: AppStrings.passengerProfileRatingLabel,
+      ),
+      ProfileMetric(
+        value: '$completedCount',
+        label: AppStrings.passengerProfileTripsLabel,
+      ),
+    ];
+  }
 
   final List<ProfileSetting> settings = const [
     ProfileSetting(
@@ -84,23 +95,132 @@ class ProfilController extends GetxController {
     ),
   ];
 
-  void editProfile() => _showPlaceholder(AppStrings.passengerProfileEditProfile);
+  void editProfile() => Get.toNamed(AppRoutes.passengerEditProfile);
 
-  void openSecurity() => _showPlaceholder(AppStrings.passengerProfileSecurity);
+  void openSecurity()      => Get.toNamed(AppRoutes.passengerSafetyCenter);
+  void openNotifications() => Get.toNamed(AppRoutes.passengerNotifications);
+  void openSupport()       => Get.toNamed(AppRoutes.passengerSupportCenter);
+  void openTrustHub()      => Get.toNamed(AppRoutes.passengerTrustHub);
+  void openMyReviews()     => Get.toNamed(AppRoutes.passengerMyReviews);
+  void viewAllTrips()      => Get.toNamed(AppRoutes.passengerTripHistory);
 
-  void openNotifications() => _showPlaceholder(AppStrings.passengerProfileNotifications);
-
-  void openSupport() => _showPlaceholder(AppStrings.passengerProfileSupport);
-
-  void addPaymentMethod() => _showPlaceholder(AppStrings.passengerProfileAdd);
-
-  void viewAllTrips() => _showPlaceholder(AppStrings.passengerProfileSeeAll);
-
-  void openTrip(RecentTrip trip) => _showPlaceholder(trip.title);
-
-  void _showPlaceholder(String label) {
-    UIHelper().showSnackBar('MINIZON', '$label bientôt disponible.', 1);
+  void addPaymentMethod() {
+    Get.bottomSheet(
+      const _AddPaymentSheet(),
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      isScrollControlled: true,
+    );
   }
+
+  void openTrip(RecentTrip trip) => Get.toNamed(AppRoutes.passengerTripHistory);
+}
+
+// ── Add Payment Sheet ─────────────────────────────────────────────────────────
+
+class _AddPaymentSheet extends StatelessWidget {
+  const _AddPaymentSheet();
+
+  static const _methods = [
+    _PaymentOption(icon: Icons.phone_android_rounded, color: Color(0xFFF4B400), label: 'MTN Mobile Money', sub: 'Bientôt disponible'),
+    _PaymentOption(icon: Icons.phone_android_rounded, color: Color(0xFF00A3E0), label: 'Moov Money', sub: 'Bientôt disponible'),
+    _PaymentOption(icon: Icons.credit_card_rounded,   color: Color(0xFF1A1F71), label: 'Carte Visa / Mastercard', sub: 'Bientôt disponible'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final responsive = AppResponsive(context);
+    return Padding(
+      padding: EdgeInsets.fromLTRB(responsive.w(20), responsive.h(8), responsive.w(20), responsive.h(32)),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: responsive.w(40), height: responsive.h(4),
+              decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)),
+            ),
+          ),
+          SizedBox(height: responsive.h(16)),
+          Text('Ajouter un moyen de paiement', style: AppTextStyles.title(responsive)),
+          SizedBox(height: responsive.h(6)),
+          Text(
+            'Nous travaillons à intégrer ces méthodes de paiement très prochainement.',
+            style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint),
+          ),
+          SizedBox(height: responsive.h(20)),
+          ..._methods.map((m) => Padding(
+            padding: EdgeInsets.only(bottom: responsive.h(10)),
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: responsive.w(16), vertical: responsive.h(14)),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceMuted,
+                borderRadius: BorderRadius.circular(responsive.radius(12)),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: responsive.w(38), height: responsive.w(38),
+                    decoration: BoxDecoration(
+                      color: m.color.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(m.icon, color: m.color, size: responsive.text(18)),
+                  ),
+                  SizedBox(width: responsive.w(12)),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(m.label, style: AppTextStyles.body(responsive).copyWith(fontWeight: FontWeight.w600)),
+                        Text(m.sub, style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint)),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: responsive.w(8), vertical: responsive.h(4)),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(9999),
+                    ),
+                    child: Text(
+                      'Prochainement',
+                      style: AppTextStyles.caption(responsive).copyWith(color: const Color(0xFFF59E0B), fontWeight: FontWeight.w700, fontSize: responsive.text(10)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )),
+          SizedBox(height: responsive.h(4)),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: Get.back,
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: AppColors.border),
+                padding: EdgeInsets.symmetric(vertical: responsive.h(14)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(responsive.radius(12))),
+              ),
+              child: Text('Fermer', style: AppTextStyles.subtitle(responsive).copyWith(color: AppColors.textSecondary)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PaymentOption {
+  const _PaymentOption({required this.icon, required this.color, required this.label, required this.sub});
+  final IconData icon;
+  final Color color;
+  final String label;
+  final String sub;
 }
 
 class ProfileSummary {

@@ -39,15 +39,37 @@ class MessagerView extends StatelessWidget {
                 SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
                 _FilterRow(responsive: responsive, controller: controller),
                 SizedBox(height: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
-                for (var index = 0; index < controller.threads.length; index++) ...[
-                  _ThreadCard(
-                    responsive: responsive,
-                    thread: controller.threads[index],
-                    onTap: () => controller.openThread(controller.threads[index]),
-                  ),
-                  if (index != controller.threads.length - 1)
-                    SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                ],
+                Obx(() {
+                  final threads = controller.filteredThreads;
+                  if (threads.isEmpty) {
+                    return Padding(
+                      padding: EdgeInsets.only(top: responsive.h(48)),
+                      child: Column(
+                        children: [
+                          Icon(Icons.chat_bubble_outline_rounded, size: responsive.text(48), color: AppColors.border),
+                          SizedBox(height: responsive.h(12)),
+                          Text(
+                            'Aucune conversation trouvée',
+                            style: AppTextStyles.subtitle(responsive).copyWith(color: AppColors.textHint),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  return Column(
+                    children: [
+                      for (var index = 0; index < threads.length; index++) ...[
+                        _ThreadCard(
+                          responsive: responsive,
+                          thread: threads[index],
+                          onTap: () => controller.openThread(threads[index]),
+                        ),
+                        if (index != threads.length - 1)
+                          SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+                      ],
+                    ],
+                  );
+                }),
               ],
             ),
           ),

@@ -41,15 +41,21 @@ class ProfilView extends GetView<ProfilController> {
 												children: [
 													_SummaryCard(responsive: responsive, controller: controller),
 													SizedBox(height: responsive.h(24)),
-													_StatCard(
-														responsive: responsive,
-														value: controller.metrics[0].value,
-														label: controller.metrics[0].label,
-														leadingIcon: Icons.star_rounded,
-														trailingStars: true,
+													GestureDetector(
+														onTap: controller.openMyReviews,
+														child: _StatCard(
+															responsive: responsive,
+															value: controller.metrics[0].value,
+															label: controller.metrics[0].label,
+															leadingIcon: Icons.star_rounded,
+															trailingStars: true,
+														),
 													),
 													SizedBox(height: responsive.h(24)),
-													_TrustCard(responsive: responsive, controller: controller),
+													GestureDetector(
+														onTap: controller.openTrustHub,
+														child: _TrustCard(responsive: responsive, controller: controller),
+													),
 													SizedBox(height: responsive.h(24)),
 													_SettingsCard(responsive: responsive, controller: controller),
 													SizedBox(height: responsive.h(24)),
@@ -240,21 +246,27 @@ class _SummaryCard extends StatelessWidget {
 					Row(
 						children: [
 							Expanded(
-								child: _StatCard(
-									responsive: responsive,
-									value: controller.metrics[0].value,
-									label: controller.metrics[0].label,
-									leadingIcon: Icons.star_rounded,
-									trailingStars: true,
+								child: GestureDetector(
+									onTap: controller.openMyReviews,
+									child: _StatCard(
+										responsive: responsive,
+										value: controller.metrics[0].value,
+										label: controller.metrics[0].label,
+										leadingIcon: Icons.star_rounded,
+										trailingStars: true,
+									),
 								),
 							),
 							SizedBox(width: responsive.w(16)),
 							Expanded(
-								child: _StatCard(
-									responsive: responsive,
-									value: controller.metrics[1].value,
-									label: controller.metrics[1].label,
-									leadingIcon: Icons.route_rounded,
+								child: GestureDetector(
+									onTap: controller.viewAllTrips,
+									child: _StatCard(
+										responsive: responsive,
+										value: controller.metrics[1].value,
+										label: controller.metrics[1].label,
+										leadingIcon: Icons.route_rounded,
+									),
 								),
 							),
 						],
@@ -385,6 +397,19 @@ class _TrustCard extends StatelessWidget {
 					_TrustLine(responsive: responsive, title: trust.identityDocument),
 					SizedBox(height: responsive.h(12)),
 					_TrustLine(responsive: responsive, title: trust.verifiedEmail),
+					SizedBox(height: responsive.h(12)),
+					Row(
+						mainAxisAlignment: MainAxisAlignment.end,
+						children: [
+							Text(
+								'Voir l\'espace confiance →',
+								style: AppTextStyles.profileMeta(responsive).copyWith(
+									color: AppColors.primary,
+									fontWeight: FontWeight.w600,
+								),
+							),
+						],
+					),
 				],
 			),
 		);

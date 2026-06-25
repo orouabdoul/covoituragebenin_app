@@ -2,655 +2,887 @@ import 'package:flutter/material.dart' hide SearchController;
 import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
-import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 import '../../reservation/views/detail_journey_view.dart';
 import '../controllers/search_controller.dart';
 
 class SearchView extends StatelessWidget {
-  const SearchView({super.key});
+	const SearchView({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    final SearchController controller = Get.isRegistered<SearchController>()
-        ? Get.find<SearchController>()
-        : Get.put(SearchController());
-    final responsive = AppResponsive(context);
-    final double pagePadding = responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32);
+	@override
+	Widget build(BuildContext context) {
+		final SearchController controller = Get.isRegistered<SearchController>()
+				? Get.find<SearchController>()
+				: Get.put(SearchController());
+		final responsive = AppResponsive(context);
 
-    return Scaffold(
-      backgroundColor: AppColors.surface,
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: responsive.maxContentWidth),
-            child: ListView(
-              padding: EdgeInsets.symmetric(
-                horizontal: pagePadding,
-                vertical: responsive.adaptive(phone: 8, smallPhone: 8, tablet: 12, desktop: 16),
-              ),
-              children: [
-                _SearchCard(responsive: responsive, controller: controller),
-                SizedBox(height: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
-                _SectionHeader(
-                  responsive: responsive,
-                  title: AppStrings.searchAvailableNow,
-                  actionLabel: AppStrings.searchSeeAll,
-                  onAction: controller.search,
-                ),
-                SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                _RideList(responsive: responsive, controller: controller),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+		return Scaffold(
+			backgroundColor: AppColors.surface,
+			body: SafeArea(
+				child: Center(
+					child: ConstrainedBox(
+						constraints: BoxConstraints(maxWidth: responsive.maxContentWidth),
+						child: Column(
+							children: [
+								_SearchPanel(responsive: responsive, controller: controller),
+								Expanded(
+									child: Obx(() {
+										if (controller.isSearching.value) {
+											return const Center(
+												child: CircularProgressIndicator(
+													color: AppColors.primary,
+													strokeWidth: 2.5,
+												),
+											);
+										}
+										final rides = controller.filteredSortedRides;
+										return ListView.separated(
+											padding: EdgeInsets.symmetric(
+												horizontal: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
+												vertical: responsive.h(16),
+											),
+											itemCount: rides.length + 1,
+											separatorBuilder: (_, _) => SizedBox(height: responsive.h(12)),
+											itemBuilder: (_, i) {
+												if (i == 0) {
+													return _ResultsHeader(responsive: responsive, controller: controller);
+												}
+												return _RideCard(
+													responsive: responsive,
+													ride: rides[i - 1],
+													controller: controller,
+												);
+											},
+										);
+									}),
+								),
+							],
+						),
+					),
+				),
+			),
+		);
+	}
 }
 
-class _SearchCard extends StatelessWidget {
-  const _SearchCard({required this.responsive, required this.controller});
+// ── Search Panel ───────────────────────────────────────────────────────────
 
-  final AppResponsive responsive;
-  final SearchController controller;
+class _SearchPanel extends StatelessWidget {
+	const _SearchPanel({required this.responsive, required this.controller});
 
-  @override
-  Widget build(BuildContext context) {
-    final double cardPadding = responsive.adaptive(phone: 16, smallPhone: 14, tablet: 18, desktop: 20);
+	final AppResponsive responsive;
+	final SearchController controller;
 
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(cardPadding),
-      decoration: ShapeDecoration(
-        color: AppColors.white,
-        shape: RoundedRectangleBorder(
-          side: const BorderSide(color: Color(0xFFF3F4F6)),
-          borderRadius: BorderRadius.circular(responsive.radius(24)),
-        ),
-        shadows: const [
-          BoxShadow(
-            color: Color(0x0C000000),
-            blurRadius: 2,
-            offset: Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: responsive.w(48),
-                height: responsive.w(48),
-                decoration: ShapeDecoration(
-                  color: AppColors.primary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(9999),
-                    side: const BorderSide(color: AppColors.border),
-                  ),
-                ),
-                child: Icon(Icons.search_rounded, color: AppColors.white, size: responsive.text(24)),
-              ),
-              SizedBox(width: responsive.w(12)),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(AppStrings.searchTitle, style: AppTextStyles.homeSectionTitle(responsive)),
-                    SizedBox(height: responsive.h(4)),
-                    Text(AppStrings.searchSubtitle, style: AppTextStyles.homeCardBody(responsive)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 16, desktop: 18)),
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
-            decoration: ShapeDecoration(
-              color: AppColors.surfaceSoft,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(responsive.radius(18)),
-                side: const BorderSide(color: Color(0xFFF3F4F6)),
-              ),
-            ),
-            child: Column(
-              children: [
-                const _SearchField(label: AppStrings.searchFromLabel, value: 'Cotonou'),
-                SizedBox(height: responsive.adaptive(phone: 10, smallPhone: 8, tablet: 10, desktop: 10)),
-                const _SearchField(label: AppStrings.searchToLabel, value: 'Porto-Novo'),
-                SizedBox(height: responsive.adaptive(phone: 10, smallPhone: 8, tablet: 10, desktop: 10)),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Obx(
-                        () => _MiniInfoBox(
-                          responsive: responsive,
-                          label: AppStrings.searchDateLabel,
-                          value: controller.selectedDateLabel.value,
-                          icon: Icons.calendar_today_outlined,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: responsive.w(10)),
-                    Expanded(
-                      child: Obx(
-                        () => _MiniStepperBox(
-                          responsive: responsive,
-                          label: AppStrings.searchPassengersLabel,
-                          value: controller.passengerCount.value.toString(),
-                          onMinus: controller.decrementPassengers,
-                          onPlus: controller.incrementPassengers,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: responsive.adaptive(phone: 14, smallPhone: 12, tablet: 14, desktop: 16)),
-          Text(AppStrings.searchQuickFilters, style: AppTextStyles.homeCardTitle(responsive)),
-          SizedBox(height: responsive.h(10)),
-          Obx(
-            () => Row(
-              children: List.generate(controller.quickFilters.length, (index) {
-                final filter = controller.quickFilters[index];
-                final bool selected = controller.selectedFilterIndex.value == index;
+	@override
+	Widget build(BuildContext context) {
+		return Obx(() => controller.isPanelExpanded.value
+				? _buildExpanded(context)
+				: _buildCollapsed());
+	}
 
-                return Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      right: index == controller.quickFilters.length - 1 ? 0 : responsive.w(8),
-                    ),
-                    child: AppChipButton(
-                      responsive: responsive,
-                      label: '${filter.icon} ${filter.label}',
-                      onTap: () => controller.selectQuickFilter(index),
-                      height: responsive.h(40),
-                      backgroundColor: selected ? AppColors.surfaceAccent : AppColors.white,
-                      textColor: selected ? AppColors.primary : AppColors.textPrimary,
-                      borderColor: selected ? AppColors.primary : AppColors.border,
-                    ),
-                  ),
-                );
-              }),
-            ),
-          ),
-          SizedBox(height: responsive.adaptive(phone: 16, smallPhone: 12, tablet: 16, desktop: 18)),
-          Row(
-            children: [
-              Expanded(
-                child: AppPrimaryButton(
-                  responsive: responsive,
-                  label: AppStrings.searchApply,
-                  onTap: controller.search,
-                  backgroundColor: AppColors.primary,
-                  textColor: AppColors.white,
-                ),
-              ),
-              SizedBox(width: responsive.w(10)),
-              AppTextButton(
-                responsive: responsive,
-                label: AppStrings.searchReset,
-                onTap: controller.resetFilters,
-                textColor: AppColors.textHint,
-                fontWeight: FontWeight.w600,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+	// ── Collapsed: compact summary bar ──────────────────────────────────────
+
+	Widget _buildCollapsed() {
+		return Container(
+			decoration: const BoxDecoration(
+				color: AppColors.white,
+				border: Border(bottom: BorderSide(color: AppColors.border)),
+			),
+			padding: EdgeInsets.fromLTRB(
+				responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
+				responsive.h(10),
+				responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
+				responsive.h(10),
+			),
+			child: Row(
+				children: [
+					InkWell(
+						onTap: Get.back,
+						borderRadius: BorderRadius.circular(9999),
+						child: Container(
+							width: responsive.w(40),
+							height: responsive.w(40),
+							decoration: BoxDecoration(
+								shape: BoxShape.circle,
+								color: AppColors.surfaceMuted,
+								border: Border.all(color: AppColors.border),
+							),
+							child: Icon(Icons.chevron_left_rounded, size: responsive.text(22), color: AppColors.textPrimary),
+						),
+					),
+					SizedBox(width: responsive.w(10)),
+					Expanded(
+						child: GestureDetector(
+							onTap: controller.expandPanel,
+							child: Container(
+								padding: EdgeInsets.symmetric(horizontal: responsive.w(14), vertical: responsive.h(10)),
+								decoration: BoxDecoration(
+									color: AppColors.surfaceMuted,
+									borderRadius: BorderRadius.circular(responsive.radius(12)),
+									border: Border.all(color: AppColors.border),
+								),
+								child: Row(
+									children: [
+										Container(
+											width: responsive.w(30),
+											height: responsive.w(30),
+											decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+											child: Icon(Icons.search_rounded, color: Colors.white, size: responsive.text(15)),
+										),
+										SizedBox(width: responsive.w(10)),
+										Expanded(
+											child: Column(
+												crossAxisAlignment: CrossAxisAlignment.start,
+												children: [
+													Text(
+														'${controller.originCity.value} → ${controller.destinationCity.value}',
+														style: AppTextStyles.subtitle(responsive),
+														overflow: TextOverflow.ellipsis,
+													),
+													SizedBox(height: responsive.h(2)),
+													Text(
+														'${controller.selectedDateLabel.value} · ${controller.selectedTimeLabel.value} · ${controller.passengerCount.value} pers.',
+														style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint),
+														overflow: TextOverflow.ellipsis,
+													),
+												],
+											),
+										),
+										SizedBox(width: responsive.w(6)),
+										Icon(Icons.edit_rounded, size: responsive.text(15), color: AppColors.primary),
+									],
+								),
+							),
+						),
+					),
+				],
+			),
+		);
+	}
+
+	// ── Expanded: full search form ───────────────────────────────────────────
+
+	Widget _buildExpanded(BuildContext context) {
+		return Container(
+			decoration: const BoxDecoration(
+				color: AppColors.white,
+				border: Border(bottom: BorderSide(color: AppColors.border)),
+			),
+			padding: EdgeInsets.fromLTRB(
+				responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
+				responsive.h(12),
+				responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
+				responsive.h(12),
+			),
+			child: Column(
+				crossAxisAlignment: CrossAxisAlignment.start,
+				children: [
+					// Title row
+					Row(
+						children: [
+							InkWell(
+								onTap: Get.back,
+								borderRadius: BorderRadius.circular(9999),
+								child: Container(
+									width: responsive.w(40),
+									height: responsive.w(40),
+									decoration: BoxDecoration(
+										shape: BoxShape.circle,
+										color: AppColors.surfaceMuted,
+										border: Border.all(color: AppColors.border),
+									),
+									child: Icon(Icons.chevron_left_rounded, size: responsive.text(22), color: AppColors.textPrimary),
+								),
+							),
+							SizedBox(width: responsive.w(12)),
+							Expanded(
+								child: Text('Rechercher un trajet', style: AppTextStyles.title(responsive)),
+							),
+						],
+					),
+					SizedBox(height: responsive.h(14)),
+					// Origin + Destination + Swap
+					Row(
+						crossAxisAlignment: CrossAxisAlignment.center,
+						children: [
+							Expanded(
+								child: Column(
+									children: [
+										Obx(() => _LocationField(
+											responsive: responsive,
+											icon: Icons.trip_origin_rounded,
+											iconColor: AppColors.primary,
+											label: 'Départ',
+											value: controller.originCity.value,
+											onTap: () => controller.selectCity(context, true),
+										)),
+										SizedBox(height: responsive.h(6)),
+										Obx(() => _LocationField(
+											responsive: responsive,
+											icon: Icons.location_on_rounded,
+											iconColor: const Color(0xFFEF4444),
+											label: 'Arrivée',
+											value: controller.destinationCity.value,
+											onTap: () => controller.selectCity(context, false),
+										)),
+									],
+								),
+							),
+							SizedBox(width: responsive.w(10)),
+							// Swap button
+							GestureDetector(
+								onTap: controller.swapLocations,
+								child: Container(
+									width: responsive.w(40),
+									height: responsive.w(40),
+									decoration: BoxDecoration(
+										color: AppColors.surfaceAccent,
+										shape: BoxShape.circle,
+										border: Border.all(color: const Color(0x3300A86B)),
+									),
+									child: Icon(
+										Icons.swap_vert_rounded,
+										size: responsive.text(20),
+										color: AppColors.primary,
+									),
+								),
+							),
+						],
+					),
+					SizedBox(height: responsive.h(10)),
+					// Date + Heure row
+					Row(
+						children: [
+							Expanded(
+								child: GestureDetector(
+									onTap: () => controller.pickDate(context),
+									child: Obx(() => _MiniBox(
+										responsive: responsive,
+										icon: Icons.calendar_today_outlined,
+										label: 'Date',
+										value: controller.selectedDateLabel.value,
+									)),
+								),
+							),
+							SizedBox(width: responsive.w(10)),
+							Expanded(
+								child: GestureDetector(
+									onTap: () => controller.pickTime(context),
+									child: Obx(() => _MiniBox(
+										responsive: responsive,
+										icon: Icons.schedule_outlined,
+										label: 'Heure',
+										value: controller.selectedTimeLabel.value,
+									)),
+								),
+							),
+						],
+					),
+					SizedBox(height: responsive.h(10)),
+					// Passagers row
+					Obx(() => _PassengerBox(
+						responsive: responsive,
+						value: controller.passengerCount.value,
+						onMinus: controller.decrementPassengers,
+						onPlus: controller.incrementPassengers,
+					)),
+					SizedBox(height: responsive.h(12)),
+					// Search button
+					Obx(() => AppPrimaryButton(
+						responsive: responsive,
+						label: controller.isSearching.value ? 'Recherche en cours…' : 'Rechercher',
+						onTap: controller.isSearching.value ? () {} : controller.search,
+						backgroundColor: AppColors.primary,
+						textColor: AppColors.white,
+						height: responsive.h(50),
+						borderRadius: responsive.radius(14),
+					)),
+				],
+			),
+		);
+	}
 }
 
-class _SearchField extends StatelessWidget {
-  const _SearchField({required this.label, required this.value});
+// ── Location Field ─────────────────────────────────────────────────────────
 
-  final String label;
-  final String value;
+class _LocationField extends StatelessWidget {
+	const _LocationField({
+		required this.responsive,
+		required this.icon,
+		required this.iconColor,
+		required this.label,
+		required this.value,
+		required this.onTap,
+	});
 
-  @override
-  Widget build(BuildContext context) {
-    final responsive = AppResponsive(context);
+	final AppResponsive responsive;
+	final IconData icon;
+	final Color iconColor;
+	final String label;
+	final String value;
+	final VoidCallback onTap;
 
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: responsive.w(16), vertical: responsive.h(12)),
-      decoration: ShapeDecoration(
-        color: AppColors.white,
-        shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.border),
-          borderRadius: BorderRadius.circular(responsive.radius(16)),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: responsive.w(28),
-            height: responsive.w(28),
-            decoration: ShapeDecoration(
-              color: AppColors.surfaceSoft,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(9999),
-                side: const BorderSide(color: AppColors.border),
-              ),
-            ),
-            child: Icon(Icons.location_on_outlined, size: responsive.text(16), color: AppColors.primary),
-          ),
-          SizedBox(width: responsive.w(10)),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: responsive.h(2)),
-                Text(value, style: AppTextStyles.homeCardTitle(responsive)),
-              ],
-            ),
-          ),
-          Icon(Icons.chevron_right_rounded, size: responsive.text(20), color: AppColors.textGhost),
-        ],
-      ),
-    );
-  }
+	@override
+	Widget build(BuildContext context) {
+		return GestureDetector(
+			onTap: onTap,
+			child: Container(
+				padding: EdgeInsets.symmetric(horizontal: responsive.w(14), vertical: responsive.h(11)),
+				decoration: BoxDecoration(
+					color: AppColors.surfaceMuted,
+					borderRadius: BorderRadius.circular(responsive.radius(12)),
+					border: Border.all(color: AppColors.border),
+				),
+				child: Row(
+					children: [
+						Icon(icon, size: responsive.text(16), color: iconColor),
+						SizedBox(width: responsive.w(10)),
+						Expanded(
+							child: Column(
+								crossAxisAlignment: CrossAxisAlignment.start,
+								children: [
+									Text(
+										label,
+										style: AppTextStyles.caption(responsive).copyWith(
+											color: AppColors.textHint,
+											fontSize: responsive.text(10),
+										),
+									),
+									Text(value, style: AppTextStyles.subtitle(responsive)),
+								],
+							),
+						),
+						Icon(Icons.keyboard_arrow_down_rounded, size: responsive.text(18), color: AppColors.textHint),
+					],
+				),
+			),
+		);
+	}
 }
 
-class _MiniInfoBox extends StatelessWidget {
-  const _MiniInfoBox({required this.responsive, required this.label, required this.value, required this.icon});
+// ── Mini Box ───────────────────────────────────────────────────────────────
 
-  final AppResponsive responsive;
-  final String label;
-  final String value;
-  final IconData icon;
+class _MiniBox extends StatelessWidget {
+	const _MiniBox({required this.responsive, required this.icon, required this.label, required this.value});
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(responsive.w(12)),
-      decoration: ShapeDecoration(
-        color: AppColors.white,
-        shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.border),
-          borderRadius: BorderRadius.circular(responsive.radius(16)),
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: responsive.text(16), color: AppColors.primary),
-          SizedBox(width: responsive.w(8)),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  maxLines: 1,
-                  softWrap: false,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.homeCardBody(responsive),
-                ),
-                SizedBox(height: responsive.h(2)),
-                Text(value, style: AppTextStyles.homeCardTitle(responsive)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+	final AppResponsive responsive;
+	final IconData icon;
+	final String label;
+	final String value;
+
+	@override
+	Widget build(BuildContext context) {
+		return Container(
+			padding: EdgeInsets.symmetric(horizontal: responsive.w(12), vertical: responsive.h(10)),
+			decoration: BoxDecoration(
+				color: AppColors.surfaceMuted,
+				borderRadius: BorderRadius.circular(responsive.radius(12)),
+				border: Border.all(color: AppColors.border),
+			),
+			child: Row(
+				children: [
+					Icon(icon, size: responsive.text(15), color: AppColors.primary),
+					SizedBox(width: responsive.w(8)),
+					Expanded(
+						child: Column(
+							crossAxisAlignment: CrossAxisAlignment.start,
+							children: [
+								Text(label, style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint, fontSize: responsive.text(10))),
+								Text(value, style: AppTextStyles.subtitle(responsive)),
+							],
+						),
+					),
+				],
+			),
+		);
+	}
 }
 
-class _MiniStepperBox extends StatelessWidget {
-  const _MiniStepperBox({
-    required this.responsive,
-    required this.label,
-    required this.value,
-    required this.onMinus,
-    required this.onPlus,
-  });
+// ── Passenger Box ──────────────────────────────────────────────────────────
 
-  final AppResponsive responsive;
-  final String label;
-  final String value;
-  final VoidCallback onMinus;
-  final VoidCallback onPlus;
+class _PassengerBox extends StatelessWidget {
+	const _PassengerBox({required this.responsive, required this.value, required this.onMinus, required this.onPlus});
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(responsive.w(12)),
-      decoration: ShapeDecoration(
-        color: AppColors.white,
-        shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.border),
-          borderRadius: BorderRadius.circular(responsive.radius(16)),
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  maxLines: 1,
-                  softWrap: false,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.homeCardBody(responsive),
-                ),
-                SizedBox(height: responsive.h(2)),
-                Text(value, style: AppTextStyles.homeCardTitle(responsive)),
-              ],
-            ),
-          ),
-          AppCircularButton(responsive: responsive, icon: Icons.remove_rounded, onTap: onMinus, size: responsive.w(32)),
-          SizedBox(width: responsive.w(6)),
-          AppCircularButton(responsive: responsive, icon: Icons.add_rounded, onTap: onPlus, filled: true, size: responsive.w(32)),
-        ],
-      ),
-    );
-  }
+	final AppResponsive responsive;
+	final int value;
+	final VoidCallback onMinus;
+	final VoidCallback onPlus;
+
+	@override
+	Widget build(BuildContext context) {
+		return Container(
+			padding: EdgeInsets.symmetric(horizontal: responsive.w(12), vertical: responsive.h(8)),
+			decoration: BoxDecoration(
+				color: AppColors.surfaceMuted,
+				borderRadius: BorderRadius.circular(responsive.radius(12)),
+				border: Border.all(color: AppColors.border),
+			),
+			child: Row(
+				children: [
+					Icon(Icons.person_outline_rounded, size: responsive.text(15), color: AppColors.primary),
+					SizedBox(width: responsive.w(6)),
+					Expanded(
+						child: Column(
+							crossAxisAlignment: CrossAxisAlignment.start,
+							children: [
+								Text('Passagers', style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint, fontSize: responsive.text(10))),
+								Text('$value passager${value > 1 ? 's' : ''}', style: AppTextStyles.subtitle(responsive)),
+							],
+						),
+					),
+					Row(
+						children: [
+							_StepBtn(icon: Icons.remove_rounded, onTap: onMinus),
+							SizedBox(width: responsive.w(4)),
+							_StepBtn(icon: Icons.add_rounded, onTap: onPlus, filled: true),
+						],
+					),
+				],
+			),
+		);
+	}
 }
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.responsive, required this.title, required this.actionLabel, required this.onAction});
+class _StepBtn extends StatelessWidget {
+	const _StepBtn({required this.icon, required this.onTap, this.filled = false});
 
-  final AppResponsive responsive;
-  final String title;
-  final String actionLabel;
-  final VoidCallback onAction;
+	final IconData icon;
+	final VoidCallback onTap;
+	final bool filled;
 
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(child: Text(title, style: AppTextStyles.homeSectionTitle(responsive))),
-        AppTextButton(
-          responsive: responsive,
-          label: actionLabel,
-          onTap: onAction,
-          textColor: AppColors.primary,
-          fontWeight: FontWeight.w600,
-        ),
-      ],
-    );
-  }
+	@override
+	Widget build(BuildContext context) {
+		final responsive = AppResponsive(context);
+		return GestureDetector(
+			onTap: onTap,
+			child: Container(
+				width: responsive.w(28),
+				height: responsive.w(28),
+				decoration: BoxDecoration(
+					color: filled ? AppColors.primary : AppColors.white,
+					shape: BoxShape.circle,
+					border: Border.all(color: filled ? AppColors.primary : AppColors.border),
+				),
+				child: Icon(icon, size: responsive.text(14), color: filled ? Colors.white : AppColors.textPrimary),
+			),
+		);
+	}
 }
 
-class _RideList extends StatelessWidget {
-  const _RideList({required this.responsive, required this.controller});
+// ── Results Header ─────────────────────────────────────────────────────────
 
-  final AppResponsive responsive;
-  final SearchController controller;
+class _ResultsHeader extends StatelessWidget {
+	const _ResultsHeader({required this.responsive, required this.controller});
 
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        for (var index = 0; index < controller.availableRides.length; index++) ...[
-          _RideCard(
-            responsive: responsive,
-            ride: controller.availableRides[index],
-            onReserve: controller.reserveRide,
-          ),
-          if (index != controller.availableRides.length - 1)
-            SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-        ],
-      ],
-    );
-  }
+	final AppResponsive responsive;
+	final SearchController controller;
+
+	@override
+	Widget build(BuildContext context) {
+		return Obx(() {
+			final filterCount = controller.activeFilterCount;
+			final hasFilter = filterCount > 0;
+			return Row(
+				children: [
+					Expanded(
+						child: Column(
+							crossAxisAlignment: CrossAxisAlignment.start,
+							children: [
+								Text(
+									'${controller.filteredSortedRides.length} trajet${controller.filteredSortedRides.length > 1 ? 's' : ''} trouvé${controller.filteredSortedRides.length > 1 ? 's' : ''}',
+									style: AppTextStyles.homeSectionTitle(responsive),
+								),
+								Text(
+									'${controller.originCity.value} → ${controller.destinationCity.value} · ${controller.selectedDateLabel.value}',
+									style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint),
+								),
+							],
+						),
+					),
+					GestureDetector(
+						onTap: () => controller.openFilterSheet(context),
+						child: Container(
+							padding: EdgeInsets.symmetric(horizontal: responsive.w(10), vertical: responsive.h(6)),
+							decoration: BoxDecoration(
+								color: hasFilter ? AppColors.surfaceAccent : AppColors.surfaceMuted,
+								borderRadius: BorderRadius.circular(9999),
+								border: Border.all(
+									color: hasFilter ? AppColors.primary : AppColors.border,
+									width: hasFilter ? 1.5 : 1,
+								),
+							),
+							child: Row(
+								children: [
+									Icon(Icons.tune_rounded, size: responsive.text(14), color: hasFilter ? AppColors.primary : AppColors.textSecondary),
+									SizedBox(width: responsive.w(4)),
+									Text(
+										hasFilter ? 'Filtres ($filterCount)' : 'Filtres',
+										style: AppTextStyles.caption(responsive).copyWith(
+											fontWeight: FontWeight.w600,
+											color: hasFilter ? AppColors.primary : AppColors.textSecondary,
+										),
+									),
+								],
+							),
+						),
+					),
+				],
+			);
+		});
+	}
 }
+
+// ── Ride Card ──────────────────────────────────────────────────────────────
 
 class _RideCard extends StatelessWidget {
-  const _RideCard({required this.responsive, required this.ride, required this.onReserve});
+	const _RideCard({required this.responsive, required this.ride, required this.controller});
 
-  final AppResponsive responsive;
-  final SearchRide ride;
-  final ValueChanged<SearchRide> onReserve;
+	final AppResponsive responsive;
+	final SearchRide ride;
+	final SearchController controller;
 
-  @override
-  Widget build(BuildContext context) {
-    final double cardPadding = responsive.adaptive(phone: 16, smallPhone: 14, tablet: 18, desktop: 20);
+	bool get _isUrgent => ride.seatsAvailable <= 2;
+	bool get _isLeavingSoon => ride.minutesUntilDeparture <= 30;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => Get.to(
-          () => const DetailJourneyView(),
-          arguments: {'ride': ride},
-        ),
-        borderRadius: BorderRadius.circular(responsive.radius(24)),
-        child: Container(
-          width: double.infinity,
-          padding: EdgeInsets.all(cardPadding),
-          decoration: ShapeDecoration(
-            color: AppColors.white,
-            shape: RoundedRectangleBorder(
-              side: const BorderSide(color: AppColors.border),
-              borderRadius: BorderRadius.circular(responsive.radius(24)),
-            ),
-            shadows: const [
-              BoxShadow(color: Color(0x0C000000), blurRadius: 2, offset: Offset(0, 1)),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-          Row(
-            children: [
-              _Avatar(responsive: responsive, initials: _initials(ride.driverName)),
-              SizedBox(width: responsive.w(12)),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(ride.driverName, style: AppTextStyles.homeCardTitle(responsive)),
-                        SizedBox(width: responsive.w(4)),
-                        Icon(Icons.verified_rounded, size: responsive.text(12), color: AppColors.primary),
-                      ],
-                    ),
-                    SizedBox(height: responsive.h(2)),
-                    Row(
-                      children: [
-                        Icon(Icons.star_rounded, size: responsive.text(12), color: AppColors.warning),
-                        SizedBox(width: responsive.w(4)),
-                        Text(ride.rating, style: AppTextStyles.homeCardBody(responsive)),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(ride.price, style: AppTextStyles.homePrice(responsive)),
-                  Text(AppStrings.searchPeopleUnit, style: AppTextStyles.homeCardBody(responsive)),
-                ],
-              ),
-            ],
-          ),
-          SizedBox(height: responsive.h(12)),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _RouteTimeline(responsive: responsive),
-              SizedBox(width: responsive.w(12)),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _TimelineRow(
-                      title: ride.origin,
-                      time: ride.departureTime,
-                      subtitle: ride.departureNote,
-                      responsive: responsive,
-                    ),
-                    SizedBox(height: responsive.h(10)),
-                    _TimelineRow(
-                      title: ride.destination,
-                      time: ride.arrivalTime,
-                      subtitle: ride.arrivalNote,
-                      responsive: responsive,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: responsive.h(12)),
-          Wrap(
-            spacing: responsive.w(8),
-            runSpacing: responsive.h(8),
-            children: [
-              _InfoPill(icon: Icons.timelapse_rounded, label: ride.duration, responsive: responsive),
-              _InfoPill(icon: Icons.directions_car_rounded, label: ride.vehicle, responsive: responsive),
-              _InfoPill(icon: Icons.event_seat_outlined, label: ride.seatsLeft, responsive: responsive),
-            ],
-          ),
-          SizedBox(height: responsive.h(14)),
-          AppPrimaryButton(
-            responsive: responsive,
-            label: AppStrings.searchReserve,
-            onTap: () => onReserve(ride),
-            backgroundColor: AppColors.primary,
-            textColor: AppColors.white,
-            height: responsive.h(48),
-            borderRadius: responsive.radius(16),
-          ),
-        ],
-          ),
-        ),
-      ),
-    );
-  }
+	@override
+	Widget build(BuildContext context) {
+		return InkWell(
+			onTap: () => Get.to(
+				() => const DetailJourneyView(),
+				arguments: {'ride': ride},
+			),
+			borderRadius: BorderRadius.circular(responsive.radius(16)),
+			child: Container(
+				decoration: ShapeDecoration(
+					color: AppColors.white,
+					shape: RoundedRectangleBorder(
+						side: BorderSide(
+							color: _isUrgent ? const Color(0xFFEF4444).withValues(alpha: 0.30) : AppColors.border,
+						),
+						borderRadius: BorderRadius.circular(responsive.radius(16)),
+					),
+					shadows: const [BoxShadow(color: Color(0x0C000000), blurRadius: 6, offset: Offset(0, 2))],
+				),
+				child: Column(
+					crossAxisAlignment: CrossAxisAlignment.start,
+					children: [
+						// Urgency banner if needed
+						if (_isUrgent || _isLeavingSoon)
+							_UrgencyBanner(responsive: responsive, ride: ride, isUrgent: _isUrgent, isLeavingSoon: _isLeavingSoon),
+						Padding(
+							padding: EdgeInsets.all(responsive.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
+							child: Column(
+								crossAxisAlignment: CrossAxisAlignment.start,
+								children: [
+									// Driver + price row
+									Row(
+										children: [
+											_Avatar(responsive: responsive, name: ride.driverName),
+											SizedBox(width: responsive.w(10)),
+											Expanded(
+												child: Column(
+													crossAxisAlignment: CrossAxisAlignment.start,
+													children: [
+														Row(
+															children: [
+																Text(ride.driverName, style: AppTextStyles.subtitle(responsive)),
+																if (ride.isVerified) ...[
+																	SizedBox(width: responsive.w(4)),
+																	Icon(Icons.verified_rounded, size: responsive.text(13), color: AppColors.primary),
+																],
+															],
+														),
+														SizedBox(height: responsive.h(2)),
+														Row(
+															children: [
+																Icon(Icons.star_rounded, size: responsive.text(12), color: AppColors.warning),
+																SizedBox(width: responsive.w(3)),
+																Text(
+																	'${ride.rating} · ${ride.reviewCount} avis',
+																	style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint),
+																),
+															],
+														),
+													],
+												),
+											),
+											Column(
+												crossAxisAlignment: CrossAxisAlignment.end,
+												children: [
+													Text(
+														ride.price,
+														style: AppTextStyles.h6(responsive).copyWith(
+															color: AppColors.primary,
+															fontWeight: FontWeight.w800,
+														),
+													),
+													Text('/ pers.', style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint)),
+												],
+											),
+										],
+									),
+									SizedBox(height: responsive.h(12)),
+									// Route timeline
+									_RouteTimeline(responsive: responsive, ride: ride),
+									SizedBox(height: responsive.h(12)),
+									// Info pills row
+									Wrap(
+										spacing: responsive.w(6),
+										runSpacing: responsive.h(6),
+										children: [
+											_InfoPill(
+												responsive: responsive,
+												icon: Icons.schedule_rounded,
+												label: controller.formatDeparture(ride.minutesUntilDeparture),
+												color: _isLeavingSoon ? const Color(0xFFEF4444) : AppColors.textHint,
+											),
+											_InfoPill(
+												responsive: responsive,
+												icon: Icons.timelapse_rounded,
+												label: ride.duration,
+											),
+											_InfoPill(
+												responsive: responsive,
+												icon: Icons.directions_car_outlined,
+												label: ride.vehicle,
+											),
+											_SeatsChip(responsive: responsive, seats: ride.seatsAvailable),
+										],
+									),
+									SizedBox(height: responsive.h(12)),
+									// Reserve button
+									AppPrimaryButton(
+										responsive: responsive,
+										label: 'Réserver cette place',
+										onTap: () => controller.reserveRide(ride),
+										backgroundColor: AppColors.primary,
+										textColor: AppColors.white,
+										height: responsive.h(46),
+										borderRadius: responsive.radius(12),
+									),
+								],
+							),
+						),
+					],
+				),
+			),
+		);
+	}
 }
 
-class _Avatar extends StatelessWidget {
-  const _Avatar({required this.responsive, required this.initials});
+// ── Urgency Banner ─────────────────────────────────────────────────────────
 
-  final AppResponsive responsive;
-  final String initials;
+class _UrgencyBanner extends StatelessWidget {
+	const _UrgencyBanner({
+		required this.responsive,
+		required this.ride,
+		required this.isUrgent,
+		required this.isLeavingSoon,
+	});
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: responsive.w(48),
-      height: responsive.w(48),
-      decoration: ShapeDecoration(
-        color: AppColors.surfaceAccent,
-        shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.border),
-          borderRadius: BorderRadius.circular(9999),
-        ),
-      ),
-      child: Center(
-        child: Text(
-          initials,
-          style: AppTextStyles.homeCardTitle(responsive).copyWith(color: AppColors.primary),
-        ),
-      ),
-    );
-  }
+	final AppResponsive responsive;
+	final SearchRide ride;
+	final bool isUrgent;
+	final bool isLeavingSoon;
+
+	@override
+	Widget build(BuildContext context) {
+		final isRed = isUrgent && isLeavingSoon;
+		final color = isRed ? const Color(0xFFEF4444) : (isUrgent ? const Color(0xFFEF4444) : const Color(0xFFF59E0B));
+		final bg = color.withValues(alpha: 0.07);
+		final text = isRed
+				? '⚠ ${ride.seatsAvailable} place${ride.seatsAvailable > 1 ? 's' : ''} restante${ride.seatsAvailable > 1 ? 's' : ''} — Départ imminent'
+				: isUrgent
+						? '⚠ Dernières places : ${ride.seatsAvailable} restante${ride.seatsAvailable > 1 ? 's' : ''}'
+						: '⏰ Départ dans moins de 30 min';
+
+		return Container(
+			width: double.infinity,
+			padding: EdgeInsets.symmetric(horizontal: responsive.w(14), vertical: responsive.h(8)),
+			decoration: BoxDecoration(
+				color: bg,
+				borderRadius: BorderRadius.only(
+					topLeft: Radius.circular(responsive.radius(16)),
+					topRight: Radius.circular(responsive.radius(16)),
+				),
+				border: Border(bottom: BorderSide(color: color.withValues(alpha: 0.20))),
+			),
+			child: Text(
+				text,
+				style: AppTextStyles.caption(responsive).copyWith(
+					color: color,
+					fontWeight: FontWeight.w700,
+				),
+			),
+		);
+	}
 }
+
+// ── Route Timeline ─────────────────────────────────────────────────────────
 
 class _RouteTimeline extends StatelessWidget {
-  const _RouteTimeline({required this.responsive});
+	const _RouteTimeline({required this.responsive, required this.ride});
 
-  final AppResponsive responsive;
+	final AppResponsive responsive;
+	final SearchRide ride;
 
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: responsive.w(12),
-          height: responsive.w(12),
-          decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
-        ),
-        Container(width: 2, height: responsive.h(24), color: AppColors.border),
-        Container(
-          width: responsive.w(12),
-          height: responsive.w(12),
-          decoration: const BoxDecoration(color: AppColors.warning, shape: BoxShape.circle),
-        ),
-      ],
-    );
-  }
+	@override
+	Widget build(BuildContext context) {
+		return Row(
+			crossAxisAlignment: CrossAxisAlignment.start,
+			children: [
+				Column(
+					children: [
+						Container(
+							width: responsive.w(10),
+							height: responsive.w(10),
+							decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+						),
+						Container(width: 2, height: responsive.h(22), color: AppColors.border),
+						Container(
+							width: responsive.w(10),
+							height: responsive.w(10),
+							decoration: BoxDecoration(
+								shape: BoxShape.circle,
+								border: Border.all(color: const Color(0xFFEF4444), width: 2),
+							),
+						),
+					],
+				),
+				SizedBox(width: responsive.w(10)),
+				Expanded(
+					child: Column(
+						crossAxisAlignment: CrossAxisAlignment.start,
+						children: [
+							Row(
+								children: [
+									Expanded(child: Text(ride.origin, style: AppTextStyles.subtitle(responsive))),
+									Text(
+										ride.departureTime,
+										style: AppTextStyles.caption(responsive).copyWith(fontWeight: FontWeight.w700),
+									),
+								],
+							),
+							Text(ride.departureNote, style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint)),
+							SizedBox(height: responsive.h(8)),
+							Row(
+								children: [
+									Expanded(child: Text(ride.destination, style: AppTextStyles.subtitle(responsive))),
+									Text(
+										ride.arrivalTime,
+										style: AppTextStyles.caption(responsive).copyWith(fontWeight: FontWeight.w700, color: AppColors.textHint),
+									),
+								],
+							),
+							Text(ride.arrivalNote, style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint)),
+						],
+					),
+				),
+			],
+		);
+	}
 }
 
-class _TimelineRow extends StatelessWidget {
-  const _TimelineRow({required this.title, required this.time, required this.subtitle, required this.responsive});
-
-  final String title;
-  final String time;
-  final String subtitle;
-  final AppResponsive responsive;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(child: Text(title, style: AppTextStyles.homeCardTitle(responsive))),
-            Text(time, style: AppTextStyles.homeCardTitle(responsive)),
-          ],
-        ),
-        SizedBox(height: responsive.h(2)),
-        Text(subtitle, style: AppTextStyles.homeCardBody(responsive)),
-      ],
-    );
-  }
-}
+// ── Info Pill ──────────────────────────────────────────────────────────────
 
 class _InfoPill extends StatelessWidget {
-  const _InfoPill({required this.icon, required this.label, required this.responsive});
+	const _InfoPill({required this.responsive, required this.icon, required this.label, this.color});
 
-  final IconData icon;
-  final String label;
-  final AppResponsive responsive;
+	final AppResponsive responsive;
+	final IconData icon;
+	final String label;
+	final Color? color;
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: responsive.w(10), vertical: responsive.h(6)),
-      decoration: ShapeDecoration(
-        color: AppColors.surfaceSoft,
-        shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.border),
-          borderRadius: BorderRadius.circular(responsive.radius(10)),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: responsive.text(12), color: AppColors.textSecondary),
-          SizedBox(width: responsive.w(4)),
-          Text(label, style: AppTextStyles.homeCardBody(responsive)),
-        ],
-      ),
-    );
-  }
+	@override
+	Widget build(BuildContext context) {
+		final c = color ?? AppColors.textSecondary;
+		return Container(
+			padding: EdgeInsets.symmetric(horizontal: responsive.w(10), vertical: responsive.h(5)),
+			decoration: BoxDecoration(
+				color: AppColors.surfaceMuted,
+				borderRadius: BorderRadius.circular(responsive.radius(8)),
+				border: Border.all(color: AppColors.border),
+			),
+			child: Row(
+				mainAxisSize: MainAxisSize.min,
+				children: [
+					Icon(icon, size: responsive.text(12), color: c),
+					SizedBox(width: responsive.w(4)),
+					Text(label, style: AppTextStyles.caption(responsive).copyWith(color: c, fontWeight: color != null ? FontWeight.w700 : FontWeight.w400)),
+				],
+			),
+		);
+	}
 }
 
-String _initials(String name) {
-  final parts = name.trim().split(RegExp(r'\s+'));
-  if (parts.isEmpty) {
-    return 'M';
-  }
+// ── Seats Chip ─────────────────────────────────────────────────────────────
 
-  final first = parts.first.isNotEmpty ? parts.first[0] : 'M';
-  final second = parts.length > 1 && parts[1].isNotEmpty ? parts[1][0] : '';
-  return (first + second).toUpperCase();
+class _SeatsChip extends StatelessWidget {
+	const _SeatsChip({required this.responsive, required this.seats});
+
+	final AppResponsive responsive;
+	final int seats;
+
+	@override
+	Widget build(BuildContext context) {
+		final isUrgent = seats <= 2;
+		final color = isUrgent ? const Color(0xFFEF4444) : AppColors.primary;
+		final bg = color.withValues(alpha: 0.08);
+
+		return Container(
+			padding: EdgeInsets.symmetric(horizontal: responsive.w(10), vertical: responsive.h(5)),
+			decoration: BoxDecoration(
+				color: bg,
+				borderRadius: BorderRadius.circular(responsive.radius(8)),
+				border: Border.all(color: color.withValues(alpha: 0.25)),
+			),
+			child: Row(
+				mainAxisSize: MainAxisSize.min,
+				children: [
+					Icon(Icons.event_seat_rounded, size: responsive.text(12), color: color),
+					SizedBox(width: responsive.w(4)),
+					Text(
+						'$seats place${seats > 1 ? 's' : ''}',
+						style: AppTextStyles.caption(responsive).copyWith(color: color, fontWeight: FontWeight.w700),
+					),
+				],
+			),
+		);
+	}
+}
+
+// ── Avatar ─────────────────────────────────────────────────────────────────
+
+class _Avatar extends StatelessWidget {
+	const _Avatar({required this.responsive, required this.name});
+
+	final AppResponsive responsive;
+	final String name;
+
+	String get _initials {
+		final parts = name.trim().split(RegExp(r'\s+'));
+		final a = parts.isNotEmpty && parts.first.isNotEmpty ? parts.first[0] : 'M';
+		final b = parts.length > 1 && parts[1].isNotEmpty ? parts[1][0] : '';
+		return (a + b).toUpperCase();
+	}
+
+	@override
+	Widget build(BuildContext context) {
+		return Container(
+			width: responsive.w(44),
+			height: responsive.w(44),
+			decoration: BoxDecoration(
+				gradient: const LinearGradient(colors: [Color(0xFF00A86B), Color(0xFF10B981)]),
+				shape: BoxShape.circle,
+				border: Border.all(color: AppColors.border),
+			),
+			child: Center(
+				child: Text(
+					_initials,
+					style: TextStyle(color: Colors.white, fontSize: responsive.text(14), fontFamily: 'Inter', fontWeight: FontWeight.w700),
+				),
+			),
+		);
+	}
 }

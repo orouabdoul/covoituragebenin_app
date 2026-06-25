@@ -2,9 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
-import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
+import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 
 class HomeController extends GetxController {
+  // ── Time-based greeting ──────────────────────────────────────────────────
+  String get greeting {
+    final h = DateTime.now().hour;
+    if (h < 12) return 'Bonjour';
+    if (h < 18) return 'Bon après-midi';
+    return 'Bonsoir';
+  }
+
+  // ── Mock active / upcoming trip ──────────────────────────────────────────
+  // null = no active trip; set to a HomeUpcomingTrip to show the banner
+  final HomeUpcomingTrip? upcomingTrip = const HomeUpcomingTrip(
+    origin: 'Cotonou',
+    destination: 'Parakou',
+    departureTime: '07:00',
+    departureDate: 'Aujourd\'hui',
+    driverName: 'Brice H.',
+    status: UpcomingTripStatus.inProgress,
+    etaMinutes: 210,
+  );
+
   final List<HomeMetric> heroMetrics = const [
     HomeMetric(label: AppStrings.homeDriversStat, value: '2,450+'),
     HomeMetric(label: AppStrings.homeActiveTripsStat, value: '340'),
@@ -88,12 +109,57 @@ class HomeController extends GetxController {
     ),
   ];
 
-  void onSeeAllTrips() {
-    UIHelper().showSnackBar('MINIZON', 'La liste complète des trajets arrive bientôt.', 1);
-  }
+  List<HomeQuickAction> get quickActions => [
+    HomeQuickAction(
+      label: 'Réservations',
+      icon: Icons.event_note_rounded,
+      color: const Color(0xFF00A86B),
+      onTap: openReservations,
+    ),
+    HomeQuickAction(
+      label: 'Mes trajets',
+      icon: Icons.directions_car_rounded,
+      color: const Color(0xFF3B82F6),
+      onTap: openTripHistory,
+    ),
+    HomeQuickAction(
+      label: 'Remboursements',
+      icon: Icons.account_balance_wallet_rounded,
+      color: const Color(0xFFF59E0B),
+      onTap: openRefundRequest,
+    ),
+    HomeQuickAction(
+      label: 'Assistance',
+      icon: Icons.headset_mic_rounded,
+      color: const Color(0xFF8B5CF6),
+      onTap: openSupport,
+    ),
+  ];
 
-  void onRepeatTrip(HomeActivity activity) {
-    UIHelper().showSnackBar('MINIZON', 'Recherche lancée pour ${activity.route}.', 1);
+  void openNotifications()   => Get.toNamed(AppRoutes.passengerNotifications);
+  void openTrustHub()        => Get.toNamed(AppRoutes.passengerTrustHub);
+  void openSearch()          => BottonNavController.goToTab(1);
+  void openRouteSearch(HomePopularRoute route) => BottonNavController.goToTab(1);
+  void onSeeAllTrips()       => BottonNavController.goToTab(1);
+  void openReservations()    => BottonNavController.goToTab(2);
+  void openTripHistory()     => Get.toNamed(AppRoutes.passengerTripHistory);
+  void openRefundHistory()   => Get.toNamed(AppRoutes.passengerRefundHistory);
+  void openRefundRequest()   => Get.toNamed(AppRoutes.passengerRefundRequest);
+  void openSupport()         => Get.toNamed(AppRoutes.passengerSupportCenter);
+  void openLiveTracking()    => Get.toNamed(AppRoutes.passengerLiveTracking);
+  void openDriverArrival()   => Get.toNamed(AppRoutes.passengerDriverArrival);
+
+  void onRepeatTrip(HomeActivity activity) => BottonNavController.goToTab(1);
+
+  void onUpcomingTripTap(HomeUpcomingTrip trip) {
+    switch (trip.status) {
+      case UpcomingTripStatus.inProgress:
+        Get.toNamed(AppRoutes.passengerLiveTracking);
+      case UpcomingTripStatus.driverArriving:
+        Get.toNamed(AppRoutes.passengerDriverArrival);
+      case UpcomingTripStatus.upcoming:
+        BottonNavController.goToTab(2);
+    }
   }
 }
 
@@ -170,4 +236,40 @@ class HomeActivity {
 
   final String route;
   final String time;
+}
+
+enum UpcomingTripStatus { upcoming, driverArriving, inProgress }
+
+class HomeUpcomingTrip {
+  const HomeUpcomingTrip({
+    required this.origin,
+    required this.destination,
+    required this.departureTime,
+    required this.departureDate,
+    required this.driverName,
+    required this.status,
+    this.etaMinutes,
+  });
+
+  final String origin;
+  final String destination;
+  final String departureTime;
+  final String departureDate;
+  final String driverName;
+  final UpcomingTripStatus status;
+  final int? etaMinutes;
+}
+
+class HomeQuickAction {
+  const HomeQuickAction({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
 }

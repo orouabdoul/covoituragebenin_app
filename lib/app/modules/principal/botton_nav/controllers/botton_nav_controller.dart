@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
+import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/driver/home/views/home_view.dart'
     as driver_home;
 import 'package:covoiturage_benin_app/app/modules/principal/driver/messager/views/messager_view.dart'
@@ -142,6 +143,18 @@ class BottonNavController extends GetxController {
 
   void onPageChanged(int index) {
     currentIndex.value = index;
+  }
+
+  /// Remonte la pile de navigation jusqu'au dashboard et bascule sur l'onglet voulu.
+  /// Fonctionne depuis n'importe quelle sous-page, passager ou conducteur.
+  static void goToTab(int tabIndex) {
+    if (!Get.isRegistered<BottonNavController>()) return;
+    final ctrl = Get.find<BottonNavController>();
+    final dashboardRoute = ctrl.role == BottonNavRole.driver
+        ? AppRoutes.dashboardDriver
+        : AppRoutes.dashboardPassenger;
+    Get.until((route) => route.settings.name == dashboardRoute || route.isFirst);
+    ctrl.onTabSelected(tabIndex);
   }
 
   @override

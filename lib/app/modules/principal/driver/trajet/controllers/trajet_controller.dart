@@ -165,7 +165,11 @@ class TrajetController extends GetxController {
   }
 
   void onPrimaryAction(TrajetCardData trip) {
-    showInfo('${trip.passengerActionLabel} pour ${trip.routeLabel}.');
+    if (selectedFilter.value == TrajetFilterType.active) {
+      Get.toNamed(AppRoutes.driverInteractiveMap, arguments: {'trip': trip});
+    } else {
+      showInfo('${trip.passengerActionLabel} pour ${trip.routeLabel}.');
+    }
   }
 
   void onSecondaryAction(String label, TrajetCardData trip) {

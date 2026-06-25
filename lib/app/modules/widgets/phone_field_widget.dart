@@ -42,8 +42,9 @@ class PhoneFieldWidget extends StatelessWidget {
         vertical: responsive.h(10),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Country code badge (Bénin only for now)
+          // Country code badge — Bénin (+229) par défaut
           Container(
             padding: EdgeInsets.symmetric(
               horizontal: responsive.w(8),
@@ -81,25 +82,55 @@ class PhoneFieldWidget extends StatelessWidget {
           SizedBox(width: responsive.w(10)),
           Container(width: 1, height: responsive.h(22), color: AppColors.border),
           SizedBox(width: responsive.w(10)),
+          // Input : 10 chiffres, doit commencer par "01"
           Expanded(
             child: TextField(
               controller: controller,
-              keyboardType: TextInputType.phone,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(10),
-              ],
+              keyboardType: TextInputType.number,
+              inputFormatters: [_PhoneOhOnePrefixFormatter()],
               style: AppTextStyles.profileFieldValue(responsive),
               decoration: InputDecoration.collapsed(
                 hintText: '01 97 45 67 89',
                 hintStyle: AppTextStyles.profileFieldValue(responsive)
                     .copyWith(color: AppColors.textGhost),
               ),
-              buildCounter: (_, {required currentLength, required isFocused, maxLength}) => null,
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Formateur qui force le numéro à commencer par "01" et limite à 10 chiffres.
+/// L'utilisateur ne peut pas modifier ni supprimer les deux premiers caractères "01".
+class _PhoneOhOnePrefixFormatter extends TextInputFormatter {
+  static const _prefix = '01';
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    // Supprimer tout caractère non numérique
+    String text = newValue.text.replaceAll(RegExp(r'\D'), '');
+
+    // Forcer le préfixe "01"
+    if (text.length < 2) {
+      text = _prefix;
+    } else if (!text.startsWith(_prefix)) {
+      text = _prefix + (text.length > 2 ? text.substring(2) : '');
+    }
+
+    // Maximum 10 chiffres
+    if (text.length > 10) text = text.substring(0, 10);
+
+    // Le curseur ne peut pas aller avant la position 2 (protection du "01")
+    final int cursor = newValue.selection.end.clamp(2, text.length);
+
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: cursor),
     );
   }
 }

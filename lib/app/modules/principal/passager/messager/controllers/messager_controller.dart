@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
+import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 class MessagerController extends GetxController {
   final RxInt selectedFilterIndex = 0.obs;
+  final RxString searchQuery = ''.obs;
   final TextEditingController searchController = TextEditingController();
+
+  @override
+  void onInit() {
+    super.onInit();
+    searchController.addListener(() => searchQuery.value = searchController.text);
+  }
 
   final List<MessengerFilter> filters = const [
     MessengerFilter(label: AppStrings.messengerFilterAll),
@@ -77,12 +85,60 @@ class MessagerController extends GetxController {
     ),
   ];
 
+  List<MessengerThread> get filteredThreads {
+    var list = threads.toList();
+    final type = switch (selectedFilterIndex.value) {
+      1 => MessengerType.driver,
+      2 => MessengerType.passenger,
+      3 => MessengerType.support,
+      4 => null, // unread
+      _ => null,
+    };
+    if (selectedFilterIndex.value == 4) {
+      list = list.where((t) => t.isUnread).toList();
+    } else if (type != null) {
+      list = list.where((t) => t.messageType == type).toList();
+    }
+    final q = searchQuery.value.trim().toLowerCase();
+    if (q.isNotEmpty) {
+      list = list.where((t) =>
+        t.name.toLowerCase().contains(q) ||
+        t.preview.toLowerCase().contains(q) ||
+        t.statusLabel.toLowerCase().contains(q)
+      ).toList();
+    }
+    return list;
+  }
+
   void selectFilter(int index) {
     selectedFilterIndex.value = index;
   }
 
   void openThread(MessengerThread thread) {
-    Get.toNamed('/passenger-message-detail', arguments: thread);
+    Get.toNamed(AppRoutes.passengerMessageDetail, arguments: thread);
+  }
+
+  /// Ouvre directement le chat d'un conducteur depuis n'importe quelle page.
+  static void openDriverChat({required String driverName, String tripRoute = ''}) {
+    final now = DateTime.now();
+    final time = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+
+    final thread = MessengerThread(
+      name: driverName,
+      time: time,
+      preview: '',
+      badge: '',
+      badgeColor: 0,
+      statusLabel: tripRoute.isNotEmpty ? tripRoute : 'Trajet réservé',
+      statusLabelColor: 0xFF00A86B,
+      statusBackgroundColor: 0x1900A86B,
+      avatarUrl: 'https://placehold.co/56x56.png',
+      roleLabel: AppStrings.messengerRoleDriver,
+      roleLabelColor: 0xFF00A86B,
+      messageType: MessengerType.driver,
+      isUnread: false,
+    );
+    Get.toNamed(AppRoutes.passengerMessageDetail, arguments: thread);
   }
 
   @override

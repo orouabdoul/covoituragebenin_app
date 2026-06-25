@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
-import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/passager/reservation/views/confirmation_payment_view.dart';
 
 import '../../search/controllers/search_controller.dart';
+
+enum MobileMoneyService { mtn, moov, celtiis }
 
 class ConfirmationReservationController extends GetxController {
   final Rxn<SearchRide> ride = Rxn<SearchRide>();
@@ -16,13 +17,16 @@ class ConfirmationReservationController extends GetxController {
   final TextEditingController cardExpiryController = TextEditingController();
   final TextEditingController cardCodeController = TextEditingController();
 
+  // Points personnalisés pickup/dépose
+  final TextEditingController pickupController = TextEditingController();
+  final TextEditingController dropoffController = TextEditingController();
+  final RxBool pickupFocused = false.obs;
+  final RxBool dropoffFocused = false.obs;
+
+  final Rx<MobileMoneyService> selectedMobileService = MobileMoneyService.mtn.obs;
+  final RxBool isProcessingPayment = false.obs;
+
   final List<ReservationPaymentMethod> paymentMethods = const [
-    ReservationPaymentMethod(
-      title: AppStrings.reservationCashPaymentTitle,
-      description: AppStrings.reservationCashPaymentDescription,
-      icon: Icons.payments_outlined,
-      backgroundColor: Color(0xFFFEF9C3),
-    ),
     ReservationPaymentMethod(
       title: AppStrings.reservationMobileMoneyPaymentTitle,
       description: AppStrings.reservationMobileMoneyPaymentDescription,
@@ -46,7 +50,15 @@ class ConfirmationReservationController extends GetxController {
       final dynamic selectedRide = arguments['ride'];
       if (selectedRide is SearchRide) {
         ride.value = selectedRide;
+        pickupController.text = selectedRide.origin;
+        dropoffController.text = selectedRide.destination;
       }
+
+      final dynamic seats = arguments['seats'];
+      if (seats is int) reservedSeats.value = seats;
+
+      final dynamic idx = arguments['paymentIndex'];
+      if (idx is int) selectedPaymentIndex.value = idx;
     }
   }
 
@@ -56,11 +68,15 @@ class ConfirmationReservationController extends GetxController {
       cardExpiryController.clear();
       cardCodeController.clear();
     }
-
     selectedPaymentIndex.value = index;
   }
 
-  bool get isCardPayment => selectedPaymentIndex.value == 2;
+  void selectMobileService(MobileMoneyService service) {
+    selectedMobileService.value = service;
+    paymentContactController.clear();
+  }
+
+  bool get isCardPayment => selectedPaymentIndex.value == 1;
 
   String get paymentInputLabel => isCardPayment
       ? AppStrings.reservationCardNumberLabel
@@ -92,15 +108,14 @@ class ConfirmationReservationController extends GetxController {
   }
 
   void confirmReservation() {
-    final arguments = {'ride': ride.value};
+    final arguments = {'ride': ride.value, 'seats': reservedSeats.value, 'paymentIndex': selectedPaymentIndex.value};
 
     try {
       Get.toNamed(
-        AppRoutes.passengerReservationPayment,
+        AppRoutes.passengerWaitingApproval,
         arguments: arguments,
       );
     } catch (_) {
-      // Fallback for hot-reload stale route tables.
       Get.to(
         () => const ConfirmationPaymentView(),
         arguments: arguments,
@@ -108,9 +123,24 @@ class ConfirmationReservationController extends GetxController {
     }
   }
 
+  int get totalAmount {
+    final price = ride.value?.price ?? '1 500 FCFA';
+    final digits = price.replaceAll(RegExp(r'[^0-9]'), '');
+    final unit = int.tryParse(digits) ?? 1500;
+    final base = unit * reservedSeats.value;
+    return base + (base * 0.1).round();
+  }
+
   void confirmPayment() {
-    UIHelper().showSnackBar(AppStrings.appName, 'Paiement confirmé avec succès.', 0);
-    Get.back();
+    isProcessingPayment.value = true;
+    Future.delayed(const Duration(milliseconds: 1800), () {
+      isProcessingPayment.value = false;
+      final ref = '#TXN-${(DateTime.now().millisecondsSinceEpoch % 100000).toString().padLeft(5, '0')}';
+      Get.toNamed(
+        AppRoutes.passengerPaymentSuccess,
+        arguments: {'ride': ride.value, 'ref': ref, 'amount': totalAmount, 'seats': reservedSeats.value},
+      );
+    });
   }
 
   @override
@@ -118,6 +148,8 @@ class ConfirmationReservationController extends GetxController {
     paymentContactController.dispose();
     cardExpiryController.dispose();
     cardCodeController.dispose();
+    pickupController.dispose();
+    dropoffController.dispose();
     super.onClose();
   }
 }

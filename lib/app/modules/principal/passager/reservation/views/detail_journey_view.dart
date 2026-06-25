@@ -9,6 +9,7 @@ import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 
 import '../../search/controllers/search_controller.dart';
 import '../controllers/detail_reservation_controller.dart';
+import '../controllers/reservation_controller.dart';
 
 class DetailJourneyView extends StatelessWidget {
   const DetailJourneyView({super.key});
@@ -51,23 +52,27 @@ class DetailJourneyView extends StatelessWidget {
                 SizedBox(height: responsive.h(16)),
                 _ReviewsCard(responsive: responsive),
                 SizedBox(height: responsive.h(16)),
-                AppPrimaryButton(
-                  responsive: responsive,
-                  label: AppStrings.searchReserve,
-                  onTap: controller.bookNow,
-                  backgroundColor: AppColors.primary,
-                  textColor: AppColors.white,
-                  borderRadius: responsive.radius(16),
-                  height: responsive.h(56),
-                ),
-                SizedBox(height: responsive.h(8)),
-                Center(
-                  child: Text(
-                    AppStrings.reservationAcceptedCancellation,
-                    textAlign: TextAlign.center,
-                    style: AppTextStyles.body(responsive).copyWith(color: AppColors.textHint),
+                if (controller.isExistingReservation)
+                  _ExistingReservationActions(responsive: responsive, controller: controller)
+                else ...[
+                  AppPrimaryButton(
+                    responsive: responsive,
+                    label: AppStrings.searchReserve,
+                    onTap: controller.bookNow,
+                    backgroundColor: AppColors.primary,
+                    textColor: AppColors.white,
+                    borderRadius: responsive.radius(16),
+                    height: responsive.h(56),
                   ),
-                ),
+                  SizedBox(height: responsive.h(8)),
+                  Center(
+                    child: Text(
+                      AppStrings.reservationAcceptedCancellation,
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.body(responsive).copyWith(color: AppColors.textHint),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -771,6 +776,58 @@ class _ReviewItem extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+// ── Boutons selon statut de réservation existante ─────────────────────────
+
+class _ExistingReservationActions extends StatelessWidget {
+  const _ExistingReservationActions({required this.responsive, required this.controller});
+
+  final AppResponsive responsive;
+  final DetailReservationController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = controller.reservationStatus;
+    if (status == ReservationStatus.pending) {
+      return Column(
+        children: [
+          AppPrimaryButton(
+            responsive: responsive,
+            label: 'Contacter le conducteur',
+            onTap: controller.contactDriver,
+            backgroundColor: AppColors.primary,
+            textColor: AppColors.white,
+            borderRadius: responsive.radius(16),
+            height: responsive.h(56),
+          ),
+          SizedBox(height: responsive.h(12)),
+          AppPrimaryButton(
+            responsive: responsive,
+            label: 'Annuler la réservation',
+            onTap: controller.cancelReservation,
+            backgroundColor: const Color(0xFFFEF2F2),
+            textColor: const Color(0xFFEF4444),
+            borderRadius: responsive.radius(16),
+            height: responsive.h(56),
+          ),
+        ],
+      );
+    }
+    if (status == ReservationStatus.confirmed) {
+      return AppPrimaryButton(
+        responsive: responsive,
+        label: 'Contacter le conducteur',
+        onTap: controller.contactDriver,
+        backgroundColor: AppColors.primary,
+        textColor: AppColors.white,
+        borderRadius: responsive.radius(16),
+        height: responsive.h(56),
+      );
+    }
+    // completed, cancelled, inProgress → pas d'action depuis ce détail
+    return const SizedBox.shrink();
   }
 }
 

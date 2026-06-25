@@ -30,11 +30,41 @@ import '../modules/principal/passager/search/views/search_view.dart';
 import '../modules/principal/passager/reservation/bindings/reservation_binding.dart';
 import '../modules/principal/passager/reservation/bindings/confirmation_reservation_binding.dart';
 import '../modules/principal/passager/reservation/bindings/confirmation_payment_binding.dart';
+import '../modules/principal/passager/reservation/bindings/waiting_approval_binding.dart';
+import '../modules/principal/passager/reservation/bindings/payment_success_binding.dart';
 import '../modules/principal/passager/reservation/views/reservation_view.dart';
 import '../modules/principal/passager/reservation/bindings/detail_reservation_binding.dart';
 import '../modules/principal/passager/reservation/views/confirmation_reservation_view.dart';
 import '../modules/principal/passager/reservation/views/confirmation_payment_view.dart';
+import '../modules/principal/passager/reservation/views/waiting_approval_view.dart';
+import '../modules/principal/passager/reservation/views/payment_success_view.dart';
 import '../modules/principal/passager/reservation/views/detail_journey_view.dart';
+import '../modules/principal/passager/tracking/bindings/live_tracking_binding.dart';
+import '../modules/principal/passager/tracking/bindings/driver_arrival_binding.dart';
+import '../modules/principal/passager/tracking/views/live_tracking_view.dart';
+import '../modules/principal/passager/tracking/views/driver_arrival_view.dart';
+import '../modules/principal/passager/trip_confirmation/bindings/trip_confirmation_binding.dart';
+import '../modules/principal/passager/trip_confirmation/views/trip_confirmation_view.dart';
+import '../modules/principal/passager/notifications/bindings/notifications_binding.dart';
+import '../modules/principal/passager/notifications/views/notifications_view.dart';
+import '../modules/principal/passager/safety/bindings/safety_center_binding.dart';
+import '../modules/principal/passager/safety/views/safety_center_view.dart';
+import '../modules/principal/passager/refund/bindings/refund_request_binding.dart';
+import '../modules/principal/passager/refund/bindings/refund_history_binding.dart';
+import '../modules/principal/passager/refund/views/refund_request_view.dart';
+import '../modules/principal/passager/refund/views/refund_history_view.dart';
+import '../modules/principal/passager/support/bindings/support_center_binding.dart';
+import '../modules/principal/passager/support/views/support_center_view.dart';
+import '../modules/principal/passager/trip_history/bindings/trip_history_binding.dart';
+import '../modules/principal/passager/trip_history/views/trip_history_view.dart';
+import '../modules/principal/passager/profil/bindings/edit_profile_binding.dart';
+import '../modules/principal/passager/profil/views/edit_profile_view.dart';
+import '../modules/principal/passager/reviews/bindings/my_reviews_binding.dart';
+import '../modules/principal/passager/reviews/views/my_reviews_view.dart';
+import '../modules/principal/passager/trust_hub/bindings/trust_hub_binding.dart';
+import '../modules/principal/passager/trust_hub/views/trust_hub_view.dart';
+import '../modules/principal/driver/interactive_map/bindings/interactive_map_binding.dart';
+import '../modules/principal/driver/interactive_map/views/interactive_map_view.dart';
 import '../modules/principal/passager/messager/bindings/messager_binding.dart';
 import '../modules/principal/passager/messager/bindings/detail_messager_binding.dart';
 import '../modules/principal/passager/messager/views/detail_messager_view.dart';
@@ -178,6 +208,81 @@ class AppPages {
       name: AppRoutes.dashboardPassenger,
       page: () => const BottonNavView(),
       binding: BottonNavBinding(role: BottonNavRole.passenger),
+    ),
+    _page(
+      name: AppRoutes.passengerWaitingApproval,
+      page: () => const WaitingApprovalView(),
+      binding: WaitingApprovalBinding(),
+    ),
+    _page(
+      name: AppRoutes.passengerPaymentSuccess,
+      page: () => const PaymentSuccessView(),
+      binding: PaymentSuccessBinding(),
+    ),
+    _page(
+      name: AppRoutes.passengerLiveTracking,
+      page: () => const LiveTrackingView(),
+      binding: LiveTrackingBinding(),
+    ),
+    _page(
+      name: AppRoutes.passengerDriverArrival,
+      page: () => const DriverArrivalView(),
+      binding: DriverArrivalBinding(),
+    ),
+    _page(
+      name: AppRoutes.passengerTripConfirmation,
+      page: () => const TripConfirmationView(),
+      binding: TripConfirmationBinding(),
+    ),
+    _page(
+      name: AppRoutes.passengerNotifications,
+      page: () => const NotificationsView(),
+      binding: NotificationsBinding(),
+    ),
+    _page(
+      name: AppRoutes.passengerSafetyCenter,
+      page: () => const SafetyCenterView(),
+      binding: SafetyCenterBinding(),
+    ),
+    _page(
+      name: AppRoutes.passengerRefundRequest,
+      page: () => const RefundRequestView(),
+      binding: RefundRequestBinding(),
+    ),
+    _page(
+      name: AppRoutes.passengerRefundHistory,
+      page: () => const RefundHistoryView(),
+      binding: RefundHistoryBinding(),
+    ),
+    _page(
+      name: AppRoutes.passengerSupportCenter,
+      page: () => const SupportCenterView(),
+      binding: SupportCenterBinding(),
+    ),
+    _page(
+      name: AppRoutes.passengerEditProfile,
+      page: () => const EditProfileView(),
+      binding: EditProfileBinding(),
+    ),
+    _page(
+      name: AppRoutes.passengerTripHistory,
+      page: () => const TripHistoryView(),
+      binding: TripHistoryBinding(),
+    ),
+    _page(
+      name: AppRoutes.passengerMyReviews,
+      page: () => const MyReviewsView(),
+      binding: MyReviewsBinding(),
+    ),
+    _page(
+      name: AppRoutes.passengerTrustHub,
+      page: () => const TrustHubView(),
+      binding: TrustHubBinding(),
+    ),
+    _page(
+      name: AppRoutes.driverInteractiveMap,
+      page: () => const InteractiveMapView(),
+      binding: InteractiveMapBinding(),
     ),
   ];
 }

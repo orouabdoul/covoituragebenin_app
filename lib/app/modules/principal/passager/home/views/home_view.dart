@@ -8,6 +8,7 @@ import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 
 import '../controller/home_controller.dart';
+import '../../notifications/controllers/notifications_controller.dart';
 
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
@@ -48,6 +49,15 @@ class HomeView extends GetView<HomeController> {
                 responsive.adaptive(phone: 20, smallPhone: 18, tablet: 28, desktop: 32),
               ),
               children: [
+                _TopBar(responsive: responsive, controller: controller),
+                SizedBox(height: responsive.h(12)),
+                _SearchBar(responsive: responsive, controller: controller),
+                SizedBox(height: responsive.h(16)),
+                _QuickActionsRow(responsive: responsive, controller: controller),
+                SizedBox(height: responsive.h(16)),
+                _UpcomingTripBanner(responsive: responsive, controller: controller),
+                if (controller.upcomingTrip != null)
+                  SizedBox(height: responsive.h(sectionSpacing)),
                 _HeroSection(
                   responsive: responsive,
                   metrics: controller.heroMetrics,
@@ -63,6 +73,7 @@ class HomeView extends GetView<HomeController> {
                 _PopularRoutesRow(
                   responsive: responsive,
                   routes: controller.popularRoutes,
+                  onRouteTap: controller.openRouteSearch,
                 ),
                 SizedBox(height: sectionSpacing),
                 _SectionHeader(
@@ -118,6 +129,385 @@ class HomeView extends GetView<HomeController> {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ── Top bar with greeting + notifications + trust hub ─────────────────────
+
+class _TopBar extends StatelessWidget {
+  const _TopBar({required this.responsive, required this.controller});
+
+  final AppResponsive responsive;
+  final HomeController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${controller.greeting} 👋',
+                style: AppTextStyles.caption(responsive).copyWith(
+                  color: AppColors.textSecondary,
+                  fontSize: responsive.text(13),
+                ),
+              ),
+              Text(
+                'Où allez-vous ?',
+                style: AppTextStyles.h6(responsive).copyWith(fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+        ),
+        InkWell(
+          onTap: controller.openTrustHub,
+          borderRadius: BorderRadius.circular(9999),
+          child: Container(
+            width: responsive.w(40),
+            height: responsive.w(40),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0FDF8),
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0x3300A86B)),
+            ),
+            child: Icon(Icons.shield_rounded, color: AppColors.primary, size: responsive.text(18)),
+          ),
+        ),
+        SizedBox(width: responsive.w(10)),
+        GestureDetector(
+          onTap: controller.openNotifications,
+          child: Obx(() {
+            final count = Get.find<NotificationsController>().unreadCount.value;
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: responsive.w(40),
+                  height: responsive.w(40),
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Icon(Icons.notifications_none_rounded, color: AppColors.textPrimary, size: responsive.text(20)),
+                ),
+                if (count > 0)
+                  Positioned(
+                    top: -responsive.h(2),
+                    right: -responsive.w(2),
+                    child: Container(
+                      constraints: BoxConstraints(minWidth: responsive.w(18), minHeight: responsive.w(18)),
+                      padding: EdgeInsets.symmetric(horizontal: responsive.w(4)),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEF4444),
+                        borderRadius: BorderRadius.circular(9999),
+                        border: Border.all(color: AppColors.white, width: 1.5),
+                      ),
+                      child: Center(
+                        child: Text(
+                          count > 9 ? '9+' : '$count',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: responsive.text(9),
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          }),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Quick Actions Row ──────────────────────────────────────────────────────
+
+class _QuickActionsRow extends StatelessWidget {
+  const _QuickActionsRow({required this.responsive, required this.controller});
+
+  final AppResponsive responsive;
+  final HomeController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final actions = controller.quickActions;
+    return Row(
+      children: actions.map((action) {
+        return Expanded(
+          child: GestureDetector(
+            onTap: action.onTap,
+            behavior: HitTestBehavior.opaque,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: responsive.w(54),
+                  height: responsive.w(54),
+                  decoration: BoxDecoration(
+                    color: action.color.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(responsive.radius(16)),
+                    border: Border.all(color: action.color.withValues(alpha: 0.22)),
+                  ),
+                  child: Icon(action.icon, color: action.color, size: responsive.text(24)),
+                ),
+                SizedBox(height: responsive.h(6)),
+                Text(
+                  action.label,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.caption(responsive).copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: responsive.text(10.5),
+                    height: 1.25,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+// ── Tappable Search Bar ────────────────────────────────────────────────────
+
+class _SearchBar extends StatelessWidget {
+  const _SearchBar({required this.responsive, required this.controller});
+
+  final AppResponsive responsive;
+  final HomeController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: controller.openSearch,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: responsive.w(16), vertical: responsive.h(13)),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(responsive.radius(14)),
+          border: Border.all(color: AppColors.border),
+          boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 8, offset: Offset(0, 2))],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: responsive.w(34),
+              height: responsive.w(34),
+              decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+              child: Icon(Icons.search_rounded, color: Colors.white, size: responsive.text(18)),
+            ),
+            SizedBox(width: responsive.w(12)),
+            Expanded(
+              child: Text(
+                'Rechercher un trajet…',
+                style: AppTextStyles.body(responsive).copyWith(color: AppColors.textHint),
+              ),
+            ),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: responsive.w(10), vertical: responsive.h(6)),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceMuted,
+                borderRadius: BorderRadius.circular(9999),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.tune_rounded, size: responsive.text(12), color: AppColors.textSecondary),
+                  SizedBox(width: responsive.w(4)),
+                  Text('Filtrer', style: AppTextStyles.caption(responsive).copyWith(fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Active / Upcoming Trip Banner ──────────────────────────────────────────
+
+class _UpcomingTripBanner extends StatelessWidget {
+  const _UpcomingTripBanner({required this.responsive, required this.controller});
+
+  final AppResponsive responsive;
+  final HomeController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final trip = controller.upcomingTrip;
+    if (trip == null) return const SizedBox.shrink();
+
+    final bool isActive = trip.status == UpcomingTripStatus.inProgress;
+    final bool isArriving = trip.status == UpcomingTripStatus.driverArriving;
+
+    final Color color = isActive
+        ? AppColors.primary
+        : isArriving
+            ? const Color(0xFFF59E0B)
+            : AppColors.blue;
+
+    final String statusText = isActive
+        ? 'Trajet en cours'
+        : isArriving
+            ? 'Conducteur en approche'
+            : 'Prochain trajet';
+
+    final String actionText = isActive
+        ? 'Suivi en direct'
+        : isArriving
+            ? 'Voir l\'arrivée'
+            : 'Voir les détails';
+
+    final IconData actionIcon = isActive
+        ? Icons.my_location_rounded
+        : isArriving
+            ? Icons.directions_car_filled_rounded
+            : Icons.arrow_forward_ios_rounded;
+
+    return GestureDetector(
+      onTap: () => controller.onUpcomingTripTap(trip),
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(responsive.w(16)),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [color, color.withValues(alpha: 0.80)],
+          ),
+          borderRadius: BorderRadius.circular(responsive.radius(18)),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.28),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      if (isActive) ...[
+                        _PulsingDot(),
+                        SizedBox(width: responsive.w(6)),
+                      ],
+                      Text(
+                        statusText,
+                        style: AppTextStyles.caption(responsive).copyWith(
+                          color: Colors.white.withValues(alpha: 0.85),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: responsive.h(4)),
+                  Text(
+                    '${trip.origin} → ${trip.destination}',
+                    style: AppTextStyles.subtitle(responsive).copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  SizedBox(height: responsive.h(4)),
+                  Row(
+                    children: [
+                      Icon(Icons.person_rounded, size: responsive.text(12), color: Colors.white.withValues(alpha: 0.80)),
+                      SizedBox(width: responsive.w(4)),
+                      Text(
+                        trip.driverName,
+                        style: AppTextStyles.caption(responsive).copyWith(color: Colors.white.withValues(alpha: 0.85)),
+                      ),
+                      if (isActive && trip.etaMinutes != null) ...[
+                        SizedBox(width: responsive.w(10)),
+                        Icon(Icons.schedule_rounded, size: responsive.text(12), color: Colors.white.withValues(alpha: 0.80)),
+                        SizedBox(width: responsive.w(4)),
+                        Text(
+                          'Arrivée dans ~${trip.etaMinutes} min',
+                          style: AppTextStyles.caption(responsive).copyWith(
+                            color: Colors.white.withValues(alpha: 0.85),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: responsive.w(12), vertical: responsive.h(8)),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.20),
+                borderRadius: BorderRadius.circular(responsive.radius(10)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.30)),
+              ),
+              child: Row(
+                children: [
+                  Icon(actionIcon, size: responsive.text(14), color: Colors.white),
+                  SizedBox(width: responsive.w(5)),
+                  Text(
+                    actionText,
+                    style: AppTextStyles.caption(responsive).copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PulsingDot extends StatefulWidget {
+  @override
+  State<_PulsingDot> createState() => _PulsingDotState();
+}
+
+class _PulsingDotState extends State<_PulsingDot> with SingleTickerProviderStateMixin {
+  late final AnimationController _anim;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _anim = AnimationController(vsync: this, duration: const Duration(milliseconds: 800))..repeat(reverse: true);
+    _scale = Tween(begin: 0.7, end: 1.0).animate(CurvedAnimation(parent: _anim, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _anim.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: _scale,
+      child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
     );
   }
 }
@@ -286,10 +676,11 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _PopularRoutesRow extends StatelessWidget {
-  const _PopularRoutesRow({required this.responsive, required this.routes});
+  const _PopularRoutesRow({required this.responsive, required this.routes, required this.onRouteTap});
 
   final AppResponsive responsive;
   final List<HomePopularRoute> routes;
+  final ValueChanged<HomePopularRoute> onRouteTap;
 
   @override
   Widget build(BuildContext context) {
@@ -302,7 +693,7 @@ class _PopularRoutesRow extends StatelessWidget {
             AppChipButton(
               responsive: responsive,
               label: route.label,
-              onTap: () {},
+              onTap: () => onRouteTap(route),
               height: responsive.h(40),
               backgroundColor: AppColors.white,
               textColor: AppColors.textPrimary,
@@ -778,10 +1169,7 @@ class _DriverAvatar extends StatelessWidget {
 
 String _initialsFromName(String name) {
   final List<String> parts = name.trim().split(RegExp(r'\s+'));
-  if (parts.isEmpty) {
-    return 'M';
-  }
-
+  if (parts.isEmpty) return 'M';
   final String first = parts.first.isNotEmpty ? parts.first[0] : 'M';
   final String second = parts.length > 1 && parts[1].isNotEmpty ? parts[1][0] : '';
   return (first + second).toUpperCase();
