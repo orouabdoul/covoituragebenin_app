@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
@@ -38,11 +39,13 @@ class TripConfirmationController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    final args = Get.arguments;
-    if (args is Map<String, dynamic>) {
-      final r = args['ride'];
-      if (r is SearchRide) ride.value = r;
-    }
+    final dynamic savedArgs = Get.arguments;
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (savedArgs is Map<String, dynamic>) {
+        final r = savedArgs['ride'];
+        if (r is SearchRide) ride.value = r;
+      }
+    });
   }
 
   void setRating(int stars) => rating.value = stars;

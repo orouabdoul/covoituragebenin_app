@@ -2,6 +2,79 @@ import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:flutter/material.dart';
 
+/// Bouton simplifié sans paramètre `responsive` explicite — récupère depuis context.
+/// Utilisé dans les vues conducteur (active_trip, end_trip, trip_detail).
+class AppButton extends StatelessWidget {
+  const AppButton({
+    super.key,
+    required this.label,
+    this.onPressed,
+    this.icon,
+    this.backgroundColor,
+    this.textColor,
+    this.borderColor,
+  });
+
+  final String label;
+  final VoidCallback? onPressed;
+  final IconData? icon;
+  final Color? backgroundColor;
+  final Color? textColor;
+  final Color? borderColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = AppResponsive(context);
+    final isEnabled = onPressed != null;
+    final resolvedBg = isEnabled ? (backgroundColor ?? AppColors.primary) : const Color(0xFFD1D5DB);
+    final resolvedText = isEnabled ? (textColor ?? Colors.white) : const Color(0xFF6B7280);
+    final resolvedBorder = borderColor ?? resolvedBg;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(r.radius(16)),
+        child: Container(
+          width: double.infinity,
+          height: r.h(56),
+          padding: EdgeInsets.symmetric(horizontal: r.w(24)),
+          decoration: ShapeDecoration(
+            color: resolvedBg,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(r.radius(16)),
+              side: BorderSide(color: resolvedBorder),
+            ),
+          ),
+          child: Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, size: r.text(20), color: resolvedText),
+                  SizedBox(width: r.w(8)),
+                ],
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: resolvedText,
+                    fontSize: r.text(16),
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w600,
+                    height: 1.56,
+                    letterSpacing: -0.50,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class AppPrimaryButton extends StatelessWidget {
   const AppPrimaryButton({
     super.key,

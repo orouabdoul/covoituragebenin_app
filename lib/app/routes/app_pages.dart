@@ -77,6 +77,39 @@ import '../modules/onboarding/bindings/onboarding_binding.dart';
 import '../modules/onboarding/views/onboarding_screen.dart';
 import '../modules/splash/bindings/splash_binding.dart';
 import '../modules/splash/views/splash_view.dart';
+
+// ── Driver — Messagerie ──────────────────────────────────────────────────────
+import '../modules/principal/driver/messager/bindings/messager_binding.dart'
+    as driver_msg;
+import '../modules/principal/driver/messager/bindings/detail_messager_binding.dart'
+    as driver_msg_detail;
+import '../modules/principal/driver/messager/views/messager_view.dart'
+    as driver_msg_view;
+import '../modules/principal/driver/messager/views/detail_messager_view.dart'
+    as driver_msg_detail_view;
+
+// ── Driver — Nouveaux écrans ─────────────────────────────────────────────────
+import '../modules/principal/driver/trip_detail/bindings/trip_detail_binding.dart';
+import '../modules/principal/driver/trip_detail/views/trip_detail_view.dart';
+import '../modules/principal/driver/active_trip/bindings/active_trip_binding.dart';
+import '../modules/principal/driver/active_trip/views/active_trip_view.dart';
+import '../modules/principal/driver/end_trip/bindings/end_trip_binding.dart';
+import '../modules/principal/driver/end_trip/views/end_trip_view.dart';
+import '../modules/principal/driver/withdraw/bindings/withdraw_binding.dart';
+import '../modules/principal/driver/withdraw/views/withdraw_view.dart';
+import '../modules/principal/driver/payment_history/bindings/payment_history_binding.dart';
+import '../modules/principal/driver/payment_history/views/payment_history_view.dart';
+import '../modules/principal/driver/statistics/bindings/statistics_binding.dart';
+import '../modules/principal/driver/statistics/views/statistics_view.dart';
+import '../modules/principal/driver/reviews/bindings/reviews_binding.dart';
+import '../modules/principal/driver/reviews/views/reviews_view.dart';
+import '../modules/principal/driver/notifications/bindings/driver_notifications_binding.dart';
+import '../modules/principal/driver/notifications/views/driver_notifications_view.dart';
+import '../modules/principal/driver/safety/bindings/driver_safety_binding.dart';
+import '../modules/principal/driver/safety/views/driver_safety_view.dart';
+import '../modules/principal/driver/support/bindings/driver_support_binding.dart';
+import '../modules/principal/driver/support/views/driver_support_view.dart';
+
 import 'app_routes.dart';
 
 class AppPages {
@@ -283,6 +316,68 @@ class AppPages {
       name: AppRoutes.driverInteractiveMap,
       page: () => const InteractiveMapView(),
       binding: InteractiveMapBinding(),
+    ),
+    // ── Driver Messagerie ──────────────────────────────────────────────────
+    _page(
+      name: AppRoutes.driverMessages,
+      page: () => const driver_msg_view.MessagerView(),
+      binding: driver_msg.MessagerBinding(),
+    ),
+    _page(
+      name: AppRoutes.driverMessageDetail,
+      page: () => const driver_msg_detail_view.DetailMessagerView(),
+      binding: driver_msg_detail.DetailMessagerBinding(),
+    ),
+    // ── Driver Nouveaux écrans ─────────────────────────────────────────────
+    _page(
+      name: AppRoutes.driverTripDetail,
+      page: () => const TripDetailView(),
+      binding: TripDetailBinding(),
+    ),
+    _page(
+      name: AppRoutes.driverActiveTrip,
+      page: () => const ActiveTripView(),
+      binding: ActiveTripBinding(),
+    ),
+    _page(
+      name: AppRoutes.driverEndTrip,
+      page: () => const EndTripView(),
+      binding: EndTripBinding(),
+    ),
+    _page(
+      name: AppRoutes.driverWithdraw,
+      page: () => const WithdrawView(),
+      binding: WithdrawBinding(),
+    ),
+    _page(
+      name: AppRoutes.driverPaymentHistory,
+      page: () => const PaymentHistoryView(),
+      binding: PaymentHistoryBinding(),
+    ),
+    _page(
+      name: AppRoutes.driverStatistics,
+      page: () => const StatisticsView(),
+      binding: StatisticsBinding(),
+    ),
+    _page(
+      name: AppRoutes.driverReviews,
+      page: () => const ReviewsView(),
+      binding: ReviewsBinding(),
+    ),
+    _page(
+      name: AppRoutes.driverNotifications,
+      page: () => const DriverNotificationsView(),
+      binding: DriverNotificationsBinding(),
+    ),
+    _page(
+      name: AppRoutes.driverSafetyCenter,
+      page: () => const DriverSafetyView(),
+      binding: DriverSafetyBinding(),
+    ),
+    _page(
+      name: AppRoutes.driverSupportCenter,
+      page: () => const DriverSupportView(),
+      binding: DriverSupportBinding(),
     ),
   ];
 }

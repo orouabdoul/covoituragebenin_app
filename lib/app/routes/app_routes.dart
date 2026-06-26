@@ -39,4 +39,16 @@ abstract class AppRoutes {
   static const passengerMyReviews = '/passenger-my-reviews';
   static const passengerTrustHub = '/passenger-trust-hub';
   static const driverInteractiveMap = '/driver-interactive-map';
+  static const driverMessages = '/driver-messages';
+  static const driverMessageDetail = '/driver-message-detail';
+  static const driverTripDetail = '/driver-trip-detail';
+  static const driverActiveTrip = '/driver-active-trip';
+  static const driverEndTrip = '/driver-end-trip';
+  static const driverWithdraw = '/driver-withdraw';
+  static const driverPaymentHistory = '/driver-payment-history';
+  static const driverStatistics = '/driver-statistics';
+  static const driverReviews = '/driver-reviews';
+  static const driverNotifications = '/driver-notifications';
+  static const driverSafetyCenter = '/driver-safety-center';
+  static const driverSupportCenter = '/driver-support-center';
 }

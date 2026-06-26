@@ -445,35 +445,39 @@ class _NewTicketForm extends StatelessWidget {
 					// Category selector
 					Text('Catégorie', style: AppTextStyles.caption(responsive).copyWith(fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
 					SizedBox(height: responsive.h(8)),
-					Obx(() => SizedBox(
-						height: responsive.h(36),
-						child: ListView.separated(
-							scrollDirection: Axis.horizontal,
-							itemCount: controller.ticketCategories.length,
-							separatorBuilder: (_, _) => SizedBox(width: responsive.w(8)),
-							itemBuilder: (_, i) {
-								final cat = controller.ticketCategories[i];
-								final selected = controller.selectedTicketCategory.value == cat;
-								return GestureDetector(
-									onTap: () => controller.selectedTicketCategory.value = cat,
-									child: AnimatedContainer(
-										duration: AppResponsive.fastDuration,
-										padding: EdgeInsets.symmetric(horizontal: responsive.w(14), vertical: responsive.h(6)),
-										decoration: BoxDecoration(
-											color: selected ? AppColors.primary : AppColors.surfaceMuted,
-											borderRadius: BorderRadius.circular(9999),
-											border: Border.all(color: selected ? AppColors.primary : AppColors.border),
-										),
-										child: Text(
-											cat,
-											style: AppTextStyles.caption(responsive).copyWith(
-												color: selected ? Colors.white : AppColors.textSecondary,
-												fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+					Obx(() => SingleChildScrollView(
+						scrollDirection: Axis.horizontal,
+						child: Row(
+							children: [
+								for (int i = 0; i < controller.ticketCategories.length; i++) ...[
+									GestureDetector(
+										onTap: () => controller.selectedTicketCategory.value = controller.ticketCategories[i],
+										child: AnimatedContainer(
+											duration: AppResponsive.fastDuration,
+											padding: EdgeInsets.symmetric(horizontal: responsive.w(14), vertical: responsive.h(6)),
+											decoration: BoxDecoration(
+												color: controller.selectedTicketCategory.value == controller.ticketCategories[i]
+														? AppColors.primary : AppColors.surfaceMuted,
+												borderRadius: BorderRadius.circular(9999),
+												border: Border.all(
+													color: controller.selectedTicketCategory.value == controller.ticketCategories[i]
+															? AppColors.primary : AppColors.border,
+												),
+											),
+											child: Text(
+												controller.ticketCategories[i],
+												style: AppTextStyles.caption(responsive).copyWith(
+													color: controller.selectedTicketCategory.value == controller.ticketCategories[i]
+															? Colors.white : AppColors.textSecondary,
+													fontWeight: controller.selectedTicketCategory.value == controller.ticketCategories[i]
+															? FontWeight.w700 : FontWeight.w400,
+												),
 											),
 										),
 									),
-								);
-							},
+									if (i < controller.ticketCategories.length - 1) SizedBox(width: responsive.w(8)),
+								],
+							],
 						),
 					)),
 					SizedBox(height: responsive.h(14)),

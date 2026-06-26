@@ -35,6 +35,35 @@ class DriverHomeView extends GetView<DriverHomeController> {
                 _AvailabilitySection(responsive: responsive, controller: controller),
                 SizedBox(height: responsive.adaptive(label: 'gap', phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
 
+                // ── Demandes urgentes avec countdown ──────────────────────────
+                Obx(() {
+                  final requests = controller.quickRequests;
+                  if (requests.isEmpty) return const SizedBox.shrink();
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _SectionHeader(
+                        responsive: responsive,
+                        title: 'Demandes en attente',
+                        badge: '${requests.length} nouvelle${requests.length > 1 ? 's' : ''}',
+                        onAction: controller.onSeeAllRequests,
+                        actionLabel: 'Voir tout',
+                      ),
+                      SizedBox(height: responsive.h(10)),
+                      ...requests.map((r) => Padding(
+                        padding: EdgeInsets.only(bottom: responsive.h(10)),
+                        child: _QuickRequestCard(
+                          responsive: responsive,
+                          request: r,
+                          onAccept: () => controller.onQuickAccept(r),
+                          onReject: () => controller.onQuickReject(r),
+                        ),
+                      )),
+                      SizedBox(height: responsive.h(6)),
+                    ],
+                  );
+                }),
+
                 _SectionTitle(responsive: responsive, title: AppStrings.dashboardPerformance),
                 SizedBox(height: responsive.adaptive(label: 'gap', phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
 
@@ -1069,11 +1098,15 @@ class _SectionHeader extends StatelessWidget {
     required this.responsive,
     required this.title,
     required this.badge,
+    this.onAction,
+    this.actionLabel,
   });
 
   final AppResponsive responsive;
   final String title;
   final String badge;
+  final VoidCallback? onAction;
+  final String? actionLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -1085,30 +1118,258 @@ class _SectionHeader extends StatelessWidget {
             style: AppTextStyles.profileSectionTitle(responsive),
           ),
         ),
-        Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: responsive.w(10),
-            vertical: responsive.h(4),
-          ),
-          decoration: ShapeDecoration(
-            color: const Color(0xFFE53935),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(9999),
+        if (onAction != null && actionLabel != null)
+          GestureDetector(
+            onTap: onAction,
+            child: Text(
+              actionLabel!,
+              style: TextStyle(
+                color: AppColors.primary,
+                fontSize: responsive.text(13),
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          )
+        else
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: responsive.w(10),
+              vertical: responsive.h(4),
+            ),
+            decoration: ShapeDecoration(
+              color: const Color(0xFFE53935),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(9999),
+              ),
+            ),
+            child: Text(
+              badge,
+              style: TextStyle(
+                color: AppColors.white,
+                fontSize: responsive.text(12),
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w700,
+                height: 1.33,
+                letterSpacing: -0.50,
+              ),
             ),
           ),
-          child: Text(
-            badge,
-            style: TextStyle(
-              color: AppColors.white,
-              fontSize: responsive.text(12),
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w700,
-              height: 1.33,
-              letterSpacing: -0.50,
+      ],
+    );
+  }
+}
+
+// ── Quick Request Card with live countdown ────────────────────────────────
+
+class _QuickRequestCard extends StatelessWidget {
+  const _QuickRequestCard({
+    required this.responsive,
+    required this.request,
+    required this.onAccept,
+    required this.onReject,
+  });
+
+  final AppResponsive responsive;
+  final QuickRequest request;
+  final VoidCallback onAccept;
+  final VoidCallback onReject;
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final urgent = request.isUrgent;
+      final borderColor = urgent
+          ? (request.remainingSeconds.value <= 60
+              ? const Color(0xFFE53935)
+              : const Color(0xFFF59E0B))
+          : AppColors.border;
+
+      return AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: EdgeInsets.all(responsive.w(14)),
+        decoration: ShapeDecoration(
+          color: AppColors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(responsive.radius(16)),
+            side: BorderSide(color: borderColor, width: urgent ? 1.5 : 1),
+          ),
+          shadows: const [
+            BoxShadow(
+                color: Color(0x0C000000), blurRadius: 6, offset: Offset(0, 2)),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Avatar
+            Container(
+              width: responsive.w(44),
+              height: responsive.w(44),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(responsive.radius(12)),
+              ),
+              child: Center(
+                child: Text(
+                  request.passengerInitial,
+                  style: TextStyle(
+                    fontSize: responsive.text(18),
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(width: responsive.w(10)),
+            // Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          request.passengerName,
+                          style: AppTextStyles.homeCardTitle(responsive),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      // Countdown badge
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: responsive.w(6), vertical: responsive.h(2)),
+                        decoration: BoxDecoration(
+                          color: urgent
+                              ? (request.remainingSeconds.value <= 60
+                                  ? const Color(0xFFFEF2F2)
+                                  : const Color(0xFFFFFBEB))
+                              : AppColors.surfaceAccent,
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                              color: borderColor.withValues(alpha: 0.40)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              urgent
+                                  ? Icons.timer_off_rounded
+                                  : Icons.timer_outlined,
+                              size: responsive.text(10),
+                              color: borderColor,
+                            ),
+                            SizedBox(width: responsive.w(3)),
+                            Text(
+                              request.countdownLabel,
+                              style: TextStyle(
+                                fontSize: responsive.text(10),
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w700,
+                                color: borderColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: responsive.h(3)),
+                  Row(
+                    children: [
+                      Icon(Icons.star_rounded,
+                          size: responsive.text(11), color: AppColors.accent),
+                      SizedBox(width: responsive.w(2)),
+                      Text(
+                        request.rating.toStringAsFixed(1),
+                        style: AppTextStyles.homeCardBody(responsive)
+                            .copyWith(color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w600),
+                      ),
+                      SizedBox(width: responsive.w(6)),
+                      Flexible(
+                        child: Text(
+                          request.routeLabel,
+                          style: AppTextStyles.homeCardBody(responsive),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(width: responsive.w(8)),
+            // Actions
+            Column(
+              children: [
+                _MiniButton(
+                  responsive: responsive,
+                  label: 'Accepter',
+                  bgColor: AppColors.primary,
+                  textColor: Colors.white,
+                  onTap: onAccept,
+                ),
+                SizedBox(height: responsive.h(6)),
+                _MiniButton(
+                  responsive: responsive,
+                  label: 'Refuser',
+                  bgColor: const Color(0xFFFEF2F2),
+                  textColor: const Color(0xFFE53935),
+                  onTap: onReject,
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    });
+  }
+}
+
+class _MiniButton extends StatelessWidget {
+  const _MiniButton({
+    required this.responsive,
+    required this.label,
+    required this.bgColor,
+    required this.textColor,
+    required this.onTap,
+  });
+  final AppResponsive responsive;
+  final String label;
+  final Color bgColor;
+  final Color textColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(responsive.radius(8)),
+        child: Container(
+          width: responsive.w(70),
+          height: responsive.h(30),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(responsive.radius(8)),
+            border: Border.all(color: bgColor.withValues(alpha: 0.50)),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: responsive.text(11),
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w700,
+                color: textColor,
+              ),
             ),
           ),
         ),
-      ],
+      ),
     );
   }
 }

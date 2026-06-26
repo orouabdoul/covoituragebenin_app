@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
@@ -15,20 +16,22 @@ class PaymentSuccessController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    final args = Get.arguments;
-    if (args is Map<String, dynamic>) {
-      final r = args['ride'];
-      if (r is SearchRide) ride.value = r;
-      final ref = args['ref'];
-      if (ref is String) transactionRef.value = ref;
-      final amount = args['amount'];
-      if (amount is int) totalAmount.value = amount;
-      final seats = args['seats'];
-      if (seats is int) reservedSeats.value = seats;
-    }
-    if (transactionRef.value.isEmpty) {
-      transactionRef.value = '#TXN-${(DateTime.now().millisecondsSinceEpoch % 100000).toString().padLeft(5, '0')}';
-    }
+    final dynamic savedArgs = Get.arguments;
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (savedArgs is Map<String, dynamic>) {
+        final r = savedArgs['ride'];
+        if (r is SearchRide) ride.value = r;
+        final ref = savedArgs['ref'];
+        if (ref is String) transactionRef.value = ref;
+        final amount = savedArgs['amount'];
+        if (amount is int) totalAmount.value = amount;
+        final seats = savedArgs['seats'];
+        if (seats is int) reservedSeats.value = seats;
+      }
+      if (transactionRef.value.isEmpty) {
+        transactionRef.value = '#TXN-${(DateTime.now().millisecondsSinceEpoch % 100000).toString().padLeft(5, '0')}';
+      }
+    });
   }
 
   String get formattedAmount {

@@ -1,9 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
-import 'package:covoiturage_benin_app/app/modules/principal/passager/reservation/views/confirmation_payment_view.dart';
 
 import '../../search/controllers/search_controller.dart';
 
@@ -13,18 +15,20 @@ class ConfirmationReservationController extends GetxController {
   final Rxn<SearchRide> ride = Rxn<SearchRide>();
   final RxInt selectedPaymentIndex = 0.obs;
   final RxInt reservedSeats = 2.obs;
+  final Rx<MobileMoneyService> selectedMobileService = MobileMoneyService.mtn.obs;
+  final TextEditingController pickupController = TextEditingController();
+  final TextEditingController dropoffController = TextEditingController();
   final TextEditingController paymentContactController = TextEditingController();
   final TextEditingController cardExpiryController = TextEditingController();
   final TextEditingController cardCodeController = TextEditingController();
+  final TextEditingController otpController = TextEditingController();
 
-  // Points personnalisés pickup/dépose
-  final TextEditingController pickupController = TextEditingController();
-  final TextEditingController dropoffController = TextEditingController();
-  final RxBool pickupFocused = false.obs;
-  final RxBool dropoffFocused = false.obs;
-
-  final Rx<MobileMoneyService> selectedMobileService = MobileMoneyService.mtn.obs;
+  // Payment flow state
+  final RxBool isOtpSent = false.obs;
+  final RxInt otpResendCountdown = 0.obs;
   final RxBool isProcessingPayment = false.obs;
+
+  Timer? _otpCountdownTimer;
 
   final List<ReservationPaymentMethod> paymentMethods = const [
     ReservationPaymentMethod(
@@ -44,22 +48,21 @@ class ConfirmationReservationController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    // Args captured synchronously; .value= deferred to post-frame to avoid
+    // setState-during-build crash when controller is lazily created by GetX.
+    final dynamic savedArgs = Get.arguments;
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (savedArgs is Map<String, dynamic>) {
+        final dynamic selectedRide = savedArgs['ride'];
+        if (selectedRide is SearchRide) ride.value = selectedRide;
 
-    final dynamic arguments = Get.arguments;
-    if (arguments is Map<String, dynamic>) {
-      final dynamic selectedRide = arguments['ride'];
-      if (selectedRide is SearchRide) {
-        ride.value = selectedRide;
-        pickupController.text = selectedRide.origin;
-        dropoffController.text = selectedRide.destination;
+        final dynamic seats = savedArgs['seats'];
+        if (seats is int) reservedSeats.value = seats;
+
+        final dynamic idx = savedArgs['paymentIndex'];
+        if (idx is int) selectedPaymentIndex.value = idx;
       }
-
-      final dynamic seats = arguments['seats'];
-      if (seats is int) reservedSeats.value = seats;
-
-      final dynamic idx = arguments['paymentIndex'];
-      if (idx is int) selectedPaymentIndex.value = idx;
-    }
+    });
   }
 
   void selectPayment(int index) {
@@ -68,14 +71,15 @@ class ConfirmationReservationController extends GetxController {
       cardExpiryController.clear();
       cardCodeController.clear();
     }
+
     selectedPaymentIndex.value = index;
   }
 
   void selectMobileService(MobileMoneyService service) {
     selectedMobileService.value = service;
-    paymentContactController.clear();
   }
 
+  // index 0 = Mobile Money, index 1 = Card
   bool get isCardPayment => selectedPaymentIndex.value == 1;
 
   String get paymentInputLabel => isCardPayment
@@ -109,18 +113,27 @@ class ConfirmationReservationController extends GetxController {
 
   void confirmReservation() {
     final arguments = {'ride': ride.value, 'seats': reservedSeats.value, 'paymentIndex': selectedPaymentIndex.value};
+    Get.toNamed(AppRoutes.passengerWaitingApproval, arguments: arguments);
+  }
 
-    try {
-      Get.toNamed(
-        AppRoutes.passengerWaitingApproval,
-        arguments: arguments,
-      );
-    } catch (_) {
-      Get.to(
-        () => const ConfirmationPaymentView(),
-        arguments: arguments,
-      );
-    }
+  void sendOTP() {
+    isOtpSent.value = true;
+    otpResendCountdown.value = 60;
+    _otpCountdownTimer?.cancel();
+    _otpCountdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (otpResendCountdown.value > 0) {
+        otpResendCountdown.value--;
+      } else {
+        _otpCountdownTimer?.cancel();
+      }
+    });
+  }
+
+  void resetOtpFlow() {
+    isOtpSent.value = false;
+    otpResendCountdown.value = 0;
+    otpController.clear();
+    _otpCountdownTimer?.cancel();
   }
 
   int get totalAmount {
@@ -145,11 +158,13 @@ class ConfirmationReservationController extends GetxController {
 
   @override
   void onClose() {
+    pickupController.dispose();
+    dropoffController.dispose();
     paymentContactController.dispose();
     cardExpiryController.dispose();
     cardCodeController.dispose();
-    pickupController.dispose();
-    dropoffController.dispose();
+    otpController.dispose();
+    _otpCountdownTimer?.cancel();
     super.onClose();
   }
 }
@@ -184,8 +199,6 @@ class ReservationPaymentMethod {
     final String legacyIcon = icon.toString();
 
     switch (legacyIcon) {
-      case '¤':
-        return Icons.payments_outlined;
       case 'M':
         return Icons.phone_android_rounded;
       case '◫':

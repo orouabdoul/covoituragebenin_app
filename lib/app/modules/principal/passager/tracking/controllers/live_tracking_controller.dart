@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
@@ -29,12 +30,14 @@ class LiveTrackingController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    final args = Get.arguments;
-    if (args is Map<String, dynamic>) {
-      final r = args['ride'];
-      if (r is SearchRide) ride.value = r;
-    }
+    final dynamic savedArgs = Get.arguments;
     _startSimulation();
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (savedArgs is Map<String, dynamic>) {
+        final r = savedArgs['ride'];
+        if (r is SearchRide) ride.value = r;
+      }
+    });
   }
 
   void _startSimulation() {

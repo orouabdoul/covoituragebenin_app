@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 
@@ -25,18 +26,20 @@ class RefundRequestController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    final args = Get.arguments;
-    if (args is Map) {
-      refundAmount.value = (args['amount'] as int?) ?? 5500;
-      tripRef.value = (args['ref'] as String?) ?? 'REF-2024-12-001';
-      tripRoute.value = (args['route'] as String?) ?? 'Cotonou → Porto-Novo';
-      tripDate.value = (args['date'] as String?) ?? '15 Déc 2024';
-    } else {
-      refundAmount.value = 5500;
-      tripRef.value = 'REF-2024-12-001';
-      tripRoute.value = 'Cotonou → Porto-Novo';
-      tripDate.value = '15 Déc 2024';
-    }
+    final dynamic savedArgs = Get.arguments;
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (savedArgs is Map) {
+        refundAmount.value = (savedArgs['amount'] as int?) ?? 5500;
+        tripRef.value = (savedArgs['ref'] as String?) ?? 'REF-2024-12-001';
+        tripRoute.value = (savedArgs['route'] as String?) ?? 'Cotonou → Porto-Novo';
+        tripDate.value = (savedArgs['date'] as String?) ?? '15 Déc 2024';
+      } else {
+        refundAmount.value = 5500;
+        tripRef.value = 'REF-2024-12-001';
+        tripRoute.value = 'Cotonou → Porto-Novo';
+        tripDate.value = '15 Déc 2024';
+      }
+    });
   }
 
   String get formattedAmount {

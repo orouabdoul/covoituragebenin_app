@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
-import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 
@@ -14,67 +13,46 @@ class ReservationsView extends GetView<ReservationsController> {
 
   @override
   Widget build(BuildContext context) {
-    final responsive = AppResponsive(context);
+    final r = AppResponsive(context);
 
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: responsive.maxContentWidth),
-            child: ListView(
-              padding: EdgeInsets.fromLTRB(
-                responsive.adaptive(
-                  phone: 16,
-                  smallPhone: 14,
-                  tablet: 20,
-                  desktop: 24,
-                ),
-                responsive.adaptive(
-                  phone: 12,
-                  smallPhone: 10,
-                  tablet: 14,
-                  desktop: 16,
-                ),
-                responsive.adaptive(
-                  phone: 16,
-                  smallPhone: 14,
-                  tablet: 20,
-                  desktop: 24,
-                ),
-                responsive.adaptive(
-                  phone: 24,
-                  smallPhone: 20,
-                  tablet: 28,
-                  desktop: 32,
-                ),
-              ),
+            constraints: BoxConstraints(maxWidth: r.maxContentWidth),
+            child: Column(
               children: [
-                _TopCard(responsive: responsive, controller: controller),
-                SizedBox(height: responsive.h(12)),
-                _FilterTabs(responsive: responsive, controller: controller),
-                SizedBox(height: responsive.h(16)),
-                ...controller.visibleReservations.asMap().entries.expand((
-                  entry,
-                ) {
-                  final index = entry.key;
-                  final reservation = entry.value;
+                _Header(r: r, controller: controller),
+                _TabBar(r: r, controller: controller),
+                Expanded(
+                  child: Obx(() {
+                    final tab = controller.selectedTab.value;
+                    final items = switch (tab) {
+                      ReservationTab.pending => controller.pendingRequests,
+                      ReservationTab.accepted => controller.acceptedRequests,
+                      ReservationTab.rejected => controller.rejectedRequests,
+                    };
 
-                  return [
-                    _ReservationCard(
-                      responsive: responsive,
-                      reservation: reservation,
-                      onReject: () =>
-                          controller.onRejectReservation(reservation),
-                      onDetails: () =>
-                          controller.onShowReservation(reservation),
-                      onAccept: () =>
-                          controller.onAcceptReservation(reservation),
-                    ),
-                    if (index != controller.visibleReservations.length - 1)
-                      SizedBox(height: responsive.h(16)),
-                  ];
-                }),
+                    if (items.isEmpty) {
+                      return _EmptyState(r: r, tab: tab);
+                    }
+
+                    return ListView.separated(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: r.adaptive(phone: 16, smallPhone: 14, tablet: 20, desktop: 24),
+                        vertical: r.adaptive(phone: 16, smallPhone: 12, tablet: 20, desktop: 24),
+                      ),
+                      itemCount: items.length,
+                      separatorBuilder: (context, index) => SizedBox(height: r.h(12)),
+                      itemBuilder: (_, i) => _ReservationCard(
+                        r: r,
+                        request: items[i],
+                        controller: controller,
+                      ),
+                    );
+                  }),
+                ),
               ],
             ),
           ),
@@ -84,523 +62,553 @@ class ReservationsView extends GetView<ReservationsController> {
   }
 }
 
-class _TopCard extends StatelessWidget {
-  const _TopCard({required this.responsive, required this.controller});
+// ── Header ──────────────────────────────────────────────────────────────────
 
-  final AppResponsive responsive;
+class _Header extends StatelessWidget {
+  const _Header({required this.r, required this.controller});
+  final AppResponsive r;
   final ReservationsController controller;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(
-        horizontal: responsive.adaptive(
-          phone: 16,
-          smallPhone: 14,
-          tablet: 18,
-          desktop: 20,
-        ),
-        vertical: responsive.adaptive(
-          phone: 12,
-          smallPhone: 12,
-          tablet: 14,
-          desktop: 16,
-        ),
-      ),
-      decoration: ShapeDecoration(
+      padding: EdgeInsets.fromLTRB(r.w(16), r.h(12), r.w(16), r.h(12)),
+      decoration: BoxDecoration(
         color: AppColors.white,
-        shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.surfaceSoft),
-          borderRadius: BorderRadius.circular(responsive.radius(20)),
-        ),
-        shadows: const [
-          BoxShadow(
-            color: Color(0x0C000000),
-            blurRadius: 2,
-            offset: Offset(0, 1),
-          ),
-        ],
+        border: Border(bottom: BorderSide(color: AppColors.border)),
       ),
       child: Row(
         children: [
           AppCircularButton(
-            responsive: responsive,
+            responsive: r,
             icon: Icons.arrow_back_rounded,
             onTap: controller.onBack,
-            size: responsive.w(40),
+            size: r.w(40),
           ),
-          SizedBox(width: responsive.w(12)),
+          SizedBox(width: r.w(12)),
           Expanded(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  AppStrings.driverReservationsTitle,
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.profileSectionTitle(
-                    responsive,
-                  ).copyWith(fontSize: responsive.text(18)),
-                ),
-                SizedBox(height: responsive.h(2)),
-                Text(
-                  AppStrings.driverReservationsSubtitle,
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.caption(responsive),
-                ),
+                Text('Demandes de réservation',
+                    style: AppTextStyles.h6(r)),
+                Obx(() => Text(
+                  '${controller.pendingCount} en attente',
+                  style: AppTextStyles.bodySmall(r)
+                      .copyWith(color: AppColors.textMuted),
+                )),
               ],
             ),
           ),
-          SizedBox(width: responsive.w(12)),
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              AppCircularButton(
-                responsive: responsive,
-                icon: Icons.notifications_none_rounded,
-                onTap: controller.onNotificationTap,
-                size: responsive.w(40),
-              ),
-              Positioned(
-                right: 0,
-                top: 0,
-                child: Container(
-                  width: responsive.w(20),
-                  height: responsive.w(20),
-                  decoration: ShapeDecoration(
-                    color: const Color(0xFFE53935),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(9999),
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      '3',
-                      style: AppTextStyles.caption(responsive).copyWith(
-                        color: AppColors.white,
-                        fontSize: responsive.text(11),
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+          Obx(() => controller.pendingCount > 0
+              ? _NotifBadge(r: r, count: controller.pendingCount, onTap: () {})
+              : AppCircularButton(
+                  responsive: r,
+                  icon: Icons.notifications_none_rounded,
+                  onTap: controller.onNotifications,
+                  size: r.w(40),
+                )),
         ],
       ),
     );
   }
 }
 
-class _FilterTabs extends StatelessWidget {
-  const _FilterTabs({required this.responsive, required this.controller});
+class _NotifBadge extends StatelessWidget {
+  const _NotifBadge({required this.r, required this.count, required this.onTap});
+  final AppResponsive r;
+  final int count;
+  final VoidCallback onTap;
 
-  final AppResponsive responsive;
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        AppCircularButton(
+          responsive: r,
+          icon: Icons.notifications_rounded,
+          onTap: onTap,
+          size: r.w(40),
+        ),
+        Positioned(
+          right: -2,
+          top: -2,
+          child: Container(
+            width: r.w(18),
+            height: r.w(18),
+            decoration: const ShapeDecoration(
+              color: Color(0xFFE53935),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(999)),
+              ),
+            ),
+            child: Center(
+              child: Text('$count',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: r.text(10),
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w700,
+                  )),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Tab bar ─────────────────────────────────────────────────────────────────
+
+class _TabBar extends StatelessWidget {
+  const _TabBar({required this.r, required this.controller});
+  final AppResponsive r;
   final ReservationsController controller;
 
   @override
   Widget build(BuildContext context) {
-    return Obx(
-      () => Container(
-        width: double.infinity,
-        padding: EdgeInsets.all(
-          responsive.adaptive(
-            phone: 16,
-            smallPhone: 14,
-            tablet: 16,
-            desktop: 16,
-          ),
-        ),
-        decoration: ShapeDecoration(
-          color: AppColors.white,
-          shape: RoundedRectangleBorder(
-            side: const BorderSide(color: AppColors.surfaceSoft),
-            borderRadius: BorderRadius.circular(responsive.radius(20)),
-          ),
-        ),
+    return Obx(() {
+      final tabs = [
+        ('En attente', controller.pendingCount, ReservationTab.pending),
+        ('Acceptées', controller.acceptedCount, ReservationTab.accepted),
+        ('Refusées', controller.rejectedCount, ReservationTab.rejected),
+      ];
+      return Container(
+        color: AppColors.white,
         child: Row(
-          children: [
-            for (var index = 0; index < controller.filters.length; index++) ...[
-              if (index == 0)
-                SizedBox(
-                  width: responsive.w(92),
-                  child: _FilterChip(
-                    responsive: responsive,
-                    summary: controller.filters[index],
-                    selected: controller.selectedFilterIndex.value == index,
-                    onTap: () => controller.selectFilter(index),
-                  ),
-                )
-              else if (index == 1)
-                SizedBox(
-                  width: responsive.w(117),
-                  child: Padding(
-                    padding: EdgeInsets.only(left: responsive.w(8)),
-                    child: _FilterChip(
-                      responsive: responsive,
-                      summary: controller.filters[index],
-                      selected: controller.selectedFilterIndex.value == index,
-                      onTap: () => controller.selectFilter(index),
+          children: tabs.map((t) {
+            final (label, count, tab) = t;
+            final selected = controller.selectedTab.value == tab;
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => controller.selectedTab.value = tab,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: EdgeInsets.symmetric(vertical: r.h(12)),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: selected ? AppColors.primary : Colors.transparent,
+                        width: 2,
+                      ),
                     ),
                   ),
-                )
-              else
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(left: responsive.w(8)),
-                    child: _FilterChip(
-                      responsive: responsive,
-                      summary: controller.filters[index],
-                      selected: controller.selectedFilterIndex.value == index,
-                      onTap: () => controller.selectFilter(index),
-                    ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        label,
+                        style: AppTextStyles.bodyMedium(r).copyWith(
+                          color: selected ? AppColors.primary : AppColors.textMuted,
+                          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                        ),
+                      ),
+                      if (count > 0) ...[
+                        SizedBox(width: r.w(6)),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: r.w(6), vertical: r.h(2)),
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? AppColors.primary
+                                : AppColors.surfaceMuted,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            '$count',
+                            style: TextStyle(
+                              fontSize: r.text(10),
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w700,
+                              color: selected
+                                  ? Colors.white
+                                  : AppColors.textMuted,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-            ],
-          ],
+              ),
+            );
+          }).toList(),
         ),
-      ),
-    );
+      );
+    });
   }
 }
 
-class _FilterChip extends StatelessWidget {
-  const _FilterChip({
-    required this.responsive,
-    required this.summary,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final AppResponsive responsive;
-  final ReservationFilterSummary summary;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color backgroundColor = selected
-        ? AppColors.primary
-        : AppColors.surfaceMuted;
-    final Color textColor = selected
-        ? AppColors.white
-        : AppColors.textSecondary;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(9999),
-        child: Container(
-          height: responsive.adaptive(
-            phone: 36,
-            smallPhone: 34,
-            tablet: 36,
-            desktop: 36,
-          ),
-          padding: EdgeInsets.symmetric(
-            horizontal: responsive.w(16),
-            vertical: responsive.h(8),
-          ),
-          decoration: ShapeDecoration(
-            color: backgroundColor,
-            shape: RoundedRectangleBorder(
-              side: const BorderSide(color: AppColors.border),
-              borderRadius: BorderRadius.circular(9999),
-            ),
-          ),
-          child: Center(
-            child: Text(
-              '${summary.label} (${summary.count})',
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.profileSectionLabel(
-                responsive,
-              ).copyWith(color: textColor, fontWeight: FontWeight.w600),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
+// ── Reservation Card ─────────────────────────────────────────────────────────
 
 class _ReservationCard extends StatelessWidget {
   const _ReservationCard({
-    required this.responsive,
-    required this.reservation,
-    required this.onReject,
-    required this.onDetails,
-    required this.onAccept,
+    required this.r,
+    required this.request,
+    required this.controller,
   });
 
-  final AppResponsive responsive;
-  final DriverReservationRequest reservation;
-  final VoidCallback onReject;
-  final VoidCallback onDetails;
-  final VoidCallback onAccept;
+  final AppResponsive r;
+  final LiveReservationRequest request;
+  final ReservationsController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final isPending = request.status == ReservationStatus.pending;
+
+    return Obx(() {
+      final urgency = request.urgency;
+      final borderColor = isPending ? request.borderColor : AppColors.border;
+
+      return AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        decoration: ShapeDecoration(
+          color: AppColors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(r.radius(20)),
+            side: BorderSide(color: borderColor, width: isPending ? 1.5 : 1),
+          ),
+          shadows: const [
+            BoxShadow(
+                color: Color(0x0D000000), blurRadius: 8, offset: Offset(0, 2)),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Countdown bar (pending only) ──────────────────────────
+            if (isPending) _CountdownBar(r: r, request: request),
+
+            Padding(
+              padding: EdgeInsets.all(
+                  r.adaptive(phone: 16, smallPhone: 14, tablet: 20, desktop: 20)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Passenger info ───────────────────────────────────
+                  Row(
+                    children: [
+                      _Avatar(r: r, initial: request.passengerInitial,
+                          isVerified: request.isVerified),
+                      SizedBox(width: r.w(12)),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(request.passengerName,
+                                      style: AppTextStyles.h6(r)),
+                                ),
+                                if (isPending)
+                                  _UrgencyBadge(r: r, urgency: urgency,
+                                      label: request.countdownLabel),
+                              ],
+                            ),
+                            SizedBox(height: r.h(4)),
+                            Row(
+                              children: [
+                                Icon(Icons.star_rounded,
+                                    size: r.text(13), color: AppColors.accent),
+                                SizedBox(width: r.w(3)),
+                                Text(request.rating.toStringAsFixed(1),
+                                    style: AppTextStyles.bodySmall(r).copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.textPrimary,
+                                    )),
+                                SizedBox(width: r.w(6)),
+                                Text('·',
+                                    style: AppTextStyles.bodySmall(r)
+                                        .copyWith(color: AppColors.textGhost)),
+                                SizedBox(width: r.w(6)),
+                                Text('${request.tripsCount} trajets',
+                                    style: AppTextStyles.bodySmall(r)
+                                        .copyWith(color: AppColors.textMuted)),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(height: r.h(12)),
+                  Divider(color: AppColors.border, height: 1),
+                  SizedBox(height: r.h(12)),
+
+                  // ── Route info ───────────────────────────────────────
+                  _RouteRow(r: r, request: request),
+                  SizedBox(height: r.h(12)),
+
+                  // ── Payment & seats ──────────────────────────────────
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _InfoChip(
+                          r: r,
+                          icon: Icons.event_seat_rounded,
+                          label: request.seatsLabel,
+                          iconColor: AppColors.primary,
+                          bgColor: AppColors.surfaceAccent,
+                        ),
+                      ),
+                      SizedBox(width: r.w(8)),
+                      Expanded(
+                        child: _InfoChip(
+                          r: r,
+                          icon: request.paymentConfirmed
+                              ? Icons.verified_rounded
+                              : Icons.hourglass_top_rounded,
+                          label: request.paymentConfirmed
+                              ? request.amountLabel
+                              : 'Paiement en attente',
+                          iconColor: request.paymentConfirmed
+                              ? const Color(0xFF16A34A)
+                              : AppColors.warning,
+                          bgColor: request.paymentConfirmed
+                              ? const Color(0xFFDCFCE7)
+                              : const Color(0xFFFFFBEB),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // ── Actions (pending only) ────────────────────────────
+                  if (isPending) ...[
+                    SizedBox(height: r.h(14)),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _ActionBtn(
+                            r: r,
+                            label: 'Refuser',
+                            bgColor: const Color(0xFFFEF2F2),
+                            textColor: const Color(0xFFE53935),
+                            borderColor: const Color(0xFFFECACA),
+                            onTap: () => controller.onReject(request),
+                          ),
+                        ),
+                        SizedBox(width: r.w(8)),
+                        _IconBtn(
+                          r: r,
+                          icon: Icons.phone_rounded,
+                          bgColor: AppColors.surfaceSoft,
+                          iconColor: AppColors.textSecondary,
+                          onTap: () => controller.onCallPassenger(request),
+                        ),
+                        SizedBox(width: r.w(8)),
+                        Expanded(
+                          child: _ActionBtn(
+                            r: r,
+                            label: 'Accepter ✓',
+                            bgColor: AppColors.primary,
+                            textColor: Colors.white,
+                            borderColor: AppColors.primary,
+                            onTap: () => controller.onAccept(request),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+
+                  // ── Status badge (non-pending) ────────────────────────
+                  if (!isPending) ...[
+                    SizedBox(height: r.h(12)),
+                    _StatusBadge(r: r, status: request.status),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+}
+
+// ── Countdown Bar ────────────────────────────────────────────────────────────
+
+class _CountdownBar extends StatelessWidget {
+  const _CountdownBar({required this.r, required this.request});
+  final AppResponsive r;
+  final LiveReservationRequest request;
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final total = request.expiresInSeconds;
+      final remaining = request.remainingSeconds.value;
+      final progress = total > 0 ? remaining / total : 0.0;
+      final color = request.urgencyColor;
+
+      return ClipRRect(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(r.radius(20))),
+        child: Stack(
+          children: [
+            Container(
+                height: r.h(4), width: double.infinity, color: AppColors.border),
+            AnimatedFractionallySizedBox(
+              duration: const Duration(milliseconds: 800),
+              widthFactor: progress.clamp(0.0, 1.0),
+              child: Container(height: r.h(4), color: color),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+}
+
+// ── Urgency Badge ────────────────────────────────────────────────────────────
+
+class _UrgencyBadge extends StatelessWidget {
+  const _UrgencyBadge(
+      {required this.r, required this.urgency, required this.label});
+  final AppResponsive r;
+  final ReservationUrgency urgency;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final (bg, text, icon) = switch (urgency) {
+      ReservationUrgency.critical => (
+          const Color(0xFFFEF2F2),
+          const Color(0xFFE53935),
+          Icons.timer_off_rounded,
+        ),
+      ReservationUrgency.warning => (
+          const Color(0xFFFFFBEB),
+          const Color(0xFFF59E0B),
+          Icons.timer_rounded,
+        ),
+      ReservationUrgency.normal => (
+          AppColors.surfaceAccent,
+          AppColors.primary,
+          Icons.timer_outlined,
+        ),
+    };
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      padding:
+          EdgeInsets.symmetric(horizontal: r.w(8), vertical: r.h(4)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: text.withValues(alpha: 0.30)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: r.text(11), color: text),
+          SizedBox(width: r.w(4)),
+          Text(label,
+              style: TextStyle(
+                fontSize: r.text(11),
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w700,
+                color: text,
+              )),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Route Row ────────────────────────────────────────────────────────────────
+
+class _RouteRow extends StatelessWidget {
+  const _RouteRow({required this.r, required this.request});
+  final AppResponsive r;
+  final LiveReservationRequest request;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Column(
+          children: [
+            Icon(Icons.circle, size: r.text(10), color: AppColors.primary),
+            Container(
+                width: 1.5, height: r.h(28),
+                color: AppColors.border),
+            Icon(Icons.location_on_rounded,
+                size: r.text(14), color: const Color(0xFFE53935)),
+          ],
+        ),
+        SizedBox(width: r.w(10)),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(request.pickupPoint,
+                  style: AppTextStyles.bodyMedium(r)
+                      .copyWith(color: AppColors.textPrimary)),
+              SizedBox(height: r.h(16)),
+              Text(request.dropoffPoint,
+                  style: AppTextStyles.bodyMedium(r)
+                      .copyWith(color: AppColors.textPrimary)),
+            ],
+          ),
+        ),
+        Container(
+          padding: EdgeInsets.symmetric(
+              horizontal: r.w(8), vertical: r.h(4)),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceSoft,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(request.routeLabel,
+              style: AppTextStyles.labelSmall(r).copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary)),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Info Chip ────────────────────────────────────────────────────────────────
+
+class _InfoChip extends StatelessWidget {
+  const _InfoChip({
+    required this.r,
+    required this.icon,
+    required this.label,
+    required this.iconColor,
+    required this.bgColor,
+  });
+  final AppResponsive r;
+  final IconData icon;
+  final String label;
+  final Color iconColor;
+  final Color bgColor;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(
-        responsive.adaptive(phone: 20, smallPhone: 18, tablet: 20, desktop: 20),
+      padding: EdgeInsets.symmetric(
+          horizontal: r.w(10), vertical: r.h(8)),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(r.radius(10)),
+        border: Border.all(color: iconColor.withValues(alpha: 0.20)),
       ),
-      clipBehavior: Clip.antiAlias,
-      decoration: ShapeDecoration(
-        color: AppColors.white,
-        shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.surfaceSoft),
-          borderRadius: BorderRadius.circular(responsive.radius(24)),
-        ),
-        shadows: const [
-          BoxShadow(
-            color: Color(0x0C000000),
-            blurRadius: 2,
-            offset: Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: double.infinity,
-            height: 4,
-            decoration: ShapeDecoration(
-              color: reservation.passengerTypeColor,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(9999),
-              ),
-            ),
-          ),
-          SizedBox(height: responsive.h(16)),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(responsive.radius(16)),
-                    child: Image.network(
-                      reservation.avatarUrl,
-                      width: responsive.w(56),
-                      height: responsive.w(56),
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        width: responsive.w(56),
-                        height: responsive.w(56),
-                        color: AppColors.surfaceMuted,
-                        child: Icon(
-                          Icons.person_outline_rounded,
-                          color: AppColors.textGhost,
-                          size: responsive.text(24),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    right: -2,
-                    bottom: -2,
-                    child: Container(
-                      width: responsive.w(18),
-                      height: responsive.w(18),
-                      padding: EdgeInsets.all(responsive.w(3)),
-                      decoration: ShapeDecoration(
-                        color: AppColors.primary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(9999),
-                          side: const BorderSide(color: AppColors.white),
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.verified_rounded,
-                        size: 10,
-                        color: AppColors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(width: responsive.w(16)),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            reservation.passengerName,
-                            style: AppTextStyles.h6(responsive),
-                          ),
-                        ),
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: responsive.w(8),
-                            vertical: responsive.h(4),
-                          ),
-                          decoration: ShapeDecoration(
-                            color: reservation.passengerTypeColor,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(9999),
-                              side: const BorderSide(color: AppColors.border),
-                            ),
-                          ),
-                          child: Text(
-                            reservation.passengerType,
-                            style: AppTextStyles.caption(responsive).copyWith(
-                              color: AppColors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: responsive.h(8)),
-                    Row(
-                      children: [
-                        Container(
-                          decoration: ShapeDecoration(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(9999),
-                              side: const BorderSide(color: AppColors.border),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.star_rounded,
-                                size: responsive.text(14),
-                                color: AppColors.warning,
-                              ),
-                              SizedBox(width: responsive.w(4)),
-                              Text(
-                                reservation.rating,
-                                style: AppTextStyles.caption(responsive),
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(width: responsive.w(8)),
-                        Text('•', style: AppTextStyles.caption(responsive)),
-                        SizedBox(width: responsive.w(8)),
-                        Text(
-                          reservation.tripsCount,
-                          style: AppTextStyles.caption(responsive),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: responsive.h(16)),
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(responsive.w(12)),
-            decoration: ShapeDecoration(
-              color: AppColors.surface,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(responsive.radius(16)),
-                side: const BorderSide(color: AppColors.border),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      reservation.seatsRequested,
-                      style: AppTextStyles.profileSectionLabel(responsive)
-                          .copyWith(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                    Text(
-                      reservation.price,
-                      textAlign: TextAlign.right,
-                      style: AppTextStyles.profileSectionLabel(responsive)
-                          .copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: responsive.h(10)),
-                Row(
-                  children: [
-                    Container(
-                      width: responsive.w(14),
-                      height: responsive.w(14),
-                      decoration: ShapeDecoration(
-                        color: AppColors.surfaceSoft,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(9999),
-                          side: const BorderSide(color: AppColors.border),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: responsive.w(6)),
-                    Expanded(
-                      child: Text(
-                        reservation.paymentLabel,
-                        style: AppTextStyles.caption(responsive),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: responsive.h(16)),
-          Text(
-            reservation.routeLabel,
-            style: AppTextStyles.profileSectionLabel(responsive).copyWith(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          SizedBox(height: responsive.h(12)),
-          Row(
-            children: [
-              Expanded(
-                child: _ActionButton(
-                  responsive: responsive,
-                  label: reservation.secondaryActionLabel,
-                  backgroundColor: const Color(0xFFE53935),
-                  textColor: AppColors.white,
-                  onTap: onReject,
-                ),
-              ),
-              SizedBox(width: responsive.w(8)),
-              _IconActionButton(
-                responsive: responsive,
-                icon: Icons.chat_bubble_outline_rounded,
-                backgroundColor: AppColors.surfaceMuted,
-                iconColor: AppColors.textSecondary,
-                onTap: onDetails,
-              ),
-              SizedBox(width: responsive.w(8)),
-              Expanded(
-                child: _ActionButton(
-                  responsive: responsive,
-                  label: reservation.primaryActionLabel,
-                  backgroundColor: AppColors.primary,
-                  textColor: AppColors.white,
-                  onTap: onAccept,
-                ),
-              ),
-            ],
+          Icon(icon, size: r.text(14), color: iconColor),
+          SizedBox(width: r.w(6)),
+          Flexible(
+            child: Text(label,
+                style: AppTextStyles.bodySmall(r).copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w600),
+                overflow: TextOverflow.ellipsis),
           ),
         ],
       ),
@@ -608,19 +616,74 @@ class _ReservationCard extends StatelessWidget {
   }
 }
 
-class _ActionButton extends StatelessWidget {
-  const _ActionButton({
-    required this.responsive,
+// ── Avatar ───────────────────────────────────────────────────────────────────
+
+class _Avatar extends StatelessWidget {
+  const _Avatar(
+      {required this.r, required this.initial, required this.isVerified});
+  final AppResponsive r;
+  final String initial;
+  final bool isVerified;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          width: r.w(52),
+          height: r.w(52),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(r.radius(14)),
+          ),
+          child: Center(
+            child: Text(initial,
+                style: TextStyle(
+                  fontSize: r.text(22),
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                )),
+          ),
+        ),
+        if (isVerified)
+          Positioned(
+            right: -3,
+            bottom: -3,
+            child: Container(
+              width: r.w(18),
+              height: r.w(18),
+              decoration: ShapeDecoration(
+                color: AppColors.primary,
+                shape: const CircleBorder(
+                    side: BorderSide(color: Colors.white, width: 1.5)),
+              ),
+              child: Icon(Icons.verified_rounded,
+                  size: r.text(10), color: Colors.white),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+// ── Action Buttons ───────────────────────────────────────────────────────────
+
+class _ActionBtn extends StatelessWidget {
+  const _ActionBtn({
+    required this.r,
     required this.label,
-    required this.backgroundColor,
+    required this.bgColor,
     required this.textColor,
+    required this.borderColor,
     required this.onTap,
   });
-
-  final AppResponsive responsive;
+  final AppResponsive r;
   final String label;
-  final Color backgroundColor;
+  final Color bgColor;
   final Color textColor;
+  final Color borderColor;
   final VoidCallback onTap;
 
   @override
@@ -629,29 +692,22 @@ class _ActionButton extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(responsive.radius(16)),
+        borderRadius: BorderRadius.circular(r.radius(12)),
         child: Container(
-          height: responsive.adaptive(
-            phone: 44,
-            smallPhone: 42,
-            tablet: 44,
-            desktop: 44,
-          ),
-          decoration: ShapeDecoration(
-            color: backgroundColor,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(responsive.radius(16)),
-              side: const BorderSide(color: AppColors.border),
-            ),
+          height: r.h(44),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(r.radius(12)),
+            border: Border.all(color: borderColor),
           ),
           child: Center(
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              style: AppTextStyles.profileSectionLabel(
-                responsive,
-              ).copyWith(color: textColor, fontWeight: FontWeight.w600),
-            ),
+            child: Text(label,
+                style: TextStyle(
+                  fontSize: r.text(14),
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w700,
+                  color: textColor,
+                )),
           ),
         ),
       ),
@@ -659,18 +715,17 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
-class _IconActionButton extends StatelessWidget {
-  const _IconActionButton({
-    required this.responsive,
+class _IconBtn extends StatelessWidget {
+  const _IconBtn({
+    required this.r,
     required this.icon,
-    required this.backgroundColor,
+    required this.bgColor,
     required this.iconColor,
     required this.onTap,
   });
-
-  final AppResponsive responsive;
+  final AppResponsive r;
   final IconData icon;
-  final Color backgroundColor;
+  final Color bgColor;
   final Color iconColor;
   final VoidCallback onTap;
 
@@ -680,18 +735,125 @@ class _IconActionButton extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(responsive.radius(14)),
+        borderRadius: BorderRadius.circular(r.radius(12)),
         child: Container(
-          width: responsive.w(48),
-          height: responsive.w(44),
-          decoration: ShapeDecoration(
-            color: backgroundColor,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(responsive.radius(14)),
-              side: const BorderSide(color: AppColors.border),
-            ),
+          width: r.w(44),
+          height: r.h(44),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(r.radius(12)),
+            border: Border.all(color: AppColors.border),
           ),
-          child: Icon(icon, color: iconColor, size: responsive.text(18)),
+          child: Icon(icon, size: r.text(18), color: iconColor),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Status Badge ─────────────────────────────────────────────────────────────
+
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({required this.r, required this.status});
+  final AppResponsive r;
+  final ReservationStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, bg, text, icon) = switch (status) {
+      ReservationStatus.accepted => (
+          'Acceptée',
+          const Color(0xFFDCFCE7),
+          const Color(0xFF16A34A),
+          Icons.check_circle_rounded,
+        ),
+      ReservationStatus.rejected => (
+          'Refusée',
+          const Color(0xFFFEF2F2),
+          const Color(0xFFE53935),
+          Icons.cancel_rounded,
+        ),
+      ReservationStatus.expired => (
+          'Expirée',
+          AppColors.surfaceSoft,
+          AppColors.textGhost,
+          Icons.timer_off_rounded,
+        ),
+      _ => (
+          'En attente',
+          AppColors.surfaceAccent,
+          AppColors.primary,
+          Icons.hourglass_top_rounded,
+        ),
+    };
+
+    return Row(
+      children: [
+        Icon(icon, size: r.text(14), color: text),
+        SizedBox(width: r.w(6)),
+        Text(label,
+            style: AppTextStyles.bodySmall(r)
+                .copyWith(color: text, fontWeight: FontWeight.w700)),
+      ],
+    );
+  }
+}
+
+// ── Empty State ──────────────────────────────────────────────────────────────
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.r, required this.tab});
+  final AppResponsive r;
+  final ReservationTab tab;
+
+  @override
+  Widget build(BuildContext context) {
+    final (emoji, title, subtitle) = switch (tab) {
+      ReservationTab.pending => (
+          '🎉',
+          'Aucune demande en attente',
+          'Toutes vos demandes ont été traitées.\nPubliez un trajet pour en recevoir de nouvelles.',
+        ),
+      ReservationTab.accepted => (
+          '✅',
+          'Aucune réservation acceptée',
+          'Les réservations que vous acceptez\napparaîtront ici.',
+        ),
+      ReservationTab.rejected => (
+          '📋',
+          'Aucune réservation refusée',
+          'Les réservations refusées ou expirées\napparaîtront ici.',
+        ),
+    };
+
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(r.w(32)),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: r.w(96),
+              height: r.w(96),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceAccent,
+                borderRadius: BorderRadius.circular(r.radius(24)),
+              ),
+              child: Center(
+                child: Text(emoji,
+                    style: TextStyle(fontSize: r.text(44))),
+              ),
+            ),
+            SizedBox(height: r.h(24)),
+            Text(title,
+                style: AppTextStyles.h5(r),
+                textAlign: TextAlign.center),
+            SizedBox(height: r.h(8)),
+            Text(subtitle,
+                style: AppTextStyles.bodySmall(r)
+                    .copyWith(color: AppColors.textMuted),
+                textAlign: TextAlign.center),
+          ],
         ),
       ),
     );

@@ -1,7 +1,7 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:get/get.dart';
+import 'package:latlong2/latlong.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
@@ -9,49 +9,237 @@ import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 
 import '../controllers/interactive_map_controller.dart';
 
-class InteractiveMapView extends StatelessWidget {
+// ── Top-level helper ──────────────────────────────────────────────────────────
+
+void _showStopDetail(
+  BuildContext context,
+  MapStop stop,
+  InteractiveMapController ctrl,
+  AppResponsive r,
+) {
+  Get.bottomSheet(
+    Container(
+      padding: EdgeInsets.all(r.w(20)),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(r.radius(20))),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(9999),
+              ),
+            ),
+          ),
+          SizedBox(height: r.h(16)),
+          Row(
+            children: [
+              Container(
+                width: r.w(40),
+                height: r.w(40),
+                decoration: BoxDecoration(
+                  color: ctrl.stopBgColor(stop),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  stop.type == StopType.pickup
+                      ? Icons.trip_origin_rounded
+                      : Icons.location_on_rounded,
+                  color: ctrl.stopColor(stop),
+                  size: r.text(20),
+                ),
+              ),
+              SizedBox(width: r.w(12)),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      stop.passengerName,
+                      style: AppTextStyles.subtitle(r)
+                          .copyWith(fontWeight: FontWeight.w700),
+                    ),
+                    Text(
+                      ctrl.stopTypeLabel(stop.type),
+                      style: AppTextStyles.caption(r)
+                          .copyWith(color: ctrl.stopColor(stop)),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: r.w(8),
+                  vertical: r.h(4),
+                ),
+                decoration: BoxDecoration(
+                  color: ctrl
+                      .stopStatusColor(stop.status)
+                      .withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(9999),
+                ),
+                child: Text(
+                  ctrl.stopStatusLabel(stop.status),
+                  style: AppTextStyles.caption(r).copyWith(
+                    color: ctrl.stopStatusColor(stop.status),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: r.h(14)),
+          Row(
+            children: [
+              Icon(Icons.pin_drop_rounded,
+                  size: r.text(14), color: AppColors.textHint),
+              SizedBox(width: r.w(6)),
+              Expanded(
+                child: Text(stop.address,
+                    style: AppTextStyles.caption(r)),
+              ),
+              Text(
+                stop.eta,
+                style: AppTextStyles.caption(r).copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          if (stop.status != StopStatus.done) ...[
+            SizedBox(height: r.h(16)),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Get.back();
+                  ctrl.markStopDone(stop.id);
+                },
+                icon: const Icon(Icons.check_circle_rounded, size: 18),
+                label: const Text('Marquer comme terminé'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(vertical: r.h(14)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(r.radius(12)),
+                  ),
+                ),
+              ),
+            ),
+          ],
+          SizedBox(height: r.h(8)),
+        ],
+      ),
+    ),
+  );
+}
+
+// ── Root view ─────────────────────────────────────────────────────────────────
+
+class InteractiveMapView extends StatefulWidget {
   const InteractiveMapView({super.key});
 
   @override
+  State<InteractiveMapView> createState() => _InteractiveMapViewState();
+}
+
+class _InteractiveMapViewState extends State<InteractiveMapView> {
+  final MapController _mapController = MapController();
+  late final InteractiveMapController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = Get.find<InteractiveMapController>();
+    ever(_ctrl.currentStopIndex, (_) {
+      final stop = _ctrl.nextStop;
+      if (stop != null && mounted) {
+        _mapController.move(stop.latlng, 14.0);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _mapController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.find<InteractiveMapController>();
-    final responsive = AppResponsive(context);
+    final r = AppResponsive(context);
 
     return Scaffold(
       backgroundColor: const Color(0xFFE8EFF8),
       body: Stack(
         children: [
-          // ── Map canvas ─────────────────────────────────────────────
-          Positioned.fill(
-            child: AnimatedBuilder(
-              animation: controller.pulseController,
-              builder: (_, animChild) => CustomPaint(
-                painter: _MapPainter(pulse: controller.pulseController.value),
-                child: animChild,
-              ),
+          // ── Real OpenStreetMap ─────────────────────────────────────
+          FlutterMap(
+            mapController: _mapController,
+            options: const MapOptions(
+              initialCenter: LatLng(6.3780, 2.4900),
+              initialZoom: 11.0,
+              minZoom: 8.0,
+              maxZoom: 18.0,
             ),
-          ),
-
-          // ── Route polyline overlay ──────────────────────────────────
-          Positioned.fill(
-            child: Obx(() => CustomPaint(
-              painter: _RoutePainter(stops: controller.stops.toList()),
-            )),
-          ),
-
-          // ── Stop markers ────────────────────────────────────────────
-          Positioned.fill(
-            child: Obx(() => Stack(
-              children: [
-                for (var i = 0; i < controller.stops.length; i++)
-                  _StopMarker(
-                    responsive: responsive,
-                    stop: controller.stops[i],
-                    index: i + 1,
-                    controller: controller,
+            children: [
+              TileLayer(
+                urlTemplate:
+                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.covoiturage.benin',
+              ),
+              // Route polyline
+              Obx(() => PolylineLayer(
+                polylines: [
+                  Polyline(
+                    points: _ctrl.routePolyline,
+                    color: AppColors.primary,
+                    strokeWidth: 5.0,
+                    borderColor: Colors.white.withValues(alpha: 0.85),
+                    borderStrokeWidth: 2.5,
                   ),
-              ],
-            )),
+                ],
+              )),
+              // Markers
+              Obx(() => MarkerLayer(
+                markers: [
+                  // Driver position
+                  Marker(
+                    point: _ctrl.driverPosition.value,
+                    width: 52,
+                    height: 52,
+                    child: _DriverPositionMarker(controller: _ctrl),
+                  ),
+                  // Stop markers
+                  for (var i = 0; i < _ctrl.stops.length; i++)
+                    Marker(
+                      point: _ctrl.stops[i].latlng,
+                      width: 50,
+                      height: 64,
+                      alignment: Alignment.bottomCenter,
+                      child: GestureDetector(
+                        onTap: () =>
+                            _showStopDetail(context, _ctrl.stops[i], _ctrl, r),
+                        child: _StopPin(
+                          stop: _ctrl.stops[i],
+                          index: i + 1,
+                          controller: _ctrl,
+                        ),
+                      ),
+                    ),
+                ],
+              )),
+            ],
           ),
 
           // ── Top bar ─────────────────────────────────────────────────
@@ -59,36 +247,36 @@ class InteractiveMapView extends StatelessWidget {
             top: 0,
             left: 0,
             right: 0,
-            child: _TopBar(responsive: responsive, controller: controller),
+            child: _TopBar(responsive: r, controller: _ctrl),
           ),
 
           // ── Optimization banner ─────────────────────────────────────
-          Obx(() => controller.showOptimizationBanner.value
+          Obx(() => _ctrl.showOptimizationBanner.value
               ? Positioned(
-                  top: responsive.h(110),
-                  left: responsive.w(16),
-                  right: responsive.w(16),
-                  child: _OptimizationBanner(responsive: responsive),
+                  top: r.h(110),
+                  left: r.w(16),
+                  right: r.w(16),
+                  child: _OptimizationBanner(responsive: r),
                 )
               : const SizedBox.shrink()),
 
-          // ── DraggableScrollableSheet for stops ──────────────────────
+          // ── Stops panel ─────────────────────────────────────────────
           DraggableScrollableSheet(
-            initialChildSize: 0.35,
-            minChildSize: 0.15,
+            initialChildSize: 0.33,
+            minChildSize: 0.14,
             maxChildSize: 0.92,
             builder: (_, scrollCtrl) => _StopsPanel(
-              responsive: responsive,
-              controller: controller,
+              responsive: r,
+              controller: _ctrl,
               scrollController: scrollCtrl,
             ),
           ),
 
           // ── Recalculate FAB ─────────────────────────────────────────
           Positioned(
-            bottom: responsive.h(320),
-            right: responsive.w(16),
-            child: _RecalculateFab(responsive: responsive, controller: controller),
+            bottom: r.h(310),
+            right: r.w(16),
+            child: _RecalculateFab(responsive: r, controller: _ctrl),
           ),
         ],
       ),
@@ -96,7 +284,126 @@ class InteractiveMapView extends StatelessWidget {
   }
 }
 
-// ── Top bar ──────────────────────────────────────────────────────────────────
+// ── Driver position marker ────────────────────────────────────────────────────
+
+class _DriverPositionMarker extends StatelessWidget {
+  const _DriverPositionMarker({required this.controller});
+
+  final InteractiveMapController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller.pulseController,
+      builder: (context, child) {
+        final pulse = controller.pulseController.value;
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            // Outer pulse ring
+            Container(
+              width: 52 * (0.7 + pulse * 0.3),
+              height: 52 * (0.7 + pulse * 0.3),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.18 * (1 - pulse)),
+                shape: BoxShape.circle,
+              ),
+            ),
+            // Inner dot
+            Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 3),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.45),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+// ── Stop pin marker (inside flutter_map Marker) ───────────────────────────────
+
+class _StopPin extends StatelessWidget {
+  const _StopPin({
+    required this.stop,
+    required this.index,
+    required this.controller,
+  });
+
+  final MapStop stop;
+  final int index;
+  final InteractiveMapController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = controller.stopColor(stop);
+    final isDone = stop.status == StopStatus.done;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Bubble
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: isDone ? const Color(0xFFE5E7EB) : color,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 2.5),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: isDone ? 0.0 : 0.40),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Center(
+            child: isDone
+                ? const Icon(Icons.check_rounded, color: Colors.white, size: 16)
+                : Text(
+                    '$index',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
+                    ),
+                  ),
+          ),
+        ),
+        // Stem
+        Container(
+          width: 2.5,
+          height: 10,
+          color: isDone ? const Color(0xFFE5E7EB) : color,
+        ),
+        // Tip dot
+        Container(
+          width: 6,
+          height: 6,
+          decoration: BoxDecoration(
+            color: isDone ? const Color(0xFFE5E7EB) : color,
+            shape: BoxShape.circle,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Top bar ───────────────────────────────────────────────────────────────────
 
 class _TopBar extends StatelessWidget {
   const _TopBar({required this.responsive, required this.controller});
@@ -115,7 +422,13 @@ class _TopBar extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: AppColors.white,
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -129,9 +442,12 @@ class _TopBar extends StatelessWidget {
                   height: responsive.w(38),
                   decoration: BoxDecoration(
                     color: AppColors.surfaceMuted,
-                    borderRadius: BorderRadius.circular(responsive.radius(10)),
+                    borderRadius:
+                        BorderRadius.circular(responsive.radius(10)),
                   ),
-                  child: Icon(Icons.arrow_back_rounded, size: responsive.text(20), color: AppColors.textPrimary),
+                  child: Icon(Icons.arrow_back_rounded,
+                      size: responsive.text(20),
+                      color: AppColors.textPrimary),
                 ),
               ),
               SizedBox(width: responsive.w(12)),
@@ -139,36 +455,42 @@ class _TopBar extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Carte interactive du trajet', style: AppTextStyles.h6(responsive)),
+                    Text('Carte interactive du trajet',
+                        style: AppTextStyles.h6(responsive)),
                     Obx(() {
-                      final done = controller.stops.where((s) => s.status == StopStatus.done).length;
+                      final done = controller.stops
+                          .where((s) => s.status == StopStatus.done)
+                          .length;
                       return Text(
                         '$done/${controller.stops.length} arrêts complétés',
-                        style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint),
+                        style: AppTextStyles.caption(responsive)
+                            .copyWith(color: AppColors.textHint),
                       );
                     }),
                   ],
                 ),
               ),
               Obx(() => _StatChip(
-                responsive: responsive,
-                icon: Icons.route_rounded,
-                label: controller.routeDistance.value,
-                color: AppColors.primary,
-              )),
+                    responsive: responsive,
+                    icon: Icons.route_rounded,
+                    label: controller.routeDistance.value,
+                    color: AppColors.primary,
+                  )),
               SizedBox(width: responsive.w(8)),
               Obx(() => _StatChip(
-                responsive: responsive,
-                icon: Icons.access_time_rounded,
-                label: controller.routeEta.value,
-                color: const Color(0xFF3B82F6),
-              )),
+                    responsive: responsive,
+                    icon: Icons.access_time_rounded,
+                    label: controller.routeEta.value,
+                    color: const Color(0xFF3B82F6),
+                  )),
             ],
           ),
           SizedBox(height: responsive.h(8)),
           // Progress bar
           Obx(() {
-            final done = controller.stops.where((s) => s.status == StopStatus.done).length;
+            final done = controller.stops
+                .where((s) => s.status == StopStatus.done)
+                .length;
             final total = controller.stops.length;
             return ClipRRect(
               borderRadius: BorderRadius.circular(9999),
@@ -176,7 +498,8 @@ class _TopBar extends StatelessWidget {
                 value: total == 0 ? 0 : done / total,
                 minHeight: responsive.h(4),
                 backgroundColor: AppColors.border,
-                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                    AppColors.primary),
               ),
             );
           }),
@@ -187,7 +510,12 @@ class _TopBar extends StatelessWidget {
 }
 
 class _StatChip extends StatelessWidget {
-  const _StatChip({required this.responsive, required this.icon, required this.label, required this.color});
+  const _StatChip({
+    required this.responsive,
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
 
   final AppResponsive responsive;
   final IconData icon;
@@ -197,7 +525,10 @@ class _StatChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: responsive.w(8), vertical: responsive.h(4)),
+      padding: EdgeInsets.symmetric(
+        horizontal: responsive.w(8),
+        vertical: responsive.h(4),
+      ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(responsive.radius(8)),
@@ -207,7 +538,14 @@ class _StatChip extends StatelessWidget {
         children: [
           Icon(icon, size: responsive.text(12), color: color),
           SizedBox(width: responsive.w(4)),
-          Text(label, style: AppTextStyles.caption(responsive).copyWith(color: color, fontWeight: FontWeight.w700, fontSize: responsive.text(11))),
+          Text(
+            label,
+            style: AppTextStyles.caption(responsive).copyWith(
+              color: color,
+              fontWeight: FontWeight.w700,
+              fontSize: responsive.text(11),
+            ),
+          ),
         ],
       ),
     );
@@ -224,195 +562,36 @@ class _OptimizationBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: responsive.w(14), vertical: responsive.h(10)),
+      padding: EdgeInsets.symmetric(
+        horizontal: responsive.w(14),
+        vertical: responsive.h(10),
+      ),
       decoration: BoxDecoration(
         color: AppColors.primary,
         borderRadius: BorderRadius.circular(responsive.radius(12)),
-        boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.35), blurRadius: 12, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.35),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          const Icon(Icons.auto_fix_high_rounded, color: Colors.white, size: 18),
+          const Icon(Icons.auto_fix_high_rounded,
+              color: Colors.white, size: 18),
           SizedBox(width: responsive.w(8)),
           Expanded(
             child: Text(
               'Itinéraire recalculé — trajet optimisé avec succès',
-              style: AppTextStyles.caption(responsive).copyWith(color: Colors.white, fontWeight: FontWeight.w600),
+              style: AppTextStyles.caption(responsive).copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ── Map marker ────────────────────────────────────────────────────────────────
-
-class _StopMarker extends StatelessWidget {
-  const _StopMarker({
-    required this.responsive,
-    required this.stop,
-    required this.index,
-    required this.controller,
-  });
-
-  final AppResponsive responsive;
-  final MapStop stop;
-  final int index;
-  final InteractiveMapController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final x = stop.posX * size.width;
-    final y = stop.posY * (size.height * 0.65);
-
-    final color = controller.stopColor(stop);
-    final isDone = stop.status == StopStatus.done;
-    final isApproaching = stop.status == StopStatus.approaching;
-
-    return Positioned(
-      left: x - responsive.w(18),
-      top: y - responsive.w(36),
-      child: GestureDetector(
-        onTap: () => _showStopDetail(context, stop),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Pulse ring for approaching stop
-            if (isApproaching)
-              AnimatedBuilder(
-                animation: controller.pulseController,
-                builder: (_, pulseChild) => Container(
-                  width: responsive.w(36) * (1 + controller.pulseController.value * 0.4),
-                  height: responsive.w(36) * (1 + controller.pulseController.value * 0.4),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.15 * (1 - controller.pulseController.value)),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            // Marker
-            Container(
-              width: responsive.w(36),
-              height: responsive.w(36),
-              decoration: BoxDecoration(
-                color: isDone ? const Color(0xFFE5E7EB) : color,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
-                boxShadow: [BoxShadow(color: color.withValues(alpha: 0.35), blurRadius: 8, offset: const Offset(0, 3))],
-              ),
-              child: Center(
-                child: isDone
-                    ? Icon(Icons.check_rounded, color: Colors.white, size: responsive.text(16))
-                    : Text(
-                        '$index',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: responsive.text(13)),
-                      ),
-              ),
-            ),
-            // Stem
-            Container(width: 2, height: responsive.h(8), color: isDone ? const Color(0xFFE5E7EB) : color),
-            // Pin bottom
-            Container(
-              width: responsive.w(6),
-              height: responsive.w(6),
-              decoration: BoxDecoration(
-                color: isDone ? const Color(0xFFE5E7EB) : color,
-                shape: BoxShape.circle,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showStopDetail(BuildContext context, MapStop stop) {
-    final controller = Get.find<InteractiveMapController>();
-    final responsive = AppResponsive(context);
-    Get.bottomSheet(
-      Container(
-        padding: EdgeInsets.all(responsive.w(20)),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(responsive.radius(20))),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(9999)))),
-            SizedBox(height: responsive.h(16)),
-            Row(
-              children: [
-                Container(
-                  width: responsive.w(40),
-                  height: responsive.w(40),
-                  decoration: BoxDecoration(
-                    color: controller.stopBgColor(stop),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    stop.type == StopType.pickup ? Icons.trip_origin_rounded : Icons.location_on_rounded,
-                    color: controller.stopColor(stop),
-                    size: responsive.text(20),
-                  ),
-                ),
-                SizedBox(width: responsive.w(12)),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(stop.passengerName, style: AppTextStyles.subtitle(responsive).copyWith(fontWeight: FontWeight.w700)),
-                      Text(controller.stopTypeLabel(stop.type), style: AppTextStyles.caption(responsive).copyWith(color: controller.stopColor(stop))),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: responsive.w(8), vertical: responsive.h(4)),
-                  decoration: BoxDecoration(
-                    color: controller.stopStatusColor(stop.status).withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(9999),
-                  ),
-                  child: Text(
-                    controller.stopStatusLabel(stop.status),
-                    style: AppTextStyles.caption(responsive).copyWith(color: controller.stopStatusColor(stop.status), fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: responsive.h(14)),
-            Row(
-              children: [
-                Icon(Icons.pin_drop_rounded, size: responsive.text(14), color: AppColors.textHint),
-                SizedBox(width: responsive.w(6)),
-                Expanded(child: Text(stop.address, style: AppTextStyles.caption(responsive))),
-                Text(stop.eta, style: AppTextStyles.caption(responsive).copyWith(color: AppColors.primary, fontWeight: FontWeight.w700)),
-              ],
-            ),
-            if (stop.status != StopStatus.done) ...[
-              SizedBox(height: responsive.h(16)),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Get.back();
-                    controller.markStopDone(stop.id);
-                  },
-                  icon: const Icon(Icons.check_circle_rounded, size: 18),
-                  label: Text('Marquer comme terminé'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(vertical: responsive.h(14)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(responsive.radius(12))),
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
       ),
     );
   }
@@ -436,8 +615,15 @@ class _StopsPanel extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(responsive.radius(24))),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.10), blurRadius: 20, offset: const Offset(0, -4))],
+        borderRadius: BorderRadius.vertical(
+            top: Radius.circular(responsive.radius(24))),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.10),
+            blurRadius: 20,
+            offset: const Offset(0, -4),
+          ),
+        ],
       ),
       child: CustomScrollView(
         controller: scrollController,
@@ -447,24 +633,42 @@ class _StopsPanel extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 SizedBox(height: responsive.h(10)),
-                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(9999)))),
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.border,
+                      borderRadius: BorderRadius.circular(9999),
+                    ),
+                  ),
+                ),
                 SizedBox(height: responsive.h(16)),
-                // Header
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: responsive.w(16)),
+                  padding:
+                      EdgeInsets.symmetric(horizontal: responsive.w(16)),
                   child: Row(
                     children: [
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Arrêts du trajet', style: AppTextStyles.h6(responsive)),
+                            Text('Arrêts du trajet',
+                                style: AppTextStyles.h6(responsive)),
                             Obx(() {
-                              final approaching = controller.stops.where((s) => s.status == StopStatus.approaching).length;
+                              final approaching = controller.stops
+                                  .where((s) =>
+                                      s.status == StopStatus.approaching)
+                                  .length;
                               return Text(
-                                approaching > 0 ? '$approaching arrêt(s) en approche' : 'Glissez vers le haut pour voir tous les arrêts',
-                                style: AppTextStyles.caption(responsive).copyWith(
-                                  color: approaching > 0 ? const Color(0xFF3B82F6) : AppColors.textHint,
+                                approaching > 0
+                                    ? '$approaching arrêt(s) en approche'
+                                    : 'Glissez vers le haut pour voir tous les arrêts',
+                                style: AppTextStyles.caption(responsive)
+                                    .copyWith(
+                                  color: approaching > 0
+                                      ? const Color(0xFF3B82F6)
+                                      : AppColors.textHint,
                                 ),
                               );
                             }),
@@ -472,11 +676,11 @@ class _StopsPanel extends StatelessWidget {
                         ),
                       ),
                       Obx(() => _StatChip(
-                        responsive: responsive,
-                        icon: Icons.local_gas_station_rounded,
-                        label: controller.routeFuel.value,
-                        color: const Color(0xFFF59E0B),
-                      )),
+                            responsive: responsive,
+                            icon: Icons.local_gas_station_rounded,
+                            label: controller.routeFuel.value,
+                            color: const Color(0xFFF59E0B),
+                          )),
                     ],
                   ),
                 ),
@@ -484,19 +688,18 @@ class _StopsPanel extends StatelessWidget {
               ],
             ),
           ),
-          // Stop list
           Obx(() => SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (_, i) => _StopListTile(
-                responsive: responsive,
-                stop: controller.stops[i],
-                index: i + 1,
-                controller: controller,
-                isLast: i == controller.stops.length - 1,
-              ),
-              childCount: controller.stops.length,
-            ),
-          )),
+                delegate: SliverChildBuilderDelegate(
+                  (_, i) => _StopListTile(
+                    responsive: responsive,
+                    stop: controller.stops[i],
+                    index: i + 1,
+                    controller: controller,
+                    isLast: i == controller.stops.length - 1,
+                  ),
+                  childCount: controller.stops.length,
+                ),
+              )),
           SliverToBoxAdapter(child: SizedBox(height: responsive.h(32))),
         ],
       ),
@@ -525,21 +728,27 @@ class _StopListTile extends StatelessWidget {
     final isDone = stop.status == StopStatus.done;
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(responsive.w(16), 0, responsive.w(16), responsive.h(12)),
+      padding: EdgeInsets.fromLTRB(
+        responsive.w(16),
+        0,
+        responsive.w(16),
+        responsive.h(12),
+      ),
       child: GestureDetector(
-        onTap: () {
-          // Simulate tapping shows the bottom-sheet detail
-          final markerWidget = _StopMarker(responsive: responsive, stop: stop, index: index, controller: controller);
-          markerWidget._showStopDetail(context, stop);
-        },
+        onTap: () => _showStopDetail(context, stop, controller, responsive),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           padding: EdgeInsets.all(responsive.w(14)),
           decoration: BoxDecoration(
-            color: isDone ? AppColors.surfaceMuted : color.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(responsive.radius(14)),
+            color: isDone
+                ? AppColors.surfaceMuted
+                : color.withValues(alpha: 0.06),
+            borderRadius:
+                BorderRadius.circular(responsive.radius(14)),
             border: Border.all(
-              color: isDone ? AppColors.border : color.withValues(alpha: 0.35),
+              color: isDone
+                  ? AppColors.border
+                  : color.withValues(alpha: 0.35),
             ),
           ),
           child: Row(
@@ -554,15 +763,28 @@ class _StopListTile extends StatelessWidget {
                 ),
                 child: Center(
                   child: isDone
-                      ? Icon(Icons.check_rounded, color: Colors.white, size: responsive.text(16))
-                      : Text('$index', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: responsive.text(13))),
+                      ? Icon(Icons.check_rounded,
+                          color: Colors.white,
+                          size: responsive.text(16))
+                      : Text(
+                          '$index',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: responsive.text(13),
+                          ),
+                        ),
                 ),
               ),
-              // Vertical connector
+              // Connector
               if (!isLast)
                 Padding(
                   padding: EdgeInsets.only(left: responsive.w(16)),
-                  child: Container(width: 2, height: responsive.h(40), color: AppColors.border),
+                  child: Container(
+                    width: 2,
+                    height: responsive.h(40),
+                    color: AppColors.border,
+                  ),
                 ),
               SizedBox(width: responsive.w(12)),
               // Info
@@ -573,18 +795,34 @@ class _StopListTile extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: Text(stop.passengerName, style: AppTextStyles.subtitle(responsive).copyWith(fontWeight: FontWeight.w700, color: isDone ? AppColors.textGhost : AppColors.textPrimary)),
+                          child: Text(
+                            stop.passengerName,
+                            style: AppTextStyles.subtitle(responsive)
+                                .copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: isDone
+                                  ? AppColors.textGhost
+                                  : AppColors.textPrimary,
+                            ),
+                          ),
                         ),
                         Container(
-                          padding: EdgeInsets.symmetric(horizontal: responsive.w(8), vertical: responsive.h(3)),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: responsive.w(8),
+                            vertical: responsive.h(3),
+                          ),
                           decoration: BoxDecoration(
-                            color: controller.stopStatusColor(stop.status).withValues(alpha: 0.12),
+                            color: controller
+                                .stopStatusColor(stop.status)
+                                .withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(9999),
                           ),
                           child: Text(
                             controller.stopStatusLabel(stop.status),
-                            style: AppTextStyles.caption(responsive).copyWith(
-                              color: controller.stopStatusColor(stop.status),
+                            style: AppTextStyles.caption(responsive)
+                                .copyWith(
+                              color: controller
+                                  .stopStatusColor(stop.status),
                               fontWeight: FontWeight.w600,
                               fontSize: responsive.text(10),
                             ),
@@ -596,7 +834,9 @@ class _StopListTile extends StatelessWidget {
                     Row(
                       children: [
                         Icon(
-                          stop.type == StopType.pickup ? Icons.trip_origin_rounded : Icons.location_on_rounded,
+                          stop.type == StopType.pickup
+                              ? Icons.trip_origin_rounded
+                              : Icons.location_on_rounded,
                           size: responsive.text(12),
                           color: isDone ? AppColors.textGhost : color,
                         ),
@@ -604,7 +844,12 @@ class _StopListTile extends StatelessWidget {
                         Expanded(
                           child: Text(
                             stop.address,
-                            style: AppTextStyles.caption(responsive).copyWith(color: isDone ? AppColors.textGhost : AppColors.textHint),
+                            style: AppTextStyles.caption(responsive)
+                                .copyWith(
+                              color: isDone
+                                  ? AppColors.textGhost
+                                  : AppColors.textHint,
+                            ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -612,16 +857,25 @@ class _StopListTile extends StatelessWidget {
                           SizedBox(width: responsive.w(8)),
                           Text(
                             stop.eta,
-                            style: AppTextStyles.caption(responsive).copyWith(color: color, fontWeight: FontWeight.w700),
+                            style: AppTextStyles.caption(responsive)
+                                .copyWith(
+                              color: color,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ],
                       ],
                     ),
                     SizedBox(height: responsive.h(4)),
                     Container(
-                      padding: EdgeInsets.symmetric(horizontal: responsive.w(6), vertical: responsive.h(2)),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: responsive.w(6),
+                        vertical: responsive.h(2),
+                      ),
                       decoration: BoxDecoration(
-                        color: isDone ? AppColors.border : color.withValues(alpha: 0.12),
+                        color: isDone
+                            ? AppColors.border
+                            : color.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(9999),
                       ),
                       child: Text(
@@ -637,7 +891,9 @@ class _StopListTile extends StatelessWidget {
                 ),
               ),
               if (!isDone)
-                Icon(Icons.chevron_right_rounded, color: AppColors.textGhost, size: responsive.text(20)),
+                Icon(Icons.chevron_right_rounded,
+                    color: AppColors.textGhost,
+                    size: responsive.text(20)),
             ],
           ),
         ),
@@ -649,7 +905,8 @@ class _StopListTile extends StatelessWidget {
 // ── Recalculate FAB ───────────────────────────────────────────────────────────
 
 class _RecalculateFab extends StatelessWidget {
-  const _RecalculateFab({required this.responsive, required this.controller});
+  const _RecalculateFab(
+      {required this.responsive, required this.controller});
 
   final AppResponsive responsive;
   final InteractiveMapController controller;
@@ -657,183 +914,38 @@ class _RecalculateFab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Obx(() => GestureDetector(
-      onTap: controller.recalculateRoute,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        width: responsive.w(52),
-        height: responsive.w(52),
-        decoration: BoxDecoration(
-          color: controller.isRecalculating.value ? AppColors.textGhost : AppColors.primary,
-          shape: BoxShape.circle,
-          boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.40), blurRadius: 12, offset: const Offset(0, 4))],
-        ),
-        child: controller.isRecalculating.value
-            ? const Center(child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white)))
-            : Icon(Icons.my_location_rounded, color: Colors.white, size: responsive.text(22)),
-      ),
-    ));
+          onTap: controller.recalculateRoute,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            width: responsive.w(52),
+            height: responsive.w(52),
+            decoration: BoxDecoration(
+              color: controller.isRecalculating.value
+                  ? AppColors.textGhost
+                  : AppColors.primary,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.40),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: controller.isRecalculating.value
+                ? const Center(
+                    child: SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Colors.white,
+                      ),
+                    ),
+                  )
+                : Icon(Icons.my_location_rounded,
+                    color: Colors.white, size: responsive.text(22)),
+          ),
+        ));
   }
-}
-
-// ── Map painter ───────────────────────────────────────────────────────────────
-
-class _MapPainter extends CustomPainter {
-  const _MapPainter({required this.pulse});
-
-  final double pulse;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final h = size.height * 0.65;
-    final w = size.width;
-
-    // Background
-    canvas.drawRect(Rect.fromLTWH(0, 0, w, h), Paint()..color = const Color(0xFFE8EFF8));
-
-    // Water body (ocean/lagoon)
-    final lagoonPath = Path()
-      ..moveTo(0, h * 0.78)
-      ..quadraticBezierTo(w * 0.3, h * 0.72, w * 0.55, h * 0.82)
-      ..quadraticBezierTo(w * 0.75, h * 0.90, w, h * 0.80)
-      ..lineTo(w, h)
-      ..lineTo(0, h)
-      ..close();
-    canvas.drawPath(lagoonPath, Paint()..color = const Color(0xFFC5D8F0));
-
-    // Green zones (parks/vegetation)
-    _drawBlock(canvas, Rect.fromLTWH(w * 0.05, h * 0.05, w * 0.12, h * 0.14), const Color(0xFFB8D4A8));
-    _drawBlock(canvas, Rect.fromLTWH(w * 0.70, h * 0.10, w * 0.18, h * 0.12), const Color(0xFFB8D4A8));
-    _drawBlock(canvas, Rect.fromLTWH(w * 0.40, h * 0.55, w * 0.10, h * 0.10), const Color(0xFFB8D4A8));
-
-    // City blocks (light gray)
-    final blockRects = [
-      Rect.fromLTWH(w * 0.05, h * 0.22, w * 0.18, h * 0.22),
-      Rect.fromLTWH(w * 0.27, h * 0.10, w * 0.14, h * 0.18),
-      Rect.fromLTWH(w * 0.45, h * 0.10, w * 0.20, h * 0.16),
-      Rect.fromLTWH(w * 0.70, h * 0.26, w * 0.22, h * 0.20),
-      Rect.fromLTWH(w * 0.55, h * 0.42, w * 0.16, h * 0.18),
-      Rect.fromLTWH(w * 0.10, h * 0.50, w * 0.26, h * 0.20),
-    ];
-    for (final r in blockRects) {
-      _drawBlock(canvas, r, const Color(0xFFD8E2EC));
-    }
-
-    // Main roads (wider, darker)
-    final roadPaint = Paint()
-      ..color = const Color(0xFFF7F0E0)
-      ..strokeWidth = 8
-      ..strokeCap = StrokeCap.round;
-    final roads = [
-      [Offset(0, h * 0.35), Offset(w, h * 0.35)],
-      [Offset(w * 0.35, 0), Offset(w * 0.35, h)],
-      [Offset(0, h * 0.60), Offset(w, h * 0.60)],
-      [Offset(w * 0.65, 0), Offset(w * 0.65, h * 0.70)],
-      [Offset(0, h * 0.20), Offset(w * 0.60, h * 0.45)],
-    ];
-    for (final r in roads) {
-      canvas.drawLine(r[0], r[1], roadPaint);
-    }
-
-    // Secondary roads (thinner)
-    final secPaint = Paint()
-      ..color = const Color(0xFFEEE8D8)
-      ..strokeWidth = 4
-      ..strokeCap = StrokeCap.round;
-    final secRoads = [
-      [Offset(w * 0.15, 0), Offset(w * 0.15, h * 0.55)],
-      [Offset(w * 0.55, h * 0.35), Offset(w * 0.55, h * 0.75)],
-      [Offset(0, h * 0.48), Offset(w, h * 0.48)],
-      [Offset(w * 0.80, 0), Offset(w * 0.80, h)],
-    ];
-    for (final r in secRoads) {
-      canvas.drawLine(r[0], r[1], secPaint);
-    }
-
-    // Road center dashes
-    _drawDashedLine(canvas, Offset(0, h * 0.35), Offset(w, h * 0.35), const Color(0xFFCCC6A8), 3);
-    _drawDashedLine(canvas, Offset(w * 0.35, 0), Offset(w * 0.35, h), const Color(0xFFCCC6A8), 3);
-  }
-
-  void _drawBlock(Canvas canvas, Rect rect, Color color) {
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(rect, const Radius.circular(4)),
-      Paint()..color = color,
-    );
-  }
-
-  void _drawDashedLine(Canvas canvas, Offset start, Offset end, Color color, double width) {
-    final paint = Paint()..color = color..strokeWidth = width..strokeCap = StrokeCap.round;
-    const dashLen = 12.0;
-    const gapLen = 10.0;
-    final dx = end.dx - start.dx;
-    final dy = end.dy - start.dy;
-    final len = math.sqrt(dx * dx + dy * dy);
-    final ux = dx / len;
-    final uy = dy / len;
-    double dist = 0;
-    while (dist < len) {
-      final dashEnd = math.min(dist + dashLen, len);
-      canvas.drawLine(
-        Offset(start.dx + ux * dist, start.dy + uy * dist),
-        Offset(start.dx + ux * dashEnd, start.dy + uy * dashEnd),
-        paint,
-      );
-      dist += dashLen + gapLen;
-    }
-  }
-
-  @override
-  bool shouldRepaint(_MapPainter old) => old.pulse != pulse;
-}
-
-// ── Route polyline painter ─────────────────────────────────────────────────────
-
-class _RoutePainter extends CustomPainter {
-  const _RoutePainter({required this.stops});
-
-  final List<MapStop> stops;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (stops.length < 2) return;
-    final h = size.height * 0.65;
-    final w = size.width;
-
-    final path = Path();
-    final points = stops.map((s) => Offset(s.posX * w, s.posY * h)).toList();
-
-    path.moveTo(points[0].dx, points[0].dy);
-    for (var i = 1; i < points.length; i++) {
-      final cp1 = Offset((points[i - 1].dx + points[i].dx) / 2, points[i - 1].dy);
-      final cp2 = Offset((points[i - 1].dx + points[i].dx) / 2, points[i].dy);
-      path.cubicTo(cp1.dx, cp1.dy, cp2.dx, cp2.dy, points[i].dx, points[i].dy);
-    }
-
-    // Shadow
-    canvas.drawPath(path, Paint()
-      ..color = Colors.black.withValues(alpha: 0.15)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 7
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4));
-
-    // Route line
-    canvas.drawPath(path, Paint()
-      ..color = AppColors.primary
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 5
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round);
-
-    // Arrow direction dots
-    for (var i = 1; i < points.length; i++) {
-      final mid = Offset((points[i - 1].dx + points[i].dx) / 2, (points[i - 1].dy + points[i].dy) / 2);
-      canvas.drawCircle(mid, 3, Paint()..color = Colors.white);
-      canvas.drawCircle(mid, 2, Paint()..color = AppColors.primary);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_RoutePainter old) => old.stops != stops;
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
@@ -29,17 +30,21 @@ class WaitingApprovalController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    final args = Get.arguments;
-    if (args is Map<String, dynamic>) {
-      final r = args['ride'];
-      if (r is SearchRide) ride.value = r;
-      final seats = args['seats'];
-      if (seats is int) reservedSeats.value = seats;
-      final idx = args['paymentIndex'];
-      if (idx is int) paymentIndex.value = idx;
-    }
+    // Args captured synchronously; .value= deferred to post-frame to avoid
+    // setState-during-build crash when controller is lazily created by GetX.
+    final dynamic savedArgs = Get.arguments;
     _startCountdown();
     _simulateAcceptance();
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (savedArgs is Map<String, dynamic>) {
+        final r = savedArgs['ride'];
+        if (r is SearchRide) ride.value = r;
+        final seats = savedArgs['seats'];
+        if (seats is int) reservedSeats.value = seats;
+        final idx = savedArgs['paymentIndex'];
+        if (idx is int) paymentIndex.value = idx;
+      }
+    });
   }
 
   void _startCountdown() {
