@@ -5,6 +5,6 @@ import '../controllers/trajet_controller.dart';
 class TrajetBinding extends Bindings {
   @override
   void dependencies() {
-    Get.lazyPut<TrajetController>(() => TrajetController());
+    Get.lazyPut<TrajetController>(() => TrajetController(), fenix: true);
   }
 }

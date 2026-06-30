@@ -101,7 +101,7 @@ class _Header extends StatelessWidget {
             ),
           ),
           Obx(() => controller.pendingCount > 0
-              ? _NotifBadge(r: r, count: controller.pendingCount, onTap: () {})
+              ? _NotifBadge(r: r, count: controller.pendingCount, onTap: controller.onNotifications)
               : AppCircularButton(
                   responsive: r,
                   icon: Icons.notifications_none_rounded,

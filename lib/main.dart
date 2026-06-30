@@ -25,6 +25,7 @@ class MyApp extends StatelessWidget {
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'MINIZON',
+      smartManagement: SmartManagement.keepFactory,
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),

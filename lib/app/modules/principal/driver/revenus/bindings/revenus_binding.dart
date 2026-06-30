@@ -5,6 +5,6 @@ import '../controllers/revenus_controller.dart';
 class RevenusBinding extends Bindings {
   @override
   void dependencies() {
-    Get.lazyPut<RevenusController>(() => RevenusController());
+    Get.lazyPut<RevenusController>(() => RevenusController(), fenix: true);
   }
 }

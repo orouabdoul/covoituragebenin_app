@@ -24,6 +24,14 @@ class HomeController extends GetxController {
     driverName: 'Brice H.',
     status: UpcomingTripStatus.inProgress,
     etaMinutes: 210,
+    driverRating: 4.9,
+    driverVehicle: 'Toyota Corolla',
+    driverInitials: 'BH',
+    driverLevel: 'Or',
+    driverTrips: 289,
+    driverLevelProgress: 0.72,
+    driverBadges: ['Ponctuel', '5 étoiles', 'Expert'],
+    tripProgress: 0.35,
   );
 
   final List<HomeMetric> heroMetrics = const [
@@ -249,6 +257,14 @@ class HomeUpcomingTrip {
     required this.driverName,
     required this.status,
     this.etaMinutes,
+    this.driverRating = 4.8,
+    this.driverVehicle = '',
+    this.driverInitials = '',
+    this.driverLevel = 'Bronze',
+    this.driverTrips = 0,
+    this.driverLevelProgress = 0.0,
+    this.driverBadges = const [],
+    this.tripProgress = 0.0,
   });
 
   final String origin;
@@ -258,6 +274,14 @@ class HomeUpcomingTrip {
   final String driverName;
   final UpcomingTripStatus status;
   final int? etaMinutes;
+  final double driverRating;
+  final String driverVehicle;
+  final String driverInitials;
+  final String driverLevel;
+  final int driverTrips;
+  final double driverLevelProgress;
+  final List<String> driverBadges;
+  final double tripProgress;
 }
 
 class HomeQuickAction {

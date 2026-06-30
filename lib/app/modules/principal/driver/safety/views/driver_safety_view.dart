@@ -43,7 +43,7 @@ class DriverSafetyView extends StatelessWidget {
                       SizedBox(height: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
                       _ActionsCard(r: r, controller: controller),
                       SizedBox(height: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-                      _EmergencyNumbersCard(r: r),
+                      _EmergencyNumbersCard(r: r, controller: controller),
                       SizedBox(height: r.adaptive(phone: 32, smallPhone: 28, tablet: 36, desktop: 40)),
                     ],
                   ),
@@ -224,32 +224,134 @@ class _EmergencyContactsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Contacts d'urgence",
-              style: AppTextStyles.homeCardTitle(r).copyWith(color: AppColors.textPrimary)),
-          SizedBox(height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-          GestureDetector(
-            onTap: controller.onAddEmergencyContact,
-            child: Container(
-              padding: EdgeInsets.all(r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(r.adaptive(phone: 10, smallPhone: 9, tablet: 12, desktop: 14)),
-                border: Border.all(color: AppColors.border, style: BorderStyle.solid),
+          Row(
+            children: [
+              Expanded(
+                child: Text("Contacts d'urgence",
+                    style: AppTextStyles.homeCardTitle(r).copyWith(color: AppColors.textPrimary)),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.person_add_rounded,
-                      size: r.adaptive(phone: 18, smallPhone: 16, tablet: 20, desktop: 22),
-                      color: AppColors.primary),
-                  SizedBox(width: r.adaptive(phone: 8, smallPhone: 6, tablet: 10, desktop: 12)),
-                  Text('Ajouter un contact de confiance',
-                      style: AppTextStyles.bodySmall(r).copyWith(
-                          color: AppColors.primary, fontWeight: FontWeight.w600)),
-                ],
-              ),
-            ),
+              Obx(() => Text(
+                    '${controller.emergencyContacts.length}/3',
+                    style: AppTextStyles.labelSmall(r).copyWith(color: AppColors.textMuted),
+                  )),
+            ],
           ),
+          SizedBox(height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+
+          // Contact list
+          Obx(() {
+            if (controller.emergencyContacts.isEmpty) {
+              return Padding(
+                padding: EdgeInsets.only(bottom: r.h(12)),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline_rounded,
+                        size: 14, color: AppColors.textGhost),
+                    SizedBox(width: r.w(6)),
+                    Expanded(
+                      child: Text(
+                        'Aucun contact ajouté. En cas d\'alerte SOS, personne ne sera notifié.',
+                        style: AppTextStyles.labelSmall(r)
+                            .copyWith(color: AppColors.textGhost),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+            return Column(
+              children: controller.emergencyContacts.map((c) {
+                return Padding(
+                  padding: EdgeInsets.only(bottom: r.h(8)),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: r.w(12),
+                      vertical: r.h(10),
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(r.radius(10)),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: r.w(36),
+                          height: r.w(36),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFE6F7EF),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: Text(
+                              c.name[0].toUpperCase(),
+                              style: TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w800,
+                                fontSize: r.text(16),
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: r.w(10)),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(c.name,
+                                  style: AppTextStyles.bodySmall(r).copyWith(
+                                      color: AppColors.textPrimary,
+                                      fontWeight: FontWeight.w600)),
+                              Text('${c.relation} · ${c.phone}',
+                                  style: AppTextStyles.labelSmall(r)
+                                      .copyWith(color: AppColors.textMuted)),
+                            ],
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => controller.onRemoveContact(c),
+                          child: Icon(Icons.close_rounded,
+                              size: r.text(18), color: AppColors.textGhost),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            );
+          }),
+
+          // Add button (max 3 contacts)
+          Obx(() => controller.emergencyContacts.length < 3
+              ? GestureDetector(
+                  onTap: controller.onAddEmergencyContact,
+                  child: Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(
+                        r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(
+                          r.adaptive(phone: 10, smallPhone: 9, tablet: 12, desktop: 14)),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.person_add_rounded,
+                            size: r.adaptive(
+                                phone: 18, smallPhone: 16, tablet: 20, desktop: 22),
+                            color: AppColors.primary),
+                        SizedBox(width: r.w(8)),
+                        Text('Ajouter un contact de confiance',
+                            style: AppTextStyles.bodySmall(r).copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                )
+              : const SizedBox.shrink()),
         ],
       ),
     );
@@ -326,8 +428,9 @@ class _ActionRow extends StatelessWidget {
 }
 
 class _EmergencyNumbersCard extends StatelessWidget {
-  const _EmergencyNumbersCard({required this.r});
+  const _EmergencyNumbersCard({required this.r, required this.controller});
   final AppResponsive r;
+  final DriverSafetyController controller;
 
   @override
   Widget build(BuildContext context) {
@@ -346,10 +449,10 @@ class _EmergencyNumbersCard extends StatelessWidget {
           SizedBox(height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: const [
-              _EmergNum(label: 'Police', number: '117'),
-              _EmergNum(label: 'SAMU', number: '122'),
-              _EmergNum(label: 'Pompiers', number: '118'),
+            children: [
+              _EmergNum(label: 'Police', number: '117', controller: controller),
+              _EmergNum(label: 'SAMU', number: '122', controller: controller),
+              _EmergNum(label: 'Pompiers', number: '118', controller: controller),
             ],
           ),
         ],
@@ -359,17 +462,47 @@ class _EmergencyNumbersCard extends StatelessWidget {
 }
 
 class _EmergNum extends StatelessWidget {
-  const _EmergNum({required this.label, required this.number});
+  const _EmergNum({required this.label, required this.number, required this.controller});
   final String label;
   final String number;
+  final DriverSafetyController controller;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(number, style: const TextStyle(color: Color(0xFFDC2626), fontWeight: FontWeight.w900, fontSize: 22)),
-        Text(label, style: const TextStyle(color: Color(0xFF9B1C1C), fontSize: 12)),
-      ],
+    return GestureDetector(
+      onTap: () => controller.onCallEmergencyNumber(number, label),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF1F2),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFEF4444).withOpacity(0.25)),
+        ),
+        child: Column(
+          children: [
+            Text(
+              number,
+              style: const TextStyle(
+                color: Color(0xFFDC2626),
+                fontWeight: FontWeight.w900,
+                fontSize: 22,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(label,
+                style: const TextStyle(color: Color(0xFF9B1C1C), fontSize: 12)),
+            const SizedBox(height: 4),
+            const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.copy_rounded, size: 11, color: Color(0xFFEF4444)),
+                SizedBox(width: 3),
+                Text('Copier', style: TextStyle(fontSize: 10, color: Color(0xFFEF4444))),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

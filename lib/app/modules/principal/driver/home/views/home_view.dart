@@ -9,8 +9,13 @@ import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 
 import '../controllers/home_controller.dart';
 
-class DriverHomeView extends GetView<DriverHomeController> {
+class DriverHomeView extends StatelessWidget {
   const DriverHomeView({super.key});
+
+  DriverHomeController get controller =>
+      Get.isRegistered<DriverHomeController>()
+          ? Get.find<DriverHomeController>()
+          : Get.put(DriverHomeController());
 
   @override
   Widget build(BuildContext context) {

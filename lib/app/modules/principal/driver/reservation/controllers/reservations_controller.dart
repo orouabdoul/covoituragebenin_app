@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
@@ -252,11 +253,158 @@ class ReservationsController extends GetxController {
   }
 
   void onViewPassenger(LiveReservationRequest r) {
-    UIHelper().showSnackBar('MINIZON', 'Profil de ${r.passengerName} bientôt disponible.', 1);
+    Get.bottomSheet(
+      Container(
+        constraints: BoxConstraints(maxHeight: Get.height * 0.65),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(
+              child: Container(width: 40, height: 4,
+                  decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(9999))),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              width: 72, height: 72,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(r.passengerInitial,
+                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: AppColors.primary)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(r.passengerName,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                if (r.isVerified) ...[
+                  const SizedBox(width: 6),
+                  const Icon(Icons.verified_rounded, color: AppColors.primary, size: 18),
+                ],
+              ],
+            ),
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.star_rounded, color: Color(0xFFF4B400), size: 16),
+                const SizedBox(width: 4),
+                Text('${r.rating}  ·  ${r.tripsCount} trajets',
+                    style: const TextStyle(fontSize: 13, color: AppColors.textMuted)),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Column(
+                children: [
+                  _PassengerInfoRow(label: 'Trajet', value: r.routeLabel),
+                  const SizedBox(height: 8),
+                  _PassengerInfoRow(label: 'Départ', value: r.pickupPoint),
+                  const SizedBox(height: 8),
+                  _PassengerInfoRow(label: 'Arrivée', value: r.dropoffPoint),
+                  const SizedBox(height: 8),
+                  _PassengerInfoRow(label: 'Places', value: r.seatsLabel),
+                  const SizedBox(height: 8),
+                  _PassengerInfoRow(label: 'Montant', value: r.amountLabel),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            GestureDetector(
+              onTap: () { Get.back(); onCallPassenger(r); },
+              child: Container(
+                width: double.infinity, height: 50,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.call_rounded, color: Colors.white, size: 18),
+                    SizedBox(width: 8),
+                    Text('Appeler le passager',
+                        style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white, fontSize: 15)),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
   }
 
   void onCallPassenger(LiveReservationRequest r) {
-    UIHelper().showSnackBar('MINIZON', 'Appel vers ${r.passengerName}…', 1);
+    const phone = '+229 97 XX XX XX';
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(children: [
+          Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(r.passengerInitial,
+                  style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.primary)),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Text(r.passengerName,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700))),
+        ]),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE6F7EF),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text(phone,
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900,
+                      color: AppColors.primary, letterSpacing: 1)),
+            ),
+            const SizedBox(height: 8),
+            const Text('Numéro masqué pour votre sécurité',
+                style: TextStyle(fontSize: 11, color: AppColors.textGhost)),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: Get.back, child: const Text('Fermer')),
+          TextButton(
+            onPressed: () {
+              Clipboard.setData(const ClipboardData(text: phone));
+              Get.back();
+              UIHelper().showSnackBar('MINIZON', 'Numéro copié.', 0);
+            },
+            child: const Text('Copier',
+                style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
   }
 
   void onNotifications() => Get.toNamed(AppRoutes.driverNotifications);
@@ -269,5 +417,26 @@ class ReservationsController extends GetxController {
       r.cancelTimer();
     }
     super.onClose();
+  }
+}
+
+class _PassengerInfoRow extends StatelessWidget {
+  const _PassengerInfoRow({required this.label, required this.value});
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 13, color: AppColors.textMuted)),
+        Flexible(
+          child: Text(value,
+              textAlign: TextAlign.right,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+        ),
+      ],
+    );
   }
 }

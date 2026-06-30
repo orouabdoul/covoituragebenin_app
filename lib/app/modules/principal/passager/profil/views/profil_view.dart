@@ -8,8 +8,13 @@ import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 
 import '../controllers/profil_controller.dart';
 
-class ProfilView extends GetView<ProfilController> {
+class ProfilView extends StatelessWidget {
 	const ProfilView({super.key});
+
+	ProfilController get controller =>
+			Get.isRegistered<ProfilController>()
+					? Get.find<ProfilController>()
+					: Get.put(ProfilController());
 
 	@override
 	Widget build(BuildContext context) {

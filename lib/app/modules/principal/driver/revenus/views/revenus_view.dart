@@ -1,11 +1,13 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
+import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 
 import '../controllers/revenus_controller.dart';
@@ -13,10 +15,15 @@ import '../controllers/revenus_controller.dart';
 class RevenusView extends StatelessWidget {
 	const RevenusView({super.key});
 
+	RevenusController get _controller =>
+			Get.isRegistered<RevenusController>()
+					? Get.find<RevenusController>()
+					: Get.put(RevenusController());
+
 	@override
 	Widget build(BuildContext context) {
 		final responsive = AppResponsive(context);
-		final controller = RevenusController();
+		final controller = _controller;
 
 		return Scaffold(
 			backgroundColor: AppColors.surface,
@@ -32,7 +39,7 @@ class RevenusView extends StatelessWidget {
 								responsive.adaptive(phone: 32, smallPhone: 28, tablet: 36, desktop: 40),
 							),
 							children: [
-								_TopHeader(responsive: responsive),
+								_TopHeader(responsive: responsive, controller: controller),
 								SizedBox(height: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 18, desktop: 20)),
 								_HeroBalanceCard(
 									responsive: responsive,
@@ -63,15 +70,74 @@ class RevenusView extends StatelessWidget {
 									title: AppStrings.revenuesMethodsTitle,
 								),
 								SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
-								for (var index = 0; index < controller.methods.length; index++) ...[
-									_MethodCard(
-										responsive: responsive,
-										method: controller.methods[index],
-										onTap: () => controller.onMethodTap(controller.methods[index]),
-									),
-									if (index != controller.methods.length - 1)
-										SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
-								],
+								Obx(() {
+									final methods = List<RevenueMethod>.from(controller.methods);
+									final items = <Widget>[];
+									for (var i = 0; i < methods.length; i++) {
+										final method = methods[i];
+										items.add(Dismissible(
+											key: ValueKey('${method.title}_${method.subtitle}'),
+											direction: DismissDirection.horizontal,
+											background: Container(
+												alignment: Alignment.centerLeft,
+												padding: const EdgeInsets.only(left: 20),
+												decoration: BoxDecoration(
+													color: AppColors.primary,
+													borderRadius: BorderRadius.circular(responsive.radius(16)),
+												),
+												child: const Icon(Icons.edit_outlined, color: Colors.white, size: 22),
+											),
+											secondaryBackground: Container(
+												alignment: Alignment.centerRight,
+												padding: const EdgeInsets.only(right: 20),
+												decoration: BoxDecoration(
+													color: Color(0xFFE53935),
+													borderRadius: BorderRadius.circular(responsive.radius(16)),
+												),
+												child: const Icon(Icons.delete_outline_rounded, color: Colors.white, size: 22),
+											),
+											confirmDismiss: (direction) async {
+												if (direction == DismissDirection.startToEnd) {
+													controller.editMethod(method);
+													return false;
+												}
+												return await Get.dialog<bool>(
+													AlertDialog(
+														shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+														title: const Text('Supprimer la méthode',
+																style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+														content: Text('Supprimer "${method.title}" ?\nCette action est irréversible.'),
+														actions: [
+															TextButton(
+																onPressed: () => Get.back(result: false),
+																child: const Text('Annuler',
+																		style: TextStyle(color: AppColors.textMuted)),
+															),
+															TextButton(
+																onPressed: () => Get.back(result: true),
+																child: const Text('Supprimer',
+																		style: TextStyle(color: Color(0xFFE53935), fontWeight: FontWeight.w700)),
+															),
+														],
+													),
+												) ?? false;
+											},
+											onDismissed: (_) {
+												controller.methods.remove(method);
+												UIHelper().showSnackBar(AppStrings.appName, '${method.title} supprimé.', 0);
+											},
+											child: _MethodCard(
+												responsive: responsive,
+												method: method,
+												onTap: () => controller.onMethodTap(method),
+											),
+										));
+										if (i < methods.length - 1) {
+											items.add(SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)));
+										}
+									}
+									return Column(children: items);
+								}),
 								SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
 								_AddMethodButton(
 									responsive: responsive,
@@ -87,9 +153,10 @@ class RevenusView extends StatelessWidget {
 }
 
 class _TopHeader extends StatelessWidget {
-	const _TopHeader({required this.responsive});
+	const _TopHeader({required this.responsive, required this.controller});
 
 	final AppResponsive responsive;
+	final RevenusController controller;
 
 	@override
 	Widget build(BuildContext context) {
@@ -122,7 +189,7 @@ class _TopHeader extends StatelessWidget {
 					AppCircularButton(
 						responsive: responsive,
 						icon: Icons.receipt_long_outlined,
-						onTap: () {},
+						onTap: controller.onHistory,
 						size: responsive.adaptive(phone: 40, smallPhone: 40, tablet: 40, desktop: 40),
 					),
 				],
@@ -688,13 +755,13 @@ class _MethodCard extends StatelessWidget {
 								width: responsive.w(48),
 								height: responsive.w(48),
 								decoration: ShapeDecoration(
-									color: const Color(0x1900A86B),
+									color: method.color.withOpacity(0.15),
 									shape: RoundedRectangleBorder(
 										borderRadius: BorderRadius.circular(responsive.radius(12)),
 										side: const BorderSide(color: AppColors.border),
 									),
 								),
-								child: Icon(method.icon, color: AppColors.primary, size: responsive.text(20)),
+								child: Icon(method.icon, color: method.color, size: responsive.text(20)),
 							),
 							SizedBox(width: responsive.w(12)),
 							Column(
@@ -721,7 +788,7 @@ class _MethodCard extends StatelessWidget {
 					),
 					AppCircularButton(
 						responsive: responsive,
-						icon: Icons.chevron_right_rounded,
+						icon: Icons.more_vert_rounded,
 						onTap: onTap,
 						size: responsive.adaptive(phone: 36, smallPhone: 36, tablet: 36, desktop: 36),
 					),

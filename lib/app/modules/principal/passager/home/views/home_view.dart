@@ -10,8 +10,13 @@ import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 import '../controller/home_controller.dart';
 import '../../notifications/controllers/notifications_controller.dart';
 
-class HomeView extends GetView<HomeController> {
+class HomeView extends StatelessWidget {
   const HomeView({super.key});
+
+  HomeController get controller =>
+      Get.isRegistered<HomeController>()
+          ? Get.find<HomeController>()
+          : Get.put(HomeController());
 
   @override
   Widget build(BuildContext context) {
@@ -55,9 +60,19 @@ class HomeView extends GetView<HomeController> {
                 SizedBox(height: responsive.h(16)),
                 _QuickActionsRow(responsive: responsive, controller: controller),
                 SizedBox(height: responsive.h(16)),
-                _UpcomingTripBanner(responsive: responsive, controller: controller),
-                if (controller.upcomingTrip != null)
+                if (controller.upcomingTrip != null) ...[
+                  _TripTrackingCard(
+                    responsive: responsive,
+                    trip: controller.upcomingTrip!,
+                    controller: controller,
+                  ),
+                  SizedBox(height: responsive.h(10)),
+                  _DriverLevelCard(
+                    responsive: responsive,
+                    trip: controller.upcomingTrip!,
+                  ),
                   SizedBox(height: responsive.h(sectionSpacing)),
+                ],
                 _HeroSection(
                   responsive: responsive,
                   metrics: controller.heroMetrics,
@@ -338,19 +353,91 @@ class _SearchBar extends StatelessWidget {
   }
 }
 
-// ── Active / Upcoming Trip Banner ──────────────────────────────────────────
+// ── Inline Action Button ───────────────────────────────────────────────────
 
-class _UpcomingTripBanner extends StatelessWidget {
-  const _UpcomingTripBanner({required this.responsive, required this.controller});
+class _InlineActionButton extends StatelessWidget {
+  const _InlineActionButton({
+    required this.responsive,
+    required this.label,
+    required this.backgroundColor,
+    required this.textColor,
+    required this.onTap,
+    this.icon,
+  });
 
   final AppResponsive responsive;
-  final HomeController controller;
+  final String label;
+  final Color backgroundColor;
+  final Color textColor;
+  final VoidCallback onTap;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
-    final trip = controller.upcomingTrip;
-    if (trip == null) return const SizedBox.shrink();
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(responsive.radius(12)),
+        child: Container(
+          height: responsive.adaptive(phone: 44, smallPhone: 40, tablet: 44, desktop: 44),
+          decoration: ShapeDecoration(
+            color: backgroundColor,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(responsive.radius(12)),
+              side: BorderSide(color: backgroundColor.withValues(alpha: 0.30)),
+            ),
+          ),
+          alignment: Alignment.center,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: responsive.text(14), color: textColor),
+                SizedBox(width: responsive.w(5)),
+              ],
+              Text(
+                label,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: responsive.text(13),
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w600,
+                  height: 1.43,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
+// ── Trip Tracking Card (replaces old banner) ──────────────────────────────
+
+class _TripTrackingCard extends StatelessWidget {
+  const _TripTrackingCard({
+    required this.responsive,
+    required this.trip,
+    required this.controller,
+  });
+
+  final AppResponsive responsive;
+  final HomeUpcomingTrip trip;
+  final HomeController controller;
+
+  Color _levelColor(String level) {
+    switch (level.toLowerCase()) {
+      case 'or': return const Color(0xFFD4AF37);
+      case 'platine': return const Color(0xFF00A86B);
+      case 'argent': return const Color(0xFF6B7280);
+      default: return const Color(0xFFCD7F32);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final bool isActive = trip.status == UpcomingTripStatus.inProgress;
     final bool isArriving = trip.status == UpcomingTripStatus.driverArriving;
 
@@ -369,113 +456,457 @@ class _UpcomingTripBanner extends StatelessWidget {
     final String actionText = isActive
         ? 'Suivi en direct'
         : isArriving
-            ? 'Voir l\'arrivée'
+            ? "Voir l'arrivée"
             : 'Voir les détails';
 
-    final IconData actionIcon = isActive
-        ? Icons.my_location_rounded
-        : isArriving
-            ? Icons.directions_car_filled_rounded
-            : Icons.arrow_forward_ios_rounded;
+    final Color levelColor = _levelColor(trip.driverLevel);
+    final String initials = trip.driverInitials.isNotEmpty
+        ? trip.driverInitials
+        : _initialsFromName(trip.driverName);
 
-    return GestureDetector(
-      onTap: () => controller.onUpcomingTripTap(trip),
-      child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.all(responsive.w(16)),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [color, color.withValues(alpha: 0.80)],
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(responsive.w(16)),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(responsive.radius(18)),
+        border: Border.all(color: color.withValues(alpha: 0.25), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.10),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
-          borderRadius: BorderRadius.circular(responsive.radius(18)),
-          boxShadow: [
-            BoxShadow(
-              color: color.withValues(alpha: 0.28),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      if (isActive) ...[
-                        _PulsingDot(),
-                        SizedBox(width: responsive.w(6)),
-                      ],
-                      Text(
-                        statusText,
-                        style: AppTextStyles.caption(responsive).copyWith(
-                          color: Colors.white.withValues(alpha: 0.85),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Status + ETA row ──────────────────────────────────────────
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: responsive.w(10), vertical: responsive.h(5)),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(9999),
+                  border: Border.all(color: color.withValues(alpha: 0.25)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (isActive) ...[
+                      _PulsingDotColored(color: color),
+                      SizedBox(width: responsive.w(6)),
                     ],
+                    Text(statusText, style: AppTextStyles.caption(responsive).copyWith(
+                      color: color,
+                      fontWeight: FontWeight.w700,
+                      fontSize: responsive.text(12),
+                    )),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              if (trip.etaMinutes != null)
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: responsive.w(10), vertical: responsive.h(5)),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceMuted,
+                    borderRadius: BorderRadius.circular(9999),
+                    border: Border.all(color: AppColors.border),
                   ),
-                  SizedBox(height: responsive.h(4)),
-                  Text(
-                    '${trip.origin} → ${trip.destination}',
-                    style: AppTextStyles.subtitle(responsive).copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  SizedBox(height: responsive.h(4)),
-                  Row(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.person_rounded, size: responsive.text(12), color: Colors.white.withValues(alpha: 0.80)),
+                      Icon(Icons.schedule_rounded, size: responsive.text(12), color: AppColors.textSecondary),
                       SizedBox(width: responsive.w(4)),
                       Text(
-                        trip.driverName,
-                        style: AppTextStyles.caption(responsive).copyWith(color: Colors.white.withValues(alpha: 0.85)),
-                      ),
-                      if (isActive && trip.etaMinutes != null) ...[
-                        SizedBox(width: responsive.w(10)),
-                        Icon(Icons.schedule_rounded, size: responsive.text(12), color: Colors.white.withValues(alpha: 0.80)),
-                        SizedBox(width: responsive.w(4)),
-                        Text(
-                          'Arrivée dans ~${trip.etaMinutes} min',
-                          style: AppTextStyles.caption(responsive).copyWith(
-                            color: Colors.white.withValues(alpha: 0.85),
-                            fontWeight: FontWeight.w600,
-                          ),
+                        isActive
+                            ? '~${trip.etaMinutes} min'
+                            : '${trip.etaMinutes} min',
+                        style: AppTextStyles.caption(responsive).copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: responsive.text(12),
                         ),
-                      ],
+                      ),
                     ],
+                  ),
+                ),
+            ],
+          ),
+          SizedBox(height: responsive.h(14)),
+          // ── Route visualization ───────────────────────────────────────
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Column(
+                children: [
+                  Container(
+                    width: 10, height: 10,
+                    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                  ),
+                  Container(width: 2, height: responsive.h(52), color: AppColors.border),
+                  Container(
+                    width: 10, height: 10,
+                    decoration: const BoxDecoration(color: Color(0xFFE53935), shape: BoxShape.circle),
                   ),
                 ],
               ),
-            ),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: responsive.w(12), vertical: responsive.h(8)),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.20),
-                borderRadius: BorderRadius.circular(responsive.radius(10)),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.30)),
+              SizedBox(width: responsive.w(12)),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Départ', style: AppTextStyles.caption(responsive).copyWith(
+                      color: AppColors.textHint, fontSize: responsive.text(11),
+                    )),
+                    SizedBox(height: responsive.h(2)),
+                    Text(trip.origin, style: AppTextStyles.homeCardTitle(responsive).copyWith(fontWeight: FontWeight.w700)),
+                    SizedBox(height: responsive.h(24)),
+                    Text('Destination', style: AppTextStyles.caption(responsive).copyWith(
+                      color: AppColors.textHint, fontSize: responsive.text(11),
+                    )),
+                    SizedBox(height: responsive.h(2)),
+                    Text(trip.destination, style: AppTextStyles.homeCardTitle(responsive).copyWith(fontWeight: FontWeight.w700)),
+                  ],
+                ),
               ),
-              child: Row(
+            ],
+          ),
+          // ── Trip progress bar (only in-progress) ─────────────────────
+          if (isActive && trip.tripProgress > 0) ...[
+            SizedBox(height: responsive.h(12)),
+            Row(
+              children: [
+                Expanded(
+                  child: Text('Progression du trajet',
+                      style: AppTextStyles.caption(responsive).copyWith(fontSize: responsive.text(12))),
+                ),
+                Text(
+                  '${(trip.tripProgress * 100).toStringAsFixed(0)}%',
+                  style: AppTextStyles.caption(responsive).copyWith(
+                    fontWeight: FontWeight.w700, color: color,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: responsive.h(6)),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(9999),
+              child: LinearProgressIndicator(
+                value: trip.tripProgress,
+                minHeight: responsive.h(6),
+                backgroundColor: AppColors.surfaceSoft,
+                color: color,
+              ),
+            ),
+          ],
+          SizedBox(height: responsive.h(14)),
+          const Divider(height: 1, color: AppColors.border),
+          SizedBox(height: responsive.h(14)),
+          // ── Driver info row ───────────────────────────────────────────
+          Row(
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
                 children: [
-                  Icon(actionIcon, size: responsive.text(14), color: Colors.white),
-                  SizedBox(width: responsive.w(5)),
-                  Text(
-                    actionText,
-                    style: AppTextStyles.caption(responsive).copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
+                  _DriverAvatar(initials: initials, responsive: responsive, size: responsive.w(48)),
+                  Positioned(
+                    right: -2,
+                    bottom: -2,
+                    child: Container(
+                      width: responsive.w(18),
+                      height: responsive.w(18),
+                      decoration: BoxDecoration(
+                        color: levelColor,
+                        borderRadius: BorderRadius.circular(9999),
+                        border: Border.all(color: Colors.white, width: 1.5),
+                      ),
+                      child: Icon(Icons.workspace_premium_rounded,
+                          size: responsive.text(10), color: Colors.white),
                     ),
                   ),
                 ],
               ),
+              SizedBox(width: responsive.w(10)),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(trip.driverName,
+                              style: AppTextStyles.homeCardTitle(responsive),
+                              overflow: TextOverflow.ellipsis),
+                        ),
+                        SizedBox(width: responsive.w(4)),
+                        Icon(Icons.verified_rounded,
+                            size: responsive.text(12), color: AppColors.primary),
+                      ],
+                    ),
+                    SizedBox(height: responsive.h(2)),
+                    Row(
+                      children: [
+                        Icon(Icons.star_rounded,
+                            size: responsive.text(11), color: AppColors.warning),
+                        SizedBox(width: responsive.w(3)),
+                        Text(
+                          trip.driverRating.toStringAsFixed(1),
+                          style: AppTextStyles.homeCardBody(responsive).copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary),
+                        ),
+                        if (trip.driverVehicle.isNotEmpty) ...[
+                          SizedBox(width: responsive.w(5)),
+                          Text('•', style: AppTextStyles.homeCardBody(responsive)
+                              .copyWith(color: AppColors.textHint)),
+                          SizedBox(width: responsive.w(5)),
+                          Flexible(
+                            child: Text(trip.driverVehicle,
+                                style: AppTextStyles.homeCardBody(responsive),
+                                overflow: TextOverflow.ellipsis),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(width: responsive.w(8)),
+              Container(
+                padding: EdgeInsets.symmetric(
+                    horizontal: responsive.w(8), vertical: responsive.h(4)),
+                decoration: BoxDecoration(
+                  color: levelColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(9999),
+                  border: Border.all(color: levelColor.withValues(alpha: 0.35)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.workspace_premium_rounded,
+                        size: responsive.text(11), color: levelColor),
+                    SizedBox(width: responsive.w(3)),
+                    Text(
+                      trip.driverLevel,
+                      style: AppTextStyles.caption(responsive).copyWith(
+                        color: levelColor,
+                        fontWeight: FontWeight.w700,
+                        fontSize: responsive.text(11),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: responsive.h(14)),
+          // ── Action buttons ────────────────────────────────────────────
+          Row(
+            children: [
+              Expanded(
+                child: _InlineActionButton(
+                  responsive: responsive,
+                  label: 'Contacter',
+                  icon: Icons.call_rounded,
+                  backgroundColor: AppColors.surfaceSoft,
+                  textColor: AppColors.textPrimary,
+                  onTap: () {},
+                ),
+              ),
+              SizedBox(width: responsive.w(10)),
+              Expanded(
+                flex: 2,
+                child: _InlineActionButton(
+                  responsive: responsive,
+                  label: actionText,
+                  icon: isActive
+                      ? Icons.my_location_rounded
+                      : isArriving
+                          ? Icons.directions_car_filled_rounded
+                          : Icons.arrow_forward_ios_rounded,
+                  backgroundColor: color,
+                  textColor: Colors.white,
+                  onTap: () => controller.onUpcomingTripTap(trip),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Driver Level Card ──────────────────────────────────────────────────────
+
+class _DriverLevelCard extends StatelessWidget {
+  const _DriverLevelCard({required this.responsive, required this.trip});
+
+  final AppResponsive responsive;
+  final HomeUpcomingTrip trip;
+
+  Color _levelColor(String level) {
+    switch (level.toLowerCase()) {
+      case 'or': return const Color(0xFFD4AF37);
+      case 'platine': return const Color(0xFF00A86B);
+      case 'argent': return const Color(0xFF6B7280);
+      default: return const Color(0xFFCD7F32);
+    }
+  }
+
+  String _nextLevel(String level) {
+    switch (level.toLowerCase()) {
+      case 'bronze': return 'Argent';
+      case 'argent': return 'Or';
+      case 'or': return 'Platine';
+      default: return 'Élite';
+    }
+  }
+
+  IconData _badgeIcon(String badge) {
+    final b = badge.toLowerCase();
+    if (b.contains('ponctuel')) return Icons.timer_rounded;
+    if (b.contains('étoile')) return Icons.star_rounded;
+    if (b.contains('expert')) return Icons.workspace_premium_rounded;
+    if (b.contains('sécurité')) return Icons.shield_rounded;
+    return Icons.verified_rounded;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Color levelColor = _levelColor(trip.driverLevel);
+    final String nextLevel = _nextLevel(trip.driverLevel);
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(responsive.w(16)),
+      decoration: ShapeDecoration(
+        color: AppColors.white,
+        shape: RoundedRectangleBorder(
+          side: const BorderSide(color: AppColors.border),
+          borderRadius: BorderRadius.circular(responsive.radius(18)),
+        ),
+        shadows: const [
+          BoxShadow(color: AppColors.shadowSoft, blurRadius: 4, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header ───────────────────────────────────────────────────
+          Row(
+            children: [
+              Container(
+                width: responsive.w(36),
+                height: responsive.w(36),
+                decoration: BoxDecoration(
+                  color: levelColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(responsive.radius(10)),
+                ),
+                child: Icon(Icons.workspace_premium_rounded,
+                    color: levelColor, size: responsive.text(18)),
+              ),
+              SizedBox(width: responsive.w(10)),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Niveau de votre conducteur',
+                        style: AppTextStyles.homeSectionTitle(responsive)
+                            .copyWith(fontSize: responsive.text(14))),
+                    if (trip.driverTrips > 0)
+                      Text('${trip.driverTrips} trajets effectués',
+                          style: AppTextStyles.homeCardBody(responsive)
+                              .copyWith(color: AppColors.textHint)),
+                  ],
+                ),
+              ),
+              Container(
+                padding: EdgeInsets.symmetric(
+                    horizontal: responsive.w(10), vertical: responsive.h(5)),
+                decoration: BoxDecoration(
+                  color: levelColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(9999),
+                  border: Border.all(color: levelColor.withValues(alpha: 0.30)),
+                ),
+                child: Text(
+                  trip.driverLevel,
+                  style: AppTextStyles.caption(responsive).copyWith(
+                    color: levelColor,
+                    fontWeight: FontWeight.w800,
+                    fontSize: responsive.text(12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: responsive.h(14)),
+          // ── Progress toward next level ────────────────────────────────
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Vers niveau $nextLevel',
+                  style: AppTextStyles.homeCardBody(responsive),
+                ),
+              ),
+              Text(
+                '${(trip.driverLevelProgress * 100).toStringAsFixed(0)}%',
+                style: AppTextStyles.homeCardTitle(responsive)
+                    .copyWith(color: levelColor, fontSize: responsive.text(13)),
+              ),
+            ],
+          ),
+          SizedBox(height: responsive.h(7)),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(9999),
+            child: LinearProgressIndicator(
+              value: trip.driverLevelProgress,
+              minHeight: responsive.h(8),
+              backgroundColor: AppColors.surfaceSoft,
+              color: levelColor,
+            ),
+          ),
+          // ── Badges ───────────────────────────────────────────────────
+          if (trip.driverBadges.isNotEmpty) ...[
+            SizedBox(height: responsive.h(12)),
+            Wrap(
+              spacing: responsive.w(8),
+              runSpacing: responsive.h(6),
+              children: trip.driverBadges
+                  .map((badge) => Container(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: responsive.w(10),
+                            vertical: responsive.h(5)),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceSoft,
+                          borderRadius: BorderRadius.circular(9999),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(_badgeIcon(badge),
+                                size: responsive.text(11),
+                                color: AppColors.primary),
+                            SizedBox(width: responsive.w(4)),
+                            Text(
+                              badge,
+                              style: AppTextStyles.caption(responsive).copyWith(
+                                fontWeight: FontWeight.w600,
+                                fontSize: responsive.text(11),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ))
+                  .toList(),
             ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -508,6 +939,39 @@ class _PulsingDotState extends State<_PulsingDot> with SingleTickerProviderState
     return ScaleTransition(
       scale: _scale,
       child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
+    );
+  }
+}
+
+class _PulsingDotColored extends StatefulWidget {
+  const _PulsingDotColored({required this.color});
+  final Color color;
+  @override
+  State<_PulsingDotColored> createState() => _PulsingDotColoredState();
+}
+
+class _PulsingDotColoredState extends State<_PulsingDotColored> with SingleTickerProviderStateMixin {
+  late final AnimationController _anim;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _anim = AnimationController(vsync: this, duration: const Duration(milliseconds: 800))..repeat(reverse: true);
+    _scale = Tween(begin: 0.6, end: 1.0).animate(CurvedAnimation(parent: _anim, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _anim.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: _scale,
+      child: Container(width: 8, height: 8, decoration: BoxDecoration(color: widget.color, shape: BoxShape.circle)),
     );
   }
 }

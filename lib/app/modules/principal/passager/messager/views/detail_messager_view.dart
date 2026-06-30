@@ -229,7 +229,7 @@ class _ConversationHeader extends StatelessWidget {
                     icon: Icons.call_rounded,
                     iconSize: 18,
                     iconColor: AppColors.primary,
-                    onTap: () {},
+                    onTap: controller.onCall,
                   ),
                   SizedBox(width: responsive.w(8)),
                   _HeaderActionButton(
@@ -238,7 +238,7 @@ class _ConversationHeader extends StatelessWidget {
                     icon: Icons.more_horiz_rounded,
                     iconSize: 20,
                     iconColor: AppColors.textSecondary,
-                    onTap: () {},
+                    onTap: controller.onOptions,
                   ),
                 ],
               ),
@@ -612,7 +612,7 @@ class _Composer extends StatelessWidget {
         AppCircularButton(
           responsive: responsive,
           icon: Icons.add_rounded,
-          onTap: () {},
+          onTap: controller.openMap,
           size: responsive.w(40),
           filled: false,
         ),

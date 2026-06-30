@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
@@ -562,8 +564,49 @@ class DriverHomeController extends GetxController {
       UIHelper().showSnackBar('MINIZON', message, 1);
 
   void onSeeDetails() => Get.toNamed(AppRoutes.driverTripDetail);
-  void onContact() =>
-      UIHelper().showSnackBar('MINIZON', 'Appel passager bientôt disponible.', 1);
+  void onContact() {
+    const phone = '+229 97 XX XX XX';
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(children: [
+          Icon(Icons.call_rounded, color: AppColors.primary, size: 22),
+          SizedBox(width: 10),
+          Text('Appeler le passager', style: TextStyle(fontSize: 16)),
+        ]),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE6F7EF),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text(phone,
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900,
+                      color: AppColors.primary, letterSpacing: 1)),
+            ),
+            const SizedBox(height: 6),
+            const Text('Numéro masqué pour votre sécurité',
+                style: TextStyle(fontSize: 11, color: AppColors.textGhost)),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: Get.back, child: const Text('Fermer')),
+          TextButton(
+            onPressed: () {
+              Clipboard.setData(const ClipboardData(text: phone));
+              Get.back();
+              UIHelper().showSnackBar('MINIZON', 'Numéro copié.', 0);
+            },
+            child: const Text('Copier',
+                style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+  }
 
   void onRequestAction(String action, DriverRequest request) =>
       showInfo('$action : ${request.name}');

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 enum SortOption { relevance, priceLow, priceHigh, soonest, bestRated }
@@ -255,6 +256,16 @@ class SearchController extends GetxController {
 	}
 
 	void expandPanel() => isPanelExpanded.value = true;
+
+	void collapsePanel() => isPanelExpanded.value = false;
+
+	void onBack() {
+		if (Get.currentRoute == AppRoutes.passengerSearch) {
+			Get.back();
+		} else {
+			BottonNavController.goToTab(0);
+		}
+	}
 
 	void openFilterSheet(BuildContext context) {
 		showModalBottomSheet(

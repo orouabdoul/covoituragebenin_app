@@ -38,14 +38,13 @@ class BottonNavController extends GetxController {
   List<BottonNavItemData> get items =>
       role == BottonNavRole.driver ? _driverItems : _passengerItems;
 
-  List<Widget> get pages => items
+  late final List<Widget> _pages = items
       .asMap()
       .entries
-      .map((entry) {
-        final int index = entry.key;
-        return _buildPage(index, entry.value);
-      })
+      .map((entry) => _buildPage(entry.key, entry.value))
       .toList(growable: false);
+
+  List<Widget> get pages => _pages;
 
   Widget _buildPage(int index, BottonNavItemData item) {
     if (role == BottonNavRole.driver) {
@@ -143,6 +142,13 @@ class BottonNavController extends GetxController {
 
   void onPageChanged(int index) {
     currentIndex.value = index;
+  }
+
+  void onNotificationTap() {
+    final route = role == BottonNavRole.driver
+        ? AppRoutes.driverNotifications
+        : AppRoutes.passengerNotifications;
+    Get.toNamed(route);
   }
 
   /// Remonte la pile de navigation jusqu'au dashboard et bascule sur l'onglet voulu.

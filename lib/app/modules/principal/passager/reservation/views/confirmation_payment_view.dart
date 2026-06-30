@@ -93,7 +93,20 @@ class _HeaderBar extends StatelessWidget {
 					const Spacer(),
 					_RoundIconButton(
 						icon: Icons.lock_rounded,
-						onTap: () {},
+						onTap: () => Get.dialog(
+							AlertDialog(
+								shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+								title: const Row(children: [
+									Icon(Icons.lock_rounded, color: Color(0xFF00A86B), size: 20),
+									SizedBox(width: 8),
+									Text('Paiement sécurisé', style: TextStyle(fontSize: 15)),
+								]),
+								content: const Text(
+									'Vos informations de paiement sont chiffrées et protégées. MINIZON ne stocke jamais vos données bancaires.',
+								),
+								actions: [TextButton(onPressed: Get.back, child: const Text('OK'))],
+							),
+						),
 						color: AppColors.primary,
 					),
 				],

@@ -50,7 +50,7 @@ class DetailJourneyView extends StatelessWidget {
                 SizedBox(height: responsive.h(16)),
                 _PriceCard(responsive: responsive, ride: ride),
                 SizedBox(height: responsive.h(16)),
-                _ReviewsCard(responsive: responsive),
+                _ReviewsCard(responsive: responsive, controller: controller),
                 SizedBox(height: responsive.h(16)),
                 if (controller.isExistingReservation)
                   _ExistingReservationActions(responsive: responsive, controller: controller)
@@ -685,9 +685,10 @@ class _PriceLine extends StatelessWidget {
 }
 
 class _ReviewsCard extends StatelessWidget {
-  const _ReviewsCard({required this.responsive});
+  const _ReviewsCard({required this.responsive, required this.controller});
 
   final AppResponsive responsive;
+  final DetailReservationController controller;
 
   @override
   Widget build(BuildContext context) {
@@ -707,7 +708,7 @@ class _ReviewsCard extends StatelessWidget {
                 ],
               ),
               TextButton(
-                onPressed: () {},
+                onPressed: controller.onViewAllReviews,
                 child: Text(AppStrings.reservationViewAll, style: AppTextStyles.body(responsive).copyWith(color: AppColors.primary, fontWeight: FontWeight.w600)),
               ),
             ],

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
+import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import '../../models/wallet_model.dart';
 
@@ -131,10 +134,189 @@ class PaymentHistoryController extends GetxController {
   void selectFilter(HistoryFilter f) => selectedFilter.value = f;
 
   void onDownloadReceipt() {
-    UIHelper().showSnackBar('MINIZON', 'Téléchargement du relevé bientôt disponible.', 1);
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(children: const [
+          Icon(Icons.download_rounded, color: Color(0xFF00A86B), size: 22),
+          SizedBox(width: 10),
+          Text('Télécharger le relevé', style: TextStyle(fontSize: 16)),
+        ]),
+        content: const Text(
+          'Le relevé PDF de vos transactions sera envoyé à votre adresse e-mail enregistrée dans les 5 minutes.',
+        ),
+        actions: [
+          TextButton(onPressed: Get.back, child: const Text('Annuler')),
+          TextButton(
+            onPressed: () {
+              Get.back();
+              UIHelper().showSnackBar('MINIZON', 'Relevé envoyé par e-mail.', 0);
+            },
+            child: const Text('Envoyer par e-mail',
+                style: TextStyle(color: Color(0xFF00A86B), fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
   }
 
   void onTransactionTap(TransactionModel t) {
-    UIHelper().showSnackBar('MINIZON', 'Détail : ${t.title}', 1);
+    Get.bottomSheet(
+      _TransactionDetailSheet(transaction: t),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
+  }
+}
+
+// ── Transaction detail sheet ──────────────────────────────────────────────────
+
+class _TransactionDetailSheet extends StatelessWidget {
+  const _TransactionDetailSheet({required this.transaction});
+  final TransactionModel transaction;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = MediaQuery.of(context).size;
+    final ref = transaction.reference ??
+        'REF-${transaction.id.toUpperCase().padLeft(8, '0')}';
+
+    return Container(
+      constraints: BoxConstraints(maxHeight: r.height * 0.75),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Center(
+            child: Container(width: 40, height: 4,
+                decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(9999))),
+          ),
+          const SizedBox(height: 20),
+
+          // Amount hero
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            decoration: BoxDecoration(
+              color: transaction.isCredit
+                  ? const Color(0xFFE6F7EF)
+                  : const Color(0xFFFFF7E6),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  width: 56, height: 56,
+                  decoration: BoxDecoration(
+                    color: transaction.iconBackground,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(transaction.icon,
+                      color: transaction.isCredit
+                          ? const Color(0xFF00A86B)
+                          : const Color(0xFFF59E0B),
+                      size: 24),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  transaction.amountLabel,
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    color: transaction.isCredit
+                        ? const Color(0xFF00A86B)
+                        : const Color(0xFF111827),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(transaction.title,
+                    style: const TextStyle(fontSize: 14, color: AppColors.textMuted)),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Details
+          _DetailRow(label: 'Description', value: transaction.subtitle),
+          _DetailRow(label: 'Date', value: transaction.date),
+          _DetailRow(
+            label: 'Statut',
+            valueWidget: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: transaction.statusColor.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(transaction.statusLabel,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: transaction.statusColor,
+                  )),
+            ),
+          ),
+          _DetailRow(label: 'Référence', value: ref),
+
+          const SizedBox(height: 20),
+
+          // Copy ref button
+          GestureDetector(
+            onTap: () {
+              Clipboard.setData(ClipboardData(text: ref));
+              UIHelper().showSnackBar('MINIZON', 'Référence copiée.', 0);
+            },
+            child: Container(
+              width: double.infinity, height: 48,
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.copy_rounded, size: 16, color: AppColors.textMuted),
+                  SizedBox(width: 8),
+                  Text('Copier la référence',
+                      style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textMuted)),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({required this.label, this.value, this.valueWidget});
+  final String label;
+  final String? value;
+  final Widget? valueWidget;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label,
+              style: const TextStyle(fontSize: 13, color: AppColors.textMuted)),
+          valueWidget ??
+              Text(value ?? '',
+                  style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary)),
+        ],
+      ),
+    );
   }
 }

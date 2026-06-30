@@ -73,7 +73,7 @@ class BottonNavHeader extends StatelessWidget {
                 children: [
                   InkWell(
                     borderRadius: BorderRadius.circular(9999),
-                    onTap: () {},
+                    onTap: controller.onNotificationTap,
                     child: Container(
                       width: responsive.w(40),
                       height: responsive.w(40),

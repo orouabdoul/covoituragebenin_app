@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
-import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 
 enum TripVehicleType { car, moto }
 
@@ -279,7 +279,7 @@ class AddTrajetController extends GetxController {
 
   void publishTrip() {
     UIHelper().showSnackBar(AppStrings.appName, 'Trajet prêt à être publié.', 0);
-    Get.offNamed(AppRoutes.driverTrips);
+    BottonNavController.goToTab(1);
   }
 
   // ── Cleanup ───────────────────────────────────────────────────────────────

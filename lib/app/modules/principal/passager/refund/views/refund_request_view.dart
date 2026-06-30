@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 import '../controllers/refund_request_controller.dart';
 
@@ -529,7 +530,7 @@ class _SuccessStateState extends State<_SuccessState> with SingleTickerProviderS
 							AppPrimaryButton(
 								responsive: responsive,
 								label: 'Retour à l\'accueil',
-								onTap: () => Get.offNamedUntil('/passenger-home', (r) => false),
+								onTap: () => BottonNavController.goToTab(0),
 								height: responsive.h(56),
 								borderRadius: responsive.radius(16),
 							),

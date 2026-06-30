@@ -9,8 +9,13 @@ import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 
 import '../controller/profil_driver_controller.dart';
 
-class ProfilDriverView extends GetView<DriverProfileController> {
+class ProfilDriverView extends StatelessWidget {
   const ProfilDriverView({super.key});
+
+  DriverProfileController get controller =>
+      Get.isRegistered<DriverProfileController>()
+          ? Get.find<DriverProfileController>()
+          : Get.put(DriverProfileController());
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +51,7 @@ class ProfilDriverView extends GetView<DriverProfileController> {
                 ),
               ),
               children: [
-                _TopBar(responsive: responsive),
+                _TopBar(responsive: responsive, controller: controller),
                 SizedBox(height: responsive.h(16)),
                 _HeroCard(responsive: responsive, controller: controller),
                 SizedBox(height: responsive.h(20)),
@@ -100,9 +105,10 @@ class ProfilDriverView extends GetView<DriverProfileController> {
 }
 
 class _TopBar extends StatelessWidget {
-  const _TopBar({required this.responsive});
+  const _TopBar({required this.responsive, required this.controller});
 
   final AppResponsive responsive;
+  final DriverProfileController controller;
 
   @override
   Widget build(BuildContext context) {
@@ -130,14 +136,14 @@ class _TopBar extends StatelessWidget {
               AppCircularButton(
                 responsive: responsive,
                 icon: Icons.notifications_none_rounded,
-                onTap: () {},
+                onTap: controller.onNotifications,
                 size: responsive.w(40),
               ),
               SizedBox(width: responsive.w(8)),
               AppCircularButton(
                 responsive: responsive,
                 icon: Icons.tune_rounded,
-                onTap: () {},
+                onTap: controller.onTune,
                 size: responsive.w(40),
               ),
             ],
@@ -383,7 +389,7 @@ class _SectionTitle extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(title, style: AppTextStyles.h6(responsive)),
-        ?trailing,
+        if (trailing != null) trailing!,
       ],
     );
   }

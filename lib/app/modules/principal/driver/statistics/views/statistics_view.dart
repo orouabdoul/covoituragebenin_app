@@ -339,7 +339,7 @@ class _ChartCard extends StatelessWidget {
                       children: [
                         if (point.amount > 0)
                           Container(
-                            height: r.adaptive(phone: 100, smallPhone: 84, tablet: 116, desktop: 132) * ratio,
+                            height: r.adaptive(phone: 96, smallPhone: 80, tablet: 112, desktop: 128) * ratio,
                             decoration: BoxDecoration(
                               color: AppColors.primary,
                               borderRadius: BorderRadius.vertical(

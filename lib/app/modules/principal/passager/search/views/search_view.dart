@@ -98,7 +98,7 @@ class _SearchPanel extends StatelessWidget {
 			child: Row(
 				children: [
 					InkWell(
-						onTap: Get.back,
+						onTap: controller.onBack,
 						borderRadius: BorderRadius.circular(9999),
 						child: Container(
 							width: responsive.w(40),
@@ -182,7 +182,7 @@ class _SearchPanel extends StatelessWidget {
 					Row(
 						children: [
 							InkWell(
-								onTap: Get.back,
+								onTap: controller.collapsePanel,
 								borderRadius: BorderRadius.circular(9999),
 								child: Container(
 									width: responsive.w(40),
