@@ -49,7 +49,7 @@ class DriverSupportView extends StatelessWidget {
                       SizedBox(height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
                       _ContactCard(r: r, controller: controller),
                       SizedBox(height: r.adaptive(phone: 20, smallPhone: 16, tablet: 24, desktop: 28)),
-                      _TicketsSection(r: r),
+                      _TicketsSection(r: r, controller: controller),
                       SizedBox(height: r.adaptive(phone: 32, smallPhone: 28, tablet: 36, desktop: 40)),
                     ],
                   ),
@@ -135,7 +135,7 @@ class _WelcomeSection extends StatelessWidget {
                 SizedBox(height: r.adaptive(phone: 4, smallPhone: 3, tablet: 5, desktop: 6)),
                 Text('Comment pouvons-nous vous aider aujourd\'hui ?',
                     style: AppTextStyles.bodySmall(r).copyWith(
-                        color: Colors.white.withOpacity(0.85))),
+                        color: Colors.white.withValues(alpha: 0.85))),
               ],
             ),
           ),
@@ -194,24 +194,42 @@ class _TopicsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        for (int i = 0; i < controller.topics.length; i += 2)
-          Padding(
-            padding: EdgeInsets.only(bottom: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
-            child: Row(
-              children: [
-                Expanded(child: _TopicCard(r: r, topic: controller.topics[i], controller: controller)),
-                SizedBox(width: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
-                if (i + 1 < controller.topics.length)
-                  Expanded(child: _TopicCard(r: r, topic: controller.topics[i + 1], controller: controller))
-                else
-                  const Expanded(child: SizedBox()),
-              ],
-            ),
+    return Obx(() {
+      if (controller.isLoadingFaq.value) {
+        return const Center(
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: CircularProgressIndicator(),
           ),
-      ],
-    );
+        );
+      }
+      return Column(
+        children: [
+          for (int i = 0; i < controller.topics.length; i += 2)
+            Padding(
+              padding: EdgeInsets.only(
+                  bottom: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
+              child: Row(
+                children: [
+                  Expanded(
+                      child: _TopicCard(
+                          r: r, topic: controller.topics[i], controller: controller)),
+                  SizedBox(
+                      width: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
+                  if (i + 1 < controller.topics.length)
+                    Expanded(
+                        child: _TopicCard(
+                            r: r,
+                            topic: controller.topics[i + 1],
+                            controller: controller))
+                  else
+                    const Expanded(child: SizedBox()),
+                ],
+              ),
+            ),
+        ],
+      );
+    });
   }
 }
 
@@ -239,7 +257,7 @@ class _TopicCard extends StatelessWidget {
               width: r.adaptive(phone: 40, smallPhone: 36, tablet: 44, desktop: 48),
               height: r.adaptive(phone: 40, smallPhone: 36, tablet: 44, desktop: 48),
               decoration: BoxDecoration(
-                color: topic.color.withOpacity(0.1),
+                color: topic.color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(r.adaptive(phone: 10, smallPhone: 9, tablet: 12, desktop: 14)),
               ),
               child: Icon(topic.icon,
@@ -371,8 +389,9 @@ class _ContactCard extends StatelessWidget {
 }
 
 class _TicketsSection extends StatelessWidget {
-  const _TicketsSection({required this.r});
+  const _TicketsSection({required this.r, required this.controller});
   final AppResponsive r;
+  final DriverSupportController controller;
 
   @override
   Widget build(BuildContext context) {
@@ -380,27 +399,139 @@ class _TicketsSection extends StatelessWidget {
       padding: EdgeInsets.all(r.adaptive(phone: 16, smallPhone: 14, tablet: 18, desktop: 20)),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
+        borderRadius:
+            BorderRadius.circular(r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Mes tickets ouverts',
-              style: AppTextStyles.homeCardTitle(r).copyWith(color: AppColors.textPrimary)),
-          SizedBox(height: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
           Row(
             children: [
-              Icon(Icons.check_circle_rounded,
-                  size: r.adaptive(phone: 20, smallPhone: 18, tablet: 22, desktop: 24),
-                  color: AppColors.primary),
-              SizedBox(width: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
-              Text('Aucun ticket en cours',
-                  style: AppTextStyles.bodySmall(r).copyWith(
-                      color: AppColors.textMuted, fontWeight: FontWeight.w500)),
+              Expanded(
+                child: Text('Mes tickets ouverts',
+                    style: AppTextStyles.homeCardTitle(r).copyWith(color: AppColors.textPrimary)),
+              ),
+              GestureDetector(
+                onTap: controller.onCreateTicket,
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16),
+                    vertical: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8),
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(
+                        r.adaptive(phone: 8, smallPhone: 7, tablet: 9, desktop: 10)),
+                  ),
+                  child: Text('+ Nouveau',
+                      style: AppTextStyles.labelSmall(r)
+                          .copyWith(color: Colors.white, fontWeight: FontWeight.w600)),
+                ),
+              ),
             ],
           ),
+          SizedBox(height: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
+          Obx(() {
+            if (controller.isLoadingTickets.value) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (controller.tickets.isEmpty) {
+              return Row(
+                children: [
+                  Icon(Icons.check_circle_rounded,
+                      size: r.adaptive(phone: 20, smallPhone: 18, tablet: 22, desktop: 24),
+                      color: AppColors.primary),
+                  SizedBox(width: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
+                  Text('Aucun ticket en cours',
+                      style: AppTextStyles.bodySmall(r).copyWith(
+                          color: AppColors.textMuted, fontWeight: FontWeight.w500)),
+                ],
+              );
+            }
+            return Column(
+              children: controller.tickets
+                  .map((t) => _TicketCard(r: r, ticket: t))
+                  .toList(),
+            );
+          }),
         ],
+      ),
+    );
+  }
+}
+
+class _TicketCard extends StatelessWidget {
+  const _TicketCard({required this.r, required this.ticket});
+  final AppResponsive r;
+  final Map<String, dynamic> ticket;
+
+  @override
+  Widget build(BuildContext context) {
+    final status  = ticket['status'] as String? ?? 'open';
+    final subject = ticket['subject'] as String? ?? '';
+    final rawDate = ticket['created_at'] as String? ?? '';
+    final date    = DateTime.tryParse(rawDate);
+    final dateLabel = date != null
+        ? '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}'
+        : rawDate;
+
+    final statusColor = switch (status) {
+      'resolved' => AppColors.success,
+      'closed'   => AppColors.textMuted,
+      _          => AppColors.primary,
+    };
+    final statusLabel = switch (status) {
+      'resolved' => 'Résolu',
+      'closed'   => 'Fermé',
+      _          => 'En cours',
+    };
+
+    return Padding(
+      padding: EdgeInsets.only(
+          bottom: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
+      child: Container(
+        padding: EdgeInsets.all(r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(
+              r.adaptive(phone: 10, smallPhone: 9, tablet: 12, desktop: 14)),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(subject,
+                      style: AppTextStyles.bodySmall(r).copyWith(
+                          color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+                  SizedBox(height: r.adaptive(phone: 3, smallPhone: 2, tablet: 4, desktop: 5)),
+                  Text(dateLabel,
+                      style: AppTextStyles.labelSmall(r)
+                          .copyWith(color: AppColors.textMuted)),
+                ],
+              ),
+            ),
+            Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: r.adaptive(phone: 8, smallPhone: 7, tablet: 9, desktop: 10),
+                vertical: r.adaptive(phone: 4, smallPhone: 3, tablet: 5, desktop: 6),
+              ),
+              decoration: BoxDecoration(
+                color: statusColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(
+                    r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8)),
+              ),
+              child: Text(statusLabel,
+                  style: AppTextStyles.labelSmall(r)
+                      .copyWith(color: statusColor, fontWeight: FontWeight.w600)),
+            ),
+          ],
+        ),
       ),
     );
   }

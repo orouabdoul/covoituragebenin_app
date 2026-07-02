@@ -54,16 +54,28 @@ class RevenusView extends StatelessWidget {
 									trailing: AppStrings.revenuesViewAll,
 								),
 								SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
-								_WeeklyChartCard(responsive: responsive, points: controller.weeklyPoints),
+								Obx(() => _WeeklyChartCard(responsive: responsive, points: controller.weeklyPoints)),
 								SizedBox(height: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 16, desktop: 18)),
-								for (var index = 0; index < controller.transactions.length; index++) ...[
-									_TransactionCard(
-										responsive: responsive,
-										transaction: controller.transactions[index],
-									),
-									if (index != controller.transactions.length - 1)
-										SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
-								],
+								Obx(() {
+									if (controller.isLoading.value) {
+										return const Center(child: CircularProgressIndicator());
+									}
+									if (controller.transactions.isEmpty) {
+										return const SizedBox.shrink();
+									}
+									return Column(
+										children: [
+											for (var index = 0; index < controller.transactions.length; index++) ...[
+												_TransactionCard(
+													responsive: responsive,
+													transaction: controller.transactions[index],
+												),
+												if (index != controller.transactions.length - 1)
+													SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
+											],
+										],
+									);
+								}),
 								SizedBox(height: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 16, desktop: 18)),
 								_SectionTitle(
 									responsive: responsive,
@@ -299,15 +311,15 @@ class _HeroBalanceCard extends StatelessWidget {
 								],
 							),
 							SizedBox(height: responsive.h(12)),
-							Text(
-								controller.availableBalance,
+							Obx(() => Text(
+								controller.availableBalance.value,
 								style: AppTextStyles.rolesCardTitle(responsive).copyWith(
 									color: AppColors.white,
 									fontSize: responsive.text(48),
 									fontWeight: FontWeight.w700,
 									height: 1,
 								),
-							),
+							)),
 							SizedBox(height: responsive.h(8)),
 							Text(
 								AppStrings.revenuesCurrency,
@@ -406,14 +418,14 @@ class _PendingIncomeCard extends StatelessWidget {
 												),
 											),
 											SizedBox(height: responsive.h(2)),
-											Text(
-												'${controller.pendingIncome} ${AppStrings.revenuesCurrency}',
+											Obx(() => Text(
+												'${controller.pendingIncome.value} ${AppStrings.revenuesCurrency}',
 												style: AppTextStyles.rolesCardTitle(responsive).copyWith(
 													color: AppColors.textPrimary,
 													fontSize: responsive.text(20),
 													fontWeight: FontWeight.w700,
 												),
-											),
+											)),
 										],
 									),
 								],
@@ -755,7 +767,7 @@ class _MethodCard extends StatelessWidget {
 								width: responsive.w(48),
 								height: responsive.w(48),
 								decoration: ShapeDecoration(
-									color: method.color.withOpacity(0.15),
+									color: method.color.withValues(alpha: 0.15),
 									shape: RoundedRectangleBorder(
 										borderRadius: BorderRadius.circular(responsive.radius(12)),
 										side: const BorderSide(color: AppColors.border),

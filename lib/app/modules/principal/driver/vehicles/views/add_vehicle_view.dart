@@ -1534,13 +1534,15 @@ class _RegisterButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppPrimaryButton(
-      responsive: responsive,
-      label: AppStrings.driverVehicleRegisterButton,
-      onTap: controller.onRegisterVehicle,
-      height: responsive.adaptive(phone: 56, smallPhone: 52, tablet: 56, desktop: 56),
-      borderRadius: responsive.radius(16),
-    );
+    return Obx(() => AppPrimaryButton(
+          responsive: responsive,
+          label: controller.isSubmitting.value
+              ? 'Enregistrement...'
+              : AppStrings.driverVehicleRegisterButton,
+          onTap: controller.isSubmitting.value ? () {} : controller.onRegisterVehicle,
+          height: responsive.adaptive(phone: 56, smallPhone: 52, tablet: 56, desktop: 56),
+          borderRadius: responsive.radius(16),
+        ));
   }
 }
 

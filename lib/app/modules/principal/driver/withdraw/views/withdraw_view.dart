@@ -6,7 +6,7 @@ import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
-import '../../models/wallet_model.dart';
+import '../../../../../data/models/driver/wallet_model.dart';
 import '../controllers/withdraw_controller.dart';
 
 class WithdrawView extends StatelessWidget {
@@ -120,42 +120,55 @@ class _BalanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() => Container(
-          padding: EdgeInsets.all(r.adaptive(phone: 20, smallPhone: 16, tablet: 24, desktop: 28)),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF00A86B), Color(0xFF008F5A)],
-            ),
-            borderRadius: BorderRadius.circular(r.adaptive(phone: 18, smallPhone: 16, tablet: 20, desktop: 24)),
+    return Obx(() {
+      final isLoading = controller.isLoadingWallet.value;
+      return Container(
+        padding: EdgeInsets.all(r.adaptive(phone: 20, smallPhone: 16, tablet: 24, desktop: 28)),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF00A86B), Color(0xFF008F5A)],
           ),
-          child: Column(
-            children: [
-              Text(
-                'Solde disponible',
-                style: AppTextStyles.bodySmall(r).copyWith(
-                  color: Colors.white.withOpacity(0.8),
+          borderRadius:
+              BorderRadius.circular(r.adaptive(phone: 18, smallPhone: 16, tablet: 20, desktop: 24)),
+        ),
+        child: isLoading
+            ? SizedBox(
+                height: r.adaptive(phone: 72, smallPhone: 64, tablet: 80, desktop: 88),
+                child: const Center(
+                  child: SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                  ),
                 ),
+              )
+            : Column(
+                children: [
+                  Text(
+                    'Solde disponible',
+                    style: AppTextStyles.bodySmall(r)
+                        .copyWith(color: Colors.white.withValues(alpha: 0.8)),
+                  ),
+                  SizedBox(height: r.adaptive(phone: 8, smallPhone: 6, tablet: 10, desktop: 12)),
+                  Text(
+                    '${controller.availableBalance.value.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]} ')} FCFA',
+                    style: AppTextStyles.h3(r).copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  SizedBox(height: r.adaptive(phone: 4, smallPhone: 3, tablet: 5, desktop: 6)),
+                  Text(
+                    'Disponible immédiatement',
+                    style: AppTextStyles.labelSmall(r)
+                        .copyWith(color: Colors.white.withValues(alpha: 0.75)),
+                  ),
+                ],
               ),
-              SizedBox(height: r.adaptive(phone: 8, smallPhone: 6, tablet: 10, desktop: 12)),
-              Text(
-                '${controller.availableBalance.value.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]} ')} FCFA',
-                style: AppTextStyles.h3(r).copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              SizedBox(height: r.adaptive(phone: 4, smallPhone: 3, tablet: 5, desktop: 6)),
-              Text(
-                'Disponible immédiatement',
-                style: AppTextStyles.labelSmall(r).copyWith(
-                  color: Colors.white.withOpacity(0.75),
-                ),
-              ),
-            ],
-          ),
-        ));
+      );
+    });
   }
 }
 
@@ -243,7 +256,7 @@ class _AmountSection extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: AppColors.surfaceAccent,
                         borderRadius: BorderRadius.circular(r.adaptive(phone: 20, smallPhone: 18, tablet: 24, desktop: 28)),
-                        border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
                       ),
                       child: Text(
                         amount >= 1000 ? '${(amount / 1000).toStringAsFixed(0)}K' : amount.toStringAsFixed(0),

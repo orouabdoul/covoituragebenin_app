@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
-import '../../models/driver_stats_model.dart';
+import '../../../../../data/models/driver/driver_stats_model.dart';
 import '../controllers/statistics_controller.dart';
 
 class StatisticsView extends StatelessWidget {
@@ -32,6 +32,9 @@ class StatisticsView extends StatelessWidget {
                 _PeriodTabs(r: r, controller: controller),
                 Expanded(
                   child: Obx(() {
+                    if (controller.isLoading.value) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
                     final stats = controller.currentStats;
                     return ListView(
                       padding: EdgeInsets.symmetric(
@@ -182,7 +185,7 @@ class _RevenueHero extends StatelessWidget {
         children: [
           Text(
             controller.periodLabel,
-            style: AppTextStyles.bodySmall(r).copyWith(color: Colors.white.withOpacity(0.8)),
+            style: AppTextStyles.bodySmall(r).copyWith(color: Colors.white.withValues(alpha: 0.8)),
           ),
           SizedBox(height: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8)),
           Text(
@@ -198,14 +201,14 @@ class _RevenueHero extends StatelessWidget {
                   children: [
                     Text(
                       'Objectif ${(stats.objectiveRevenue / 1000).toStringAsFixed(0)}K FCFA',
-                      style: AppTextStyles.labelSmall(r).copyWith(color: Colors.white.withOpacity(0.8)),
+                      style: AppTextStyles.labelSmall(r).copyWith(color: Colors.white.withValues(alpha: 0.8)),
                     ),
                     SizedBox(height: r.adaptive(phone: 4, smallPhone: 3, tablet: 5, desktop: 6)),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(4),
                       child: LinearProgressIndicator(
                         value: stats.objectiveProgress,
-                        backgroundColor: Colors.white.withOpacity(0.2),
+                        backgroundColor: Colors.white.withValues(alpha: 0.2),
                         valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
                         minHeight: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8),
                       ),
@@ -281,7 +284,7 @@ class _MetricChip extends StatelessWidget {
             width: r.adaptive(phone: 36, smallPhone: 32, tablet: 40, desktop: 44),
             height: r.adaptive(phone: 36, smallPhone: 32, tablet: 40, desktop: 44),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(r.adaptive(phone: 10, smallPhone: 9, tablet: 12, desktop: 14)),
             ),
             child: Icon(icon, size: r.adaptive(phone: 20, smallPhone: 18, tablet: 22, desktop: 24), color: color),
@@ -335,28 +338,24 @@ class _ChartCard extends StatelessWidget {
                       horizontal: r.adaptive(phone: 3, smallPhone: 2, tablet: 4, desktop: 5),
                     ),
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        if (point.amount > 0)
-                          Container(
-                            height: r.adaptive(phone: 96, smallPhone: 80, tablet: 112, desktop: 128) * ratio,
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(r.adaptive(phone: 4, smallPhone: 3, tablet: 5, desktop: 6)),
-                              ),
-                            ),
-                          )
-                        else
-                          Container(
-                            height: r.adaptive(phone: 4, smallPhone: 3, tablet: 5, desktop: 6),
-                            decoration: BoxDecoration(
-                              color: AppColors.border,
-                              borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(r.adaptive(phone: 2, smallPhone: 1, tablet: 3, desktop: 4)),
+                        Expanded(
+                          child: Align(
+                            alignment: Alignment.bottomCenter,
+                            child: FractionallySizedBox(
+                              heightFactor: point.amount > 0 ? ratio : 0.03,
+                              child: Container(
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  color: point.amount > 0 ? AppColors.primary : AppColors.border,
+                                  borderRadius: BorderRadius.vertical(
+                                    top: Radius.circular(r.adaptive(phone: 4, smallPhone: 3, tablet: 5, desktop: 6)),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
+                        ),
                         SizedBox(height: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8)),
                         Text(
                           point.label,
@@ -516,7 +515,7 @@ class _BadgesCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(4),
                         child: LinearProgressIndicator(
                           value: 0.75,
-                          backgroundColor: AppColors.primary.withOpacity(0.15),
+                          backgroundColor: AppColors.primary.withValues(alpha: 0.15),
                           valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
                           minHeight: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8),
                         ),
@@ -555,7 +554,7 @@ class _BadgeItem extends StatelessWidget {
           width: r.adaptive(phone: 48, smallPhone: 44, tablet: 56, desktop: 64),
           height: r.adaptive(phone: 48, smallPhone: 44, tablet: 56, desktop: 64),
           decoration: BoxDecoration(
-            color: badge.color.withOpacity(0.12),
+            color: badge.color.withValues(alpha: 0.12),
             shape: BoxShape.circle,
           ),
           child: Icon(badge.icon,
