@@ -7,7 +7,7 @@ import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 
-import '../controller/profil_driver_controller.dart';
+import '../controllers/profil_driver_controller.dart';
 
 class ProfilDriverView extends StatelessWidget {
   const ProfilDriverView({super.key});
@@ -29,7 +29,10 @@ class ProfilDriverView extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.surface,
-      body: SafeArea(
+      body: Obx(() {
+        // Tracks profileVersion to rebuild static sections after API load.
+        final _ = controller.profileVersion.value;
+        return SafeArea(
         child: Center(
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: responsive.maxContentWidth),
@@ -84,7 +87,7 @@ class ProfilDriverView extends StatelessWidget {
                   controller: controller,
                 ),
                 SizedBox(height: responsive.h(20)),
-                _PerformanceSection(responsive: responsive),
+                _PerformanceSection(responsive: responsive, controller: controller),
                 SizedBox(height: responsive.h(20)),
                 _PreferencesSection(
                   responsive: responsive,
@@ -99,7 +102,8 @@ class ProfilDriverView extends StatelessWidget {
             ),
           ),
         ),
-      ),
+        );
+      }),
     );
   }
 }
@@ -233,7 +237,7 @@ class _HeroCard extends StatelessWidget {
           ),
           SizedBox(height: responsive.h(14)),
           Text(
-            AppStrings.driverProfileName,
+            controller.heroName,
             style: AppTextStyles.profileSectionTitle(
               responsive,
             ).copyWith(color: AppColors.white, fontSize: responsive.text(24)),
@@ -243,9 +247,9 @@ class _HeroCard extends StatelessWidget {
             spacing: responsive.w(8),
             runSpacing: responsive.h(8),
             alignment: WrapAlignment.center,
-            children: const [
-              _HeroChip(label: AppStrings.driverProfileBadge),
-              _HeroChip(label: 'Niveau 5'),
+            children: [
+              _HeroChip(label: controller.heroBadge),
+              _HeroChip(label: controller.heroLevel),
             ],
           ),
           SizedBox(height: responsive.h(8)),
@@ -259,7 +263,7 @@ class _HeroCard extends StatelessWidget {
               ),
               SizedBox(width: responsive.w(4)),
               Text(
-                AppStrings.driverProfileLocation,
+                controller.heroLocation,
                 style: AppTextStyles.profileHeroSubtitle(responsive),
               ),
             ],
@@ -275,22 +279,22 @@ class _HeroCard extends StatelessWidget {
               ),
             ),
             child: Row(
-              children: const [
+              children: [
                 Expanded(
                   child: _HeroMetric(
-                    value: AppStrings.driverProfileSummaryRating,
+                    value: controller.heroRating.toStringAsFixed(1),
                     label: AppStrings.driverProfileSummaryRatingLabel,
                   ),
                 ),
                 Expanded(
                   child: _HeroMetric(
-                    value: AppStrings.driverProfileSummaryTrips,
+                    value: '${controller.heroTrips}',
                     label: AppStrings.driverProfileSummaryTripsLabel,
                   ),
                 ),
                 Expanded(
                   child: _HeroMetric(
-                    value: AppStrings.driverProfileSummaryTenure,
+                    value: controller.tenureLabel(),
                     label: AppStrings.driverProfileSummaryTenureLabel,
                   ),
                 ),
@@ -389,7 +393,7 @@ class _SectionTitle extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(title, style: AppTextStyles.h6(responsive)),
-        if (trailing != null) trailing!,
+        ?trailing,
       ],
     );
   }
@@ -983,12 +987,18 @@ class _DocumentRow extends StatelessWidget {
 }
 
 class _PerformanceSection extends StatelessWidget {
-  const _PerformanceSection({required this.responsive});
+  const _PerformanceSection({
+    required this.responsive,
+    required this.controller,
+  });
 
   final AppResponsive responsive;
+  final DriverProfileController controller;
 
   @override
   Widget build(BuildContext context) {
+    final progressPct =
+        '${(controller.perfProgress * 100).toStringAsFixed(0)}%';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1038,7 +1048,7 @@ class _PerformanceSection extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        AppStrings.driverProfileCurrentLevelValue,
+                        controller.perfCurrentLevel,
                         style: AppTextStyles.profileSectionTitle(responsive)
                             .copyWith(
                               color: AppColors.white,
@@ -1069,13 +1079,13 @@ class _PerformanceSection extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    AppStrings.driverProfileProgressLabel,
+                    'Progrès vers ${controller.perfNextLevel}',
                     style: AppTextStyles.caption(
                       responsive,
                     ).copyWith(color: AppColors.white),
                   ),
                   Text(
-                    AppStrings.driverProfileProgressValue,
+                    progressPct,
                     style: AppTextStyles.caption(responsive).copyWith(
                       color: AppColors.white,
                       fontWeight: FontWeight.w700,
@@ -1088,7 +1098,7 @@ class _PerformanceSection extends StatelessWidget {
                 borderRadius: BorderRadius.circular(9999),
                 child: LinearProgressIndicator(
                   minHeight: responsive.h(8),
-                  value: 0.75,
+                  value: controller.perfProgress,
                   backgroundColor: AppColors.white.withValues(alpha: 0.30),
                   valueColor: const AlwaysStoppedAnimation<Color>(
                     AppColors.white,
@@ -1097,22 +1107,22 @@ class _PerformanceSection extends StatelessWidget {
               ),
               SizedBox(height: responsive.h(14)),
               Row(
-                children: const [
+                children: [
                   Expanded(
                     child: _RewardChip(
-                      label: AppStrings.driverProfileBadgeCount,
+                      label: '${controller.perfBadgesCount} badges',
                     ),
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: _RewardChip(
-                      label: AppStrings.driverProfileTopPercent,
+                      label: 'Top ${controller.perfTopPercent}%',
                     ),
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: _RewardChip(
-                      label: AppStrings.driverProfileBonusCount,
+                      label: '${controller.perfBonusCount} bonus',
                     ),
                   ),
                 ],

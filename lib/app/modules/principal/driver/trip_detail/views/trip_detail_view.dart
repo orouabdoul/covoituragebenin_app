@@ -5,7 +5,7 @@ import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
-import '../../models/trip_model.dart';
+import '../../../../../data/models/driver/trip_model.dart';
 import '../controllers/trip_detail_controller.dart';
 
 class TripDetailView extends StatelessWidget {
@@ -24,44 +24,50 @@ class TripDetailView extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.surface,
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: r.maxContentWidth),
-            child: Column(
-              children: [
-                _Header(r: r, controller: controller),
-                Expanded(
-                  child: ListView(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: r.adaptive(phone: 16, smallPhone: 14, tablet: 20, desktop: 24),
+      body: Obx(() {
+        final _ = controller.tripVersion.value;
+        if (controller.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        return SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: r.maxContentWidth),
+              child: Column(
+                children: [
+                  _Header(r: r, controller: controller),
+                  Expanded(
+                    child: ListView(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: r.adaptive(phone: 16, smallPhone: 14, tablet: 20, desktop: 24),
+                      ),
+                      children: [
+                        SizedBox(height: r.adaptive(phone: 16, smallPhone: 12, tablet: 20, desktop: 24)),
+                        _StatusCard(r: r, trip: controller.trip),
+                        SizedBox(height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+                        _RouteCard(r: r, trip: controller.trip),
+                        SizedBox(height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+                        _PassengersCard(r: r, controller: controller),
+                        SizedBox(height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+                        _FinancesCard(r: r, trip: controller.trip),
+                        SizedBox(height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+                        _StatsRow(r: r, trip: controller.trip),
+                        SizedBox(height: r.adaptive(phone: 20, smallPhone: 18, tablet: 24, desktop: 28)),
+                        _MapButton(r: r, controller: controller),
+                        SizedBox(height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+                        _StartButton(r: r, controller: controller),
+                        SizedBox(height: r.adaptive(phone: 8, smallPhone: 6, tablet: 10, desktop: 12)),
+                        _CancelButton(r: r, controller: controller),
+                        SizedBox(height: r.adaptive(phone: 24, smallPhone: 20, tablet: 28, desktop: 32)),
+                      ],
                     ),
-                    children: [
-                      SizedBox(height: r.adaptive(phone: 16, smallPhone: 12, tablet: 20, desktop: 24)),
-                      _StatusCard(r: r, trip: controller.trip),
-                      SizedBox(height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                      _RouteCard(r: r, trip: controller.trip),
-                      SizedBox(height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                      _PassengersCard(r: r, controller: controller),
-                      SizedBox(height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                      _FinancesCard(r: r, trip: controller.trip),
-                      SizedBox(height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                      _StatsRow(r: r, trip: controller.trip),
-                      SizedBox(height: r.adaptive(phone: 20, smallPhone: 18, tablet: 24, desktop: 28)),
-                      _MapButton(r: r, controller: controller),
-                      SizedBox(height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                      _StartButton(r: r, controller: controller),
-                      SizedBox(height: r.adaptive(phone: 8, smallPhone: 6, tablet: 10, desktop: 12)),
-                      _CancelButton(r: r, controller: controller),
-                      SizedBox(height: r.adaptive(phone: 24, smallPhone: 20, tablet: 28, desktop: 32)),
-                    ],
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      }),
     );
   }
 }
@@ -160,7 +166,7 @@ class _StatusCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: trip.statusBackground,
         borderRadius: BorderRadius.circular(r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-        border: Border.all(color: trip.statusColor.withOpacity(0.3)),
+        border: Border.all(color: trip.statusColor.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [

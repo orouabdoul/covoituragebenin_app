@@ -1,0 +1,71 @@
+Flutter crash report.
+Please report a bug at https://github.com/flutter/flutter/issues.
+
+## command
+
+flutter analyze lib/app/modules/principal/driver/trip_detail/ lib/app/data/models/driver/trip_detail_model.dart lib/app/data/models/driver/trip_model.dart lib/app/data/providers/trip_detail_provider.dart lib/app/core/constants/app_api.dart
+
+## exception
+
+_Exception: Exception: analysis server exited with code -1073740791 and output:
+[stdout] {"event":"server.connected","params":{"version":"1.40.1","pid":31332}}
+[stdout] {"id":"1"}
+[stdout] {"event":"server.status","params":{"analysis":{"isAnalyzing":true}}}
+[stdout] {"event":"analysis.errors","params":{"file":"c:\\users\\hp_pc\\studioprojects\\covoiturage_benin_app\\lib\\app\\modules\\principal\\driver\\trip_detail\\bindings\\trip_detail_binding.dart","errors":[]}}
+[stdout] {"id":"2"}
+[stderr] ../../runtime/vm/zone.cc: 96: error: Out of memory.
+[stderr] version=3.11.1 (stable) (Tue Feb 24 00:03:07 2026 -0800) on "windows_x64"
+[stderr] pid=31332, thread=1228, isolate_group=main(0000023CC384E1C0), isolate=(nil)(0000000000000000)
+[stderr] os=windows, arch=x64, comp=no, sim=no
+[stderr] isolate_instructions=23cc1e80000, vm_instructions=7ff706cd8400
+[stderr] fp=85ca7fe170, sp=85ca7fe128, pc=7ff706fbcca3
+[stderr]   pc 0x00007ff706fbcca3 fp 0x00000085ca7fe170 Dart_DetectNullSafety+0x2dc1c3
+[stderr] -- End of DumpStackTrace
+[stderr] ../../runtime/vm/zone.cc: 96: error: Out of memory.
+[stderr] Aborting reentrant request for stack trace.
+
+```
+```
+
+## flutter doctor
+
+```
+[✓] Flutter (Channel stable, 3.41.4, on Microsoft Windows [version 10.0.26200.8655], locale fr-BJ) [1 120ms]
+    • Flutter version 3.41.4 on channel stable at C:\src\flutter
+    • Upstream repository https://github.com/flutter/flutter.git
+    • Framework revision ff37bef603 (4 months ago), 2026-03-03 16:03:22 -0800
+    • Engine revision e4b8dca3f1
+    • Dart version 3.11.1
+    • DevTools version 2.54.1
+    • Feature flags: enable-web, enable-linux-desktop, enable-macos-desktop, enable-windows-desktop, enable-android, enable-ios, cli-animations, enable-native-assets, omit-legacy-version-file, enable-lldb-debugging, enable-uiscene-migration
+
+[✓] Windows Version (Windows 11 or higher, 25H2, 2009) [9,5s]
+
+[✓] Android toolchain - develop for Android devices (Android SDK version 36.1.0) [17,3s]
+    • Android SDK at C:\Users\HP_PC\AppData\Local\Android\Sdk
+    • Emulator version 36.4.10.0 (build_id 15004761) (CL:N/A)
+    • Platform android-36.1, build-tools 36.1.0
+    • ANDROID_HOME = C:\Users\HP_PC\AppData\Local\Android\Sdk
+    • Java binary at: C:\Program Files\Android\Android Studio\jbr\bin\java
+      This is the JDK bundled with the latest Android Studio installation on this machine.
+      To manually set the JDK path, use: `flutter config --jdk-dir="path/to/jdk"`.
+    • Java version OpenJDK Runtime Environment (build 21.0.9+-14787801-b1163.94)
+    • All Android licenses accepted.
+
+[✗] Chrome - develop for the web (Cannot find Chrome executable at .\Google\Chrome\Application\chrome.exe) [56ms]
+    ! Cannot find Chrome. Try setting CHROME_EXECUTABLE to a Chrome executable.
+
+[✗] Visual Studio - develop Windows apps [51ms]
+    ✗ Visual Studio not installed; this is necessary to develop Windows apps.
+      Download at https://visualstudio.microsoft.com/downloads/.
+      Please install the "Desktop development with C++" workload, including all of its default components
+
+[✓] Connected device (2 available) [603ms]
+    • Windows (desktop) • windows • windows-x64    • Microsoft Windows [version 10.0.26200.8655]
+    • Edge (web)        • edge    • web-javascript • Microsoft Edge 149.0.4022.98
+
+[✓] Network resources [11,8s]
+    • All expected network resources are available.
+
+! Doctor found issues in 2 categories.
+```

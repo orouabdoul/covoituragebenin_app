@@ -1,7 +1,7 @@
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:covoiturage_benin_app/app/data/models/user_model.dart';
+import 'package:covoiturage_benin_app/app/data/models/auth/user_model.dart';
 
 class UserController extends GetxController {
   static const String _tokenStorageKey = 'token';

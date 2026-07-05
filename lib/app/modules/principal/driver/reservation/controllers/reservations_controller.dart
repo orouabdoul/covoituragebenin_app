@@ -5,11 +5,18 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
+import 'package:covoiturage_benin_app/app/core/services/driver/booking/booking_service.dart';
+import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
+// ── Enums ────────────────────────────────────────────────────────────────────
+
 enum ReservationStatus { pending, accepted, rejected, expired }
 enum ReservationUrgency { normal, warning, critical }
+enum ReservationTab { pending, accepted, rejected }
+
+// ── Model ────────────────────────────────────────────────────────────────────
 
 class LiveReservationRequest {
   LiveReservationRequest({
@@ -27,6 +34,7 @@ class LiveReservationRequest {
     required this.paymentConfirmed,
     required this.expiresInSeconds,
     this.status = ReservationStatus.pending,
+    this.phone,
   }) : remainingSeconds = expiresInSeconds.obs;
 
   final String id;
@@ -42,10 +50,86 @@ class LiveReservationRequest {
   final double amount;
   final bool paymentConfirmed;
   final int expiresInSeconds;
+  final String? phone;
   ReservationStatus status;
 
   final RxInt remainingSeconds;
   Timer? _timer;
+
+  factory LiveReservationRequest.fromJson(Map<String, dynamic> json) {
+    final trip = json['trip'] as Map<String, dynamic>? ?? {};
+    final passenger = json['passenger'] as Map<String, dynamic>? ?? {};
+    final profile = passenger['profile'] as Map<String, dynamic>? ?? {};
+
+    final firstName = profile['first_name'] as String? ?? '';
+    final lastName = profile['last_name'] as String? ?? '';
+    final name = '$firstName $lastName'.trim().isNotEmpty
+        ? '$firstName $lastName'.trim()
+        : passenger['phone'] as String? ?? 'Passager';
+
+    final departureCity = trip['departure_city'] as String? ?? '';
+    final arrivalCity = trip['arrival_city'] as String? ?? '';
+
+    final pickupPoint = _resolvePoint(
+      trip['departure_point'] as String?,
+      trip['departure_neighborhood'] as String?,
+      departureCity,
+    );
+    final dropoffPoint = _resolvePoint(
+      trip['arrival_point'] as String?,
+      trip['arrival_neighborhood'] as String?,
+      arrivalCity,
+    );
+
+    final seats = (json['seats_booked'] as num?)?.toInt() ?? 1;
+    final pricePerSeat = (trip['price_per_seat'] as num?)?.toDouble() ?? 0.0;
+
+    // 15-minute window from creation time
+    const windowSec = 15 * 60;
+    var expiresIn = windowSec;
+    final createdAtStr = json['created_at'] as String?;
+    if (createdAtStr != null) {
+      try {
+        final elapsed = DateTime.now()
+            .difference(DateTime.parse(createdAtStr).toLocal())
+            .inSeconds;
+        expiresIn = (windowSec - elapsed).clamp(0, windowSec);
+      } catch (_) {}
+    }
+
+    return LiveReservationRequest(
+      id: json['uuid'] as String? ?? json['id'].toString(),
+      passengerName: name,
+      passengerInitial: name[0].toUpperCase(),
+      rating: (passenger['average_rating'] as num?)?.toDouble() ?? 0.0,
+      tripsCount: (passenger['trips_count'] as num?)?.toInt() ?? 0,
+      isVerified: passenger['is_verified'] as bool? ?? false,
+      routeLabel: '$departureCity → $arrivalCity',
+      pickupPoint: pickupPoint,
+      dropoffPoint: dropoffPoint,
+      seats: seats,
+      amount: pricePerSeat * seats,
+      paymentConfirmed: json['payment_status'] == 'escrow_locked',
+      expiresInSeconds: expiresIn,
+      status: _parseStatus(json['status'] as String? ?? 'pending'),
+      phone: passenger['phone'] as String?,
+    );
+  }
+
+  static String _resolvePoint(String? point, String? neighborhood, String city) {
+    if (point != null && point.isNotEmpty) return point;
+    if (neighborhood != null && neighborhood.isNotEmpty) return '$neighborhood, $city';
+    return city;
+  }
+
+  static ReservationStatus _parseStatus(String s) => switch (s) {
+        'accepted'  => ReservationStatus.accepted,
+        'rejected'  => ReservationStatus.rejected,
+        'cancelled' => ReservationStatus.rejected,
+        _           => ReservationStatus.pending,
+      };
+
+  // ── Computed ──────────────────────────────────────────────────────────────
 
   String get amountLabel =>
       '${amount.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]} ')} FCFA';
@@ -75,6 +159,12 @@ class LiveReservationRequest {
     return '${m}m ${s.toString().padLeft(2, '0')}s';
   }
 
+  Color get borderColor => switch (urgency) {
+        ReservationUrgency.critical => const Color(0xFFE53935),
+        ReservationUrgency.warning  => const Color(0xFFF59E0B),
+        ReservationUrgency.normal   => AppColors.border,
+      };
+
   void startTimer(VoidCallback onExpire) {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -88,102 +178,61 @@ class LiveReservationRequest {
   }
 
   void cancelTimer() => _timer?.cancel();
-
-  Color get borderColor {
-    return switch (urgency) {
-      ReservationUrgency.critical => const Color(0xFFE53935),
-      ReservationUrgency.warning => const Color(0xFFF59E0B),
-      ReservationUrgency.normal => AppColors.border,
-    };
-  }
 }
 
-enum ReservationTab { pending, accepted, rejected }
+// ── Controller ───────────────────────────────────────────────────────────────
 
 class ReservationsController extends GetxController {
+  BookingService get _service => Get.find<BookingService>();
+
   final Rx<ReservationTab> selectedTab = ReservationTab.pending.obs;
   final RxBool isLoading = false.obs;
 
-  final RxList<LiveReservationRequest> pendingRequests = <LiveReservationRequest>[
-    LiveReservationRequest(
-      id: 'r1',
-      passengerName: 'Aminata Koné',
-      passengerInitial: 'A',
-      rating: 4.9,
-      tripsCount: 127,
-      isVerified: true,
-      routeLabel: 'Cotonou → Porto-Novo',
-      pickupPoint: 'Carrefour Tokpa, devant Ecobank',
-      dropoffPoint: 'Université Abomey-Calavi',
-      seats: 2,
-      amount: 5000,
-      paymentConfirmed: true,
-      expiresInSeconds: 272,
-    ),
-    LiveReservationRequest(
-      id: 'r2',
-      passengerName: 'Kwame Asante',
-      passengerInitial: 'K',
-      rating: 4.7,
-      tripsCount: 89,
-      isVerified: true,
-      routeLabel: 'Cotonou → Porto-Novo',
-      pickupPoint: 'Akpakpa, Carrefour Fiat',
-      dropoffPoint: 'Centre Porto-Novo',
-      seats: 1,
-      amount: 2500,
-      paymentConfirmed: true,
-      expiresInSeconds: 78,
-    ),
-    LiveReservationRequest(
-      id: 'r3',
-      passengerName: 'Fatou Diallo',
-      passengerInitial: 'F',
-      rating: 5.0,
-      tripsCount: 45,
-      isVerified: true,
-      routeLabel: 'Calavi → Bohicon',
-      pickupPoint: 'Carrefour Godomey',
-      dropoffPoint: 'Bohicon Centre',
-      seats: 3,
-      amount: 7500,
-      paymentConfirmed: false,
-      expiresInSeconds: 1390,
-    ),
-  ].obs;
-
-  final RxList<LiveReservationRequest> acceptedRequests = <LiveReservationRequest>[
-    LiveReservationRequest(
-      id: 'r4',
-      passengerName: 'Mariam Yessoufou',
-      passengerInitial: 'M',
-      rating: 4.8,
-      tripsCount: 62,
-      isVerified: true,
-      routeLabel: 'Cotonou → Abomey',
-      pickupPoint: 'Ganhi',
-      dropoffPoint: 'Abomey Centre',
-      seats: 2,
-      amount: 5500,
-      paymentConfirmed: true,
-      expiresInSeconds: 0,
-      status: ReservationStatus.accepted,
-    ),
-  ].obs;
-
+  final RxList<LiveReservationRequest> pendingRequests  = <LiveReservationRequest>[].obs;
+  final RxList<LiveReservationRequest> acceptedRequests = <LiveReservationRequest>[].obs;
   final RxList<LiveReservationRequest> rejectedRequests = <LiveReservationRequest>[].obs;
 
-  int get pendingCount => pendingRequests.length;
+  int get pendingCount  => pendingRequests.length;
   int get acceptedCount => acceptedRequests.length;
   int get rejectedCount => rejectedRequests.length;
 
   @override
   void onInit() {
     super.onInit();
-    _startAllTimers();
+    _loadBookings();
   }
 
-  void _startAllTimers() {
+  Future<void> _loadBookings() async {
+    isLoading.value = true;
+    final result = await _service.fetchDriverBookings();
+    isLoading.value = false;
+
+    if (!result.isSuccess) {
+      UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+      return;
+    }
+
+    final pending  = <LiveReservationRequest>[];
+    final accepted = <LiveReservationRequest>[];
+    final rejected = <LiveReservationRequest>[];
+
+    for (final json in result.data!) {
+      final req = LiveReservationRequest.fromJson(json);
+      switch (req.status) {
+        case ReservationStatus.pending:
+          pending.add(req);
+        case ReservationStatus.accepted:
+          accepted.add(req);
+        case ReservationStatus.rejected:
+        case ReservationStatus.expired:
+          rejected.add(req);
+      }
+    }
+
+    pendingRequests.assignAll(pending);
+    acceptedRequests.assignAll(accepted);
+    rejectedRequests.assignAll(rejected);
+
     for (final r in pendingRequests) {
       r.startTimer(() => _onExpired(r));
     }
@@ -200,28 +249,30 @@ class ReservationsController extends GetxController {
     );
   }
 
-  void onAccept(LiveReservationRequest r) {
+  Future<void> onAccept(LiveReservationRequest r) async {
     r.cancelTimer();
+    final result = await _service.acceptBooking(r.id);
+
+    if (!result.isSuccess) {
+      UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+      r.startTimer(() => _onExpired(r));
+      return;
+    }
+
     r.status = ReservationStatus.accepted;
     pendingRequests.remove(r);
     acceptedRequests.insert(0, r);
-    UIHelper().showSnackBar(
-      'MINIZON',
-      '✅ Réservation de ${r.passengerName} acceptée !',
-      0,
-    );
+    UIHelper().showSnackBar('MINIZON', '✅ Réservation de ${r.passengerName} acceptée !', 0);
   }
 
-  void onReject(LiveReservationRequest r) {
-    _showRejectDialog(r);
-  }
+  void onReject(LiveReservationRequest r) => _showRejectDialog(r);
 
   void _showRejectDialog(LiveReservationRequest r) {
     Get.dialog(
       AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Refuser la demande ?',
-            style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700)),
+        title: const Text('Refuser la demande ?',
+            style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700)),
         content: Text(
           'La demande de ${r.passengerName} sera annulée et le passager sera notifié.',
           style: const TextStyle(fontFamily: 'Inter', color: Color(0xFF4B5563)),
@@ -244,8 +295,16 @@ class ReservationsController extends GetxController {
     );
   }
 
-  void _confirmReject(LiveReservationRequest r) {
+  Future<void> _confirmReject(LiveReservationRequest r) async {
     r.cancelTimer();
+    final result = await _service.rejectBooking(r.id);
+
+    if (!result.isSuccess) {
+      UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+      r.startTimer(() => _onExpired(r));
+      return;
+    }
+
     r.status = ReservationStatus.rejected;
     pendingRequests.remove(r);
     rejectedRequests.insert(0, r);
@@ -265,19 +324,28 @@ class ReservationsController extends GetxController {
           mainAxisSize: MainAxisSize.min,
           children: [
             Center(
-              child: Container(width: 40, height: 4,
-                  decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(9999))),
+              child: Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(9999),
+                ),
+              ),
             ),
             const SizedBox(height: 20),
             Container(
               width: 72, height: 72,
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.12),
+                color: AppColors.primary.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: Center(
                 child: Text(r.passengerInitial,
-                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: AppColors.primary)),
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
+                    )),
               ),
             ),
             const SizedBox(height: 12),
@@ -339,7 +407,11 @@ class ReservationsController extends GetxController {
                     Icon(Icons.call_rounded, color: Colors.white, size: 18),
                     SizedBox(width: 8),
                     Text('Appeler le passager',
-                        style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white, fontSize: 15)),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          fontSize: 15,
+                        )),
                   ],
                 ),
               ),
@@ -353,7 +425,7 @@ class ReservationsController extends GetxController {
   }
 
   void onCallPassenger(LiveReservationRequest r) {
-    const phone = '+229 97 XX XX XX';
+    final phone = r.phone ?? 'Non disponible';
     Get.dialog(
       AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -361,7 +433,7 @@ class ReservationsController extends GetxController {
           Container(
             width: 40, height: 40,
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.12),
+              color: AppColors.primary.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
             child: Center(
@@ -370,8 +442,10 @@ class ReservationsController extends GetxController {
             ),
           ),
           const SizedBox(width: 12),
-          Expanded(child: Text(r.passengerName,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700))),
+          Expanded(
+            child: Text(r.passengerName,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          ),
         ]),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -382,9 +456,13 @@ class ReservationsController extends GetxController {
                 color: const Color(0xFFE6F7EF),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text(phone,
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900,
-                      color: AppColors.primary, letterSpacing: 1)),
+              child: Text(phone,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.primary,
+                    letterSpacing: 1,
+                  )),
             ),
             const SizedBox(height: 8),
             const Text('Numéro masqué pour votre sécurité',
@@ -393,19 +471,23 @@ class ReservationsController extends GetxController {
         ),
         actions: [
           TextButton(onPressed: Get.back, child: const Text('Fermer')),
-          TextButton(
-            onPressed: () {
-              Clipboard.setData(const ClipboardData(text: phone));
-              Get.back();
-              UIHelper().showSnackBar('MINIZON', 'Numéro copié.', 0);
-            },
-            child: const Text('Copier',
-                style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
-          ),
+          if (r.phone != null)
+            TextButton(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: phone));
+                Get.back();
+                UIHelper().showSnackBar('MINIZON', 'Numéro copié.', 0);
+              },
+              child: const Text('Copier',
+                  style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
+            ),
         ],
       ),
     );
   }
+
+  @override
+  Future<void> refresh() => _loadBookings();
 
   void onNotifications() => Get.toNamed(AppRoutes.driverNotifications);
 
@@ -419,6 +501,8 @@ class ReservationsController extends GetxController {
     super.onClose();
   }
 }
+
+// ── Helper widget (utilisé dans onViewPassenger) ──────────────────────────────
 
 class _PassengerInfoRow extends StatelessWidget {
   const _PassengerInfoRow({required this.label, required this.value});
@@ -434,7 +518,11 @@ class _PassengerInfoRow extends StatelessWidget {
         Flexible(
           child: Text(value,
               textAlign: TextAlign.right,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              )),
         ),
       ],
     );

@@ -15,7 +15,6 @@ class AppStrings {
   static const String onboarding1Title = 'Voyagez moins \ncher';
   static const String onboarding1Description =
       'Partagez vos trajets avec d\'autres \nvoyageurs et économisez jusqu\'à \n60% sur vos déplacements \nquotidiens';
-  static const String onboardingNext = 'Suivant';
   // Onboarding 2
   static const String onboarding2Title = 'Voyagez en \nsécurité';
   static const String onboarding2Description =
@@ -57,7 +56,6 @@ class AppStrings {
   static const String otpSubtitle = 'Entrez le code à 6 chiffres envoyé au';
   static const String otpResendQuestion = 'Vous n\'avez pas reçu le code ?';
   static const String otpResendPrefix = 'Renvoyer dans ';
-  static const String otpResendSuffix = 's';
   static const String otpResendAction = 'Renvoyer le code';
   static const String otpSafetyTitle = 'Sécurité garantie';
   static const String otpSafetyMessage =
@@ -67,7 +65,6 @@ class AppStrings {
 
   // Complete profile / driver
   static const String profileProgressLabel = 'Progression profil';
-  static const String profileProgressValue = '75%';
   static const String profileHeroTitle = 'Complétez votre profil';
   static const String profileHeroSubtitle =
       'Commencez à gagner avec vos trajets';
@@ -75,7 +72,6 @@ class AppStrings {
   static const String profileSectionPersonal = 'Informations personnelles';
   static const String profileSectionVehicle = 'Informations véhicule';
   static const String profileSectionDocuments = 'Documents requis';
-  static const String profileSectionTrust = 'Niveau de confiance';
   static const String profileSectionProgress = 'Profil complété à 75%';
   static const String profileSectionProgressHint = 'Encore quelques étapes';
   static const String profileSectionPhoneVerified = 'Numéro vérifié';
@@ -99,13 +95,6 @@ class AppStrings {
       'Document d\'immatriculation';
   static const String profileFieldLicense = 'Permis de conduire';
   static const String profileFieldLicenseHint = 'Document valide';
-  static const String profileDriverType = 'Type de conducteur';
-  static const String profileDriverCar = 'Conducteur voiture';
-  static const String profileDriverCarHint = '4-7 passagers';
-  static const String profileDriverMoto = 'Conducteur moto';
-  static const String profileDriverMotoHint = '1 passager';
-  static const String profileVehicleBrandValue = 'Toyota';
-  static const String profileVehicleModelValue = 'Corolla';
   static const String profileVehicleColorValue = 'Blanc';
   static const String profileVehicleSeatsValue = '4';
   static const String profileVehiclePlateValue = 'AB-1234-CD';
@@ -117,7 +106,6 @@ class AppStrings {
   static const String profileFieldGender = 'Genre';
   static const String profileFieldGenderMale = 'Homme';
   static const String profileFieldGenderFemale = 'Femme';
-  static const String profileFieldGenderOther = 'Autre';
   static const String profileFieldCity = 'Ville';
   static const String profileFieldCityHint = 'Ex : Cotonou';
   static const String profileFieldNeighborhood = 'Quartier';
@@ -140,13 +128,11 @@ class AppStrings {
   // Complete profile / passenger
   static const String passengerProgressLabel = 'Progression du profil';
   static const String passengerProgressValue = '60%';
-  static const String passengerPlanTitle = 'Profil Premium';
   static const String passengerHeroTitle = 'Créez votre profil';
   static const String passengerHeroSubtitle =
       'Complétez votre profil pour une expérience personnalisée et sécurisée';
   static const String passengerHeroBadge = 'PREMIUM';
   static const String passengerHeroTime = '3 minutes seulement';
-  static const String passengerPhotoTitle = 'Ajouter une photo de profil';
   static const String passengerSectionPersonal = 'Informations personnelles';
   static const String passengerSectionBenefits = 'Avantages Premium';
   static const String passengerEmailNote =
@@ -156,7 +142,6 @@ class AppStrings {
   static const String passengerFieldFirstName = 'Prénom';
   static const String passengerFieldFirstNameHint = 'Votre prénom';
   static const String passengerFieldEmail = 'Email';
-  static const String passengerFieldEmailOptional = '(optionnel)';
   static const String passengerFieldEmailHint = 'votre.email@exemple.com';
   static const String passengerBenefitOne = 'Profil vérifié et sécurisé';
   static const String passengerBenefitTwo = 'Réservations prioritaires';
@@ -232,12 +217,6 @@ class AppStrings {
   static const String driverProfileSectionVehicles = 'Mes Véhicules';
   static const String driverProfileAddVehicle = 'Ajouter';
   static const String driverProfileVehicleActive = 'ACTIF';
-  static const String driverProfileVehicleToyota = 'Toyota Corolla';
-  static const String driverProfileVehicleToyotaMeta = 'Grise • 4 places';
-  static const String driverProfileVehicleToyotaPlate = 'AB-1234-CT';
-  static const String driverProfileVehicleHonda = 'Honda Civic';
-  static const String driverProfileVehicleHondaMeta = 'Noire • 4 places';
-  static const String driverProfileVehicleHondaPlate = 'CD-5678-CT';
   static const String driverProfilePending = 'En attente';
   static const String driverProfileSectionDocuments = 'Documents & Sécurité';
   static const String driverProfileDocumentLicense = 'Permis de conduire';
@@ -252,11 +231,6 @@ class AppStrings {
       'Performance & Récompenses';
   static const String driverProfileCurrentLevel = 'Niveau actuel';
   static const String driverProfileCurrentLevelValue = 'Conducteur Elite';
-  static const String driverProfileProgressLabel = 'Progression';
-  static const String driverProfileProgressValue = '75%';
-  static const String driverProfileBadgeCount = '12 Badges';
-  static const String driverProfileTopPercent = 'Top 5%';
-  static const String driverProfileBonusCount = '8 Bonus';
   static const String driverProfileSectionPreferences =
       'Préférences d\'activité';
   static const String driverProfileAutoAvailability = 'Disponibilité auto';
@@ -268,24 +242,6 @@ class AppStrings {
   static const String driverProfilePrivacy = 'Confidentialité';
   static const String driverProfileSecurity = 'Sécurité';
   static const String driverProfileLanguage = 'Langue';
-  static const String driverProfileFrench = 'Français';
-
-  // Driver reservations
-  static const String driverReservationsTitle = 'Demandes passagers';
-  static const String driverReservationsSubtitle = '3 nouvelles demandes';
-  static const String driverReservationsAll = 'Toutes';
-  static const String driverReservationsNew = 'Nouvelles';
-  static const String driverReservationsPending = 'En attente';
-  static const String driverReservationsNewLabel = 'Nouveau';
-  static const String driverReservationsAcceptedLabel = 'Accepter';
-  static const String driverReservationsRejectedLabel = 'Refuser';
-  static const String driverReservationsPaymentConfirmed =
-      'Paiement mobile confirmé';
-  static const String driverReservationsPaymentPending =
-      'En attente de confirmation';
-  static const String driverReservationsSeeDetails = 'Détails';
-  static const String driverReservationsNotifications =
-      'Aucune nouvelle notification.';
 
   // Bottom navigation
   static const String navHome = 'Accueil';
@@ -294,7 +250,6 @@ class AppStrings {
   static const String navReservations = 'Réservations';
   static const String navMessages = 'Messages';
   static const String navSearch = 'Recherche';
-  static const String navNotifications = 'Notifications';
   static const String navProfile = 'Profil';
 
   // Passenger messenger
@@ -307,17 +262,11 @@ class AppStrings {
   static const String messengerRoleDriver = 'Conducteur';
   static const String messengerRolePassenger = 'Passager';
   static const String messengerRoleSupport = 'Support';
-  static const String messengerOpen = 'Ouvrir';
-  static const String messengerDetailToday = 'Aujourd\'hui';
   static const String messengerDetailMapAction = 'Voir sur la carte';
   static const String messengerDetailInputHint = 'Tapez votre message...';
-  static const String messengerDetailReminder =
-      'Rappel : Partagez uniquement les informations nécessaires pour le trajet.';
   static const String messengerDetailNow = 'À l\'instant';
 
   // Passenger reservations
-  static const String reservationTitle = 'Mes Réservations';
-  // Reservation / detail
   static const String reservationDetailTitle = 'Détails du trajet';
   static const String reservationVehicleTitle = 'Véhicule';
   static const String reservationItineraryTitle = 'Itinéraire';
@@ -343,8 +292,6 @@ class AppStrings {
   static const String reservationSmokingText =
       'Interdiction de fumer dans le véhicule';
   static const String reservationMoodText = 'Musique douce acceptée';
-  static const String reservationDriverSection = 'Conducteur';
-  static const String reservationVehiclePlateLabel = 'Plaque';
   static const String reservationVehicleCondition = 'Grise • 2021';
   static const String reservationVehicleAttribute = 'Climatisée';
   static const String reservationJourneyDeparture = 'Départ';
@@ -355,23 +302,6 @@ class AppStrings {
   static const String reservationSamplePlate = 'AB-1234-BJ';
   static const String reservationSampleReview =
       'Conducteur très ponctuel et agréable. Véhicule propre et confortable.';
-  static const String reservationSamplePrice = '2,625 FCFA';
-  static const String reservationPaymentTitle = 'Paiement';
-  static const String reservationTripSummaryTitle = 'Résumé du trajet';
-  static const String reservationSecureBadge = 'Sécurisé';
-  static const String reservationPaymentMethodSectionTitle =
-      'Méthode de paiement';
-  static const String reservationPhoneNumberLabel = 'Numéro de téléphone';
-  static const String reservationCardNumberLabel = 'Numéro de carte';
-  static const String reservationPhoneInputHint = '66 77 88 45';
-  static const String reservationCardInputHint = '**** **** **** 1234';
-  static const String reservationCardExpiryLabel = 'Date d\'expiration';
-  static const String reservationCardExpiryHint = 'MM/AA';
-  static const String reservationCardCodeLabel = 'Code';
-  static const String reservationCardCodeHint = '123';
-  static const String reservationTripPriceLabel = 'Prix du trajet';
-  static const String reservationTotalLabel = 'Total';
-  static const String reservationConfirmPaymentButton = 'Confirmer le paiement';
   static const String reservationConfirmationTitle = 'Confirmer la réservation';
   static const String reservationConfirmedBadge = 'Confirmé';
   static const String reservationSeatsTitle = 'Nombre de places';
@@ -387,36 +317,15 @@ class AppStrings {
   static const String reservationSafetyTitle = 'Trajet sécurisé';
   static const String reservationSafetyText =
       'Conducteur vérifié • Assurance incluse • Support 24/7';
+  static const String reservationPhoneNumberLabel = 'Numéro de téléphone';
+  static const String reservationCardNumberLabel = 'Numéro de carte';
+  static const String reservationCardExpiryLabel = 'Date d\'expiration';
+  static const String reservationCardExpiryHint = 'MM/AA';
+  static const String reservationCardCodeLabel = 'Code';
+  static const String reservationCardCodeHint = '123';
   static const String reservationConfirmButton = 'Confirmer';
-  static const String reservationStatusPending = 'En attente';
-  static const String reservationStatusConfirmed = 'Confirmés';
-  static const String reservationStatusCompleted = 'Terminés';
-  static const String reservationStatusCancelled = 'Annulés';
   static const String reservationPerSeat = 'par place';
   static const String reservationCancel = 'Annuler';
-  static const String reservationContact = 'Contacter';
-
-  // Passenger search
-  static const String searchTitle = 'Rechercher un trajet';
-  static const String searchSubtitle =
-      'Trouvez rapidement un trajet adapté à votre départ et à votre arrivée.';
-  static const String searchFromLabel = 'Départ';
-  static const String searchToLabel = 'Arrivée';
-  static const String searchDateLabel = 'Date';
-  static const String searchPassengersLabel = 'Passagers';
-  static const String searchPopularTrips = 'Trajets populaires';
-  static const String searchAvailableNow = 'Disponibles maintenant';
-  static const String searchRecommendedDrivers = 'Conducteurs recommandés';
-  static const String searchQuickFilters = 'Filtres rapides';
-  static const String searchSeeAll = 'Voir tout';
-  static const String searchReserve = 'Réserver maintenant';
-  static const String searchPeopleUnit = 'par personne';
-  static const String searchDurationUnit = 'min';
-  static const String searchSeatsUnit = 'places';
-  static const String searchNoResults =
-      'Aucun trajet trouvé pour ces critères.';
-  static const String searchReset = 'Réinitialiser';
-  static const String searchApply = 'Appliquer';
 
   // Passenger home
   static const String homeHeroTitle =
@@ -430,16 +339,12 @@ class AppStrings {
   static const String homeSpecialOffers = 'Offres spéciales';
   static const String homeRecentActivity = 'Activité récente';
   static const String homeViewAll = 'Voir tout';
+  static const String searchReserve = 'Réserver maintenant';
   static const String homePerSeat = 'par place';
   static const String homeRepeat = 'Refaire';
   static const String homeToday = 'Aujourd\'hui';
   static const String homeTomorrow = 'Demain';
 
-  // Dashboard header
-  static const String dashboardHeaderDriverTitle = 'Bonjour chauffeur 👋';
-  static const String dashboardHeaderPassengerTitle = 'Bonjour passager 👋';
-  static const String dashboardHeaderLocation = 'Cotonou';
-  static const String dashboardHeaderNotifications = 'Notifications';
   // Dashboard / Driver
   static const String dashboardPerformance = 'Performance du jour';
   static const String dashboardQuickActions = 'Actions rapides';
@@ -447,18 +352,10 @@ class AppStrings {
   static const String dashboardNextTrip = 'Prochain trajet';
   static const String dashboardRecentRequests = 'Demandes récentes';
   static const String dashboardTwoNew = '2 nouvelles';
-  static const String availability = 'Disponibilité';
-  static const String youAreOnline = 'Vous êtes en ligne';
-  static const String pause = 'Pause';
-  static const String nightMode = 'Mode nuit';
-  static const String confirmed = 'Confirmé';
-  static const String seeDetails = 'Voir détails';
-  static const String contact = 'Contacter';
+  static const String blockedEarnings = 'Gains bloqués (en cours)';
+  static const String walletAvailable = 'Solde disponible';
   static const String accept = 'Accepter';
   static const String reject = 'Refuser';
-  static const String blockedEarnings = 'Gains bloqués (en cours)';
-  static const String currentLevel = 'Niveau actuel';
-  static const String walletAvailable = 'Solde disponible';
 
   // Driver revenues
   static const String revenuesTitle = 'Mon Portefeuille';
@@ -474,11 +371,6 @@ class AppStrings {
   static const String revenuesMethodsTitle = 'Méthodes de retrait';
   static const String revenuesAddMethod = 'Ajouter une méthode';
   static const String revenuesCurrency = 'FCFA';
-  static const String revenuesThisMonth = 'Ce mois';
-  static const String revenuesAveragePerDay = 'Moy. / jour';
-  static const String revenuesPendingLabel = 'En attente';
-  static const String revenuesCompletedLabel = 'Complété';
-  static const String revenuesValidatedLabel = 'Validé';
 
   // Driver trips
   static const String driverTripsTitle = 'Mes Trajets';

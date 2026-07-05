@@ -3,9 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
+import 'package:covoiturage_benin_app/app/core/services/driver/support/support_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
-import 'package:covoiturage_benin_app/app/data/providers/support_provider.dart';
 
 // ── Models ────────────────────────────────────────────────────────────────────
 
@@ -61,7 +61,10 @@ class FaqTopic {
 // ── Controller ────────────────────────────────────────────────────────────────
 
 class DriverSupportController extends GetxController {
-  final _provider = SupportProvider();
+  static const _kSupportPhone    = '+229 21 31 00 00';
+  static const _kSupportWhatsApp = '+229 21 31 00 01';
+
+  SupportService get _service => Get.find<SupportService>();
 
   final RxString searchQuery          = ''.obs;
   final RxBool isLoadingFaq           = true.obs;
@@ -78,7 +81,7 @@ class DriverSupportController extends GetxController {
 
   Future<void> _loadFaq() async {
     isLoadingFaq.value = true;
-    final result = await _provider.fetchFaq();
+    final result = await _service.fetchFaq();
     isLoadingFaq.value = false;
     if (result.isSuccess) {
       topics.assignAll(result.data!.map(FaqTopic.fromJson).toList());
@@ -89,7 +92,7 @@ class DriverSupportController extends GetxController {
 
   Future<void> _loadTickets() async {
     isLoadingTickets.value = true;
-    final result = await _provider.fetchTickets();
+    final result = await _service.fetchTickets();
     isLoadingTickets.value = false;
     if (result.isSuccess) {
       tickets.assignAll(result.data!);
@@ -110,12 +113,14 @@ class DriverSupportController extends GetxController {
     final subjectCtrl  = TextEditingController();
     final descCtrl     = TextEditingController();
     final isSubmitting = false.obs;
+    final priority     = 'medium'.obs;
 
     await Get.bottomSheet(
       _NewTicketSheet(
         subjectCtrl: subjectCtrl,
         descCtrl: descCtrl,
         isSubmitting: isSubmitting,
+        priority: priority,
         onSubmit: () async {
           final subject     = subjectCtrl.text.trim();
           final description = descCtrl.text.trim();
@@ -124,7 +129,11 @@ class DriverSupportController extends GetxController {
             return;
           }
           isSubmitting.value = true;
-          final result = await _provider.createTicket(subject: subject, description: description);
+          final result = await _service.createTicket(
+            subject: subject,
+            description: description,
+            priority: priority.value,
+          );
           isSubmitting.value = false;
           if (result.isSuccess) {
             Get.back();
@@ -141,7 +150,7 @@ class DriverSupportController extends GetxController {
   }
 
   void onLiveChat() {
-    const whatsapp = '+229 21 31 00 01';
+    const whatsapp = _kSupportWhatsApp;
     Get.dialog(
       AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -175,9 +184,9 @@ class DriverSupportController extends GetxController {
               icon: Icons.headset_mic_rounded,
               color: const Color(0xFF6366F1),
               title: 'Support téléphonique',
-              subtitle: '+229 21 31 00 00',
+              subtitle: _kSupportPhone,
               onTap: () {
-                Clipboard.setData(const ClipboardData(text: '+229 21 31 00 00'));
+                Clipboard.setData(const ClipboardData(text: _kSupportPhone));
                 Get.back();
                 UIHelper().showSnackBar('MINIZON', 'Numéro copié dans le presse-papiers.', 0);
               },
@@ -192,7 +201,7 @@ class DriverSupportController extends GetxController {
   }
 
   void onCall() {
-    const supportNumber = '+229 21 31 00 00';
+    const supportNumber = _kSupportPhone;
     Get.dialog(
       AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -403,11 +412,13 @@ class _NewTicketSheet extends StatelessWidget {
     required this.subjectCtrl,
     required this.descCtrl,
     required this.isSubmitting,
+    required this.priority,
     required this.onSubmit,
   });
   final TextEditingController subjectCtrl;
   final TextEditingController descCtrl;
   final RxBool isSubmitting;
+  final RxString priority;
   final VoidCallback onSubmit;
 
   @override
@@ -485,6 +496,19 @@ class _NewTicketSheet extends StatelessWidget {
                   ),
                 ),
               ),
+              const SizedBox(height: 14),
+              const Text('Priorité',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              Obx(() => Row(
+                    children: [
+                      _PriorityChip(label: 'Faible',  value: 'low',    selected: priority.value == 'low',    color: const Color(0xFF00A86B), onTap: () => priority.value = 'low'),
+                      const SizedBox(width: 8),
+                      _PriorityChip(label: 'Moyenne', value: 'medium', selected: priority.value == 'medium', color: const Color(0xFFF59E0B), onTap: () => priority.value = 'medium'),
+                      const SizedBox(width: 8),
+                      _PriorityChip(label: 'Haute',   value: 'high',   selected: priority.value == 'high',   color: const Color(0xFFEF4444), onTap: () => priority.value = 'high'),
+                    ],
+                  )),
               const SizedBox(height: 24),
               Obx(() => GestureDetector(
                     onTap: isSubmitting.value ? null : onSubmit,
@@ -511,6 +535,49 @@ class _NewTicketSheet extends StatelessWidget {
                     ),
                   )),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Priority chip ─────────────────────────────────────────────────────────────
+
+class _PriorityChip extends StatelessWidget {
+  const _PriorityChip({
+    required this.label,
+    required this.value,
+    required this.selected,
+    required this.color,
+    required this.onTap,
+  });
+  final String label;
+  final String value;
+  final bool selected;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? color.withValues(alpha: 0.12) : AppColors.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? color : AppColors.border,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+            color: selected ? color : AppColors.textMuted,
           ),
         ),
       ),

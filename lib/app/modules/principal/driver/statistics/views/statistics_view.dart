@@ -28,31 +28,44 @@ class StatisticsView extends StatelessWidget {
             constraints: BoxConstraints(maxWidth: r.maxContentWidth),
             child: Column(
               children: [
-                _Header(r: r),
+                _Header(r: r, controller: controller),
                 _PeriodTabs(r: r, controller: controller),
                 Expanded(
                   child: Obx(() {
                     if (controller.isLoading.value) {
                       return const Center(child: CircularProgressIndicator());
                     }
+
+                    if (controller.hasError.value) {
+                      return _ErrorState(r: r, onRetry: controller.refresh);
+                    }
+
                     final stats = controller.currentStats;
-                    return ListView(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: r.adaptive(phone: 16, smallPhone: 14, tablet: 20, desktop: 24),
+                    return RefreshIndicator(
+                      onRefresh: controller.refresh,
+                      color: AppColors.primary,
+                      child: ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: r.adaptive(
+                              phone: 16, smallPhone: 14, tablet: 20, desktop: 24),
+                        ),
+                        children: [
+                          SizedBox(height: r.adaptive(phone: 16, smallPhone: 12, tablet: 18, desktop: 20)),
+                          _RevenueHero(r: r, stats: stats, controller: controller),
+                          SizedBox(height: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
+                          _MetricsGrid(r: r, stats: stats),
+                          SizedBox(height: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
+                          if (stats.chartData.isNotEmpty)
+                            _ChartCard(r: r, stats: stats),
+                          if (stats.chartData.isNotEmpty)
+                            SizedBox(height: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
+                          _PerformanceCard(r: r, stats: stats),
+                          SizedBox(height: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
+                          _BadgesCard(r: r),
+                          SizedBox(height: r.adaptive(phone: 24, smallPhone: 20, tablet: 28, desktop: 32)),
+                        ],
                       ),
-                      children: [
-                        SizedBox(height: r.adaptive(phone: 16, smallPhone: 12, tablet: 18, desktop: 20)),
-                        _RevenueHero(r: r, stats: stats, controller: controller),
-                        SizedBox(height: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-                        _MetricsGrid(r: r, stats: stats),
-                        SizedBox(height: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-                        _ChartCard(r: r, stats: stats),
-                        SizedBox(height: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-                        _PerformanceCard(r: r, stats: stats),
-                        SizedBox(height: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-                        _BadgesCard(r: r),
-                        SizedBox(height: r.adaptive(phone: 24, smallPhone: 20, tablet: 28, desktop: 32)),
-                      ],
                     );
                   }),
                 ),
@@ -65,9 +78,12 @@ class StatisticsView extends StatelessWidget {
   }
 }
 
+// ── Header ────────────────────────────────────────────────────────────────────
+
 class _Header extends StatelessWidget {
-  const _Header({required this.r});
+  const _Header({required this.r, required this.controller});
   final AppResponsive r;
+  final StatisticsController controller;
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +102,8 @@ class _Header extends StatelessWidget {
               height: r.adaptive(phone: 36, smallPhone: 32, tablet: 40, desktop: 44),
               decoration: BoxDecoration(
                 color: AppColors.surface,
-                borderRadius: BorderRadius.circular(r.adaptive(phone: 10, smallPhone: 9, tablet: 12, desktop: 14)),
+                borderRadius: BorderRadius.circular(
+                    r.adaptive(phone: 10, smallPhone: 9, tablet: 12, desktop: 14)),
               ),
               child: Icon(Icons.arrow_back_rounded,
                   size: r.adaptive(phone: 18, smallPhone: 16, tablet: 20, desktop: 22),
@@ -94,10 +111,32 @@ class _Header extends StatelessWidget {
             ),
           ),
           SizedBox(width: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-          Text('Mes statistiques',
+          Expanded(
+            child: Text(
+              'Mes statistiques',
               style: AppTextStyles.homeCardTitle(r).copyWith(
                 color: AppColors.textPrimary,
                 fontSize: r.adaptive(phone: 17, smallPhone: 15, tablet: 19, desktop: 21),
+              ),
+            ),
+          ),
+          // Refresh button
+          Obx(() => GestureDetector(
+                onTap: controller.isLoading.value ? null : controller.refresh,
+                child: Container(
+                  width: r.adaptive(phone: 36, smallPhone: 32, tablet: 40, desktop: 44),
+                  height: r.adaptive(phone: 36, smallPhone: 32, tablet: 40, desktop: 44),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(
+                        r.adaptive(phone: 10, smallPhone: 9, tablet: 12, desktop: 14)),
+                  ),
+                  child: Icon(Icons.refresh_rounded,
+                      size: r.adaptive(phone: 18, smallPhone: 16, tablet: 20, desktop: 22),
+                      color: controller.isLoading.value
+                          ? AppColors.textGhost
+                          : AppColors.textMuted),
+                ),
               )),
         ],
       ),
@@ -105,16 +144,18 @@ class _Header extends StatelessWidget {
   }
 }
 
+// ── Period tabs ───────────────────────────────────────────────────────────────
+
 class _PeriodTabs extends StatelessWidget {
   const _PeriodTabs({required this.r, required this.controller});
   final AppResponsive r;
   final StatisticsController controller;
 
   static const _labels = {
-    StatPeriod.day: 'Jour',
-    StatPeriod.week: 'Semaine',
+    StatPeriod.day:   'Jour',
+    StatPeriod.week:  'Semaine',
     StatPeriod.month: 'Mois',
-    StatPeriod.year: 'Année',
+    StatPeriod.year:  'Année',
   };
 
   @override
@@ -139,18 +180,21 @@ class _PeriodTabs extends StatelessWidget {
                             ? r.adaptive(phone: 6, smallPhone: 4, tablet: 8, desktop: 10)
                             : 0),
                     padding: EdgeInsets.symmetric(
-                      vertical: r.adaptive(phone: 8, smallPhone: 7, tablet: 9, desktop: 10),
+                      vertical:
+                          r.adaptive(phone: 8, smallPhone: 7, tablet: 9, desktop: 10),
                     ),
                     decoration: BoxDecoration(
                       color: isSelected ? AppColors.primary : AppColors.surface,
-                      borderRadius: BorderRadius.circular(r.adaptive(phone: 10, smallPhone: 9, tablet: 12, desktop: 14)),
+                      borderRadius: BorderRadius.circular(
+                          r.adaptive(phone: 10, smallPhone: 9, tablet: 12, desktop: 14)),
                     ),
                     child: Text(
                       _labels[p]!,
                       textAlign: TextAlign.center,
                       style: AppTextStyles.labelSmall(r).copyWith(
                         color: isSelected ? AppColors.white : AppColors.textMuted,
-                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                        fontWeight:
+                            isSelected ? FontWeight.w700 : FontWeight.w500,
                       ),
                     ),
                   ),
@@ -162,6 +206,77 @@ class _PeriodTabs extends StatelessWidget {
   }
 }
 
+// ── Error state ───────────────────────────────────────────────────────────────
+
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.r, required this.onRetry});
+  final AppResponsive r;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(r.adaptive(phone: 32, smallPhone: 24, tablet: 40, desktop: 48)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: r.adaptive(phone: 72, smallPhone: 64, tablet: 80, desktop: 88),
+              height: r.adaptive(phone: 72, smallPhone: 64, tablet: 80, desktop: 88),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceMuted,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.wifi_off_rounded,
+                size: r.adaptive(phone: 36, smallPhone: 32, tablet: 40, desktop: 44),
+                color: AppColors.textMuted,
+              ),
+            ),
+            SizedBox(height: r.adaptive(phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
+            Text(
+              'Impossible de charger les statistiques',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.bodyMedium(r)
+                  .copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+            ),
+            SizedBox(height: r.adaptive(phone: 8, smallPhone: 6, tablet: 10, desktop: 12)),
+            Text(
+              'Vérifiez votre connexion et réessayez.',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.bodySmall(r)
+                  .copyWith(color: AppColors.textMuted),
+            ),
+            SizedBox(height: r.adaptive(phone: 24, smallPhone: 20, tablet: 28, desktop: 32)),
+            GestureDetector(
+              onTap: onRetry,
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: r.adaptive(phone: 24, smallPhone: 20, tablet: 28, desktop: 32),
+                  vertical: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16),
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(
+                      r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+                ),
+                child: Text(
+                  'Réessayer',
+                  style: AppTextStyles.bodyMedium(r).copyWith(
+                      color: AppColors.white, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Revenue hero card ─────────────────────────────────────────────────────────
+
 class _RevenueHero extends StatelessWidget {
   const _RevenueHero({required this.r, required this.stats, required this.controller});
   final AppResponsive r;
@@ -171,28 +286,53 @@ class _RevenueHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(r.adaptive(phone: 20, smallPhone: 16, tablet: 24, desktop: 28)),
+      padding: EdgeInsets.all(
+          r.adaptive(phone: 20, smallPhone: 16, tablet: 24, desktop: 28)),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [Color(0xFF00A86B), Color(0xFF008F5A)],
         ),
-        borderRadius: BorderRadius.circular(r.adaptive(phone: 18, smallPhone: 16, tablet: 20, desktop: 24)),
+        borderRadius: BorderRadius.circular(
+            r.adaptive(phone: 18, smallPhone: 16, tablet: 20, desktop: 24)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            controller.periodLabel,
-            style: AppTextStyles.bodySmall(r).copyWith(color: Colors.white.withValues(alpha: 0.8)),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  controller.periodLabel,
+                  style: AppTextStyles.bodySmall(r)
+                      .copyWith(color: Colors.white.withValues(alpha: 0.8)),
+                ),
+              ),
+              // Net revenue badge
+              if (stats.netRevenue > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    'Net ${_formatAmount(stats.netRevenue)} FCFA',
+                    style: AppTextStyles.labelSmall(r).copyWith(
+                        color: Colors.white, fontWeight: FontWeight.w600),
+                  ),
+                ),
+            ],
           ),
           SizedBox(height: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8)),
           Text(
             '${stats.formattedRevenue} FCFA',
-            style: AppTextStyles.h3(r).copyWith(color: Colors.white, fontWeight: FontWeight.w800),
+            style: AppTextStyles.h3(r)
+                .copyWith(color: Colors.white, fontWeight: FontWeight.w800),
           ),
-          SizedBox(height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+          SizedBox(
+              height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
           Row(
             children: [
               Expanded(
@@ -201,22 +341,29 @@ class _RevenueHero extends StatelessWidget {
                   children: [
                     Text(
                       'Objectif ${(stats.objectiveRevenue / 1000).toStringAsFixed(0)}K FCFA',
-                      style: AppTextStyles.labelSmall(r).copyWith(color: Colors.white.withValues(alpha: 0.8)),
+                      style: AppTextStyles.labelSmall(r)
+                          .copyWith(color: Colors.white.withValues(alpha: 0.8)),
                     ),
-                    SizedBox(height: r.adaptive(phone: 4, smallPhone: 3, tablet: 5, desktop: 6)),
+                    SizedBox(
+                        height:
+                            r.adaptive(phone: 4, smallPhone: 3, tablet: 5, desktop: 6)),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(4),
                       child: LinearProgressIndicator(
                         value: stats.objectiveProgress,
                         backgroundColor: Colors.white.withValues(alpha: 0.2),
-                        valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                        minHeight: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8),
+                        valueColor:
+                            const AlwaysStoppedAnimation<Color>(Colors.white),
+                        minHeight: r.adaptive(
+                            phone: 6, smallPhone: 5, tablet: 7, desktop: 8),
                       ),
                     ),
                   ],
                 ),
               ),
-              SizedBox(width: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+              SizedBox(
+                  width: r.adaptive(
+                      phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
               Text(
                 '${(stats.objectiveProgress * 100).toStringAsFixed(0)}%',
                 style: AppTextStyles.bodyMedium(r).copyWith(
@@ -230,7 +377,15 @@ class _RevenueHero extends StatelessWidget {
       ),
     );
   }
+
+  String _formatAmount(double v) {
+    if (v >= 1000000) return '${(v / 1000000).toStringAsFixed(1)}M';
+    if (v >= 1000) return '${(v / 1000).toStringAsFixed(0)}K';
+    return v.toStringAsFixed(0);
+  }
 }
+
+// ── Metrics grid ──────────────────────────────────────────────────────────────
 
 class _MetricsGrid extends StatelessWidget {
   const _MetricsGrid({required this.r, required this.stats});
@@ -243,17 +398,53 @@ class _MetricsGrid extends StatelessWidget {
       children: [
         Row(
           children: [
-            Expanded(child: _MetricChip(r: r, icon: Icons.route_rounded, value: '${stats.tripsCount}', label: 'Trajets', color: AppColors.primary)),
+            Expanded(
+              child: _MetricChip(
+                r: r,
+                icon: Icons.route_rounded,
+                value: '${stats.tripsCount}',
+                label: 'Trajets',
+                color: AppColors.primary,
+              ),
+            ),
             SizedBox(width: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
-            Expanded(child: _MetricChip(r: r, icon: Icons.groups_rounded, value: '${stats.passengersCount}', label: 'Passagers', color: AppColors.accent)),
+            Expanded(
+              child: _MetricChip(
+                r: r,
+                icon: Icons.groups_rounded,
+                value: '${stats.passengersCount}',
+                label: 'Passagers',
+                color: AppColors.accent,
+              ),
+            ),
           ],
         ),
         SizedBox(height: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
         Row(
           children: [
-            Expanded(child: _MetricChip(r: r, icon: Icons.star_rounded, value: stats.averageRating.toStringAsFixed(1), label: 'Note moyenne', color: const Color(0xFF22C55E))),
+            Expanded(
+              child: _MetricChip(
+                r: r,
+                icon: Icons.star_rounded,
+                value: stats.averageRating > 0
+                    ? stats.averageRating.toStringAsFixed(1)
+                    : '—',
+                label: 'Note moyenne',
+                color: const Color(0xFF22C55E),
+              ),
+            ),
             SizedBox(width: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
-            Expanded(child: _MetricChip(r: r, icon: Icons.straighten_rounded, value: '${stats.distanceKm.toStringAsFixed(0)}km', label: 'Distance', color: AppColors.info)),
+            Expanded(
+              child: _MetricChip(
+                r: r,
+                icon: Icons.straighten_rounded,
+                value: stats.distanceKm > 0
+                    ? '${stats.distanceKm.toStringAsFixed(0)}km'
+                    : '0km',
+                label: 'Distance',
+                color: AppColors.info,
+              ),
+            ),
           ],
         ),
       ],
@@ -262,7 +453,13 @@ class _MetricsGrid extends StatelessWidget {
 }
 
 class _MetricChip extends StatelessWidget {
-  const _MetricChip({required this.r, required this.icon, required this.value, required this.label, required this.color});
+  const _MetricChip({
+    required this.r,
+    required this.icon,
+    required this.value,
+    required this.label,
+    required this.color,
+  });
   final AppResponsive r;
   final IconData icon;
   final String value;
@@ -272,10 +469,12 @@ class _MetricChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
+      padding: EdgeInsets.all(
+          r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
+        borderRadius: BorderRadius.circular(
+            r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
         border: Border.all(color: AppColors.border),
       ),
       child: Row(
@@ -285,26 +484,36 @@ class _MetricChip extends StatelessWidget {
             height: r.adaptive(phone: 36, smallPhone: 32, tablet: 40, desktop: 44),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(r.adaptive(phone: 10, smallPhone: 9, tablet: 12, desktop: 14)),
+              borderRadius: BorderRadius.circular(
+                  r.adaptive(phone: 10, smallPhone: 9, tablet: 12, desktop: 14)),
             ),
-            child: Icon(icon, size: r.adaptive(phone: 20, smallPhone: 18, tablet: 22, desktop: 24), color: color),
+            child: Icon(icon,
+                size:
+                    r.adaptive(phone: 20, smallPhone: 18, tablet: 22, desktop: 24),
+                color: color),
           ),
           SizedBox(width: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(value,
-                  style: AppTextStyles.bodyMedium(r).copyWith(
-                      color: AppColors.textPrimary, fontWeight: FontWeight.w800)),
-              Text(label,
-                  style: AppTextStyles.labelSmall(r).copyWith(color: AppColors.textMuted)),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(value,
+                    style: AppTextStyles.bodyMedium(r).copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w800)),
+                Text(label,
+                    style: AppTextStyles.labelSmall(r)
+                        .copyWith(color: AppColors.textMuted)),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 }
+
+// ── Bar chart card ────────────────────────────────────────────────────────────
 
 class _ChartCard extends StatelessWidget {
   const _ChartCard({required this.r, required this.stats});
@@ -313,55 +522,102 @@ class _ChartCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final maxAmount = stats.chartData.map((p) => p.amount).reduce((a, b) => a > b ? a : b);
+    final data = stats.chartData;
+    // Guard: render nothing when data is empty
+    if (data.isEmpty) return const SizedBox.shrink();
+
+    final maxAmount = data.map((p) => p.amount).fold<double>(
+          0.0,
+          (prev, el) => el > prev ? el : prev,
+        );
+
     return Container(
-      padding: EdgeInsets.all(r.adaptive(phone: 16, smallPhone: 14, tablet: 18, desktop: 20)),
+      padding: EdgeInsets.all(
+          r.adaptive(phone: 16, smallPhone: 14, tablet: 18, desktop: 20)),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
+        borderRadius: BorderRadius.circular(
+            r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Revenus', style: AppTextStyles.homeCardTitle(r).copyWith(color: AppColors.textPrimary)),
-          SizedBox(height: r.adaptive(phone: 16, smallPhone: 12, tablet: 18, desktop: 20)),
+          Row(
+            children: [
+              Expanded(
+                child: Text('Revenus',
+                    style: AppTextStyles.homeCardTitle(r)
+                        .copyWith(color: AppColors.textPrimary)),
+              ),
+              if (maxAmount > 0)
+                Text(
+                  _formatAmount(maxAmount),
+                  style: AppTextStyles.labelSmall(r).copyWith(
+                      color: AppColors.textMuted,
+                      fontWeight: FontWeight.w600),
+                ),
+            ],
+          ),
+          SizedBox(
+              height: r.adaptive(phone: 16, smallPhone: 12, tablet: 18, desktop: 20)),
           SizedBox(
             height: r.adaptive(phone: 120, smallPhone: 100, tablet: 140, desktop: 160),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
-              children: stats.chartData.map((point) {
+              children: data.map((point) {
                 final ratio = maxAmount > 0 ? point.amount / maxAmount : 0.0;
                 return Expanded(
                   child: Padding(
                     padding: EdgeInsets.symmetric(
-                      horizontal: r.adaptive(phone: 3, smallPhone: 2, tablet: 4, desktop: 5),
+                      horizontal: r.adaptive(
+                          phone: 3, smallPhone: 2, tablet: 4, desktop: 5),
                     ),
                     child: Column(
                       children: [
+                        // Amount label on top of bar (only if has value)
+                        if (point.amount > 0)
+                          Text(
+                            _formatAmount(point.amount),
+                            textAlign: TextAlign.center,
+                            style: AppTextStyles.labelSmall(r).copyWith(
+                              fontSize: r.adaptive(
+                                  phone: 8, smallPhone: 7, tablet: 9, desktop: 10),
+                              color: AppColors.textHint,
+                            ),
+                          ),
                         Expanded(
                           child: Align(
                             alignment: Alignment.bottomCenter,
                             child: FractionallySizedBox(
-                              heightFactor: point.amount > 0 ? ratio : 0.03,
+                              heightFactor: point.amount > 0 ? ratio.clamp(0.04, 1.0) : 0.03,
                               child: Container(
                                 width: double.infinity,
                                 decoration: BoxDecoration(
-                                  color: point.amount > 0 ? AppColors.primary : AppColors.border,
+                                  color: point.amount > 0
+                                      ? AppColors.primary
+                                      : AppColors.border,
                                   borderRadius: BorderRadius.vertical(
-                                    top: Radius.circular(r.adaptive(phone: 4, smallPhone: 3, tablet: 5, desktop: 6)),
+                                    top: Radius.circular(r.adaptive(
+                                        phone: 4,
+                                        smallPhone: 3,
+                                        tablet: 5,
+                                        desktop: 6)),
                                   ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                        SizedBox(height: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8)),
+                        SizedBox(
+                            height: r.adaptive(
+                                phone: 6, smallPhone: 5, tablet: 7, desktop: 8)),
                         Text(
                           point.label,
                           style: AppTextStyles.labelSmall(r).copyWith(
                             color: AppColors.textHint,
-                            fontSize: r.adaptive(phone: 10, smallPhone: 9, tablet: 11, desktop: 12),
+                            fontSize: r.adaptive(
+                                phone: 10, smallPhone: 9, tablet: 11, desktop: 12),
                           ),
                         ),
                       ],
@@ -375,7 +631,15 @@ class _ChartCard extends StatelessWidget {
       ),
     );
   }
+
+  String _formatAmount(double v) {
+    if (v >= 1000000) return '${(v / 1000000).toStringAsFixed(1)}M';
+    if (v >= 1000) return '${(v / 1000).toStringAsFixed(0)}K';
+    return v.toStringAsFixed(0);
+  }
 }
+
+// ── Performance card ──────────────────────────────────────────────────────────
 
 class _PerformanceCard extends StatelessWidget {
   const _PerformanceCard({required this.r, required this.stats});
@@ -384,26 +648,63 @@ class _PerformanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final avgKm = stats.tripsCount > 0
+        ? (stats.distanceKm / stats.tripsCount).toStringAsFixed(0)
+        : '0';
+
     return Container(
-      padding: EdgeInsets.all(r.adaptive(phone: 16, smallPhone: 14, tablet: 18, desktop: 20)),
+      padding: EdgeInsets.all(
+          r.adaptive(phone: 16, smallPhone: 14, tablet: 18, desktop: 20)),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
+        borderRadius: BorderRadius.circular(
+            r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Performance', style: AppTextStyles.homeCardTitle(r).copyWith(color: AppColors.textPrimary)),
-          SizedBox(height: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-          _PerfRow(r: r, label: "Taux d'acceptation", value: stats.acceptanceRate, color: AppColors.primary),
-          SizedBox(height: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
-          _PerfRow(r: r, label: "Taux d'annulation", value: stats.cancellationRate, color: const Color(0xFFEF4444), inverted: true),
-          SizedBox(height: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
+          Text('Performance',
+              style: AppTextStyles.homeCardTitle(r)
+                  .copyWith(color: AppColors.textPrimary)),
+          SizedBox(
+              height:
+                  r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
+          _PerfRow(
+            r: r,
+            label: "Taux d'acceptation",
+            value: stats.acceptanceRate,
+            color: AppColors.primary,
+          ),
+          SizedBox(
+              height:
+                  r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
+          _PerfRow(
+            r: r,
+            label: "Taux d'annulation",
+            value: stats.cancellationRate,
+            color: const Color(0xFFEF4444),
+            inverted: true,
+          ),
+          SizedBox(
+              height:
+                  r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
           Row(
             children: [
-              Expanded(child: _MiniStat(r: r, label: 'Temps moyen', value: stats.avgTripLabel)),
-              Expanded(child: _MiniStat(r: r, label: 'Km moyen/trajet', value: stats.tripsCount > 0 ? '${(stats.distanceKm / stats.tripsCount).toStringAsFixed(0)}km' : '0km')),
+              Expanded(
+                child: _MiniStat(
+                  r: r,
+                  label: 'Temps moyen/trajet',
+                  value: stats.tripsCount > 0 ? stats.avgTripLabel : '—',
+                ),
+              ),
+              Expanded(
+                child: _MiniStat(
+                  r: r,
+                  label: 'Km moyen/trajet',
+                  value: '${avgKm}km',
+                ),
+              ),
             ],
           ),
         ],
@@ -413,7 +714,13 @@ class _PerformanceCard extends StatelessWidget {
 }
 
 class _PerfRow extends StatelessWidget {
-  const _PerfRow({required this.r, required this.label, required this.value, required this.color, this.inverted = false});
+  const _PerfRow({
+    required this.r,
+    required this.label,
+    required this.value,
+    required this.color,
+    this.inverted = false,
+  });
   final AppResponsive r;
   final String label;
   final double value;
@@ -427,19 +734,28 @@ class _PerfRow extends StatelessWidget {
       children: [
         Row(
           children: [
-            Expanded(child: Text(label, style: AppTextStyles.bodySmall(r).copyWith(color: AppColors.textMuted))),
-            Text('${(value * 100).toStringAsFixed(0)}%',
-                style: AppTextStyles.bodySmall(r).copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w700)),
+            Expanded(
+              child: Text(label,
+                  style: AppTextStyles.bodySmall(r)
+                      .copyWith(color: AppColors.textMuted)),
+            ),
+            Text(
+              '${(value * 100).toStringAsFixed(0)}%',
+              style: AppTextStyles.bodySmall(r).copyWith(
+                  color: AppColors.textPrimary, fontWeight: FontWeight.w700),
+            ),
           ],
         ),
-        SizedBox(height: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8)),
+        SizedBox(
+            height: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8)),
         ClipRRect(
           borderRadius: BorderRadius.circular(4),
           child: LinearProgressIndicator(
-            value: inverted ? 1.0 - value : value,
+            value: (inverted ? 1.0 - value : value).clamp(0.0, 1.0),
             backgroundColor: AppColors.surfaceMuted,
             valueColor: AlwaysStoppedAnimation<Color>(color),
-            minHeight: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8),
+            minHeight:
+                r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8),
           ),
         ),
       ],
@@ -458,13 +774,20 @@ class _MiniStat extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: AppTextStyles.labelSmall(r).copyWith(color: AppColors.textMuted)),
-        SizedBox(height: r.adaptive(phone: 2, smallPhone: 1, tablet: 3, desktop: 4)),
-        Text(value, style: AppTextStyles.bodyMedium(r).copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w700)),
+        Text(label,
+            style: AppTextStyles.labelSmall(r)
+                .copyWith(color: AppColors.textMuted)),
+        SizedBox(
+            height: r.adaptive(phone: 2, smallPhone: 1, tablet: 3, desktop: 4)),
+        Text(value,
+            style: AppTextStyles.bodyMedium(r).copyWith(
+                color: AppColors.textPrimary, fontWeight: FontWeight.w700)),
       ],
     );
   }
 }
+
+// ── Badges card ───────────────────────────────────────────────────────────────
 
 class _BadgesCard extends StatelessWidget {
   const _BadgesCard({required this.r});
@@ -473,34 +796,44 @@ class _BadgesCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const badges = [
-      _BadgeData(icon: Icons.verified_rounded, label: 'Fiable', color: Color(0xFF00A86B)),
+      _BadgeData(icon: Icons.verified_rounded,         label: 'Fiable',   color: Color(0xFF00A86B)),
       _BadgeData(icon: Icons.workspace_premium_rounded, label: 'Top 10%', color: Color(0xFFF4B400)),
-      _BadgeData(icon: Icons.speed_rounded, label: 'Rapide', color: Color(0xFF3B82F6)),
-      _BadgeData(icon: Icons.star_rounded, label: 'Ponctuel', color: Color(0xFF6366F1)),
+      _BadgeData(icon: Icons.speed_rounded,             label: 'Rapide',  color: Color(0xFF3B82F6)),
+      _BadgeData(icon: Icons.star_rounded,              label: 'Ponctuel',color: Color(0xFF6366F1)),
     ];
 
     return Container(
-      padding: EdgeInsets.all(r.adaptive(phone: 16, smallPhone: 14, tablet: 18, desktop: 20)),
+      padding: EdgeInsets.all(
+          r.adaptive(phone: 16, smallPhone: 14, tablet: 18, desktop: 20)),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
+        borderRadius: BorderRadius.circular(
+            r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Badges débloqués', style: AppTextStyles.homeCardTitle(r).copyWith(color: AppColors.textPrimary)),
-          SizedBox(height: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
+          Text('Badges débloqués',
+              style: AppTextStyles.homeCardTitle(r)
+                  .copyWith(color: AppColors.textPrimary)),
+          SizedBox(
+              height:
+                  r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: badges.map((b) => _BadgeItem(r: r, badge: b)).toList(),
           ),
-          SizedBox(height: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
+          SizedBox(
+              height:
+                  r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
           Container(
-            padding: EdgeInsets.all(r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+            padding: EdgeInsets.all(
+                r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
             decoration: BoxDecoration(
               color: AppColors.surfaceAccent,
-              borderRadius: BorderRadius.circular(r.adaptive(phone: 10, smallPhone: 9, tablet: 12, desktop: 14)),
+              borderRadius: BorderRadius.circular(
+                  r.adaptive(phone: 10, smallPhone: 9, tablet: 12, desktop: 14)),
             ),
             child: Row(
               children: [
@@ -508,23 +841,38 @@ class _BadgesCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Prochain badge : Expert',
-                          style: AppTextStyles.bodySmall(r).copyWith(color: AppColors.primary, fontWeight: FontWeight.w600)),
-                      SizedBox(height: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8)),
+                      Text(
+                        'Prochain badge : Expert',
+                        style: AppTextStyles.bodySmall(r).copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600),
+                      ),
+                      SizedBox(
+                          height: r.adaptive(
+                              phone: 6, smallPhone: 5, tablet: 7, desktop: 8)),
                       ClipRRect(
                         borderRadius: BorderRadius.circular(4),
                         child: LinearProgressIndicator(
                           value: 0.75,
-                          backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-                          valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
-                          minHeight: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8),
+                          backgroundColor:
+                              AppColors.primary.withValues(alpha: 0.15),
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                              AppColors.primary),
+                          minHeight: r.adaptive(
+                              phone: 6, smallPhone: 5, tablet: 7, desktop: 8),
                         ),
                       ),
                     ],
                   ),
                 ),
-                SizedBox(width: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
-                Text('75%', style: AppTextStyles.bodySmall(r).copyWith(color: AppColors.primary, fontWeight: FontWeight.w800)),
+                SizedBox(
+                    width: r.adaptive(
+                        phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
+                Text(
+                  '75%',
+                  style: AppTextStyles.bodySmall(r).copyWith(
+                      color: AppColors.primary, fontWeight: FontWeight.w800),
+                ),
               ],
             ),
           ),
@@ -558,15 +906,19 @@ class _BadgeItem extends StatelessWidget {
             shape: BoxShape.circle,
           ),
           child: Icon(badge.icon,
-              size: r.adaptive(phone: 24, smallPhone: 22, tablet: 28, desktop: 32),
+              size: r.adaptive(
+                  phone: 24, smallPhone: 22, tablet: 28, desktop: 32),
               color: badge.color),
         ),
-        SizedBox(height: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8)),
-        Text(badge.label,
-            style: AppTextStyles.labelSmall(r).copyWith(
-              color: AppColors.textMuted,
-              fontWeight: FontWeight.w600,
-            )),
+        SizedBox(
+            height: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8)),
+        Text(
+          badge.label,
+          style: AppTextStyles.labelSmall(r).copyWith(
+            color: AppColors.textMuted,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ],
     );
   }

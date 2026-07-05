@@ -44,6 +44,9 @@ class TripModel {
     required this.durationMin,
     required this.publishedAgo,
     this.vehicleLabel,
+    this.apiTotalRevenue,
+    this.apiCommission,
+    this.apiNetRevenue,
   });
 
   final String id;
@@ -58,12 +61,15 @@ class TripModel {
   final int durationMin;
   final String publishedAgo;
   final String? vehicleLabel;
+  final double? apiTotalRevenue;
+  final double? apiCommission;
+  final double? apiNetRevenue;
 
   int get bookedSeats => passengers.fold(0, (sum, p) => sum + p.seatsBooked);
   int get availableSeats => totalSeats - bookedSeats;
-  double get totalRevenue => passengers.fold(0.0, (sum, p) => sum + p.amount);
-  double get commission => totalRevenue * 0.10;
-  double get netRevenue => totalRevenue - commission;
+  double get totalRevenue => apiTotalRevenue ?? passengers.fold(0.0, (sum, p) => sum + p.amount);
+  double get commission => apiCommission ?? totalRevenue * 0.10;
+  double get netRevenue => apiNetRevenue ?? totalRevenue - commission;
   bool get allPaid => passengers.every((p) => p.paymentStatus == PassengerPaymentStatus.paid);
 
   Color get statusColor {

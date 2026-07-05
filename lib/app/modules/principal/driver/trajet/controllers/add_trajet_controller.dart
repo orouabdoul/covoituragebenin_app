@@ -2,40 +2,36 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
+import 'package:covoiturage_benin_app/app/core/services/driver/trips/trips_service.dart';
+import 'package:covoiturage_benin_app/app/core/services/driver/vehicles/vehicles_service.dart';
+import 'package:covoiturage_benin_app/app/core/utils/api_result.dart';
+import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
+import 'package:covoiturage_benin_app/app/data/models/driver/vehicle_model.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
-
-enum TripVehicleType { car, moto }
 
 enum TripLuggageOption { smallBag, stops, smoking, music, airConditioning }
 
-// ── Règlementation Bénin ─────────────────────────────────────────────────────
-// Code de la Route CEDEAO + arrêtés MTPT (Ministère des Transports)
-// Motos    : conducteur + 1 passager maximum (zémidjan inclus)
-// Citadine : ≤ 5 places totales  → max 3 passagers proposables
-// Berline  : 5 places            → max 4 passagers
-// SUV/4x4  : ≤ 7 places          → max 5 passagers (si 7 places → 6)
-// Van      : ≤ 9 places          → max 8 passagers
-class VehicleCapacity {
-  const VehicleCapacity({
-    required this.category,
-    required this.maxPassengers,
-    required this.label,
-  });
-  final String category;
-  final int maxPassengers;
-  final String label;
-}
-
 class AddTrajetController extends GetxController {
-  final Rx<TripVehicleType> selectedVehicleType = TripVehicleType.car.obs;
-  final RxnString selectedBrand = RxnString();
-  final RxnString selectedModel = RxnString();
+  TripsService get _tripsService => Get.find<TripsService>();
+  VehiclesService get _vehiclesService => Get.find<VehiclesService>();
+
+  String? _editUuid;
+  bool get isEditMode => _editUuid != null;
+
+  // ── Vehicles ──────────────────────────────────────────────────────────────
+  final RxList<VehicleData> availableVehicles = <VehicleData>[].obs;
+  final Rx<VehicleData?> selectedVehicle = Rx<VehicleData?>(null);
+  final RxBool isLoadingVehicles = false.obs;
+
+  // ── Seats, price, options ─────────────────────────────────────────────────
   final RxInt availableSeats = 4.obs;
   final RxDouble pricePerSeat = 5000.0.obs;
   final RxSet<TripLuggageOption> selectedOptions = <TripLuggageOption>{}.obs;
+  final RxBool isPublishing = false.obs;
+  final RxBool isLoadingEdit = false.obs;
 
-  // Location controllers
+  // ── Text controllers ──────────────────────────────────────────────────────
   final TextEditingController departureCityController = TextEditingController();
   final TextEditingController departureDistrictController = TextEditingController();
   final TextEditingController departurePointController = TextEditingController();
@@ -43,124 +39,16 @@ class AddTrajetController extends GetxController {
   final TextEditingController destinationDistrictController = TextEditingController();
   final TextEditingController destinationPointController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
-
-  // Date/time controllers
   final TextEditingController dateController = TextEditingController();
   final TextEditingController timeController = TextEditingController();
-
-  // Price controller — synced to pricePerSeat
   final TextEditingController priceController = TextEditingController(text: '5000');
 
   int get totalAmount => availableSeats.value * pricePerSeat.value.toInt();
-
-  // ── Données marques / modèles voitures ────────────────────────────────────
-
-  static const Map<String, List<String>> _carBrandModels = {
-    'Toyota':     ['Corolla', 'Camry', 'Yaris', 'Avensis', 'RAV4', 'Fortuner', 'Prado', 'Land Cruiser', 'Hilux'],
-    'Honda':      ['Fit', 'Jazz', 'Civic', 'Accord', 'HR-V', 'CR-V'],
-    'Hyundai':    ['i10', 'i20', 'Accent', 'Elantra', 'i30', 'Tucson', 'Santa Fe'],
-    'KIA':        ['Picanto', 'Rio', 'Ceed', 'Sportage', 'Sorento'],
-    'Peugeot':    ['206', '207', '208', '306', '307', '308', '406', '407', '508', '3008', '5008'],
-    'Renault':    ['Clio', 'Sandero', 'Logan', 'Symbol', 'Mégane', 'Laguna', 'Duster'],
-    'Volkswagen': ['Polo', 'Golf', 'Jetta', 'Passat', 'Tiguan', 'Touareg'],
-    'Nissan':     ['Micra', 'Note', 'Almera', 'Tiida', 'Qashqai', 'X-Trail', 'Pathfinder'],
-    'Ford':       ['Fiesta', 'Focus', 'Mondeo', 'EcoSport', 'Ranger', 'Explorer'],
-    'Suzuki':     ['Alto', 'Swift', 'Baleno', 'Vitara', 'Jimny'],
-    'BMW':        ['Série 1', 'Série 3', 'Série 5', 'X1', 'X3', 'X5'],
-    'Mercedes':   ['Classe A', 'Classe C', 'Classe E', 'GLC', 'GLE', 'Vito'],
-  };
-
-  static const Map<String, List<String>> _motoBrandModels = {
-    'Honda':  ['Wave 110', 'CG 150', 'Shine 125', 'CB 125', 'CB 150', 'XR 150', 'CB 300'],
-    'Yamaha': ['Saluto 125', 'YBR 125', 'FZ 150', 'Fazer 150', 'R15', 'MT-07'],
-    'Suzuki': ['Hayate', 'EN 125', 'GN 125', 'GS 150', 'Bandit 150'],
-    'TVS':    ['Sport 100', 'Metro 100', 'Star City 125', 'Apache 160'],
-    'Bajaj':  ['Platina', 'Discover 125', 'Pulsar 125', 'Pulsar 150'],
-    'Kymco':  ['Like 125', 'Agility 125', 'Elegance 150', 'Super 8'],
-    'Lifan':  ['LF 110', 'LF 125', 'LF 150', 'KP 150'],
-    'Loncin': ['LX 110', 'LX 150', 'GP 250'],
-  };
-
-  // ── Limites légales Bénin par modèle ─────────────────────────────────────
-  // Nombre de PASSAGERS (places offertes, hors conducteur)
-
-  static const Map<String, int> _modelMaxPassengers = {
-    // -- Motos : 1 passager max (Art. 142 Code Route CEDEAO) --
-    'Wave 110': 1, 'CG 150': 1, 'Shine 125': 1, 'CB 125': 1, 'CB 150': 1,
-    'XR 150': 1, 'CB 300': 1,
-    'Saluto 125': 1, 'YBR 125': 1, 'FZ 150': 1, 'Fazer 150': 1, 'R15': 1, 'MT-07': 1,
-    'Hayate': 1, 'EN 125': 1, 'GN 125': 1, 'GS 150': 1, 'Bandit 150': 1,
-    'Sport 100': 1, 'Metro 100': 1, 'Star City 125': 1, 'Apache 160': 1,
-    'Platina': 1, 'Discover 125': 1, 'Pulsar 125': 1, 'Pulsar 150': 1,
-    'Like 125': 1, 'Agility 125': 1, 'Elegance 150': 1, 'Super 8': 1,
-    'LF 110': 1, 'LF 125': 1, 'LF 150': 1, 'KP 150': 1,
-    'LX 110': 1, 'LX 150': 1, 'GP 250': 1,
-
-    // -- Citadines 4 places (conducteur + 3 max) --
-    'Yaris': 3, 'i10': 3, 'Picanto': 3, 'Alto': 3, 'Jazz': 3, 'Fit': 3,
-    'Jimny': 3,
-
-    // -- Berlines / Compactes 5 places (conducteur + 4 max) --
-    'Corolla': 4, 'Avensis': 4, 'Camry': 4, 'Hilux': 4,
-    'Civic': 4, 'Accord': 4, 'HR-V': 4, 'CR-V': 4,
-    'Accent': 4, 'Elantra': 4, 'i20': 4, 'i30': 4, 'Tucson': 4,
-    'Rio': 4, 'Ceed': 4, 'Sportage': 4,
-    '206': 4, '207': 4, '208': 4, '306': 4, '307': 4,
-    '308': 4, '406': 4, '407': 4, '508': 4, '3008': 4,
-    'Clio': 4, 'Sandero': 4, 'Logan': 4, 'Symbol': 4, 'Mégane': 4, 'Laguna': 4,
-    'Duster': 4,
-    'Polo': 4, 'Golf': 4, 'Jetta': 4, 'Passat': 4, 'Tiguan': 4,
-    'Micra': 4, 'Note': 4, 'Almera': 4, 'Tiida': 4, 'Qashqai': 4, 'X-Trail': 4,
-    'Fiesta': 4, 'Focus': 4, 'Mondeo': 4, 'EcoSport': 4, 'Ranger': 4,
-    'Swift': 4, 'Baleno': 4, 'Vitara': 4,
-    'Série 1': 4, 'Série 3': 4, 'Série 5': 4, 'X1': 4, 'X3': 4,
-    'Classe A': 4, 'Classe C': 4, 'Classe E': 4, 'GLC': 4,
-
-    // -- SUV 7 places (conducteur + 6 max) --
-    'RAV4': 5, 'Fortuner': 6, 'Prado': 6, 'Land Cruiser': 6,
-    'Santa Fe': 6, 'Sorento': 6,
-    'Pathfinder': 6, 'Explorer': 6,
-    'Touareg': 5, 'X5': 5, 'GLE': 5, '5008': 6,
-
-    // -- Van / Minibus (conducteur + 8 max) --
-    'Vito': 8,
-  };
-
-  // ── Infos règlementation affichée ─────────────────────────────────────────
-
-  int get maxPassengers {
-    if (selectedVehicleType.value == TripVehicleType.moto) return 1;
-    final model = selectedModel.value;
-    if (model == null) return 4;
-    return _modelMaxPassengers[model] ?? 4;
-  }
-
+  int get maxPassengers => selectedVehicle.value?.availableSeats ?? 4;
   String get capacityLabel {
-    final m = maxPassengers;
-    if (m == 1) return 'Moto — 1 passager max (Code Route Art. 142)';
-    if (m == 3) return 'Citadine — 3 passagers max (4 places)';
-    if (m == 4) return 'Berline/Compacte — 4 passagers max (5 places)';
-    if (m == 5) return 'SUV 5 places — 4 passagers max';
-    if (m == 6) return 'Grand SUV 7 places — 6 passagers max';
-    if (m == 8) return 'Van/Minibus — 8 passagers max';
-    return '$m passagers max selon la réglementation';
-  }
-
-  // ── Données statiques ─────────────────────────────────────────────────────
-
-  List<String> get brandsForType {
-    return selectedVehicleType.value == TripVehicleType.moto
-        ? _motoBrandModels.keys.toList()
-        : _carBrandModels.keys.toList();
-  }
-
-  List<String> get modelsForBrand {
-    final brand = selectedBrand.value;
-    if (brand == null) return [];
-    final map = selectedVehicleType.value == TripVehicleType.moto
-        ? _motoBrandModels
-        : _carBrandModels;
-    return map[brand] ?? [];
+    final v = selectedVehicle.value;
+    if (v == null) return 'Sélectionnez un véhicule';
+    return '${v.brand} ${v.model} — ${v.availableSeats} places max';
   }
 
   final List<String> departureSuggestions = const ['Cotonou', 'Porto-Novo', 'Parakou'];
@@ -170,16 +58,11 @@ class AddTrajetController extends GetxController {
     TripFieldGroup(title: 'Départ', subtitle: "D'où partez-vous ?", icon: Icons.trip_origin_rounded),
     TripFieldGroup(title: 'Destination', subtitle: 'Où allez-vous ?', icon: Icons.flag_rounded),
     TripFieldGroup(title: 'Date et Heure', subtitle: 'Quand partez-vous ?', icon: Icons.schedule_rounded),
-    TripFieldGroup(title: 'Votre véhicule', subtitle: 'Sélectionnez ou ajoutez', icon: Icons.directions_car_rounded),
+    TripFieldGroup(title: 'Votre véhicule', subtitle: 'Sélectionnez votre véhicule', icon: Icons.directions_car_rounded),
     TripFieldGroup(title: 'Places disponibles', subtitle: 'Combien de passagers ?', icon: Icons.airline_seat_recline_normal_rounded),
     TripFieldGroup(title: 'Prix par place', subtitle: 'Fixez votre tarif', icon: Icons.payments_rounded),
     TripFieldGroup(title: 'Description', subtitle: 'Optionnel', icon: Icons.notes_rounded),
     TripFieldGroup(title: 'Préférences', subtitle: 'Configurez votre trajet', icon: Icons.tune_rounded),
-  ];
-
-  final List<TripVehicleCardData> vehicleCards = const [
-    TripVehicleCardData(type: TripVehicleType.car, title: 'Voiture', icon: Icons.directions_car_rounded, selected: true),
-    TripVehicleCardData(type: TripVehicleType.moto, title: 'Moto', icon: Icons.two_wheeler_rounded, selected: false),
   ];
 
   final List<TripPreferenceData> preferences = const [
@@ -195,12 +78,103 @@ class AddTrajetController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    final args = Get.arguments as Map<String, dynamic>?;
+    _editUuid = args?['uuid'] as String?;
     selectedOptions.addAll(const {
       TripLuggageOption.smallBag,
       TripLuggageOption.smoking,
       TripLuggageOption.music,
     });
     priceController.addListener(_onPriceChanged);
+    if (isEditMode) {
+      _loadVehiclesAndEdit();
+    } else {
+      _loadVehicles();
+    }
+  }
+
+  Future<void> _loadVehicles() async {
+    isLoadingVehicles.value = true;
+    final result = await _vehiclesService.listVehicles();
+    isLoadingVehicles.value = false;
+    if (result.isSuccess && result.data != null) {
+      availableVehicles.assignAll(result.data!);
+      if (availableVehicles.length == 1) {
+        selectedVehicle.value = availableVehicles.first;
+      }
+    }
+  }
+
+  Future<void> _loadVehiclesAndEdit() async {
+    await _loadVehicles();
+    await _loadForEdit();
+  }
+
+  Future<void> _loadForEdit() async {
+    isLoadingEdit.value = true;
+    final result = await _tripsService.fetchTripRaw(_editUuid!);
+    isLoadingEdit.value = false;
+    if (!result.isSuccess) {
+      UIHelper().showSnackBar(AppStrings.appName, result.error!.message, 2);
+      return;
+    }
+    _prefillFromJson(result.data!);
+  }
+
+  void _prefillFromJson(Map<String, dynamic> j) {
+    departureCityController.text = j['departure_city'] as String? ?? '';
+    departureDistrictController.text =
+        ((j['departure_neighborhood'] ?? j['departure_district']) as String?) ?? '';
+    departurePointController.text = j['departure_point'] as String? ?? '';
+    destinationCityController.text =
+        ((j['arrival_city'] ?? j['destination_city']) as String?) ?? '';
+    destinationDistrictController.text =
+        ((j['arrival_neighborhood'] ?? j['destination_district']) as String?) ?? '';
+    destinationPointController.text =
+        ((j['arrival_point'] ?? j['destination_point']) as String?) ?? '';
+    // Accept both DD/MM/YYYY and YYYY-MM-DD
+    final rawDate = j['departure_date'] as String? ?? '';
+    dateController.text = rawDate.contains('-') ? _fromIsoDate(rawDate) : rawDate;
+    timeController.text = j['departure_time'] as String? ?? '';
+    availableSeats.value =
+        ((j['total_seats'] ?? j['available_seats']) as num?)?.toInt() ?? 4;
+    final price = (j['price_per_seat'] as num?)?.toDouble() ?? 5000;
+    pricePerSeat.value = price;
+    priceController.text = price.toInt().toString();
+    descriptionController.text = j['description'] as String? ?? '';
+    // Match vehicle by uuid if returned by API
+    final vehicleUuid = j['vehicle_uuid'] as String?;
+    if (vehicleUuid != null && vehicleUuid.isNotEmpty) {
+      final match = availableVehicles.firstWhereOrNull((v) => v.uuid == vehicleUuid);
+      if (match != null) selectedVehicle.value = match;
+    }
+    // Preferences: list of strings (new) or map of booleans (old)
+    final rawPrefs = j['preferences'];
+    if (rawPrefs is List) {
+      selectedOptions.clear();
+      for (final p in rawPrefs) {
+        switch (p as String?) {
+          case 'allows_bags': selectedOptions.add(TripLuggageOption.smallBag); break;
+          case 'allows_stops': selectedOptions.add(TripLuggageOption.stops); break;
+          case 'no_smoking': selectedOptions.add(TripLuggageOption.smoking); break;
+          case 'music': selectedOptions.add(TripLuggageOption.music); break;
+          case 'air_conditioning': selectedOptions.add(TripLuggageOption.airConditioning); break;
+        }
+      }
+    } else if (rawPrefs is Map) {
+      selectedOptions.clear();
+      if (rawPrefs['allows_bags'] == true) selectedOptions.add(TripLuggageOption.smallBag);
+      if (rawPrefs['allows_stops'] == true) selectedOptions.add(TripLuggageOption.stops);
+      if (rawPrefs['no_smoking'] == true) selectedOptions.add(TripLuggageOption.smoking);
+      if (rawPrefs['music'] == true) selectedOptions.add(TripLuggageOption.music);
+      if (rawPrefs['air_conditioning'] == true) selectedOptions.add(TripLuggageOption.airConditioning);
+    }
+  }
+
+  static String _fromIsoDate(String yyyymmdd) {
+    final parts = yyyymmdd.split('-');
+    if (parts.length != 3) return yyyymmdd;
+    return '${parts[2]}/${parts[1]}/${parts[0]}';
   }
 
   void _onPriceChanged() {
@@ -213,22 +187,8 @@ class AddTrajetController extends GetxController {
 
   // ── Actions ───────────────────────────────────────────────────────────────
 
-  void selectVehicleType(TripVehicleType type) {
-    if (selectedVehicleType.value == type) return;
-    selectedVehicleType.value = type;
-    selectedBrand.value = null;
-    selectedModel.value = null;
-    _applySeatsLimit();
-  }
-
-  void selectBrand(String brand) {
-    selectedBrand.value = brand;
-    selectedModel.value = null;
-    // Ne pas encore limiter — attendre le modèle
-  }
-
-  void selectModel(String model) {
-    selectedModel.value = model;
+  void selectVehicle(VehicleData vehicle) {
+    selectedVehicle.value = vehicle;
     _applySeatsLimit();
   }
 
@@ -236,11 +196,7 @@ class AddTrajetController extends GetxController {
     final max = maxPassengers;
     if (availableSeats.value > max) {
       availableSeats.value = max;
-      UIHelper().showSnackBar(
-        'MINIZON',
-        'Places limitées à $max selon la réglementation béninoise.',
-        1,
-      );
+      UIHelper().showSnackBar('MINIZON', 'Places limitées à $max (capacité du véhicule).', 1);
     } else if (availableSeats.value < 1) {
       availableSeats.value = 1;
     }
@@ -250,11 +206,7 @@ class AddTrajetController extends GetxController {
     if (availableSeats.value < maxPassengers) {
       availableSeats.value = availableSeats.value + 1;
     } else {
-      UIHelper().showSnackBar(
-        'MINIZON',
-        capacityLabel,
-        1,
-      );
+      UIHelper().showSnackBar('MINIZON', capacityLabel, 1);
     }
   }
 
@@ -277,9 +229,82 @@ class AddTrajetController extends GetxController {
     }
   }
 
-  void publishTrip() {
-    UIHelper().showSnackBar(AppStrings.appName, 'Trajet prêt à être publié.', 0);
-    BottonNavController.goToTab(1);
+  // Seules valeurs acceptées par le backend : no_smoking, music
+  List<String> _buildPreferencesList() => [
+    if (selectedOptions.contains(TripLuggageOption.smoking)) 'no_smoking',
+    if (selectedOptions.contains(TripLuggageOption.music)) 'music',
+  ];
+
+  Future<void> publishTrip() async {
+    if (isPublishing.value) return;
+
+    final depCity = departureCityController.text.trim();
+    final destCity = destinationCityController.text.trim();
+    if (depCity.isEmpty) {
+      UIHelper().showSnackBar(AppStrings.appName, 'Veuillez entrer la ville de départ.', 2);
+      return;
+    }
+    if (destCity.isEmpty) {
+      UIHelper().showSnackBar(AppStrings.appName, 'Veuillez entrer la ville de destination.', 2);
+      return;
+    }
+    if (dateController.text.isEmpty) {
+      UIHelper().showSnackBar(AppStrings.appName, 'Veuillez sélectionner une date de départ.', 2);
+      return;
+    }
+    if (timeController.text.isEmpty) {
+      UIHelper().showSnackBar(AppStrings.appName, 'Veuillez sélectionner une heure de départ.', 2);
+      return;
+    }
+    if (selectedVehicle.value == null) {
+      UIHelper().showSnackBar(AppStrings.appName, 'Veuillez sélectionner un véhicule.', 2);
+      return;
+    }
+
+    isPublishing.value = true;
+
+    final payload = {
+      'vehicle_id': selectedVehicle.value!.id,
+      'departure_city': depCity,
+      'departure_neighborhood': departureDistrictController.text.trim(),
+      'departure_point': departurePointController.text.trim(),
+      'arrival_city': destCity,
+      'arrival_neighborhood': destinationDistrictController.text.trim(),
+      'arrival_point': destinationPointController.text.trim(),
+      'departure_date': dateController.text, // déjà en DD/MM/YYYY depuis le picker
+      'departure_time': timeController.text,
+      'total_seats': availableSeats.value,
+      'price_per_seat': pricePerSeat.value.toInt(),
+      'booking_mode': 'instant',
+      'max_per_booking': 2,
+      'description': descriptionController.text.trim(),
+      'preferences': _buildPreferencesList(),
+      'is_published': true,
+    };
+
+    final ApiResult<void> result;
+    if (isEditMode) {
+      result = await _tripsService.updateTrip(_editUuid!, payload);
+    } else {
+      result = await _tripsService.publishTrip(payload);
+    }
+
+    isPublishing.value = false;
+
+    if (result.isSuccess) {
+      UIHelper().showSnackBar(
+        AppStrings.appName,
+        isEditMode ? 'Trajet mis à jour avec succès !' : 'Trajet publié avec succès !',
+        0,
+      );
+      if (isEditMode) {
+        Get.back();
+      } else {
+        BottonNavController.goToTab(1);
+      }
+    } else {
+      UIHelper().showSnackBar(AppStrings.appName, result.error!.message, 2);
+    }
   }
 
   // ── Cleanup ───────────────────────────────────────────────────────────────
@@ -308,14 +333,6 @@ class TripFieldGroup {
   final String title;
   final String subtitle;
   final IconData icon;
-}
-
-class TripVehicleCardData {
-  const TripVehicleCardData({required this.type, required this.title, required this.icon, required this.selected});
-  final TripVehicleType type;
-  final String title;
-  final IconData icon;
-  final bool selected;
 }
 
 class TripPreferenceData {

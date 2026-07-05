@@ -107,12 +107,16 @@ class _TopBar extends StatelessWidget {
             ),
           ),
           SizedBox(width: responsive.w(12)),
-          AppCircularButton(
+          Obx(() => AppCircularButton(
             responsive: responsive,
-            icon: Icons.save_outlined,
-            onTap: controller.onSaveAsDraft,
+            icon: controller.isEditMode.value
+                ? Icons.delete_outline_rounded
+                : Icons.save_outlined,
+            onTap: controller.isEditMode.value
+                ? controller.onDeleteVehicle
+                : controller.onSaveAsDraft,
             size: responsive.w(40),
-          ),
+          )),
         ],
       ),
     );
@@ -1537,8 +1541,8 @@ class _RegisterButton extends StatelessWidget {
     return Obx(() => AppPrimaryButton(
           responsive: responsive,
           label: controller.isSubmitting.value
-              ? 'Enregistrement...'
-              : AppStrings.driverVehicleRegisterButton,
+              ? (controller.isEditMode.value ? 'Mise à jour...' : 'Enregistrement...')
+              : (controller.isEditMode.value ? 'Mettre à jour' : AppStrings.driverVehicleRegisterButton),
           onTap: controller.isSubmitting.value ? () {} : controller.onRegisterVehicle,
           height: responsive.adaptive(phone: 56, smallPhone: 52, tablet: 56, desktop: 56),
           borderRadius: responsive.radius(16),

@@ -27,32 +27,63 @@ class DetailMessagerView extends GetView<DetailMessagerController> {
               children: [
                 Padding(
                   padding: EdgeInsets.fromLTRB(
-                    responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
-                    responsive.adaptive(phone: 12, smallPhone: 10, tablet: 16, desktop: 18),
-                    responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
+                    responsive.adaptive(
+                        phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
+                    responsive.adaptive(
+                        phone: 12, smallPhone: 10, tablet: 16, desktop: 18),
+                    responsive.adaptive(
+                        phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
                     responsive.h(8),
                   ),
-                  child: _ConversationHeader(responsive: responsive, controller: controller),
+                  child: Obx(() => _ConversationHeader(
+                      responsive: responsive, controller: controller)),
                 ),
                 Expanded(
-                  child: Obx(
-                    () => ListView.separated(
+                  child: Obx(() {
+                    if (controller.isLoading.value &&
+                        controller.messages.isEmpty) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (controller.hasError.value &&
+                        controller.messages.isEmpty) {
+                      return _ErrorState(
+                          responsive: responsive,
+                          onRetry: controller.refresh);
+                    }
+                    return ListView.separated(
                       padding: EdgeInsets.fromLTRB(
-                        responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
+                        responsive.adaptive(
+                            phone: 16,
+                            smallPhone: 14,
+                            tablet: 24,
+                            desktop: 32),
                         0,
-                        responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
+                        responsive.adaptive(
+                            phone: 16,
+                            smallPhone: 14,
+                            tablet: 24,
+                            desktop: 32),
                         responsive.h(12),
                       ),
-                      itemCount: controller.messages.length,
-                      separatorBuilder: (_, _) => SizedBox(height: responsive.h(16)),
+                      itemCount: controller.messages.length +
+                          (controller.hasMore.value ? 1 : 0),
+                      separatorBuilder: (_, __) =>
+                          SizedBox(height: responsive.h(16)),
                       itemBuilder: (context, index) {
-                        final message = controller.messages[index];
-
+                        if (index == 0 && controller.hasMore.value) {
+                          return _LoadMoreButton(
+                              responsive: responsive,
+                              isLoading: controller.isLoadingMore.value,
+                              onTap: controller.loadMore);
+                        }
+                        final msgIndex =
+                            controller.hasMore.value ? index - 1 : index;
+                        final message = controller.messages[msgIndex];
                         switch (message.kind) {
                           case DetailMessageKind.incoming:
                             return _IncomingMessage(
                               responsive: responsive,
-                              avatarUrl: controller.thread.avatarUrl,
+                              avatarUrl: controller.displayAvatarUrl.value,
                               message: message.message,
                               time: message.time,
                             );
@@ -71,20 +102,26 @@ class DetailMessagerView extends GetView<DetailMessagerController> {
                               onTap: controller.openMap,
                             );
                           case DetailMessageKind.reminder:
-                            return _ReminderCard(responsive: responsive, message: message.message);
+                            return _ReminderCard(
+                                responsive: responsive,
+                                message: message.message);
                         }
                       },
-                    ),
-                  ),
+                    );
+                  }),
                 ),
                 Padding(
                   padding: EdgeInsets.fromLTRB(
-                    responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
+                    responsive.adaptive(
+                        phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
                     0,
-                    responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
-                    responsive.adaptive(phone: 12, smallPhone: 10, tablet: 16, desktop: 18),
+                    responsive.adaptive(
+                        phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
+                    responsive.adaptive(
+                        phone: 12, smallPhone: 10, tablet: 16, desktop: 18),
                   ),
-                  child: _Composer(responsive: responsive, controller: controller),
+                  child: _Composer(
+                      responsive: responsive, controller: controller),
                 ),
               ],
             ),
@@ -96,13 +133,15 @@ class DetailMessagerView extends GetView<DetailMessagerController> {
 }
 
 class _ConversationHeader extends StatelessWidget {
-  const _ConversationHeader({required this.responsive, required this.controller});
+  const _ConversationHeader(
+      {required this.responsive, required this.controller});
 
   final AppResponsive responsive;
   final DetailMessagerController controller;
 
   @override
   Widget build(BuildContext context) {
+    final avatarUrl = controller.displayAvatarUrl.value;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -110,8 +149,10 @@ class _ConversationHeader extends StatelessWidget {
         Container(
           width: double.infinity,
           padding: EdgeInsets.symmetric(
-            horizontal: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
-            vertical: responsive.adaptive(phone: 12, smallPhone: 12, tablet: 14, desktop: 16),
+            horizontal: responsive.adaptive(
+                phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
+            vertical: responsive.adaptive(
+                phone: 12, smallPhone: 12, tablet: 14, desktop: 16),
           ),
           decoration: ShapeDecoration(
             color: Colors.white,
@@ -147,31 +188,43 @@ class _ConversationHeader extends StatelessWidget {
                                 height: responsive.w(48),
                                 clipBehavior: Clip.antiAlias,
                                 decoration: ShapeDecoration(
-                                  image: DecorationImage(
-                                    image: NetworkImage(controller.thread.avatarUrl),
-                                    fit: BoxFit.cover,
-                                  ),
+                                  image: avatarUrl != null
+                                      ? DecorationImage(
+                                          image: NetworkImage(avatarUrl),
+                                          fit: BoxFit.cover)
+                                      : null,
+                                  color: avatarUrl == null
+                                      ? AppColors.surface
+                                      : null,
                                   shape: RoundedRectangleBorder(
-                                    side: const BorderSide(width: 2, color: Color(0xFF00A86B)),
+                                    side: const BorderSide(
+                                        width: 2, color: Color(0xFF00A86B)),
                                     borderRadius: BorderRadius.circular(9999),
                                   ),
                                 ),
+                                child: avatarUrl == null
+                                    ? const Icon(Icons.person_rounded,
+                                        color: AppColors.textGhost, size: 24)
+                                    : null,
                               ),
-                              Positioned(
-                                left: responsive.w(36),
-                                top: responsive.w(36),
-                                child: Container(
-                                  width: responsive.w(16),
-                                  height: responsive.w(16),
-                                  decoration: ShapeDecoration(
-                                    color: const Color(0xFF00A86B),
-                                    shape: RoundedRectangleBorder(
-                                      side: const BorderSide(width: 2, color: Colors.white),
-                                      borderRadius: BorderRadius.circular(9999),
+                              if (controller.displayIsOnline.value)
+                                Positioned(
+                                  left: responsive.w(36),
+                                  top: responsive.w(36),
+                                  child: Container(
+                                    width: responsive.w(16),
+                                    height: responsive.w(16),
+                                    decoration: ShapeDecoration(
+                                      color: const Color(0xFF00A86B),
+                                      shape: RoundedRectangleBorder(
+                                        side: const BorderSide(
+                                            width: 2, color: Colors.white),
+                                        borderRadius:
+                                            BorderRadius.circular(9999),
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
                             ],
                           ),
                           SizedBox(width: responsive.w(12)),
@@ -181,11 +234,15 @@ class _ConversationHeader extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  controller.thread.name,
+                                  controller.displayName.value,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: AppTextStyles.h6(responsive).copyWith(
-                                    fontSize: responsive.adaptive(phone: 18, smallPhone: 17, tablet: 19, desktop: 20),
+                                    fontSize: responsive.adaptive(
+                                        phone: 18,
+                                        smallPhone: 17,
+                                        tablet: 19,
+                                        desktop: 20),
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.textPrimary,
                                   ),
@@ -194,20 +251,23 @@ class _ConversationHeader extends StatelessWidget {
                                 Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Container(
-                                      width: responsive.w(8),
-                                      height: responsive.w(8),
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xFF00A86B),
-                                        shape: BoxShape.circle,
+                                    if (controller.displayIsOnline.value) ...[
+                                      Container(
+                                        width: responsive.w(8),
+                                        height: responsive.w(8),
+                                        decoration: const BoxDecoration(
+                                            color: Color(0xFF00A86B),
+                                            shape: BoxShape.circle),
                                       ),
-                                    ),
-                                    SizedBox(width: responsive.w(8)),
+                                      SizedBox(width: responsive.w(8)),
+                                    ],
                                     Text(
-                                      'En ligne',
-                                      style: AppTextStyles.caption(responsive).copyWith(
-                                        color: AppColors.textSecondary,
-                                      ),
+                                      controller.displayIsOnline.value
+                                          ? 'En ligne'
+                                          : 'Hors ligne',
+                                      style: AppTextStyles.caption(responsive)
+                                          .copyWith(
+                                              color: AppColors.textSecondary),
                                     ),
                                   ],
                                 ),
@@ -249,8 +309,10 @@ class _ConversationHeader extends StatelessWidget {
         Container(
           width: double.infinity,
           padding: EdgeInsets.symmetric(
-            horizontal: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
-            vertical: responsive.adaptive(phone: 12, smallPhone: 12, tablet: 14, desktop: 16),
+            horizontal: responsive.adaptive(
+                phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
+            vertical: responsive.adaptive(
+                phone: 12, smallPhone: 12, tablet: 14, desktop: 16),
           ),
           decoration: ShapeDecoration(
             color: const Color(0x0C00A86B),
@@ -265,7 +327,8 @@ class _ConversationHeader extends StatelessWidget {
               Container(
                 width: responsive.w(40),
                 height: responsive.w(40),
-                padding: EdgeInsets.symmetric(horizontal: responsive.w(12), vertical: responsive.h(8)),
+                padding: EdgeInsets.symmetric(
+                    horizontal: responsive.w(12), vertical: responsive.h(8)),
                 decoration: ShapeDecoration(
                   color: const Color(0x3300A86B),
                   shape: RoundedRectangleBorder(
@@ -273,7 +336,8 @@ class _ConversationHeader extends StatelessWidget {
                     borderRadius: BorderRadius.circular(9999),
                   ),
                 ),
-                child: const Icon(Icons.route_rounded, color: AppColors.primary, size: 18),
+                child: const Icon(Icons.route_rounded,
+                    color: AppColors.primary, size: 18),
               ),
               SizedBox(width: responsive.w(12)),
               Expanded(
@@ -282,22 +346,24 @@ class _ConversationHeader extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Trajet ${controller.thread.statusLabel}',
+                      controller.displayTripRoute.value.isNotEmpty
+                          ? controller.displayTripRoute.value
+                          : 'Trajet',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppTextStyles.caption(responsive).copyWith(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w500,
-                      ),
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w500),
                     ),
                     SizedBox(height: responsive.h(2)),
                     Text(
-                      'Demain 08:30 • 3 places disponibles',
+                      controller.displayTripDepartureLabel.value.isNotEmpty
+                          ? controller.displayTripDepartureLabel.value
+                          : '–',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.caption(responsive).copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+                      style: AppTextStyles.caption(responsive)
+                          .copyWith(color: AppColors.textSecondary),
                     ),
                   ],
                 ),
@@ -307,13 +373,12 @@ class _ConversationHeader extends StatelessWidget {
                 onTap: controller.openMap,
                 borderRadius: BorderRadius.circular(responsive.radius(10)),
                 child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: responsive.w(2), vertical: responsive.h(4)),
+                  padding: EdgeInsets.symmetric(
+                      horizontal: responsive.w(2), vertical: responsive.h(4)),
                   child: Text(
                     'Voir détails',
                     style: AppTextStyles.caption(responsive).copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w500,
-                    ),
+                        color: AppColors.primary, fontWeight: FontWeight.w500),
                   ),
                 ),
               ),
@@ -321,6 +386,66 @@ class _ConversationHeader extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.responsive, required this.onRetry});
+  final AppResponsive responsive;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.wifi_off_rounded,
+              size: responsive.adaptive(
+                  phone: 56, smallPhone: 48, tablet: 64, desktop: 72),
+              color: AppColors.textGhost),
+          SizedBox(height: responsive.adaptive(
+              phone: 16, smallPhone: 12, tablet: 18, desktop: 20)),
+          Text('Impossible de charger la conversation',
+              style: AppTextStyles.bodySmall(responsive)
+                  .copyWith(color: AppColors.textMuted),
+              textAlign: TextAlign.center),
+          SizedBox(height: responsive.adaptive(
+              phone: 20, smallPhone: 16, tablet: 24, desktop: 28)),
+          AppButton(
+              label: 'Réessayer',
+              onPressed: onRetry,
+              icon: Icons.refresh_rounded),
+        ]),
+      ),
+    );
+  }
+}
+
+class _LoadMoreButton extends StatelessWidget {
+  const _LoadMoreButton(
+      {required this.responsive,
+      required this.isLoading,
+      required this.onTap});
+  final AppResponsive responsive;
+  final bool isLoading;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.only(bottom: responsive.h(8)),
+        child: isLoading
+            ? const SizedBox(
+                width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+            : TextButton.icon(
+                onPressed: onTap,
+                icon: const Icon(Icons.expand_less_rounded),
+                label: const Text('Messages précédents'),
+              ),
+      ),
     );
   }
 }
@@ -372,7 +497,7 @@ class _IncomingMessage extends StatelessWidget {
   });
 
   final AppResponsive responsive;
-  final String avatarUrl;
+  final String? avatarUrl;
   final String message;
   final String time;
 
@@ -390,7 +515,8 @@ class _IncomingMessage extends StatelessWidget {
               ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: responsive.w(280)),
                 child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: responsive.w(16), vertical: responsive.h(12)),
+                  padding: EdgeInsets.symmetric(
+                      horizontal: responsive.w(16), vertical: responsive.h(12)),
                   decoration: ShapeDecoration(
                     color: const Color(0xFFF3F4F6),
                     shape: RoundedRectangleBorder(
@@ -403,13 +529,9 @@ class _IncomingMessage extends StatelessWidget {
                       ),
                     ),
                   ),
-                  child: Text(
-                    message,
-                    style: AppTextStyles.caption(responsive).copyWith(
-                      color: AppColors.textPrimary,
-                      height: 1.64,
-                    ),
-                  ),
+                  child: Text(message,
+                      style: AppTextStyles.caption(responsive)
+                          .copyWith(color: AppColors.textPrimary, height: 1.64)),
                 ),
               ),
               SizedBox(height: responsive.h(4)),
@@ -423,7 +545,8 @@ class _IncomingMessage extends StatelessWidget {
 }
 
 class _OutgoingMessage extends StatelessWidget {
-  const _OutgoingMessage({required this.responsive, required this.message, required this.time});
+  const _OutgoingMessage(
+      {required this.responsive, required this.message, required this.time});
 
   final AppResponsive responsive;
   final String message;
@@ -441,7 +564,8 @@ class _OutgoingMessage extends StatelessWidget {
             ConstrainedBox(
               constraints: BoxConstraints(maxWidth: responsive.w(280)),
               child: Container(
-                padding: EdgeInsets.symmetric(horizontal: responsive.w(16), vertical: responsive.h(12)),
+                padding: EdgeInsets.symmetric(
+                    horizontal: responsive.w(16), vertical: responsive.h(12)),
                 decoration: ShapeDecoration(
                   color: AppColors.primary,
                   shape: RoundedRectangleBorder(
@@ -454,13 +578,9 @@ class _OutgoingMessage extends StatelessWidget {
                     ),
                   ),
                 ),
-                child: Text(
-                  message,
-                  style: AppTextStyles.caption(responsive).copyWith(
-                    color: Colors.white,
-                    height: 1.64,
-                  ),
-                ),
+                child: Text(message,
+                    style: AppTextStyles.caption(responsive)
+                        .copyWith(color: Colors.white, height: 1.64)),
               ),
             ),
             SizedBox(height: responsive.h(4)),
@@ -502,7 +622,8 @@ class _LocationCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(responsive.radius(12)),
             ),
             shadows: const [
-              BoxShadow(color: Color(0x0C000000), blurRadius: 2, offset: Offset(0, 1)),
+              BoxShadow(
+                  color: Color(0x0C000000), blurRadius: 2, offset: Offset(0, 1))
             ],
           ),
           child: Column(
@@ -514,15 +635,18 @@ class _LocationCard extends StatelessWidget {
                   Container(
                     width: responsive.w(40),
                     height: responsive.w(40),
-                    padding: EdgeInsets.symmetric(horizontal: responsive.w(14), vertical: responsive.h(8)),
+                    padding: EdgeInsets.symmetric(
+                        horizontal: responsive.w(14), vertical: responsive.h(8)),
                     decoration: ShapeDecoration(
                       color: const Color(0x1900A86B),
                       shape: RoundedRectangleBorder(
                         side: const BorderSide(color: AppColors.border),
-                        borderRadius: BorderRadius.circular(responsive.radius(8)),
+                        borderRadius:
+                            BorderRadius.circular(responsive.radius(8)),
                       ),
                     ),
-                    child: const Icon(Icons.location_on_outlined, color: AppColors.primary, size: 16),
+                    child: const Icon(Icons.location_on_outlined,
+                        color: AppColors.primary, size: 16),
                   ),
                   SizedBox(width: responsive.w(12)),
                   Expanded(
@@ -530,7 +654,8 @@ class _LocationCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(title, style: AppTextStyles.h6(responsive)),
-                        Text(subtitle, style: AppTextStyles.caption(responsive)),
+                        Text(subtitle,
+                            style: AppTextStyles.caption(responsive)),
                       ],
                     ),
                   ),
@@ -539,7 +664,9 @@ class _LocationCard extends StatelessWidget {
               SizedBox(height: responsive.h(12)),
               AppPrimaryButton(
                 responsive: responsive,
-                label: actionLabel,
+                label: actionLabel.isNotEmpty
+                    ? actionLabel
+                    : AppStrings.messengerDetailMapAction,
                 onTap: onTap,
                 backgroundColor: const Color(0x1900A86B),
                 textColor: AppColors.primary,
@@ -568,7 +695,8 @@ class _ReminderCard extends StatelessWidget {
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: responsive.w(300)),
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: responsive.w(16), vertical: responsive.h(8)),
+          padding: EdgeInsets.symmetric(
+              horizontal: responsive.w(16), vertical: responsive.h(8)),
           decoration: ShapeDecoration(
             color: const Color(0x19F4B400),
             shape: RoundedRectangleBorder(
@@ -579,16 +707,14 @@ class _ReminderCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.info_outline_rounded, size: responsive.text(14), color: const Color(0xFFF4B400)),
+              Icon(Icons.info_outline_rounded,
+                  size: responsive.text(14), color: const Color(0xFFF4B400)),
               SizedBox(width: responsive.w(8)),
               Expanded(
-                child: Text(
-                  message,
-                  style: AppTextStyles.caption(responsive).copyWith(
-                    color: const Color(0xFFF4B400),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+                child: Text(message,
+                    style: AppTextStyles.caption(responsive).copyWith(
+                        color: const Color(0xFFF4B400),
+                        fontWeight: FontWeight.w500)),
               ),
             ],
           ),
@@ -631,9 +757,11 @@ class _Composer extends StatelessWidget {
               controller: controller.messageController,
               decoration: InputDecoration.collapsed(
                 hintText: AppStrings.messengerDetailInputHint,
-                hintStyle: AppTextStyles.caption(responsive).copyWith(color: AppColors.textGhost),
+                hintStyle: AppTextStyles.caption(responsive)
+                    .copyWith(color: AppColors.textGhost),
               ),
-              style: AppTextStyles.caption(responsive).copyWith(color: Colors.black),
+              style: AppTextStyles.caption(responsive)
+                  .copyWith(color: Colors.black),
               maxLines: null,
             ),
           ),
@@ -655,21 +783,27 @@ class _Avatar extends StatelessWidget {
   const _Avatar({required this.responsive, required this.imageUrl});
 
   final AppResponsive responsive;
-  final String imageUrl;
+  final String? imageUrl;
 
   @override
   Widget build(BuildContext context) {
+    final url = imageUrl;
     return Container(
       width: responsive.w(32),
       height: responsive.w(32),
       clipBehavior: Clip.antiAlias,
       decoration: ShapeDecoration(
-        image: DecorationImage(image: NetworkImage(imageUrl), fit: BoxFit.cover),
+        image: url != null
+            ? DecorationImage(image: NetworkImage(url), fit: BoxFit.cover)
+            : null,
+        color: url == null ? AppColors.surface : null,
         shape: RoundedRectangleBorder(
           side: const BorderSide(color: AppColors.border),
           borderRadius: BorderRadius.circular(9999),
         ),
       ),
+      child:
+          url == null ? const Icon(Icons.person_rounded, color: AppColors.textGhost, size: 18) : null,
     );
   }
 }

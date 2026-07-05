@@ -1,10 +1,11 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:latlong2/latlong.dart';
 
+import 'package:covoiturage_benin_app/app/core/services/driver/interactive_map/interactive_map_service.dart';
+import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
+import 'package:covoiturage_benin_app/app/data/models/driver/interactive_map_model.dart';
 
 enum StopType { pickup, dropoff }
 
@@ -18,101 +19,122 @@ class MapStop {
     required this.type,
     required this.latlng,
     required this.eta,
-    // legacy fields kept for CustomPaint fallback
-    this.posX = 0.0,
-    this.posY = 0.0,
     this.status = StopStatus.pending,
   });
 
-  final String id;
+  final String id; // = bookingUuid for the done endpoint
   final String passengerName;
   final String address;
   final StopType type;
   final LatLng latlng;
-  final double posX;
-  final double posY;
   String eta;
   StopStatus status;
 }
 
 class InteractiveMapController extends GetxController
     with GetSingleTickerProviderStateMixin {
+  InteractiveMapService get _service => Get.find<InteractiveMapService>();
+
   final RxList<MapStop> stops = <MapStop>[].obs;
+  final RxBool isLoading = false.obs;
+  final RxBool hasError = false.obs;
   final RxBool isRecalculating = false.obs;
   final RxBool showOptimizationBanner = false.obs;
-  final RxString routeDistance = '34.2 km'.obs;
-  final RxString routeEta = '1h 05 min'.obs;
-  final RxString routeFuel = '~3.1 L'.obs;
+  final RxString routeDistance = '–'.obs;
+  final RxString routeEta = '–'.obs;
+  final RxString routeFuel = '–'.obs;
   final RxInt currentStopIndex = 0.obs;
   final RxInt selectedStopIndex = (-1).obs;
 
-  // Driver current position (Cotonou, Bénin)
-  final Rx<LatLng> driverPosition =
-      const LatLng(6.3654, 2.4183).obs;
+  final Rx<LatLng> driverPosition = const LatLng(6.3654, 2.4183).obs;
+
+  // Raw route polyline from API (used when available)
+  List<LatLng> _apiPolyline = [];
 
   late AnimationController pulseController;
-  Timer? _progressTimer;
+  late final String _uuid;
 
-  // All route points for polyline
-  List<LatLng> get routePolyline => [
-        driverPosition.value,
-        ...stops.where((s) => s.status != StopStatus.done).map((s) => s.latlng),
-      ];
+  List<LatLng> get routePolyline {
+    if (_apiPolyline.isNotEmpty) return _apiPolyline;
+    return [
+      driverPosition.value,
+      ...stops.where((s) => s.status != StopStatus.done).map((s) => s.latlng),
+    ];
+  }
 
   @override
   void onInit() {
     super.onInit();
-
-    stops.value = [
-      MapStop(
-        id: '1',
-        passengerName: 'Aminata Koné',
-        address: 'Carrefour Tokpa, Cotonou',
-        type: StopType.pickup,
-        latlng: const LatLng(6.3677, 2.4180),
-        posX: 0.22,
-        posY: 0.35,
-        eta: '8 min',
-      ),
-      MapStop(
-        id: '2',
-        passengerName: 'Kwame Asante',
-        address: 'Akpakpa, Carrefour Fiat',
-        type: StopType.pickup,
-        latlng: const LatLng(6.3554, 2.4392),
-        posX: 0.48,
-        posY: 0.52,
-        eta: '18 min',
-      ),
-      MapStop(
-        id: '3',
-        passengerName: 'Kwame Asante',
-        address: 'Centre Porto-Novo',
-        type: StopType.dropoff,
-        latlng: const LatLng(6.3696, 2.6157),
-        posX: 0.65,
-        posY: 0.28,
-        eta: '52 min',
-      ),
-      MapStop(
-        id: '4',
-        passengerName: 'Aminata Koné',
-        address: 'Université Abomey-Calavi',
-        type: StopType.dropoff,
-        latlng: const LatLng(6.4097, 2.3354),
-        posX: 0.80,
-        posY: 0.68,
-        eta: '70 min',
-      ),
-    ];
+    final args = Get.arguments as Map<String, dynamic>?;
+    _uuid = args?['uuid'] as String? ?? '';
 
     pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400),
     )..repeat(reverse: true);
 
-    _startProgressSimulation();
+    _fetchMapData();
   }
+
+  Future<void> refresh() => _fetchMapData();
+
+  Future<void> _fetchMapData() async {
+    if (_uuid.isEmpty) {
+      hasError.value = true;
+      return;
+    }
+    isLoading.value = true;
+    hasError.value = false;
+
+    final result = await _service.fetchMapData(_uuid);
+    isLoading.value = false;
+
+    if (result.isSuccess) {
+      _applyMapData(result.data!);
+    } else {
+      hasError.value = true;
+      if (result.error != AppError.socket) {
+        UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+      }
+    }
+  }
+
+  void _applyMapData(MapDataModel data) {
+    driverPosition.value = LatLng(data.driverPosition.lat, data.driverPosition.lng);
+    stops.assignAll(data.stops.map(_fromStopData).toList());
+    _apiPolyline = data.routePolyline
+        .map((p) => LatLng(p.lat, p.lng))
+        .toList();
+    routeDistance.value = data.routeDistance;
+    routeEta.value = data.routeEta;
+    routeFuel.value = data.routeFuel;
+    currentStopIndex.value = data.currentStopIndex;
+  }
+
+  void _applyRecalculate(RecalculateResult data) {
+    stops.assignAll(data.stops.map(_fromStopData).toList());
+    _apiPolyline = data.routePolyline
+        .map((p) => LatLng(p.lat, p.lng))
+        .toList();
+    routeDistance.value = data.routeDistance;
+    routeEta.value = data.routeEta;
+    routeFuel.value = data.routeFuel;
+    currentStopIndex.value = data.currentStopIndex;
+  }
+
+  MapStop _fromStopData(MapStopData d) => MapStop(
+        id: d.id,
+        passengerName: d.passengerName,
+        address: d.address,
+        type: d.type == 'pickup' ? StopType.pickup : StopType.dropoff,
+        latlng: LatLng(d.latlng.lat, d.latlng.lng),
+        eta: d.eta,
+        status: switch (d.status) {
+          'done' => StopStatus.done,
+          'approaching' => StopStatus.approaching,
+          _ => StopStatus.pending,
+        },
+      );
 
   MapStop? get nextStop {
     try {
@@ -122,74 +144,50 @@ class InteractiveMapController extends GetxController
     }
   }
 
-  void _startProgressSimulation() {
-    _progressTimer = Timer.periodic(const Duration(seconds: 12), (_) {
-      final idx = currentStopIndex.value;
-      if (idx < stops.length) {
-        final stop = stops[idx];
-        if (stop.status == StopStatus.pending) {
-          stops[idx].status = StopStatus.approaching;
-          stops.refresh();
-          _updateEtas();
-        } else if (stop.status == StopStatus.approaching) {
-          stops[idx].status = StopStatus.done;
-          stops.refresh();
-          if (idx + 1 < stops.length) {
-            currentStopIndex.value = idx + 1;
-          }
-          _updateEtas();
-        }
-      }
-    });
-  }
-
-  void _updateEtas() {
-    final etaValues = ['2 min', '5 min', '12 min', '25 min', '38 min'];
-    for (var i = 0; i < stops.length; i++) {
-      if (stops[i].status != StopStatus.done) {
-        final remaining =
-            (i - currentStopIndex.value).clamp(0, etaValues.length - 1);
-        stops[i].eta = etaValues[remaining];
-      }
-    }
-    stops.refresh();
-  }
-
-  void markStopDone(String stopId) {
+  Future<void> markStopDone(String stopId) async {
     final idx = stops.indexWhere((s) => s.id == stopId);
     if (idx == -1) return;
+
+    // Optimistic update
     stops[idx].status = StopStatus.done;
     stops.refresh();
-    final nextPending = stops.indexWhere((s) => s.status != StopStatus.done);
-    if (nextPending != -1) {
-      currentStopIndex.value = nextPending;
-      stops[nextPending].status = StopStatus.approaching;
+    final name = stops[idx].passengerName;
+
+    final result = await _service.markStopDone(_uuid, stopId);
+
+    if (result.isSuccess) {
+      currentStopIndex.value = result.data!.nextStopIndex;
+      // Mark next stop as approaching if available
+      final nextIdx = currentStopIndex.value;
+      if (nextIdx < stops.length && stops[nextIdx].status == StopStatus.pending) {
+        stops[nextIdx].status = StopStatus.approaching;
+        stops.refresh();
+      }
+      UIHelper().showSnackBar('MINIZON', '$name pris en charge.', 0);
+    } else {
+      // Revert optimistic update on failure
+      stops[idx].status = StopStatus.pending;
       stops.refresh();
+      UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
     }
-    _updateEtas();
-    UIHelper().showSnackBar(
-      'MINIZON',
-      'Arrêt ${stops[idx].passengerName} marqué comme terminé.',
-      0,
-    );
   }
 
-  void recalculateRoute() {
+  Future<void> recalculateRoute() async {
     if (isRecalculating.value) return;
     isRecalculating.value = true;
-    Future.delayed(const Duration(milliseconds: 1600), () {
-      isRecalculating.value = false;
-      final done = stops.where((s) => s.status == StopStatus.done).length;
-      final newDist = (30 + done * 2.1).toStringAsFixed(1);
-      routeDistance.value = '$newDist km';
-      final mins = 55 - (done * 8);
-      routeEta.value = '${mins.clamp(10, 65)} min';
-      routeFuel.value = '~${(mins * 0.06).toStringAsFixed(1)} L';
+
+    final result = await _service.recalculate(_uuid);
+    isRecalculating.value = false;
+
+    if (result.isSuccess) {
+      _applyRecalculate(result.data!);
       showOptimizationBanner.value = true;
       Future.delayed(const Duration(seconds: 4), () {
         showOptimizationBanner.value = false;
       });
-    });
+    } else {
+      UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+    }
   }
 
   void selectStop(int index) {
@@ -197,7 +195,7 @@ class InteractiveMapController extends GetxController
         selectedStopIndex.value == index ? -1 : index;
   }
 
-  // ── Helpers ────────────────────────────────────────────────────────────
+  // ── Visual helpers ──────────────────────────────────────────────────────────
 
   Color stopColor(MapStop stop) {
     if (stop.status == StopStatus.done) return const Color(0xFF9CA3AF);
@@ -234,7 +232,6 @@ class InteractiveMapController extends GetxController
 
   @override
   void onClose() {
-    _progressTimer?.cancel();
     pulseController.dispose();
     super.onClose();
   }

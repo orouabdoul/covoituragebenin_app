@@ -1,15 +1,18 @@
 import 'package:get/get.dart';
 
+import 'package:covoiturage_benin_app/app/core/services/driver/stats/stats_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/driver_stats_model.dart';
-import 'package:covoiturage_benin_app/app/data/providers/stats_provider.dart';
 
 class StatisticsController extends GetxController {
-  final _provider = StatsProvider();
+  StatsService get _service => Get.find<StatsService>();
 
   final RxBool isLoading = false.obs;
-  final Rx<StatPeriod> selectedPeriod = StatPeriod.week.obs;
+  final RxBool hasError  = false.obs;
+
+  final Rx<StatPeriod> selectedPeriod =
+      StatPeriod.week.obs;
 
   final Rx<DriverStatsModel> _current =
       Rx<DriverStatsModel>(DriverStatsModel.empty(StatPeriod.week));
@@ -28,14 +31,21 @@ class StatisticsController extends GetxController {
     selectedPeriod.value = p;
     if (_cache.containsKey(p)) {
       _current.value = _cache[p]!;
+      hasError.value = false;
     } else {
       _fetch(p);
     }
   }
 
-  Future<void> _fetch(StatPeriod period) async {
+  @override
+  Future<void> refresh() => _fetch(selectedPeriod.value, forceReload: true);
+
+  Future<void> _fetch(StatPeriod period, {bool forceReload = false}) async {
+    if (forceReload) _cache.remove(period);
     isLoading.value = true;
-    final result = await _provider.fetchStats(_periodStr(period));
+    hasError.value  = false;
+
+    final result = await _service.fetchStats(_periodStr(period));
     isLoading.value = false;
 
     if (result.isSuccess) {
@@ -45,7 +55,10 @@ class StatisticsController extends GetxController {
         _current.value = model;
       }
     } else {
-      UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+      hasError.value = true;
+      if (result.error != AppError.socket) {
+        UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+      }
     }
   }
 

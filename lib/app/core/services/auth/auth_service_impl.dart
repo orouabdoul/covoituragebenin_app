@@ -1,19 +1,14 @@
 import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
 import 'package:covoiturage_benin_app/app/core/utils/api_result.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
+import 'package:covoiturage_benin_app/app/core/utils/app_dio.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
-import 'package:covoiturage_benin_app/app/data/models/auth_result.dart';
+import 'package:covoiturage_benin_app/app/data/models/auth/auth_result.dart';
 import 'package:dio/dio.dart';
 import 'auth_service.dart';
 
 class AuthServiceImpl implements AuthService {
-  final Dio _dio = Dio(BaseOptions(
-    baseUrl: AppApi.baseUrl,
-    connectTimeout: const Duration(seconds: 30),
-    receiveTimeout: const Duration(seconds: 30),
-    sendTimeout: const Duration(seconds: 30),
-    headers: {'Accept': 'application/json'},
-  ));
+  final Dio _dio = AppDio.create();
 
   @override
   Future<ApiResult<String?>> sendOtp({required String phone}) async {
@@ -35,8 +30,7 @@ class AuthServiceImpl implements AuthService {
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('sendOtp: $e');
-      if (_isNetworkError(e)) return ApiResult.failure(AppError.socket);
-      return ApiResult.failure(AppError.unexpected);
+      return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
       logger.e('sendOtp: $e');
       return ApiResult.failure(AppError.unexpected);
@@ -68,7 +62,8 @@ class AuthServiceImpl implements AuthService {
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('verifyOtp: $e');
-      if (_isNetworkError(e)) return ApiResult.failure(AppError.socket);
+      final classifiedError = AppDio.classifyDioError(e);
+      if (classifiedError != AppError.unexpected) return ApiResult.failure(classifiedError);
       final status = e.response?.statusCode;
       if (status == 401) return ApiResult.failure(AppError.invalidOtp);
       if (status == 404) return ApiResult.failure(AppError.userNotFound);
@@ -80,9 +75,4 @@ class AuthServiceImpl implements AuthService {
     }
   }
 
-  bool _isNetworkError(DioException e) =>
-      e.type == DioExceptionType.connectionTimeout ||
-      e.type == DioExceptionType.sendTimeout ||
-      e.type == DioExceptionType.receiveTimeout ||
-      e.type == DioExceptionType.connectionError;
 }

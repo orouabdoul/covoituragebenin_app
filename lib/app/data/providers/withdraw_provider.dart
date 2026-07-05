@@ -58,7 +58,8 @@ class WithdrawProvider {
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       if (res.statusCode == 422) {
-        lastValidationMessage = res.data['message'] as String? ?? 'Solde insuffisant.';
+        lastValidationMessage =
+            res.data['message'] as String? ?? 'Solde insuffisant.';
         return ApiResult.failure(AppError.validationError);
       }
       return ApiResult.failure(AppError.unexpected);

@@ -9,6 +9,7 @@ import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_field.dart';
+import 'package:covoiturage_benin_app/app/data/models/driver/vehicle_model.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 import '../controllers/add_trajet_controller.dart';
@@ -34,7 +35,7 @@ class AddTrajetView extends GetView<AddTrajetController> {
                 responsive.adaptive(phone: 24, smallPhone: 20, tablet: 28, desktop: 32),
               ),
               children: [
-                _TopBar(responsive: responsive),
+                _TopBar(responsive: responsive, isEditMode: controller.isEditMode),
                 SizedBox(height: responsive.h(16)),
                 _HeroSection(responsive: responsive),
                 SizedBox(height: responsive.h(20)),
@@ -151,13 +152,16 @@ class AddTrajetView extends GetView<AddTrajetController> {
                   ),
                 ),
                 SizedBox(height: responsive.h(24)),
-                AppPrimaryButton(
+                Obx(() => AppPrimaryButton(
                   responsive: responsive,
-                  label: AppStrings.driverCreateTripPublish,
+                  label: controller.isPublishing.value
+                      ? (controller.isEditMode ? 'Mise à jour...' : 'Publication en cours...')
+                      : (controller.isEditMode ? 'Mettre à jour' : AppStrings.driverCreateTripPublish),
                   onTap: controller.publishTrip,
+                  enabled: !controller.isPublishing.value && !controller.isLoadingEdit.value,
                   height: responsive.adaptive(phone: 56, smallPhone: 52, tablet: 56, desktop: 56),
                   borderRadius: responsive.radius(16),
-                ),
+                )),
               ],
             ),
           ),
@@ -170,8 +174,9 @@ class AddTrajetView extends GetView<AddTrajetController> {
 // ── Top bar ────────────────────────────────────────────────────────────────────
 
 class _TopBar extends StatelessWidget {
-  const _TopBar({required this.responsive});
+  const _TopBar({required this.responsive, this.isEditMode = false});
   final AppResponsive responsive;
+  final bool isEditMode;
 
   @override
   Widget build(BuildContext context) {
@@ -189,7 +194,9 @@ class _TopBar extends StatelessWidget {
           AppCircularButton(
             responsive: responsive,
             icon: Icons.arrow_back_rounded,
-            onTap: () => Get.offAllNamed(AppRoutes.dashboardDriver, arguments: 1),
+            onTap: isEditMode
+                ? Get.back
+                : () => Get.offAllNamed(AppRoutes.dashboardDriver, arguments: 1),
             size: responsive.w(40),
           ),
           SizedBox(width: responsive.w(12)),
@@ -198,14 +205,14 @@ class _TopBar extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
-                  AppStrings.driverCreateTripTitle,
+                  isEditMode ? 'Modifier le trajet' : AppStrings.driverCreateTripTitle,
                   textAlign: TextAlign.center,
                   style: AppTextStyles.profileSectionTitle(responsive)
                       .copyWith(fontSize: responsive.text(18)),
                 ),
                 SizedBox(height: responsive.h(2)),
                 Text(
-                  AppStrings.driverCreateTripSubtitle,
+                  isEditMode ? 'Mettez à jour les informations' : AppStrings.driverCreateTripSubtitle,
                   textAlign: TextAlign.center,
                   style: AppTextStyles.caption(responsive),
                 ),
@@ -620,345 +627,128 @@ class _VehicleSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
+      if (controller.isLoadingVehicles.value) {
+        return Padding(
+          padding: EdgeInsets.symmetric(vertical: responsive.h(24)),
+          child: const Center(child: CircularProgressIndicator()),
+        );
+      }
+
+      if (controller.availableVehicles.isEmpty) {
+        return Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(responsive.w(20)),
+          decoration: ShapeDecoration(
+            color: AppColors.surfaceSoft,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(responsive.radius(16)),
+            ),
+          ),
+          child: Column(
+            children: [
+              Icon(Icons.directions_car_rounded,
+                  color: AppColors.textGhost, size: responsive.text(32)),
+              SizedBox(height: responsive.h(8)),
+              Text('Aucun véhicule enregistré',
+                  style: AppTextStyles.profileSectionLabel(responsive)),
+              SizedBox(height: responsive.h(4)),
+              Text(
+                'Ajoutez un véhicule dans votre profil pour publier un trajet.',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.caption(responsive),
+              ),
+            ],
+          ),
+        );
+      }
+
       return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Type toggle (Voiture / Moto)
-          Row(
-            children: controller.vehicleCards.map((vehicle) {
-              final bool selected =
-                  controller.selectedVehicleType.value == vehicle.type;
-              return Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    right: vehicle.type == TripVehicleType.car
-                        ? responsive.w(12)
-                        : 0,
+        children: controller.availableVehicles.map((VehicleData vehicle) {
+          final isSelected =
+              controller.selectedVehicle.value?.uuid == vehicle.uuid;
+          return Padding(
+            padding: EdgeInsets.only(bottom: responsive.h(10)),
+            child: GestureDetector(
+              onTap: () => controller.selectVehicle(vehicle),
+              child: Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(responsive.w(14)),
+                decoration: ShapeDecoration(
+                  gradient: isSelected
+                      ? const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0x0C00A86B), Color(0x0500A86B)],
+                        )
+                      : null,
+                  color: isSelected ? null : AppColors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.circular(responsive.radius(16)),
+                    side: BorderSide(
+                      color: isSelected ? AppColors.primary : AppColors.border,
+                      width: 2,
+                    ),
                   ),
-                  child: GestureDetector(
-                    onTap: () => controller.selectVehicleType(vehicle.type),
-                    child: Container(
-                      height: responsive.adaptive(
-                        phone: 112,
-                        smallPhone: 100,
-                        tablet: 120,
-                        desktop: 120,
-                      ),
-                      padding: EdgeInsets.all(responsive.w(14)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: responsive.w(44),
+                      height: responsive.w(44),
                       decoration: ShapeDecoration(
-                        gradient: selected
-                            ? const LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [Color(0x0C00A86B), Color(0x0500A86B)],
-                              )
-                            : null,
-                        color: selected ? null : AppColors.white,
+                        color: isSelected
+                            ? AppColors.surfaceAccentStrong
+                            : AppColors.surfaceSoft,
                         shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(responsive.radius(16)),
-                          side: BorderSide(
-                            color:
-                                selected ? AppColors.primary : AppColors.border,
-                            width: 2,
-                          ),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
+                      child: Icon(
+                        vehicle.vehicleType == 'motorcycle'
+                            ? Icons.two_wheeler_rounded
+                            : Icons.directions_car_rounded,
+                        color: isSelected
+                            ? AppColors.primary
+                            : AppColors.textMuted,
+                        size: responsive.text(20),
+                      ),
+                    ),
+                    SizedBox(width: responsive.w(12)),
+                    Expanded(
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            width: responsive.w(48),
-                            height: responsive.w(48),
-                            decoration: ShapeDecoration(
-                              color: selected
-                                  ? AppColors.surfaceAccentStrong
-                                  : AppColors.surfaceSoft,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: Icon(
-                              vehicle.icon,
-                              color: selected
-                                  ? AppColors.primary
-                                  : AppColors.textMuted,
-                              size: responsive.text(22),
-                            ),
-                          ),
-                          SizedBox(height: responsive.h(6)),
                           Text(
-                            vehicle.title,
-                            style:
-                                AppTextStyles.profileSectionLabel(responsive)
-                                    .copyWith(
-                              color: selected
+                            '${vehicle.brand} ${vehicle.model}',
+                            style: AppTextStyles.profileSectionLabel(responsive)
+                                .copyWith(
+                              color: isSelected
                                   ? AppColors.textPrimary
                                   : AppColors.textMuted,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
+                          SizedBox(height: responsive.h(2)),
+                          Text(
+                            '${vehicle.licensePlate} • ${vehicle.availableSeats} places',
+                            style: AppTextStyles.caption(responsive),
+                          ),
                         ],
                       ),
                     ),
-                  ),
+                    if (isSelected)
+                      Icon(Icons.check_circle_rounded,
+                          color: AppColors.primary,
+                          size: responsive.text(22)),
+                  ],
                 ),
-              );
-            }).toList(growable: false),
-          ),
-
-          SizedBox(height: responsive.h(16)),
-
-          // Marque
-          _PickerField(
-            responsive: responsive,
-            label: 'Marque',
-            value: controller.selectedBrand.value,
-            hint: 'Sélectionner la marque',
-            icon: Icons.branding_watermark_rounded,
-            onTap: () => _showPicker(
-              context,
-              title: 'Choisir la marque',
-              items: controller.brandsForType,
-              selected: controller.selectedBrand.value,
-              onSelect: controller.selectBrand,
-              responsive: responsive,
+              ),
             ),
-          ),
-
-          SizedBox(height: responsive.h(12)),
-
-          // Modèle
-          _PickerField(
-            responsive: responsive,
-            label: 'Modèle',
-            value: controller.selectedModel.value,
-            hint: controller.selectedBrand.value == null
-                ? 'Choisir la marque d\'abord'
-                : 'Sélectionner le modèle',
-            icon: Icons.directions_car_outlined,
-            disabled: controller.selectedBrand.value == null,
-            onTap: controller.selectedBrand.value == null
-                ? null
-                : () => _showPicker(
-                      context,
-                      title: 'Choisir le modèle',
-                      items: controller.modelsForBrand,
-                      selected: controller.selectedModel.value,
-                      onSelect: controller.selectModel,
-                      responsive: responsive,
-                    ),
-          ),
-
-          // Bandeau règlementation — visible dès qu'un modèle est choisi
-          if (controller.selectedModel.value != null) ...[
-            SizedBox(height: responsive.h(12)),
-            _LegalBadge(
-              responsive: responsive,
-              label: controller.capacityLabel,
-            ),
-          ],
-        ],
+          );
+        }).toList(),
       );
     });
-  }
-
-  static void _showPicker(
-    BuildContext context, {
-    required String title,
-    required List<String> items,
-    required String? selected,
-    required void Function(String) onSelect,
-    required AppResponsive responsive,
-  }) {
-    Get.bottomSheet(
-      Container(
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(responsive.radius(24)),
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(height: responsive.h(12)),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.border,
-                borderRadius: BorderRadius.circular(9999),
-              ),
-            ),
-            SizedBox(height: responsive.h(16)),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: responsive.w(20)),
-              child: Text(title,
-                  style: AppTextStyles.h6(responsive)),
-            ),
-            SizedBox(height: responsive.h(8)),
-            const Divider(height: 1),
-            Flexible(
-              child: ListView.separated(
-                shrinkWrap: true,
-                itemCount: items.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
-                itemBuilder: (_, i) {
-                  final item = items[i];
-                  final isSelected = item == selected;
-                  return ListTile(
-                    title: Text(
-                      item,
-                      style: AppTextStyles.profileFieldValue(responsive)
-                          .copyWith(
-                        color: isSelected
-                            ? AppColors.primary
-                            : AppColors.textPrimary,
-                        fontWeight: isSelected
-                            ? FontWeight.w700
-                            : FontWeight.w400,
-                      ),
-                    ),
-                    trailing: isSelected
-                        ? Icon(Icons.check_circle_rounded,
-                            color: AppColors.primary,
-                            size: responsive.text(20))
-                        : null,
-                    onTap: () {
-                      onSelect(item);
-                      Get.back();
-                    },
-                  );
-                },
-              ),
-            ),
-            SizedBox(height: responsive.h(24)),
-          ],
-        ),
-      ),
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-    );
-  }
-}
-
-// ── Picker field ────────────────────────────────────────────────────────────────
-
-class _PickerField extends StatelessWidget {
-  const _PickerField({
-    required this.responsive,
-    required this.label,
-    required this.hint,
-    required this.icon,
-    this.value,
-    this.onTap,
-    this.disabled = false,
-  });
-  final AppResponsive responsive;
-  final String label;
-  final String hint;
-  final IconData icon;
-  final String? value;
-  final VoidCallback? onTap;
-  final bool disabled;
-
-  @override
-  Widget build(BuildContext context) {
-    final hasValue = value != null;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: AppTextStyles.profileSectionLabel(responsive)),
-        SizedBox(height: responsive.h(8)),
-        GestureDetector(
-          onTap: disabled ? null : onTap,
-          child: Container(
-            width: double.infinity,
-            padding: EdgeInsets.symmetric(
-              horizontal: responsive.w(16),
-              vertical: responsive.h(14),
-            ),
-            decoration: ShapeDecoration(
-              color: disabled ? AppColors.surfaceMuted : AppColors.surface,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(responsive.radius(16)),
-                side: BorderSide(
-                  width: 2,
-                  color: hasValue ? AppColors.primary : AppColors.border,
-                ),
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  icon,
-                  size: responsive.text(18),
-                  color: hasValue ? AppColors.primary : AppColors.textGhost,
-                ),
-                SizedBox(width: responsive.w(10)),
-                Expanded(
-                  child: Text(
-                    value ?? hint,
-                    style: AppTextStyles.profileFieldValue(responsive).copyWith(
-                      color: hasValue
-                          ? AppColors.textPrimary
-                          : AppColors.textGhost,
-                    ),
-                  ),
-                ),
-                Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  color: AppColors.textGhost,
-                  size: responsive.text(20),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ── Legal capacity badge ────────────────────────────────────────────────────────
-
-class _LegalBadge extends StatelessWidget {
-  const _LegalBadge({required this.responsive, required this.label});
-  final AppResponsive responsive;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(
-        horizontal: responsive.w(14),
-        vertical: responsive.h(10),
-      ),
-      decoration: ShapeDecoration(
-        color: const Color(0xFFFFFBEB),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(responsive.radius(12)),
-          side: const BorderSide(color: Color(0xFFFDE68A)),
-        ),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.gavel_rounded, size: 16, color: Color(0xFFD97706)),
-          SizedBox(width: responsive.w(8)),
-          Expanded(
-            child: Text(
-              label,
-              style: AppTextStyles.caption(responsive).copyWith(
-                color: const Color(0xFF92400E),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 

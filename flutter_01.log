@@ -1,0 +1,69 @@
+Flutter crash report.
+Please report a bug at https://github.com/flutter/flutter/issues.
+
+## command
+
+flutter analyze lib/app/modules/principal/driver/reservation/ lib/app/data/providers/booking_provider.dart lib/app/core/constants/app_api.dart
+
+## exception
+
+_Exception: Exception: analysis server exited with code -1073740791 and output:
+[stdout] {"event":"server.connected","params":{"version":"1.40.1","pid":19372}}
+[stdout] {"id":"1"}
+[stdout] {"event":"server.status","params":{"analysis":{"isAnalyzing":true}}}
+[stderr] ../../runtime/vm/os_thread.cc: 364: error: Could not start thread DartWorker: 22 (Le p�riph�rique ne reconna�t pas la commande.
+[stderr] 
+[stderr] )
+[stderr] version=3.11.1 (stable) (Tue Feb 24 00:03:07 2026 -0800) on "windows_x64"
+[stderr] pid=19372, thread=21384, isolate_group=(nil)(0000000000000000), isolate=(nil)(0000000000000000)
+[stderr] os=windows, arch=x64, comp=no, sim=no
+[stderr] isolate_instructions=0, vm_instructions=7ff785f78400
+[stderr] fp=5789cff2d0, sp=5789cff288, pc=7ff78625cca3
+[stderr]   pc 0x00007ff78625cca3 fp 0x0000005789cff2d0 Dart_DetectNullSafety+0x2dc1c3
+[stderr] -- End of DumpStackTrace
+
+```
+```
+
+## flutter doctor
+
+```
+[✓] Flutter (Channel stable, 3.41.4, on Microsoft Windows [version 10.0.26200.8655], locale fr-BJ) [553ms]
+    • Flutter version 3.41.4 on channel stable at C:\src\flutter
+    • Upstream repository https://github.com/flutter/flutter.git
+    • Framework revision ff37bef603 (4 months ago), 2026-03-03 16:03:22 -0800
+    • Engine revision e4b8dca3f1
+    • Dart version 3.11.1
+    • DevTools version 2.54.1
+    • Feature flags: enable-web, enable-linux-desktop, enable-macos-desktop, enable-windows-desktop, enable-android, enable-ios, cli-animations, enable-native-assets, omit-legacy-version-file, enable-lldb-debugging, enable-uiscene-migration
+
+[✓] Windows Version (Windows 11 or higher, 25H2, 2009) [5,1s]
+
+[✓] Android toolchain - develop for Android devices (Android SDK version 36.1.0) [10,3s]
+    • Android SDK at C:\Users\HP_PC\AppData\Local\Android\Sdk
+    • Emulator version 36.4.10.0 (build_id 15004761) (CL:N/A)
+    • Platform android-36.1, build-tools 36.1.0
+    • ANDROID_HOME = C:\Users\HP_PC\AppData\Local\Android\Sdk
+    • Java binary at: C:\Program Files\Android\Android Studio\jbr\bin\java
+      This is the JDK bundled with the latest Android Studio installation on this machine.
+      To manually set the JDK path, use: `flutter config --jdk-dir="path/to/jdk"`.
+    • Java version OpenJDK Runtime Environment (build 21.0.9+-14787801-b1163.94)
+    • All Android licenses accepted.
+
+[✗] Chrome - develop for the web (Cannot find Chrome executable at .\Google\Chrome\Application\chrome.exe) [58ms]
+    ! Cannot find Chrome. Try setting CHROME_EXECUTABLE to a Chrome executable.
+
+[✗] Visual Studio - develop Windows apps [52ms]
+    ✗ Visual Studio not installed; this is necessary to develop Windows apps.
+      Download at https://visualstudio.microsoft.com/downloads/.
+      Please install the "Desktop development with C++" workload, including all of its default components
+
+[✓] Connected device (2 available) [2,7s]
+    • Windows (desktop) • windows • windows-x64    • Microsoft Windows [version 10.0.26200.8655]
+    • Edge (web)        • edge    • web-javascript • Microsoft Edge 149.0.4022.98
+
+[✓] Network resources [1 277ms]
+    • All expected network resources are available.
+
+! Doctor found issues in 2 categories.
+```

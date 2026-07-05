@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
+import 'package:covoiturage_benin_app/app/data/models/driver/notification_driver_model.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 
 import '../controllers/home_controller.dart';
@@ -23,11 +24,32 @@ class DriverHomeView extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.surface,
-      body: SafeArea(
+      body: Obx(() {
+        final version = controller.dashboardVersion.value;
+        final hasError = controller.hasLoadError.value;
+
+        if (version == 0) {
+          if (hasError) {
+            return SafeArea(
+              child: _DashboardError(
+                responsive: responsive,
+                onRetry: controller.refresh,
+              ),
+            );
+          }
+          return const SafeArea(
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        return SafeArea(
         child: Center(
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: responsive.maxContentWidth),
-            child: ListView(
+            child: RefreshIndicator(
+              onRefresh: controller.refresh,
+              color: AppColors.primary,
+              child: ListView(
               padding: EdgeInsets.fromLTRB(
                   responsive.adaptive(label: 'pad', phone: 16, smallPhone: 14, tablet: 20, desktop: 24),
                   responsive.adaptive(label: 'pad', phone: 12, smallPhone: 10, tablet: 16, desktop: 20),
@@ -130,12 +152,14 @@ class DriverHomeView extends StatelessWidget {
 
                 _SectionTitle(responsive: responsive, title: 'Notifications'),
                 SizedBox(height: responsive.adaptive(label: 'gap', phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                _NotificationList(responsive: responsive, items: controller.notifications),
+                Obx(() => _NotificationList(responsive: responsive, items: controller.notifications)),
               ],
+            ),
             ),
           ),
         ),
-      ),
+        );
+      }),
     );
   }
 }
@@ -461,10 +485,12 @@ class _AvailabilitySection extends StatelessWidget {
                       style: AppTextStyles.profileSectionTitle(responsive),
                     ),
                     SizedBox(height: responsive.h(2)),
-                    Text(
-                      'Vous êtes en ligne',
+                    Obx(() => Text(
+                      controller.isOnline.value
+                          ? 'Vous êtes en ligne'
+                          : 'Vous êtes hors ligne',
                       style: AppTextStyles.caption(responsive),
-                    ),
+                    )),
                   ],
                 ),
               ),
@@ -744,7 +770,7 @@ class _NextTripCard extends StatelessWidget {
                     vertical: responsive.h(6),
                   ),
                   decoration: ShapeDecoration(
-                    color: const Color(0x1900A86B),
+                    color: trip.statusBg,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(
                         responsive.radius(9999),
@@ -753,9 +779,9 @@ class _NextTripCard extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    AppStrings.confirmed,
+                    trip.statusLabel,
                     style: AppTextStyles.registerLabel(responsive).copyWith(
-                      color: AppColors.primary,
+                      color: trip.statusColor,
                       fontSize: responsive.text(12),
                       fontWeight: FontWeight.w700,
                     ),
@@ -1080,6 +1106,53 @@ class _InlineActionButton extends StatelessWidget {
               letterSpacing: -0.50,
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DashboardError extends StatelessWidget {
+  const _DashboardError({required this.responsive, required this.onRetry});
+
+  final AppResponsive responsive;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(responsive.adaptive(phone: 32, smallPhone: 28, tablet: 40, desktop: 48)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.cloud_off_rounded,
+                size: responsive.adaptive(phone: 56, smallPhone: 48, tablet: 64, desktop: 64),
+                color: AppColors.textGhost),
+            SizedBox(height: responsive.h(16)),
+            Text(
+              'Impossible de charger le tableau de bord',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.homeCardTitle(responsive),
+            ),
+            SizedBox(height: responsive.h(8)),
+            Text(
+              'Vérifiez votre connexion et réessayez.',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.caption(responsive),
+            ),
+            SizedBox(height: responsive.h(24)),
+            AppPrimaryButton(
+              responsive: responsive,
+              label: 'Réessayer',
+              onTap: onRetry,
+              height: responsive.adaptive(phone: 48, smallPhone: 44, tablet: 48, desktop: 48),
+              backgroundColor: AppColors.primary,
+              textColor: AppColors.white,
+              borderColor: AppColors.primary,
+              borderRadius: responsive.radius(12),
+            ),
+          ],
         ),
       ),
     );
@@ -2034,7 +2107,7 @@ class _LevelSection extends StatelessWidget {
             borderRadius: BorderRadius.circular(9999),
             child: LinearProgressIndicator(
               minHeight: responsive.h(12),
-              value: 0.75,
+              value: level.progressFraction,
               backgroundColor: AppColors.surfaceSoft,
               color: AppColors.primary,
             ),
@@ -2143,23 +2216,27 @@ class _NotificationList extends StatelessWidget {
   const _NotificationList({required this.responsive, required this.items});
 
   final AppResponsive responsive;
-  final List<DriverNotificationItem> items;
+  final List<DriverNotificationModel> items;
 
   @override
   Widget build(BuildContext context) {
+    if (items.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: responsive.h(24)),
+          child: Text(
+            'Aucune notification',
+            style: AppTextStyles.caption(responsive),
+          ),
+        ),
+      );
+    }
     return Column(
       children: [
         for (var index = 0; index < items.length; index++) ...[
           _NotificationCard(responsive: responsive, item: items[index]),
           if (index != items.length - 1)
-            SizedBox(
-              height: responsive.adaptive(
-                phone: 8,
-                smallPhone: 8,
-                tablet: 8,
-                desktop: 8,
-              ),
-            ),
+            SizedBox(height: responsive.adaptive(phone: 8, smallPhone: 8, tablet: 8, desktop: 8)),
         ],
       ],
     );
@@ -2170,20 +2247,25 @@ class _NotificationCard extends StatelessWidget {
   const _NotificationCard({required this.responsive, required this.item});
 
   final AppResponsive responsive;
-  final DriverNotificationItem item;
+  final DriverNotificationModel item;
 
   @override
   Widget build(BuildContext context) {
+    final bg = item.isRead
+        ? AppColors.white
+        : item.iconBg.withValues(alpha: 0.07);
+    final border = item.isRead ? AppColors.border : item.iconBg;
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(
         responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12),
       ),
       decoration: ShapeDecoration(
-        color: item.backgroundColor,
+        color: bg,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(responsive.radius(12)),
-          side: BorderSide(width: 1, color: item.borderColor),
+          side: BorderSide(width: 1, color: border),
         ),
       ),
       child: Row(
@@ -2193,44 +2275,29 @@ class _NotificationCard extends StatelessWidget {
             width: responsive.w(32),
             height: responsive.w(32),
             decoration: ShapeDecoration(
-              color: item.iconBackground,
+              color: item.iconBg,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(9999),
               ),
             ),
             child: Icon(
-              item.icon,
+              item.iconData,
               color: AppColors.white,
               size: responsive.text(18),
             ),
           ),
-          SizedBox(
-            width: responsive.adaptive(
-              phone: 12,
-              smallPhone: 10,
-              tablet: 12,
-              desktop: 12,
-            ),
-          ),
+          SizedBox(width: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  item.title,
-                  style: AppTextStyles.homeCardTitle(responsive),
-                ),
+                Text(item.title, style: AppTextStyles.homeCardTitle(responsive)),
                 SizedBox(height: responsive.h(4)),
-                Text(
-                  item.subtitle,
-                  style: AppTextStyles.homeCardBody(responsive),
-                ),
+                Text(item.body, style: AppTextStyles.homeCardBody(responsive)),
                 SizedBox(height: responsive.h(4)),
                 Text(
                   item.time,
-                  style: AppTextStyles.homeCardBody(
-                    responsive,
-                  ).copyWith(color: AppColors.textGhost),
+                  style: AppTextStyles.homeCardBody(responsive).copyWith(color: AppColors.textGhost),
                 ),
               ],
             ),

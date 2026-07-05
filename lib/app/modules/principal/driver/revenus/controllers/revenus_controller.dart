@@ -4,12 +4,12 @@ import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
+import 'package:covoiturage_benin_app/app/core/services/driver/wallet/wallet_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
-import 'package:covoiturage_benin_app/app/data/providers/wallet_provider.dart';
 
 class RevenusController extends GetxController {
-  final _provider = WalletProvider();
+  WalletService get _service => Get.find<WalletService>();
 
   final RxBool   isLoading        = false.obs;
   final RxString availableBalance = '—'.obs;
@@ -54,7 +54,7 @@ class RevenusController extends GetxController {
 
   Future<void> _loadWallet() async {
     isLoading.value = true;
-    final result = await _provider.fetchPaymentHistory();
+    final result = await _service.fetchPaymentHistory();
     isLoading.value = false;
 
     if (!result.isSuccess) {

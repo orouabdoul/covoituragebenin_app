@@ -5,7 +5,13 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
+import 'package:covoiturage_benin_app/app/core/services/driver/home/dashboard_service.dart';
+import 'package:covoiturage_benin_app/app/core/services/driver/notifications/notifications_service.dart';
+import 'package:covoiturage_benin_app/app/core/utils/extensions.dart';
+import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
+import 'package:covoiturage_benin_app/app/data/models/driver/dashboard_model.dart';
+import 'package:covoiturage_benin_app/app/data/models/driver/notification_driver_model.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 // ── Quick request (with live countdown) ────────────────────────────────────
@@ -106,6 +112,7 @@ class DriverMetric {
 
 class DriverTripCard {
   const DriverTripCard({
+    this.uuid = '',
     required this.statusLabel,
     required this.time,
     required this.departureLabel,
@@ -116,6 +123,7 @@ class DriverTripCard {
     required this.avatarUrls,
   });
 
+  final String uuid;
   final String statusLabel;
   final String time;
   final String departureLabel;
@@ -124,6 +132,18 @@ class DriverTripCard {
   final String destination;
   final String passengersLabel;
   final List<String> avatarUrls;
+
+  Color get statusColor => switch (statusLabel) {
+    'En attente' => const Color(0xFFF4B400),
+    'Confirmé'   => const Color(0xFF00A86B),
+    'En cours'   => const Color(0xFF3B82F6),
+    'Terminé'    => const Color(0xFF6B7280),
+    'Annulé'     => const Color(0xFFE53935),
+    _            => const Color(0xFF00A86B),
+  };
+
+  Color get statusBg => Color.fromRGBO(
+    statusColor.red, statusColor.green, statusColor.blue, 0.12);
 }
 
 /// Alias pour compatibilité avec home_view.dart qui référence DriverTrip.
@@ -187,12 +207,14 @@ class DriverLevel {
     required this.currentLevel,
     required this.progressLabel,
     required this.progressValue,
+    required this.progressFraction,
     required this.badges,
   });
 
   final String currentLevel;
   final String progressLabel;
   final String progressValue;
+  final double progressFraction;
   final List<DriverBadge> badges;
 }
 
@@ -208,26 +230,6 @@ class DriverBadge {
   final Color color;
   final IconData icon;
   final Color iconColor;
-}
-
-class DriverNotificationItem {
-  const DriverNotificationItem({
-    required this.title,
-    required this.subtitle,
-    required this.time,
-    required this.backgroundColor,
-    required this.borderColor,
-    required this.icon,
-    required this.iconBackground,
-  });
-
-  final String title;
-  final String subtitle;
-  final String time;
-  final Color backgroundColor;
-  final Color borderColor;
-  final IconData icon;
-  final Color iconBackground;
 }
 
 class ActivityItem {
@@ -251,119 +253,79 @@ class ActivityItem {
 // ── Controller ──────────────────────────────────────────────────────────────
 
 class DriverHomeController extends GetxController {
+  DashboardService get _service => Get.find<DashboardService>();
+  NotificationsService get _notifService => Get.find<NotificationsService>();
+
   // ── Reactive state ───────────────────────────────────────────────────────
   final RxBool isOnline = true.obs;
   final RxBool isLoadingDashboard = false.obs;
+  final RxBool hasLoadError = false.obs;
   final RxInt selectedWalletMethod = 0.obs;
-  final RxInt pendingRequestsCount = 2.obs;
+  final RxInt pendingRequestsCount = 0.obs;
+  final RxInt dashboardVersion = 0.obs;
+  final RxString availabilityMode = 'normal'.obs;
 
   // ── Quick requests with countdown ────────────────────────────────────────
-  final RxList<QuickRequest> quickRequests = <QuickRequest>[
-    QuickRequest(
-      id: 'q1',
-      passengerName: 'Aminata Koné',
-      passengerInitial: 'A',
-      rating: 4.9,
-      routeLabel: 'Cotonou → Porto-Novo',
-      amount: 5000,
-      seats: 2,
-      expiresInSeconds: 272,
-    ),
-    QuickRequest(
-      id: 'q2',
-      passengerName: 'Kwame Asante',
-      passengerInitial: 'K',
-      rating: 4.7,
-      routeLabel: 'Cotonou → Porto-Novo',
-      amount: 2500,
-      seats: 1,
-      expiresInSeconds: 78,
-    ),
-  ].obs;
+  final RxList<QuickRequest> quickRequests = <QuickRequest>[].obs;
 
-  // ── Static data (legacy, kept for view) ──────────────────────────────────
-  final DriverSummary summary = const DriverSummary(
+  // ── Mutable data (populated from API, fallback to defaults) ──────────────
+  DriverSummary summary = const DriverSummary(
     todayLabel: 'Revenus d\'aujourd\'hui',
-    todayValue: '48 500 FCFA',
+    todayValue: '—',
     weekLabel: 'Semaine',
-    weekValue: '285K',
+    weekValue: '—',
     monthLabel: 'Mois',
-    monthValue: '1.2M',
+    monthValue: '—',
     pendingLabel: 'En attente',
-    pendingValue: '12K',
+    pendingValue: '—',
     commissionLabel: 'Commission MINIZON',
-    commissionValue: '4 850 FCFA (10%)',
+    commissionValue: '—',
   );
 
-  final List<DriverMetric> metrics = const [
+  List<DriverMetric> metrics = const [
     DriverMetric(
       title: 'Trajets effectués',
-      value: '12',
+      value: '—',
       icon: Icons.route_rounded,
       color: Color(0x1900A86B),
       iconColor: Color(0xFF00A86B),
     ),
     DriverMetric(
       title: 'Passagers transportés',
-      value: '34',
+      value: '—',
       icon: Icons.groups_rounded,
       color: Color(0x19F4B400),
       iconColor: Color(0xFFF4B400),
     ),
     DriverMetric(
       title: 'Note moyenne',
-      value: '4.9',
+      value: '—',
       icon: Icons.star_rounded,
       color: Color(0x1922C55E),
       iconColor: Color(0xFF22C55E),
-      progress: 0.98,
     ),
     DriverMetric(
       title: 'Taux acceptation',
-      value: '96%',
+      value: '—',
       icon: Icons.verified_rounded,
       color: Color(0x193B82F6),
       iconColor: Color(0xFF3B82F6),
-      progress: 0.96,
     ),
   ];
 
   // kept as DriverTripCard to not clash with models/trip_model.dart TripModel
-  final DriverTripCard nextTrip = const DriverTripCard(
-    statusLabel: 'Confirmé',
-    time: '14:30',
+  DriverTripCard nextTrip = const DriverTripCard(
+    statusLabel: '—',
+    time: '—',
     departureLabel: 'Départ',
-    departure: 'Place de l\'Étoile Rouge',
+    departure: '—',
     destinationLabel: 'Destination',
-    destination: 'Aéroport de Cotonou',
-    passengersLabel: '2 passagers confirmés',
+    destination: '—',
+    passengersLabel: '—',
     avatarUrls: [],
   );
 
-  final List<DriverRequest> recentRequests = const [
-    DriverRequest(
-      name: 'Mariama Diallo',
-      rating: '4.8 · 23 trajets',
-      route: 'Cotonou → Porto-Novo',
-      timeAgo: 'Il y a 5 min',
-      seats: '2 places demandées',
-      status: 'Payé',
-      statusColor: Color(0xFF16A34A),
-      statusBackground: Color(0x1922C55E),
-      avatarUrl: '',
-    ),
-    DriverRequest(
-      name: 'Koffi Mensah',
-      rating: '5.0 · 45 trajets',
-      route: 'Abomey-Calavi → Cotonou',
-      timeAgo: 'Il y a 12 min',
-      seats: '1 place demandée',
-      status: 'En attente',
-      statusColor: Color(0xFFF4B400),
-      statusBackground: Color(0x19F4B400),
-      avatarUrl: '',
-    ),
-  ];
+  List<DriverRequest> recentRequests = const [];
 
   final List<DriverAction> actions = const [
     DriverAction(
@@ -410,67 +372,22 @@ class DriverHomeController extends GetxController {
     ),
   ];
 
-  final DriverWallet wallet = const DriverWallet(
-    balance: '245 600 F',
-    blockedAmount: '12 500 FCFA',
+  DriverWallet wallet = const DriverWallet(
+    balance: '—',
+    blockedAmount: '—',
     methods: ['MTN Money', 'Moov Money'],
   );
 
-  final DriverLevel level = const DriverLevel(
-    currentLevel: 'Conducteur Premium',
-    progressLabel: 'Progrès vers Expert',
-    progressValue: '75%',
-    badges: [
-      DriverBadge(
-        label: 'Fiable',
-        color: Color(0x3300A86B),
-        icon: Icons.verified_rounded,
-        iconColor: Color(0xFF00A86B),
-      ),
-      DriverBadge(
-        label: 'Top 10%',
-        color: Color(0x33F4B400),
-        icon: Icons.workspace_premium_rounded,
-        iconColor: Color(0xFFF4B400),
-      ),
-      DriverBadge(
-        label: 'Rapide',
-        color: Color(0x333B82F6),
-        icon: Icons.speed_rounded,
-        iconColor: Color(0xFF3B82F6),
-      ),
-    ],
+  DriverLevel level = const DriverLevel(
+    currentLevel: '—',
+    progressLabel: 'Progrès',
+    progressValue: '0%',
+    progressFraction: 0.0,
+    badges: [],
   );
 
-  final List<DriverNotificationItem> notifications = const [
-    DriverNotificationItem(
-      title: 'Paiement reçu',
-      subtitle: '8,500 FCFA crédités sur votre compte',
-      time: 'Il y a 5 min',
-      backgroundColor: Color(0x0C00A86B),
-      borderColor: Color(0xFF00A86B),
-      icon: Icons.payments_rounded,
-      iconBackground: Color(0xFF00A86B),
-    ),
-    DriverNotificationItem(
-      title: 'Nouvelle réservation',
-      subtitle: 'Marie souhaite réserver 2 places',
-      time: 'Il y a 12 min',
-      backgroundColor: Color(0xFFFFFFFF),
-      borderColor: Color(0xFFE5E7EB),
-      icon: Icons.event_available_rounded,
-      iconBackground: Color(0xFF3B82F6),
-    ),
-    DriverNotificationItem(
-      title: 'Promotion spéciale',
-      subtitle: 'Gagnez 5000 F de bonus ce weekend',
-      time: 'Il y a 1h',
-      backgroundColor: Color(0xFFFFFFFF),
-      borderColor: Color(0xFFE5E7EB),
-      icon: Icons.local_offer_rounded,
-      iconBackground: Color(0xFFF4B400),
-    ),
-  ];
+  final RxList<DriverNotificationModel> notifications =
+      <DriverNotificationModel>[].obs;
 
   final List<ActivityItem> recentActivity = const [
     ActivityItem(
@@ -504,13 +421,124 @@ class DriverHomeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _startQuickRequestTimers();
+    _loadDashboard();
+    _loadNotifications();
   }
 
-  void _startQuickRequestTimers() {
+  Future<void> _loadDashboard() async {
+    isLoadingDashboard.value = true;
+    hasLoadError.value = false;
+    final result = await _service.fetchDashboard();
+    isLoadingDashboard.value = false;
+    if (result.isSuccess) {
+      _applyDashboard(result.data!);
+    } else {
+      if (dashboardVersion.value == 0) hasLoadError.value = true;
+      logger.w('dashboard load failed: ${result.error}');
+    }
+  }
+
+  Future<void> refresh() => Future.wait([_loadDashboard(), _loadNotifications()]);
+
+  Future<void> _loadNotifications() async {
+    final result = await _notifService.fetchNotifications(perPage: 5);
+    if (result.isSuccess) {
+      notifications.assignAll(result.data!.notifications);
+    } else {
+      logger.w('notifications load failed: ${result.error}');
+    }
+  }
+
+  void _applyDashboard(DashboardModel data) {
+    isOnline.value = data.isOnline;
+    availabilityMode.value = data.availabilityMode;
+
+    summary = DriverSummary(
+      todayLabel: 'Revenus d\'aujourd\'hui',
+      todayValue: data.summary.todayEarnings.toCurrency,
+      weekLabel: 'Semaine',
+      weekValue: _shortAmount(data.summary.weekEarnings),
+      monthLabel: 'Mois',
+      monthValue: _shortAmount(data.summary.monthEarnings),
+      pendingLabel: 'En attente',
+      pendingValue: _shortAmount(data.summary.pendingCount),
+      commissionLabel: 'Commission MINIZON',
+      commissionValue: data.summary.totalCommission.toCurrency,
+    );
+
+    metrics = data.metrics.map(_metricFromApi).toList();
+
+    if (data.nextTrip != null) {
+      final t = data.nextTrip!;
+      nextTrip = DriverTripCard(
+        uuid: t.uuid,
+        statusLabel: _statusLabel(t.status),
+        time: _formatTime(t.departureTime),
+        departureLabel: 'Départ',
+        departure: '${t.departureNeighborhood}, ${t.departureCity}',
+        destinationLabel: 'Destination',
+        destination: '${t.arrivalNeighborhood}, ${t.arrivalCity}',
+        passengersLabel: '${t.passengersCount} passager${t.passengersCount > 1 ? 's' : ''} confirmé${t.passengersCount > 1 ? 's' : ''}',
+        avatarUrls: t.passengers.map((p) => p.name).toList(),
+      );
+    }
+
+    for (final r in quickRequests) {
+      r.cancelTimer();
+    }
+    final newQuick = data.quickRequests.map((r) {
+      final q = QuickRequest(
+        id: r.uuid,
+        passengerName: r.passenger.name,
+        passengerInitial: r.passenger.initials.isNotEmpty
+            ? r.passenger.initials[0]
+            : r.passenger.name.isNotEmpty
+                ? r.passenger.name[0]
+                : '?',
+        rating: r.passenger.rating,
+        routeLabel: '${r.trip.departureCity} → ${r.trip.arrivalCity}',
+        amount: 0,
+        seats: r.seatsBooked,
+        expiresInSeconds: _expirySeconds(r.createdAt),
+      );
+      return q;
+    }).toList();
+    quickRequests.assignAll(newQuick);
     for (final r in quickRequests) {
       r.startTimer(() => _onRequestExpired(r));
     }
+    pendingRequestsCount.value = quickRequests.length;
+
+    recentRequests = data.recentRequests.map((r) {
+      final statusInfo = _requestStatusInfo(r.status);
+      return DriverRequest(
+        name: r.passenger.name,
+        rating: '${r.passenger.rating.toStringAsFixed(1)} ★',
+        route: '${r.trip.departureCity} → ${r.trip.arrivalCity}',
+        timeAgo: _timeAgo(r.createdAt),
+        seats: '${r.seatsBooked} place${r.seatsBooked > 1 ? 's' : ''} demandée${r.seatsBooked > 1 ? 's' : ''}',
+        status: statusInfo.$1,
+        statusColor: statusInfo.$2,
+        statusBackground: statusInfo.$3,
+        avatarUrl: r.passenger.name,
+      );
+    }).toList();
+
+    wallet = DriverWallet(
+      balance: data.wallet.availableBalance.toCurrency,
+      blockedAmount: data.wallet.blockedAmount.toCurrency,
+      methods: const ['MTN Money', 'Moov Money'],
+    );
+
+    level = DriverLevel(
+      currentLevel: data.level.currentLevel,
+      progressLabel: 'Progrès vers ${data.level.nextLevel} (${data.level.tripsToNext} trajets)',
+      progressValue: '${(data.level.progress * 100).toStringAsFixed(0)}%',
+      progressFraction: data.level.progress.clamp(0.0, 1.0),
+      badges: data.level.badges.map(_badgeFromApi).toList(),
+    );
+
+    dashboardVersion.value++;
   }
 
   void _onRequestExpired(QuickRequest r) {
@@ -528,15 +556,153 @@ class DriverHomeController extends GetxController {
     super.onClose();
   }
 
+  // ── Helpers ──────────────────────────────────────────────────────────────
+
+  String _shortAmount(int amount) {
+    if (amount >= 1000000) {
+      final m = amount / 1000000;
+      return '${m % 1 == 0 ? m.toInt() : m.toStringAsFixed(1)}M';
+    } else if (amount >= 1000) {
+      final k = amount / 1000;
+      return '${k % 1 == 0 ? k.toInt() : k.toStringAsFixed(1)}K';
+    }
+    return '$amount';
+  }
+
+  String _formatTime(String isoDate) {
+    final dt = DateTime.tryParse(isoDate);
+    if (dt == null) return '—';
+    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  }
+
+  String _statusLabel(String status) => switch (status) {
+        'pending' => 'En attente',
+        'confirmed' => 'Confirmé',
+        'active' => 'En cours',
+        'completed' => 'Terminé',
+        'cancelled' => 'Annulé',
+        _ => status,
+      };
+
+  int _expirySeconds(String createdAt) {
+    final created = DateTime.tryParse(createdAt) ?? DateTime.now();
+    final expires = created.add(const Duration(minutes: 15));
+    return expires.difference(DateTime.now()).inSeconds.clamp(0, 900);
+  }
+
+  String _timeAgo(String isoDate) {
+    final dt = DateTime.tryParse(isoDate);
+    if (dt == null) return '—';
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return 'À l\'instant';
+    if (diff.inMinutes < 60) return 'Il y a ${diff.inMinutes} min';
+    if (diff.inHours < 24) return 'Il y a ${diff.inHours}h';
+    return 'Il y a ${diff.inDays}j';
+  }
+
+  (String, Color, Color) _requestStatusInfo(String status) => switch (status) {
+        'accepted' => ('Accepté', const Color(0xFF16A34A), const Color(0x1922C55E)),
+        'rejected' => ('Refusé', const Color(0xFFDC2626), const Color(0x19EF4444)),
+        'cancelled' => ('Annulé', const Color(0xFF6B7280), const Color(0x196B7280)),
+        _ => ('En attente', const Color(0xFFF4B400), const Color(0x19F4B400)),
+      };
+
+  DriverMetric _metricFromApi(DashboardMetricData m) {
+    final displayValue = m.value is double
+        ? (m.value as double).toStringAsFixed(1)
+        : '${m.value}';
+    final progress = m.progress > 0 ? m.progress : null;
+    return switch (m.key) {
+      'trips' => DriverMetric(
+          title: m.label,
+          value: displayValue,
+          icon: Icons.route_rounded,
+          color: const Color(0x1900A86B),
+          iconColor: const Color(0xFF00A86B),
+          progress: progress,
+        ),
+      'passengers' => DriverMetric(
+          title: m.label,
+          value: displayValue,
+          icon: Icons.groups_rounded,
+          color: const Color(0x19F4B400),
+          iconColor: const Color(0xFFF4B400),
+          progress: progress,
+        ),
+      'rating' => DriverMetric(
+          title: m.label,
+          value: displayValue,
+          icon: Icons.star_rounded,
+          color: const Color(0x1922C55E),
+          iconColor: const Color(0xFF22C55E),
+          progress: progress,
+        ),
+      'acceptance_rate' => DriverMetric(
+          title: m.label,
+          value: '${(m.value is num ? (m.value as num).toDouble() * 100 : 0).toStringAsFixed(0)}%',
+          icon: Icons.verified_rounded,
+          color: const Color(0x193B82F6),
+          iconColor: const Color(0xFF3B82F6),
+          progress: m.value is num ? (m.value as num).toDouble() : progress,
+        ),
+      _ => DriverMetric(
+          title: m.label,
+          value: displayValue,
+          icon: Icons.analytics_rounded,
+          color: const Color(0x193B82F6),
+          iconColor: const Color(0xFF3B82F6),
+          progress: progress,
+        ),
+    };
+  }
+
+  DriverBadge _badgeFromApi(DashboardBadgeData b) => switch (b.key) {
+        'top_rated' => DriverBadge(
+            label: b.label,
+            color: const Color(0x3300A86B),
+            icon: Icons.verified_rounded,
+            iconColor: const Color(0xFF00A86B),
+          ),
+        'top_driver' || 'top_10' => DriverBadge(
+            label: b.label,
+            color: const Color(0x33F4B400),
+            icon: Icons.workspace_premium_rounded,
+            iconColor: const Color(0xFFF4B400),
+          ),
+        'fast' || 'punctual' => DriverBadge(
+            label: b.label,
+            color: const Color(0x333B82F6),
+            icon: Icons.speed_rounded,
+            iconColor: const Color(0xFF3B82F6),
+          ),
+        _ => DriverBadge(
+            label: b.label,
+            color: const Color(0x33A855F7),
+            icon: Icons.emoji_events_rounded,
+            iconColor: const Color(0xFFA855F7),
+          ),
+      };
+
   // ── Actions ──────────────────────────────────────────────────────────────
 
-  void toggleAvailability() {
-    isOnline.value = !isOnline.value;
+  Future<void> toggleAvailability() async {
+    final newState = !isOnline.value;
+    isOnline.value = newState;
     UIHelper().showSnackBar(
       'MINIZON',
-      isOnline.value ? '🟢 Vous êtes maintenant en ligne.' : '⚪ Hors ligne.',
-      isOnline.value ? 0 : 1,
+      newState ? '🟢 Vous êtes maintenant en ligne.' : '⚪ Hors ligne.',
+      newState ? 0 : 1,
     );
+    final result = await _service.updateAvailability(
+      isOnline: newState,
+      mode: availabilityMode.value,
+    );
+    if (!result.isSuccess) {
+      isOnline.value = !newState;
+      UIHelper().showSnackBar('MINIZON', 'Erreur de mise à jour de la disponibilité.', 2);
+    } else {
+      availabilityMode.value = result.data!.mode;
+    }
   }
 
   void onQuickAccept(QuickRequest r) {
@@ -563,7 +729,11 @@ class DriverHomeController extends GetxController {
   void showInfo(String message) =>
       UIHelper().showSnackBar('MINIZON', message, 1);
 
-  void onSeeDetails() => Get.toNamed(AppRoutes.driverTripDetail);
+  void onSeeDetails() {
+    final uuid = nextTrip.uuid;
+    if (uuid.isEmpty) return;
+    Get.toNamed(AppRoutes.driverTripDetail, arguments: {'uuid': uuid});
+  }
   void onContact() {
     const phone = '+229 97 XX XX XX';
     Get.dialog(

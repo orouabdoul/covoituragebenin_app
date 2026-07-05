@@ -3,9 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
+import 'package:covoiturage_benin_app/app/core/services/driver/safety/safety_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
-import 'package:covoiturage_benin_app/app/data/providers/safety_provider.dart';
 
 class EmergencyContact {
   EmergencyContact({
@@ -29,7 +29,9 @@ class EmergencyContact {
 }
 
 class DriverSafetyController extends GetxController {
-  final _provider = SafetyProvider();
+  static const _kSupportPhone = '+229 21 31 00 00';
+
+  SafetyService get _service => Get.find<SafetyService>();
 
   final RxBool isLoading        = false.obs;
   final RxBool isSharingLocation = false.obs;
@@ -45,7 +47,7 @@ class DriverSafetyController extends GetxController {
 
   Future<void> _loadContacts() async {
     isLoading.value = true;
-    final result = await _provider.fetchContacts();
+    final result = await _service.fetchContacts();
     isLoading.value = false;
 
     if (result.isSuccess) {
@@ -75,7 +77,7 @@ class DriverSafetyController extends GetxController {
           TextButton(
             onPressed: () async {
               Get.back();
-              final result = await _provider.sendSos();
+              final result = await _service.sendSos();
               if (result.isSuccess) {
                 UIHelper().showSnackBar('SOS', 'Alerte envoyée ! Aide en route.', 2);
               } else {
@@ -94,15 +96,20 @@ class DriverSafetyController extends GetxController {
 
   // ── Location sharing ──────────────────────────────────────────────────────
 
-  void toggleLocationSharing() {
-    isSharingLocation.value = !isSharingLocation.value;
-    UIHelper().showSnackBar(
-      'MINIZON',
-      isSharingLocation.value
-          ? 'Partage de position activé.'
-          : 'Partage de position désactivé.',
-      isSharingLocation.value ? 0 : 1,
-    );
+  Future<void> toggleLocationSharing() async {
+    final newValue = !isSharingLocation.value;
+    isSharingLocation.value = newValue;
+    final result = await _service.updateLocationSharing(newValue);
+    if (result.isSuccess) {
+      UIHelper().showSnackBar(
+        'MINIZON',
+        newValue ? 'Partage de position activé.' : 'Partage de position désactivé.',
+        newValue ? 0 : 1,
+      );
+    } else {
+      isSharingLocation.value = !newValue;
+      UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+    }
   }
 
   // ── Emergency contacts ────────────────────────────────────────────────────
@@ -132,7 +139,7 @@ class DriverSafetyController extends GetxController {
           phoneCtrl.dispose();
           relationCtrl.dispose();
 
-          final result = await _provider.addContact(
+          final result = await _service.addContact(
             name:     name,
             phone:    phone,
             relation: relation.isEmpty ? 'Proche' : relation,
@@ -172,7 +179,7 @@ class DriverSafetyController extends GetxController {
               final backup = List<EmergencyContact>.from(emergencyContacts);
               emergencyContacts.removeWhere((c) => c.id == contact.id);
 
-              final result = await _provider.removeContact(contact.id);
+              final result = await _service.removeContact(contact.id);
               if (result.isSuccess) {
                 emergencyContacts.assignAll(result.data!.map(EmergencyContact.fromJson));
                 UIHelper().showSnackBar('MINIZON', 'Contact supprimé.', 1);
@@ -192,7 +199,7 @@ class DriverSafetyController extends GetxController {
   // ── Support call ──────────────────────────────────────────────────────────
 
   void onCallSupport() {
-    const supportNumber = '+229 21 31 00 00';
+    const supportNumber = _kSupportPhone;
     Get.dialog(
       AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -249,7 +256,7 @@ class DriverSafetyController extends GetxController {
       _IncidentReportSheet(
         onSubmit: (category, description) async {
           Get.back();
-          final result = await _provider.reportIncident(
+          final result = await _service.reportIncident(
             category:    category,
             description: description.isEmpty ? null : description,
           );

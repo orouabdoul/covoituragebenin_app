@@ -27,6 +27,15 @@ class ReservationsView extends GetView<ReservationsController> {
                 _TabBar(r: r, controller: controller),
                 Expanded(
                   child: Obx(() {
+                    if (controller.isLoading.value) {
+                      return Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                          strokeWidth: 2.5,
+                        ),
+                      );
+                    }
+
                     final tab = controller.selectedTab.value;
                     final items = switch (tab) {
                       ReservationTab.pending => controller.pendingRequests,
@@ -38,17 +47,21 @@ class ReservationsView extends GetView<ReservationsController> {
                       return _EmptyState(r: r, tab: tab);
                     }
 
-                    return ListView.separated(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: r.adaptive(phone: 16, smallPhone: 14, tablet: 20, desktop: 24),
-                        vertical: r.adaptive(phone: 16, smallPhone: 12, tablet: 20, desktop: 24),
-                      ),
-                      itemCount: items.length,
-                      separatorBuilder: (context, index) => SizedBox(height: r.h(12)),
-                      itemBuilder: (_, i) => _ReservationCard(
-                        r: r,
-                        request: items[i],
-                        controller: controller,
+                    return RefreshIndicator(
+                      color: AppColors.primary,
+                      onRefresh: controller.refresh,
+                      child: ListView.separated(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: r.adaptive(phone: 16, smallPhone: 14, tablet: 20, desktop: 24),
+                          vertical: r.adaptive(phone: 16, smallPhone: 12, tablet: 20, desktop: 24),
+                        ),
+                        itemCount: items.length,
+                        separatorBuilder: (context, index) => SizedBox(height: r.h(12)),
+                        itemBuilder: (_, i) => _ReservationCard(
+                          r: r,
+                          request: items[i],
+                          controller: controller,
+                        ),
                       ),
                     );
                   }),
@@ -261,7 +274,9 @@ class _ReservationCard extends StatelessWidget {
       final urgency = request.urgency;
       final borderColor = isPending ? request.borderColor : AppColors.border;
 
-      return AnimatedContainer(
+      return GestureDetector(
+        onTap: () => controller.onViewPassenger(request),
+        child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         decoration: ShapeDecoration(
           color: AppColors.white,
@@ -423,7 +438,7 @@ class _ReservationCard extends StatelessWidget {
             ),
           ],
         ),
-      );
+      ));
     });
   }
 }

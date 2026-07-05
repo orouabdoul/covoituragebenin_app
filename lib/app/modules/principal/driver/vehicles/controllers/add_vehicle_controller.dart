@@ -3,9 +3,10 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
+import 'package:covoiturage_benin_app/app/core/services/driver/vehicles/vehicles_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
-import 'package:covoiturage_benin_app/app/data/providers/vehicles_provider.dart';
+import 'package:covoiturage_benin_app/app/data/models/driver/vehicle_model.dart';
 
 enum VehicleType { car, motorcycle }
 
@@ -16,7 +17,7 @@ class VehicleColorOption {
 }
 
 class AddVehicleController extends GetxController {
-  final _provider = VehiclesProvider();
+  VehiclesService get _service => Get.find<VehiclesService>();
 
   final licensePlateController = TextEditingController();
   final yearController         = TextEditingController();
@@ -28,6 +29,47 @@ class AddVehicleController extends GetxController {
   final selectedFuel        = RxnString();
   final seatsCount          = RxInt(4);
   final isSubmitting        = false.obs;
+  final isEditMode          = false.obs;
+
+  String? _editingUuid;
+
+  @override
+  void onInit() {
+    super.onInit();
+    final args = Get.arguments as Map<String, dynamic>?;
+    final vehicle = args?['vehicle'];
+    if (vehicle is VehicleData) _prefillForEdit(vehicle);
+  }
+
+  void _prefillForEdit(VehicleData v) {
+    _editingUuid = v.uuid;
+    isEditMode.value = true;
+
+    final type = v.vehicleType == 'motorcycle'
+        ? VehicleType.motorcycle
+        : VehicleType.car;
+    selectedVehicleType.value = type;
+
+    selectedBrand.value = v.brand.isNotEmpty ? v.brand : null;
+    if (v.brand.isNotEmpty && modelsForBrand.contains(v.model)) {
+      selectedModel.value = v.model;
+    }
+
+    if (colorOptions.any((c) => c.label == v.color)) {
+      selectedColor.value = v.color;
+    }
+
+    if (v.fuelType != null && fuelOptions.contains(v.fuelType)) {
+      selectedFuel.value = v.fuelType;
+    }
+
+    final minSeats = type == VehicleType.motorcycle ? 1 : 2;
+    final maxSeats = type == VehicleType.motorcycle ? 2 : 9;
+    seatsCount.value = v.availableSeats.clamp(minSeats, maxSeats);
+
+    licensePlateController.text = v.licensePlate;
+    if (v.year > 0) yearController.text = '${v.year}';
+  }
 
   // ── Vehicle photos ──────────────────────────────────────────────────────────
 
@@ -154,12 +196,11 @@ class AddVehicleController extends GetxController {
     UIHelper().showSnackBar(AppStrings.appName, 'Ajouter document: $documentType', 1);
   }
 
-  // ── Register ─────────────────────────────────────────────────────────────────
+  // ── Register / Update ────────────────────────────────────────────────────────
 
   Future<void> onRegisterVehicle() async {
     if (isSubmitting.value) return;
 
-    // Client-side validation
     final brand = selectedBrand.value;
     final model = selectedModel.value;
     final color = selectedColor.value;
@@ -188,8 +229,9 @@ class AddVehicleController extends GetxController {
       return;
     }
 
-    isSubmitting.value = true;
-    final result = await _provider.createVehicle({
+    final typeId = selectedVehicleType.value == VehicleType.motorcycle ? 2 : 1;
+    final payload = <String, dynamic>{
+      'vehicle_type_id': typeId,
       'brand':           brand,
       'model':           model,
       'color':           color,
@@ -197,21 +239,74 @@ class AddVehicleController extends GetxController {
       'license_plate':   plate,
       'available_seats': seatsCount.value,
       if (selectedFuel.value != null) 'fuel_type': selectedFuel.value,
-    });
+    };
+
+    isSubmitting.value = true;
+    bool success;
+    AppError? apiError;
+
+    if (isEditMode.value && _editingUuid != null) {
+      final r = await _service.updateVehicle(_editingUuid!, payload);
+      success = r.isSuccess;
+      apiError = r.error;
+    } else {
+      final r = await _service.createVehicle(payload);
+      success = r.isSuccess;
+      apiError = r.error;
+    }
     isSubmitting.value = false;
 
-    if (result.isSuccess) {
+    if (success) {
       UIHelper().showSnackBar(
         'MINIZON',
-        'Véhicule enregistré. Vérification sous 1-2 jours ouvrés.',
+        isEditMode.value
+            ? 'Véhicule mis à jour avec succès.'
+            : 'Véhicule enregistré. Vérification sous 1-2 jours ouvrés.',
         0,
       );
       Get.back();
     } else {
-      final msg = result.error == AppError.validationError
-          ? (_provider.lastValidationMessage ?? result.error!.message)
-          : result.error!.message;
+      final msg = apiError == AppError.validationError
+          ? (_service.lastValidationMessage ?? apiError!.message)
+          : apiError!.message;
       UIHelper().showSnackBar('MINIZON', msg, 2);
+    }
+  }
+
+  // ── Delete ───────────────────────────────────────────────────────────────────
+
+  void onDeleteVehicle() {
+    if (!isEditMode.value || _editingUuid == null) return;
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Supprimer ce véhicule ?'),
+        content: const Text('Cette action est irréversible.'),
+        actions: [
+          TextButton(
+            onPressed: Get.back,
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: _confirmDelete,
+            child: const Text(
+              'Supprimer',
+              style: TextStyle(color: Color(0xFFE53935)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmDelete() async {
+    Get.back();
+    final result = await _service.deleteVehicle(_editingUuid!);
+    if (result.isSuccess) {
+      UIHelper().showSnackBar('MINIZON', 'Véhicule supprimé.', 0);
+      Get.back();
+    } else {
+      UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
     }
   }
 

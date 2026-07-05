@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
+import 'package:covoiturage_benin_app/app/core/services/driver/withdraw/withdraw_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/wallet_model.dart';
-import 'package:covoiturage_benin_app/app/data/providers/withdraw_provider.dart';
 
 class WithdrawController extends GetxController {
-  final _provider = WithdrawProvider();
+  WithdrawService get _service => Get.find<WithdrawService>();
 
   final RxDouble availableBalance  = 0.0.obs;
   final RxBool   isLoadingWallet   = true.obs;
@@ -66,14 +66,46 @@ class WithdrawController extends GetxController {
 
   Future<void> _loadWallet() async {
     isLoadingWallet.value = true;
-    final result = await _provider.fetchWallet();
+    final result = await _service.fetchWallet();
     isLoadingWallet.value = false;
     if (result.isSuccess) {
-      availableBalance.value =
-          (result.data!['available_balance'] as num).toDouble();
+      final body = result.data!;
+      availableBalance.value = (body['available_balance'] as num).toDouble();
+      final rawMethods = body['payment_methods'] as List<dynamic>?;
+      if (rawMethods != null && rawMethods.isNotEmpty) {
+        methods.assignAll(rawMethods.map(_methodFromJson).toList());
+      }
     } else {
       UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
     }
+  }
+
+  static const _providerIcons = <String, IconData>{
+    'mtn':     Icons.phone_android_rounded,
+    'moov':    Icons.phone_android_rounded,
+    'celtiis': Icons.phone_android_rounded,
+    'bank':    Icons.account_balance_outlined,
+  };
+
+  static const _providerBg = <String, Color>{
+    'mtn':     Color(0x33F4B400),
+    'moov':    Color(0x196366F1),
+    'celtiis': Color(0x33E31E24),
+    'bank':    Color(0x1900A86B),
+  };
+
+  WithdrawMethodModel _methodFromJson(dynamic raw) {
+    final j = raw as Map<String, dynamic>;
+    final provider = (j['provider'] as String? ?? 'bank').toLowerCase();
+    return WithdrawMethodModel(
+      id: j['id'] as String? ?? provider,
+      title: j['title'] as String? ?? provider,
+      subtitle: j['subtitle'] as String? ?? j['phone_number'] as String? ?? '',
+      phoneNumber: j['phone_number'] as String? ?? '',
+      icon: _providerIcons[provider] ?? Icons.phone_android_rounded,
+      iconBackground: _providerBg[provider] ?? const Color(0x1900A86B),
+      isDefault: j['is_default'] as bool? ?? false,
+    );
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -292,9 +324,9 @@ class WithdrawController extends GetxController {
     final method = methods.firstWhere((m) => m.id == selectedMethodId.value);
 
     isProcessing.value = true;
-    final result = await _provider.withdraw(
+    final result = await _service.withdraw(
       amount: amount.toInt(),
-      provider: method.id.split('_').first, // strip timestamp suffix for added methods
+      provider: method.id.split('_').first,
       phoneNumber: method.phoneNumber,
     );
     isProcessing.value = false;
@@ -310,7 +342,7 @@ class WithdrawController extends GetxController {
       Get.back();
     } else {
       final msg = result.error == AppError.validationError
-          ? (_provider.lastValidationMessage ?? result.error!.message)
+          ? (_service.lastValidationMessage ?? result.error!.message)
           : result.error!.message;
       errorMessage.value = msg;
     }

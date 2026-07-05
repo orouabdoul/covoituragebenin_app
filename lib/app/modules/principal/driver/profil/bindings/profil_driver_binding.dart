@@ -1,6 +1,6 @@
 import 'package:get/get.dart';
 
-import '../controller/profil_driver_controller.dart';
+import '../controllers/profil_driver_controller.dart';
 
 class ProfilDriverBinding extends Bindings {
   @override

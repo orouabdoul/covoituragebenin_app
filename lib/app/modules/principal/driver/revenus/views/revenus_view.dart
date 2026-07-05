@@ -594,7 +594,7 @@ class _WeeklyChartCard extends StatelessWidget {
 																		children: [
 																			Container(
 																				width: double.infinity,
-																				height: (point.amount / maxAmount) * responsive.adaptive(phone: 120, smallPhone: 112, tablet: 124, desktop: 128),
+																				height: maxAmount > 0 ? (point.amount / maxAmount) * responsive.adaptive(phone: 120, smallPhone: 112, tablet: 124, desktop: 128) : 0.0,
 																				decoration: ShapeDecoration(
 																					color: point.label == 'Mer' ? AppColors.primary : AppColors.surfaceSoft,
 																					shape: RoundedRectangleBorder(

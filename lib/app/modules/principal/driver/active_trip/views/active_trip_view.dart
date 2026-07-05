@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
+import 'package:covoiturage_benin_app/app/data/models/driver/pre_departure_model.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 import '../controllers/active_trip_controller.dart';
 
@@ -30,28 +31,82 @@ class ActiveTripView extends StatelessWidget {
               children: [
                 _Header(r: r),
                 Expanded(
-                  child: ListView(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: r.adaptive(phone: 16, smallPhone: 14, tablet: 20, desktop: 24),
-                    ),
-                    children: [
-                      SizedBox(height: r.adaptive(phone: 20, smallPhone: 16, tablet: 24, desktop: 28)),
-                      _ReadinessHero(r: r, controller: controller),
-                      SizedBox(height: r.adaptive(phone: 20, smallPhone: 16, tablet: 24, desktop: 28)),
-                      _ChecklistCard(r: r, controller: controller),
-                      SizedBox(height: r.adaptive(phone: 16, smallPhone: 12, tablet: 18, desktop: 20)),
-                      _TripSummaryCard(r: r, controller: controller),
-                      SizedBox(height: r.adaptive(phone: 16, smallPhone: 12, tablet: 18, desktop: 20)),
-                      _StopsCard(r: r, controller: controller),
-                      SizedBox(height: r.adaptive(phone: 24, smallPhone: 20, tablet: 28, desktop: 32)),
-                      _StartButton(r: r, controller: controller),
-                      SizedBox(height: r.adaptive(phone: 24, smallPhone: 20, tablet: 28, desktop: 32)),
-                    ],
-                  ),
+                  child: Obx(() {
+                    if (controller.isLoading.value) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (controller.hasError.value || controller.data == null) {
+                      return _ErrorState(r: r, onRetry: controller.refresh);
+                    }
+                    return _Content(r: r, controller: controller);
+                  }),
                 ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Content extends StatelessWidget {
+  const _Content({required this.r, required this.controller});
+  final AppResponsive r;
+  final ActiveTripController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final data = controller.data!;
+    return RefreshIndicator(
+      onRefresh: controller.refresh,
+      child: ListView(
+        padding: EdgeInsets.symmetric(
+          horizontal: r.adaptive(phone: 16, smallPhone: 14, tablet: 20, desktop: 24),
+        ),
+        children: [
+          SizedBox(height: r.adaptive(phone: 20, smallPhone: 16, tablet: 24, desktop: 28)),
+          _ReadinessHero(r: r, data: data),
+          SizedBox(height: r.adaptive(phone: 20, smallPhone: 16, tablet: 24, desktop: 28)),
+          _ChecklistCard(r: r, checklist: data.checklist),
+          SizedBox(height: r.adaptive(phone: 16, smallPhone: 12, tablet: 18, desktop: 20)),
+          _TripSummaryCard(r: r, trip: data.trip),
+          SizedBox(height: r.adaptive(phone: 16, smallPhone: 12, tablet: 18, desktop: 20)),
+          _StopsCard(r: r, stops: data.stops),
+          SizedBox(height: r.adaptive(phone: 24, smallPhone: 20, tablet: 28, desktop: 32)),
+          _StartButton(r: r, controller: controller),
+          SizedBox(height: r.adaptive(phone: 24, smallPhone: 20, tablet: 28, desktop: 32)),
+        ],
+      ),
+    );
+  }
+}
+
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.r, required this.onRetry});
+  final AppResponsive r;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.wifi_off_rounded,
+                size: r.adaptive(phone: 56, smallPhone: 48, tablet: 64, desktop: 72),
+                color: AppColors.textGhost),
+            SizedBox(height: r.adaptive(phone: 16, smallPhone: 12, tablet: 18, desktop: 20)),
+            Text(
+              'Impossible de charger les données',
+              style: AppTextStyles.bodyMedium(r).copyWith(color: AppColors.textMuted),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: r.adaptive(phone: 20, smallPhone: 16, tablet: 24, desktop: 28)),
+            AppButton(label: 'Réessayer', onPressed: onRetry, icon: Icons.refresh_rounded),
+          ],
         ),
       ),
     );
@@ -101,9 +156,9 @@ class _Header extends StatelessWidget {
 }
 
 class _ReadinessHero extends StatelessWidget {
-  const _ReadinessHero({required this.r, required this.controller});
+  const _ReadinessHero({required this.r, required this.data});
   final AppResponsive r;
-  final ActiveTripController controller;
+  final PreDepartureModel data;
 
   @override
   Widget build(BuildContext context) {
@@ -120,13 +175,13 @@ class _ReadinessHero extends StatelessWidget {
       child: Column(
         children: [
           Icon(
-            controller.allGreen ? Icons.check_circle_rounded : Icons.pending_rounded,
+            data.allGreen ? Icons.check_circle_rounded : Icons.pending_rounded,
             size: r.adaptive(phone: 48, smallPhone: 44, tablet: 56, desktop: 64),
             color: Colors.white,
           ),
           SizedBox(height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
           Text(
-            controller.allGreen ? 'Tout est prêt !' : 'Vérification en cours…',
+            data.allGreen ? 'Tout est prêt !' : 'Vérification en cours…',
             style: AppTextStyles.h5(r).copyWith(
               color: Colors.white,
               fontWeight: FontWeight.w800,
@@ -134,7 +189,7 @@ class _ReadinessHero extends StatelessWidget {
           ),
           SizedBox(height: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8)),
           Text(
-            '${controller.origin} → ${controller.destination}',
+            '${data.trip.origin} → ${data.trip.destination}',
             style: AppTextStyles.bodySmall(r).copyWith(
               color: Colors.white.withOpacity(0.85),
             ),
@@ -147,21 +202,21 @@ class _ReadinessHero extends StatelessWidget {
               _HeroStat(
                 r: r,
                 icon: Icons.access_time_rounded,
-                value: controller.departureTime,
+                value: data.trip.departureTimeFormatted,
                 label: 'Départ',
               ),
               SizedBox(width: r.adaptive(phone: 24, smallPhone: 20, tablet: 28, desktop: 32)),
               _HeroStat(
                 r: r,
                 icon: Icons.groups_rounded,
-                value: '${controller.passengersCount}',
+                value: '${data.trip.passengersCount}',
                 label: 'Passagers',
               ),
               SizedBox(width: r.adaptive(phone: 24, smallPhone: 20, tablet: 28, desktop: 32)),
               _HeroStat(
                 r: r,
                 icon: Icons.straighten_rounded,
-                value: '${controller.distanceKm}km',
+                value: '${data.trip.distanceKm}km',
                 label: 'Distance',
               ),
             ],
@@ -183,19 +238,23 @@ class _HeroStat extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Icon(icon, size: r.adaptive(phone: 18, smallPhone: 16, tablet: 20, desktop: 22), color: Colors.white.withOpacity(0.85)),
+        Icon(icon,
+            size: r.adaptive(phone: 18, smallPhone: 16, tablet: 20, desktop: 22),
+            color: Colors.white.withOpacity(0.85)),
         SizedBox(height: r.adaptive(phone: 4, smallPhone: 3, tablet: 5, desktop: 6)),
-        Text(value, style: AppTextStyles.bodyMedium(r).copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
-        Text(label, style: AppTextStyles.labelSmall(r).copyWith(color: Colors.white.withOpacity(0.75))),
+        Text(value,
+            style: AppTextStyles.bodyMedium(r).copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
+        Text(label,
+            style: AppTextStyles.labelSmall(r).copyWith(color: Colors.white.withOpacity(0.75))),
       ],
     );
   }
 }
 
 class _ChecklistCard extends StatelessWidget {
-  const _ChecklistCard({required this.r, required this.controller});
+  const _ChecklistCard({required this.r, required this.checklist});
   final AppResponsive r;
-  final ActiveTripController controller;
+  final List<PreDepartureChecklistItem> checklist;
 
   @override
   Widget build(BuildContext context) {
@@ -214,7 +273,7 @@ class _ChecklistCard extends StatelessWidget {
             style: AppTextStyles.homeCardTitle(r).copyWith(color: AppColors.textPrimary),
           ),
           SizedBox(height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-          ...controller.checklist.map((item) => Padding(
+          ...checklist.map((item) => Padding(
                 padding: EdgeInsets.only(
                     bottom: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
                 child: Row(
@@ -223,19 +282,13 @@ class _ChecklistCard extends StatelessWidget {
                       width: r.adaptive(phone: 28, smallPhone: 26, tablet: 32, desktop: 36),
                       height: r.adaptive(phone: 28, smallPhone: 26, tablet: 32, desktop: 36),
                       decoration: BoxDecoration(
-                        color: item.isDone
-                            ? AppColors.surfaceSuccess
-                            : AppColors.surfaceMuted,
+                        color: item.isDone ? AppColors.surfaceSuccess : AppColors.surfaceMuted,
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        item.isDone
-                            ? Icons.check_rounded
-                            : Icons.close_rounded,
+                        item.isDone ? Icons.check_rounded : Icons.close_rounded,
                         size: r.adaptive(phone: 16, smallPhone: 14, tablet: 18, desktop: 20),
-                        color: item.isDone
-                            ? AppColors.success
-                            : AppColors.textGhost,
+                        color: item.isDone ? AppColors.success : AppColors.textGhost,
                       ),
                     ),
                     SizedBox(width: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
@@ -243,11 +296,8 @@ class _ChecklistCard extends StatelessWidget {
                       child: Text(
                         item.label,
                         style: AppTextStyles.bodySmall(r).copyWith(
-                          color: item.isDone
-                              ? AppColors.textPrimary
-                              : AppColors.textMuted,
-                          fontWeight:
-                              item.isDone ? FontWeight.w500 : FontWeight.w400,
+                          color: item.isDone ? AppColors.textPrimary : AppColors.textMuted,
+                          fontWeight: item.isDone ? FontWeight.w500 : FontWeight.w400,
                         ),
                       ),
                     ),
@@ -261,9 +311,9 @@ class _ChecklistCard extends StatelessWidget {
 }
 
 class _TripSummaryCard extends StatelessWidget {
-  const _TripSummaryCard({required this.r, required this.controller});
+  const _TripSummaryCard({required this.r, required this.trip});
   final AppResponsive r;
-  final ActiveTripController controller;
+  final PreDepartureTripSummary trip;
 
   @override
   Widget build(BuildContext context) {
@@ -277,11 +327,11 @@ class _TripSummaryCard extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _SummaryItem(r: r, icon: Icons.people_rounded, value: '${controller.passengersCount}', label: 'Passagers'),
+          _SummaryItem(r: r, icon: Icons.people_rounded, value: '${trip.passengersCount}', label: 'Passagers'),
           _Divider(r: r),
-          _SummaryItem(r: r, icon: Icons.route_rounded, value: '${controller.distanceKm}km', label: 'Trajet'),
+          _SummaryItem(r: r, icon: Icons.route_rounded, value: '${trip.distanceKm}km', label: 'Trajet'),
           _Divider(r: r),
-          _SummaryItem(r: r, icon: Icons.timer_outlined, value: controller.durationLabel, label: 'Durée'),
+          _SummaryItem(r: r, icon: Icons.timer_outlined, value: trip.durationLabel, label: 'Durée'),
         ],
       ),
     );
@@ -299,9 +349,13 @@ class _SummaryItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Icon(icon, size: r.adaptive(phone: 20, smallPhone: 18, tablet: 22, desktop: 24), color: AppColors.primary),
+        Icon(icon,
+            size: r.adaptive(phone: 20, smallPhone: 18, tablet: 22, desktop: 24),
+            color: AppColors.primary),
         SizedBox(height: r.adaptive(phone: 4, smallPhone: 3, tablet: 5, desktop: 6)),
-        Text(value, style: AppTextStyles.bodyMedium(r).copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w700)),
+        Text(value,
+            style: AppTextStyles.bodyMedium(r)
+                .copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w700)),
         Text(label, style: AppTextStyles.labelSmall(r).copyWith(color: AppColors.textMuted)),
       ],
     );
@@ -322,9 +376,9 @@ class _Divider extends StatelessWidget {
 }
 
 class _StopsCard extends StatelessWidget {
-  const _StopsCard({required this.r, required this.controller});
+  const _StopsCard({required this.r, required this.stops});
   final AppResponsive r;
-  final ActiveTripController controller;
+  final List<PreDepartureStop> stops;
 
   @override
   Widget build(BuildContext context) {
@@ -355,7 +409,7 @@ class _StopsCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(r.adaptive(phone: 20, smallPhone: 18, tablet: 24, desktop: 28)),
                 ),
                 child: Text(
-                  '4 arrêts',
+                  '${stops.length} arrêts',
                   style: AppTextStyles.labelSmall(r).copyWith(
                     color: AppColors.info,
                     fontWeight: FontWeight.w600,
@@ -365,11 +419,11 @@ class _StopsCard extends StatelessWidget {
             ],
           ),
           SizedBox(height: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-          ...controller.stops.asMap().entries.map((entry) {
+          ...stops.asMap().entries.map((entry) {
             final i = entry.key;
             final stop = entry.value;
-            final isLast = i == controller.stops.length - 1;
-            return _StopRow(r: r, stop: stop, index: i + 1, isLast: isLast);
+            final isLast = i == stops.length - 1;
+            return _StopRow(r: r, stop: stop, isLast: isLast);
           }),
         ],
       ),
@@ -378,21 +432,14 @@ class _StopsCard extends StatelessWidget {
 }
 
 class _StopRow extends StatelessWidget {
-  const _StopRow({
-    required this.r,
-    required this.stop,
-    required this.index,
-    required this.isLast,
-  });
+  const _StopRow({required this.r, required this.stop, required this.isLast});
   final AppResponsive r;
-  final ActiveTripStop stop;
-  final int index;
+  final PreDepartureStop stop;
   final bool isLast;
 
   @override
   Widget build(BuildContext context) {
-    final isPickup = stop.type == StopType.pickup;
-    final stopColor = isPickup ? AppColors.info : const Color(0xFFEF4444);
+    final stopColor = stop.isPickup ? AppColors.info : const Color(0xFFEF4444);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -407,7 +454,7 @@ class _StopRow extends StatelessWidget {
               ),
               child: Center(
                 child: Text(
-                  '$index',
+                  '${stop.index}',
                   style: AppTextStyles.labelSmall(r).copyWith(
                     color: stopColor,
                     fontWeight: FontWeight.w800,
@@ -441,10 +488,11 @@ class _StopRow extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: stopColor.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(r.adaptive(phone: 4, smallPhone: 3, tablet: 5, desktop: 6)),
+                        borderRadius: BorderRadius.circular(
+                            r.adaptive(phone: 4, smallPhone: 3, tablet: 5, desktop: 6)),
                       ),
                       child: Text(
-                        isPickup ? 'Prise en charge' : 'Dépose',
+                        stop.isPickup ? 'Prise en charge' : 'Dépose',
                         style: AppTextStyles.labelSmall(r).copyWith(
                           color: stopColor,
                           fontWeight: FontWeight.w700,
@@ -473,9 +521,7 @@ class _StopRow extends StatelessWidget {
                 SizedBox(height: r.adaptive(phone: 2, smallPhone: 1, tablet: 3, desktop: 4)),
                 Text(
                   stop.address,
-                  style: AppTextStyles.labelSmall(r).copyWith(
-                    color: AppColors.textMuted,
-                  ),
+                  style: AppTextStyles.labelSmall(r).copyWith(color: AppColors.textMuted),
                 ),
               ],
             ),
@@ -494,11 +540,8 @@ class _StartButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Obx(() => AppButton(
-          label: controller.isStarting.value
-              ? 'Démarrage…'
-              : 'Démarrer la navigation',
-          onPressed:
-              controller.isStarting.value ? null : controller.onStartNavigation,
+          label: controller.isStarting.value ? 'Démarrage…' : 'Démarrer la navigation',
+          onPressed: controller.isStarting.value ? null : controller.onStartNavigation,
           icon: Icons.navigation_rounded,
         ));
   }

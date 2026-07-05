@@ -68,7 +68,8 @@ class SafetyProvider {
   Future<ApiResult<List<Map<String, dynamic>>>> removeContact(String id) async {
     try {
       final opts = await _authOptions();
-      final res = await _dio.delete(AppApi.driverSafetyContact(id), options: opts);
+      final res =
+          await _dio.delete(AppApi.driverSafetyContact(id), options: opts);
       logger.d('removeContact [${res.statusCode}]');
       if (res.statusCode == 200 && res.data['success'] == true) {
         final list = (res.data['body']['contacts'] as List? ?? [])

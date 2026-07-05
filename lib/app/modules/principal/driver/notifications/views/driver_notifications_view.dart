@@ -4,7 +4,8 @@ import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
-import '../../models/notification_driver_model.dart';
+import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
+import '../../../../../data/models/driver/notification_driver_model.dart';
 import '../controllers/driver_notifications_controller.dart';
 
 class DriverNotificationsView extends StatelessWidget {
@@ -32,20 +33,43 @@ class DriverNotificationsView extends StatelessWidget {
                 _FilterChips(r: r, controller: controller),
                 Expanded(
                   child: Obx(() {
-                    final items = controller.filteredNotifications;
+                    if (controller.isLoading.value &&
+                        controller.notifications.isEmpty) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (controller.hasError.value &&
+                        controller.notifications.isEmpty) {
+                      return _ErrorState(r: r, onRetry: controller.refresh);
+                    }
+                    final items = controller.notifications;
                     if (items.isEmpty) return _EmptyState(r: r);
-                    return ListView.separated(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: r.adaptive(phone: 16, smallPhone: 14, tablet: 20, desktop: 24),
-                        vertical: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16),
-                      ),
-                      itemCount: items.length,
-                      separatorBuilder: (context, index) =>
-                          SizedBox(height: r.adaptive(phone: 8, smallPhone: 6, tablet: 10, desktop: 12)),
-                      itemBuilder: (_, i) => _NotifCard(
-                        r: r,
-                        notif: items[i],
-                        controller: controller,
+                    return RefreshIndicator(
+                      onRefresh: controller.refresh,
+                      child: ListView.separated(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: r.adaptive(
+                              phone: 16,
+                              smallPhone: 14,
+                              tablet: 20,
+                              desktop: 24),
+                          vertical: r.adaptive(
+                              phone: 12,
+                              smallPhone: 10,
+                              tablet: 14,
+                              desktop: 16),
+                        ),
+                        itemCount: items.length,
+                        separatorBuilder: (context, index) => SizedBox(
+                            height: r.adaptive(
+                                phone: 8,
+                                smallPhone: 6,
+                                tablet: 10,
+                                desktop: 12)),
+                        itemBuilder: (_, i) => _NotifCard(
+                          r: r,
+                          notif: items[i],
+                          controller: controller,
+                        ),
                       ),
                     );
                   }),
@@ -288,6 +312,32 @@ class _NotifCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.r, required this.onRetry});
+  final AppResponsive r;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.wifi_off_rounded,
+              size: r.adaptive(phone: 56, smallPhone: 48, tablet: 64, desktop: 72),
+              color: AppColors.textGhost),
+          SizedBox(height: r.adaptive(phone: 16, smallPhone: 12, tablet: 18, desktop: 20)),
+          Text('Impossible de charger les notifications',
+              style: AppTextStyles.bodySmall(r).copyWith(color: AppColors.textMuted),
+              textAlign: TextAlign.center),
+          SizedBox(height: r.adaptive(phone: 20, smallPhone: 16, tablet: 24, desktop: 28)),
+          AppButton(label: 'Réessayer', onPressed: onRetry, icon: Icons.refresh_rounded),
+        ]),
       ),
     );
   }

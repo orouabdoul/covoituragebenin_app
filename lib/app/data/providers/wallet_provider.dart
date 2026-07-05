@@ -24,10 +24,12 @@ class WalletProvider {
   Future<ApiResult<Map<String, dynamic>>> fetchPaymentHistory() async {
     try {
       final opts = await _authOptions();
-      final response = await _dio.get(AppApi.driverPaymentHistory, options: opts);
+      final response =
+          await _dio.get(AppApi.driverPaymentHistory, options: opts);
       logger.d('paymentHistory [${response.statusCode}]');
       if (response.statusCode == 200 && response.data['success'] == true) {
-        return ApiResult.success(response.data['body'] as Map<String, dynamic>);
+        return ApiResult.success(
+            response.data['body'] as Map<String, dynamic>);
       }
       if (response.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);

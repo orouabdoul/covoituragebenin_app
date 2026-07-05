@@ -28,7 +28,8 @@ class SupportProvider {
       final res = await _dio.get(AppApi.driverSupportFaq, options: opts);
       logger.d('driverSupportFaq [${res.statusCode}]');
       if (res.statusCode == 200 && res.data['success'] == true) {
-        final list = (res.data['body'] as List? ?? []).cast<Map<String, dynamic>>();
+        final list =
+            (res.data['body'] as List? ?? []).cast<Map<String, dynamic>>();
         return ApiResult.success(list);
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
@@ -45,7 +46,8 @@ class SupportProvider {
       final res = await _dio.get(AppApi.driverSupportTickets, options: opts);
       logger.d('driverSupportTickets [${res.statusCode}]');
       if (res.statusCode == 200 && res.data['success'] == true) {
-        final list = (res.data['body'] as List? ?? []).cast<Map<String, dynamic>>();
+        final list =
+            (res.data['body'] as List? ?? []).cast<Map<String, dynamic>>();
         return ApiResult.success(list);
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);

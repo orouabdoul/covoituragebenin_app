@@ -4,7 +4,8 @@ import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
-import '../../models/wallet_model.dart';
+import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
+import '../../../../../data/models/driver/wallet_model.dart';
 import '../controllers/payment_history_controller.dart';
 
 class PaymentHistoryView extends StatelessWidget {
@@ -32,20 +33,29 @@ class PaymentHistoryView extends StatelessWidget {
                 _FilterTabs(r: r, controller: controller),
                 Expanded(
                   child: Obx(() {
-                    final groups = controller.filteredGroups;
-                    if (groups.isEmpty) {
-                      return _EmptyState(r: r);
+                    if (controller.isLoading.value &&
+                        controller.filteredGroups.isEmpty) {
+                      return const Center(child: CircularProgressIndicator());
                     }
-                    return ListView.builder(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: r.adaptive(phone: 16, smallPhone: 14, tablet: 20, desktop: 24),
-                        vertical: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16),
-                      ),
-                      itemCount: groups.length,
-                      itemBuilder: (_, i) => _MonthSection(
-                        r: r,
-                        group: groups[i],
-                        controller: controller,
+                    if (controller.hasError.value &&
+                        controller.filteredGroups.isEmpty) {
+                      return _ErrorState(r: r, onRetry: controller.refresh);
+                    }
+                    final groups = controller.filteredGroups;
+                    if (groups.isEmpty) return _EmptyState(r: r);
+                    return RefreshIndicator(
+                      onRefresh: controller.refresh,
+                      child: ListView.builder(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: r.adaptive(phone: 16, smallPhone: 14, tablet: 20, desktop: 24),
+                          vertical: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16),
+                        ),
+                        itemCount: groups.length,
+                        itemBuilder: (_, i) => _MonthSection(
+                          r: r,
+                          group: groups[i],
+                          controller: controller,
+                        ),
                       ),
                     );
                   }),
@@ -306,6 +316,32 @@ class _TransactionRow extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.r, required this.onRetry});
+  final AppResponsive r;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.wifi_off_rounded,
+              size: r.adaptive(phone: 56, smallPhone: 48, tablet: 64, desktop: 72),
+              color: AppColors.textGhost),
+          SizedBox(height: r.adaptive(phone: 16, smallPhone: 12, tablet: 18, desktop: 20)),
+          Text('Impossible de charger les paiements',
+              style: AppTextStyles.bodySmall(r).copyWith(color: AppColors.textMuted),
+              textAlign: TextAlign.center),
+          SizedBox(height: r.adaptive(phone: 20, smallPhone: 16, tablet: 24, desktop: 28)),
+          AppButton(label: 'Réessayer', onPressed: onRetry, icon: Icons.refresh_rounded),
+        ]),
       ),
     );
   }
