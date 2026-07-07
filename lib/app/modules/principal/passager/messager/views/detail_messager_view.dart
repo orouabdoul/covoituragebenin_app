@@ -35,8 +35,36 @@ class DetailMessagerView extends GetView<DetailMessagerController> {
                   child: _ConversationHeader(responsive: responsive, controller: controller),
                 ),
                 Expanded(
-                  child: Obx(
-                    () => ListView.separated(
+                  child: Obx(() {
+                    if (controller.isLoading.value && controller.messages.isEmpty) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (controller.hasError.value && controller.messages.isEmpty) {
+                      return Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.wifi_off_rounded, size: 40, color: AppColors.border),
+                              const SizedBox(height: 12),
+                              Text(
+                                'Impossible de charger la conversation',
+                                style: AppTextStyles.subtitle(responsive).copyWith(color: AppColors.textHint),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 16),
+                              AppPrimaryButton(
+                                responsive: responsive,
+                                label: 'Réessayer',
+                                onTap: controller.refresh,
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+                    return ListView.separated(
                       padding: EdgeInsets.fromLTRB(
                         responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
                         0,
@@ -44,7 +72,7 @@ class DetailMessagerView extends GetView<DetailMessagerController> {
                         responsive.h(12),
                       ),
                       itemCount: controller.messages.length,
-                      separatorBuilder: (_, _) => SizedBox(height: responsive.h(16)),
+                      separatorBuilder: (_, idx) => SizedBox(height: responsive.h(16)),
                       itemBuilder: (context, index) {
                         final message = controller.messages[index];
 
@@ -52,7 +80,7 @@ class DetailMessagerView extends GetView<DetailMessagerController> {
                           case DetailMessageKind.incoming:
                             return _IncomingMessage(
                               responsive: responsive,
-                              avatarUrl: controller.thread.avatarUrl,
+                              avatarUrl: controller.displayAvatarUrl.value,
                               message: message.message,
                               time: message.time,
                             );
@@ -74,8 +102,8 @@ class DetailMessagerView extends GetView<DetailMessagerController> {
                             return _ReminderCard(responsive: responsive, message: message.message);
                         }
                       },
-                    ),
-                  ),
+                    );
+                  }),
                 ),
                 Padding(
                   padding: EdgeInsets.fromLTRB(
@@ -103,225 +131,243 @@ class _ConversationHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.symmetric(
-            horizontal: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
-            vertical: responsive.adaptive(phone: 12, smallPhone: 12, tablet: 14, desktop: 16),
-          ),
-          decoration: ShapeDecoration(
-            color: Colors.white,
-            shape: RoundedRectangleBorder(
-              side: const BorderSide(width: 1, color: Color(0xFFF3F4F6)),
-              borderRadius: BorderRadius.circular(responsive.radius(16)),
+    return Obx(() {
+      final name = controller.displayName.value;
+      final avatarUrl = controller.displayAvatarUrl.value;
+      final isOnline = controller.displayIsOnline.value;
+      final route = controller.displayTripRoute.value;
+      final departureLabel = controller.displayTripDepartureLabel.value;
+
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(
+              horizontal: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
+              vertical: responsive.adaptive(phone: 12, smallPhone: 12, tablet: 14, desktop: 16),
             ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    _HeaderActionButton(
-                      responsive: responsive,
-                      backgroundColor: const Color(0xFFF9FAFB),
-                      icon: Icons.arrow_back_ios_new_rounded,
-                      iconSize: 18,
-                      onTap: Get.back,
-                    ),
-                    SizedBox(width: responsive.w(12)),
-                    Expanded(
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Stack(
-                            children: [
-                              Container(
-                                width: responsive.w(48),
-                                height: responsive.w(48),
-                                clipBehavior: Clip.antiAlias,
-                                decoration: ShapeDecoration(
-                                  image: DecorationImage(
-                                    image: NetworkImage(controller.thread.avatarUrl),
-                                    fit: BoxFit.cover,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    side: const BorderSide(width: 2, color: Color(0xFF00A86B)),
-                                    borderRadius: BorderRadius.circular(9999),
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                left: responsive.w(36),
-                                top: responsive.w(36),
-                                child: Container(
-                                  width: responsive.w(16),
-                                  height: responsive.w(16),
+            decoration: ShapeDecoration(
+              color: Colors.white,
+              shape: RoundedRectangleBorder(
+                side: const BorderSide(width: 1, color: Color(0xFFF3F4F6)),
+                borderRadius: BorderRadius.circular(responsive.radius(16)),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      _HeaderActionButton(
+                        responsive: responsive,
+                        backgroundColor: const Color(0xFFF9FAFB),
+                        icon: Icons.arrow_back_ios_new_rounded,
+                        iconSize: 18,
+                        onTap: Get.back,
+                      ),
+                      SizedBox(width: responsive.w(12)),
+                      Expanded(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Stack(
+                              children: [
+                                Container(
+                                  width: responsive.w(48),
+                                  height: responsive.w(48),
+                                  clipBehavior: Clip.antiAlias,
                                   decoration: ShapeDecoration(
-                                    color: const Color(0xFF00A86B),
+                                    color: AppColors.border,
+                                    image: (avatarUrl != null && avatarUrl.isNotEmpty)
+                                        ? DecorationImage(
+                                            image: NetworkImage(avatarUrl),
+                                            fit: BoxFit.cover,
+                                          )
+                                        : null,
                                     shape: RoundedRectangleBorder(
-                                      side: const BorderSide(width: 2, color: Colors.white),
+                                      side: const BorderSide(width: 2, color: Color(0xFF00A86B)),
                                       borderRadius: BorderRadius.circular(9999),
                                     ),
                                   ),
+                                  child: (avatarUrl == null || avatarUrl.isEmpty)
+                                      ? const Icon(Icons.person_rounded, color: AppColors.textGhost)
+                                      : null,
                                 ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(width: responsive.w(12)),
-                          Flexible(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  controller.thread.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: AppTextStyles.h6(responsive).copyWith(
-                                    fontSize: responsive.adaptive(phone: 18, smallPhone: 17, tablet: 19, desktop: 20),
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textPrimary,
+                                if (isOnline)
+                                  Positioned(
+                                    left: responsive.w(36),
+                                    top: responsive.w(36),
+                                    child: Container(
+                                      width: responsive.w(16),
+                                      height: responsive.w(16),
+                                      decoration: ShapeDecoration(
+                                        color: const Color(0xFF00A86B),
+                                        shape: RoundedRectangleBorder(
+                                          side: const BorderSide(width: 2, color: Colors.white),
+                                          borderRadius: BorderRadius.circular(9999),
+                                        ),
+                                      ),
+                                    ),
                                   ),
-                                ),
-                                SizedBox(height: responsive.h(2)),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      width: responsive.w(8),
-                                      height: responsive.w(8),
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xFF00A86B),
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                    SizedBox(width: responsive.w(8)),
-                                    Text(
-                                      'En ligne',
-                                      style: AppTextStyles.caption(responsive).copyWith(
-                                        color: AppColors.textSecondary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
                               ],
                             ),
-                          ),
-                        ],
+                            SizedBox(width: responsive.w(12)),
+                            Flexible(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    name.isNotEmpty ? name : '...',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppTextStyles.h6(responsive).copyWith(
+                                      fontSize: responsive.adaptive(phone: 18, smallPhone: 17, tablet: 19, desktop: 20),
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  SizedBox(height: responsive.h(2)),
+                                  if (isOnline)
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          width: responsive.w(8),
+                                          height: responsive.w(8),
+                                          decoration: const BoxDecoration(
+                                            color: Color(0xFF00A86B),
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                        SizedBox(width: responsive.w(8)),
+                                        Text(
+                                          'En ligne',
+                                          style: AppTextStyles.caption(responsive).copyWith(
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
+                    ],
+                  ),
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _HeaderActionButton(
+                      responsive: responsive,
+                      backgroundColor: const Color(0x1900A86B),
+                      icon: Icons.call_rounded,
+                      iconSize: 18,
+                      iconColor: AppColors.primary,
+                      onTap: controller.onCall,
+                    ),
+                    SizedBox(width: responsive.w(8)),
+                    _HeaderActionButton(
+                      responsive: responsive,
+                      backgroundColor: const Color(0xFFF9FAFB),
+                      icon: Icons.more_horiz_rounded,
+                      iconSize: 20,
+                      iconColor: AppColors.textSecondary,
+                      onTap: controller.onOptions,
                     ),
                   ],
                 ),
-              ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _HeaderActionButton(
-                    responsive: responsive,
-                    backgroundColor: const Color(0x1900A86B),
-                    icon: Icons.call_rounded,
-                    iconSize: 18,
-                    iconColor: AppColors.primary,
-                    onTap: controller.onCall,
-                  ),
-                  SizedBox(width: responsive.w(8)),
-                  _HeaderActionButton(
-                    responsive: responsive,
-                    backgroundColor: const Color(0xFFF9FAFB),
-                    icon: Icons.more_horiz_rounded,
-                    iconSize: 20,
-                    iconColor: AppColors.textSecondary,
-                    onTap: controller.onOptions,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        SizedBox(height: responsive.h(12)),
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.symmetric(
-            horizontal: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
-            vertical: responsive.adaptive(phone: 12, smallPhone: 12, tablet: 14, desktop: 16),
-          ),
-          decoration: ShapeDecoration(
-            color: const Color(0x0C00A86B),
-            shape: RoundedRectangleBorder(
-              side: const BorderSide(color: Color(0x3300A86B)),
-              borderRadius: BorderRadius.circular(responsive.radius(16)),
+              ],
             ),
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                width: responsive.w(40),
-                height: responsive.w(40),
-                padding: EdgeInsets.symmetric(horizontal: responsive.w(12), vertical: responsive.h(8)),
-                decoration: ShapeDecoration(
-                  color: const Color(0x3300A86B),
-                  shape: RoundedRectangleBorder(
-                    side: const BorderSide(color: Color(0xFFE5E7EB)),
-                    borderRadius: BorderRadius.circular(9999),
+          SizedBox(height: responsive.h(12)),
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(
+              horizontal: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
+              vertical: responsive.adaptive(phone: 12, smallPhone: 12, tablet: 14, desktop: 16),
+            ),
+            decoration: ShapeDecoration(
+              color: const Color(0x0C00A86B),
+              shape: RoundedRectangleBorder(
+                side: const BorderSide(color: Color(0x3300A86B)),
+                borderRadius: BorderRadius.circular(responsive.radius(16)),
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: responsive.w(40),
+                  height: responsive.w(40),
+                  padding: EdgeInsets.symmetric(horizontal: responsive.w(12), vertical: responsive.h(8)),
+                  decoration: ShapeDecoration(
+                    color: const Color(0x3300A86B),
+                    shape: RoundedRectangleBorder(
+                      side: const BorderSide(color: Color(0xFFE5E7EB)),
+                      borderRadius: BorderRadius.circular(9999),
+                    ),
+                  ),
+                  child: const Icon(Icons.route_rounded, color: AppColors.primary, size: 18),
+                ),
+                SizedBox(width: responsive.w(12)),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        route.isNotEmpty ? 'Trajet $route' : 'Trajet',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.caption(responsive).copyWith(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      if (departureLabel.isNotEmpty) ...[
+                        SizedBox(height: responsive.h(2)),
+                        Text(
+                          departureLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.caption(responsive).copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-                child: const Icon(Icons.route_rounded, color: AppColors.primary, size: 18),
-              ),
-              SizedBox(width: responsive.w(12)),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Trajet ${controller.thread.statusLabel}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                SizedBox(width: responsive.w(8)),
+                InkWell(
+                  onTap: controller.openMap,
+                  borderRadius: BorderRadius.circular(responsive.radius(10)),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: responsive.w(2), vertical: responsive.h(4)),
+                    child: Text(
+                      'Voir détails',
                       style: AppTextStyles.caption(responsive).copyWith(
-                        color: AppColors.textPrimary,
+                        color: AppColors.primary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    SizedBox(height: responsive.h(2)),
-                    Text(
-                      'Demain 08:30 • 3 places disponibles',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.caption(responsive).copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(width: responsive.w(8)),
-              InkWell(
-                onTap: controller.openMap,
-                borderRadius: BorderRadius.circular(responsive.radius(10)),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: responsive.w(2), vertical: responsive.h(4)),
-                  child: Text(
-                    'Voir détails',
-                    style: AppTextStyles.caption(responsive).copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w500,
-                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
-    );
+        ],
+      );
+    });
   }
 }
 
@@ -372,7 +418,7 @@ class _IncomingMessage extends StatelessWidget {
   });
 
   final AppResponsive responsive;
-  final String avatarUrl;
+  final String? avatarUrl;
   final String message;
   final String time;
 
@@ -539,7 +585,7 @@ class _LocationCard extends StatelessWidget {
               SizedBox(height: responsive.h(12)),
               AppPrimaryButton(
                 responsive: responsive,
-                label: actionLabel,
+                label: actionLabel.isNotEmpty ? actionLabel : 'Voir sur la carte',
                 onTap: onTap,
                 backgroundColor: const Color(0x1900A86B),
                 textColor: AppColors.primary,
@@ -655,21 +701,28 @@ class _Avatar extends StatelessWidget {
   const _Avatar({required this.responsive, required this.imageUrl});
 
   final AppResponsive responsive;
-  final String imageUrl;
+  final String? imageUrl;
 
   @override
   Widget build(BuildContext context) {
+    final url = imageUrl;
     return Container(
       width: responsive.w(32),
       height: responsive.w(32),
       clipBehavior: Clip.antiAlias,
       decoration: ShapeDecoration(
-        image: DecorationImage(image: NetworkImage(imageUrl), fit: BoxFit.cover),
+        color: AppColors.border,
+        image: (url != null && url.isNotEmpty)
+            ? DecorationImage(image: NetworkImage(url), fit: BoxFit.cover)
+            : null,
         shape: RoundedRectangleBorder(
           side: const BorderSide(color: AppColors.border),
           borderRadius: BorderRadius.circular(9999),
         ),
       ),
+      child: (url == null || url.isEmpty)
+          ? const Icon(Icons.person_rounded, size: 18, color: AppColors.textGhost)
+          : null,
     );
   }
 }

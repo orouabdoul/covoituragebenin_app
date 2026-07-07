@@ -1,31 +1,100 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
+import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/passenger_reservation_service.dart';
+import 'package:covoiturage_benin_app/app/data/models/passenger/reservations_model.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/passager/messager/controllers/messager_controller.dart';
 import 'reservation_controller.dart';
 import '../../search/controllers/search_controller.dart';
 
 class DetailReservationController extends GetxController {
+  PassengerReservationService get _service =>
+      Get.find<PassengerReservationService>();
+
   final Rxn<SearchRide> ride = Rxn<SearchRide>();
   final RxBool isFavorite = false.obs;
+  final RxBool isLoading = false.obs;
 
   bool isExistingReservation = false;
   ReservationStatus? reservationStatus;
   ReservationItem? _existingReservation;
 
+  // Driver metrics from API
+  final acceptanceRate = ''.obs;
+  final responseTime = ''.obs;
+  final memberSince = ''.obs;
+
+  // Reviews from API
+  final RxList<TripDetailReview> apiReviews = <TripDetailReview>[].obs;
+
   @override
   void onInit() {
     super.onInit();
     final arg = Get.arguments;
-    if (arg is ReservationItem) {
-      isExistingReservation = true;
-      reservationStatus = arg.status;
-      _existingReservation = arg;
-    } else if (arg is Map<String, dynamic>) {
-      final dynamic selectedRide = arg['ride'];
-      if (selectedRide is SearchRide) ride.value = selectedRide;
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (arg is ReservationItem) {
+        isExistingReservation = true;
+        reservationStatus = arg.status;
+        _existingReservation = arg;
+      } else if (arg is Map<String, dynamic>) {
+        final dynamic selectedRide = arg['ride'];
+        if (selectedRide is SearchRide) {
+          ride.value = selectedRide;
+          if (selectedRide.uuid.isNotEmpty) _fetchDetail(selectedRide.uuid);
+        }
+      }
+    });
+  }
+
+  Future<void> _fetchDetail(String tripUuid) async {
+    isLoading.value = true;
+    final result = await _service.fetchTripDetail(tripUuid);
+    isLoading.value = false;
+    if (!result.isSuccess) return;
+    final detail = result.data!;
+    isFavorite.value = detail.isFavorite;
+    isExistingReservation = detail.isExistingReservation;
+    if (detail.reservationStatus != null) {
+      reservationStatus = _parseStatus(detail.reservationStatus!);
+    }
+    acceptanceRate.value = detail.driverMetrics.acceptanceRate;
+    responseTime.value = detail.driverMetrics.responseTime;
+    memberSince.value = detail.driverMetrics.memberSince;
+    apiReviews.assignAll(detail.recentReviews);
+    // Update ride from API (more complete data)
+    ride.value = SearchRide(
+      uuid: detail.ride.uuid,
+      driverName: detail.ride.driverName,
+      rating: detail.ride.rating,
+      reviewCount: '${detail.ride.reviewCount}',
+      price: detail.ride.price,
+      priceValue: int.tryParse(
+              detail.ride.price.replaceAll(RegExp(r'[^0-9]'), '')) ??
+          0,
+      origin: detail.ride.origin,
+      destination: detail.ride.destination,
+      departureTime: detail.ride.departureTime,
+      departureNote: detail.ride.departureNote,
+      arrivalTime: detail.ride.arrivalTime,
+      arrivalNote: detail.ride.arrivalNote,
+      duration: detail.ride.duration,
+      vehicle: detail.ride.vehicle,
+      seatsAvailable: detail.ride.availableSeats,
+      minutesUntilDeparture: 0,
+      isVerified: false,
+    );
+  }
+
+  ReservationStatus _parseStatus(String s) {
+    switch (s) {
+      case 'confirmed': return ReservationStatus.confirmed;
+      case 'in_progress': return ReservationStatus.inProgress;
+      case 'completed': return ReservationStatus.completed;
+      case 'cancelled': return ReservationStatus.cancelled;
+      default: return ReservationStatus.pending;
     }
   }
 
@@ -56,7 +125,22 @@ class DetailReservationController extends GetxController {
   }
 
   void onViewAllReviews() {
-    final driverName = ride.value?.driverName ?? _existingReservation?.driverName ?? 'Le conducteur';
+    final driverName =
+        ride.value?.driverName ?? _existingReservation?.driverName ?? 'Le conducteur';
+    final reviews = apiReviews.isNotEmpty
+        ? apiReviews
+            .map((r) => _ReviewTileData(
+                  name: r.reviewerName,
+                  initial: r.reviewerName.isNotEmpty
+                      ? r.reviewerName[0].toUpperCase()
+                      : '?',
+                  rating: r.rating.round(),
+                  date: r.date,
+                  comment: r.comment,
+                ))
+            .toList()
+        : _staticReviews;
+
     Get.bottomSheet(
       Container(
         constraints: BoxConstraints(maxHeight: Get.height * 0.70),
@@ -68,8 +152,11 @@ class DetailReservationController extends GetxController {
           children: [
             const SizedBox(height: 12),
             Center(
-              child: Container(width: 40, height: 4,
-                  decoration: BoxDecoration(color: AppColors.border,
+              child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                      color: AppColors.border,
                       borderRadius: BorderRadius.circular(9999))),
             ),
             const SizedBox(height: 14),
@@ -77,14 +164,17 @@ class DetailReservationController extends GetxController {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
-                  const Icon(Icons.star_rounded, color: Color(0xFFF4B400), size: 20),
+                  const Icon(Icons.star_rounded,
+                      color: Color(0xFFF4B400), size: 20),
                   const SizedBox(width: 8),
                   Text('Avis sur $driverName',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w700)),
                   const Spacer(),
                   IconButton(
                     onPressed: Get.back,
-                    icon: const Icon(Icons.close_rounded, color: AppColors.textMuted),
+                    icon: const Icon(Icons.close_rounded,
+                        color: AppColors.textMuted),
                     padding: EdgeInsets.zero,
                   ),
                 ],
@@ -92,25 +182,11 @@ class DetailReservationController extends GetxController {
             ),
             const Divider(height: 1),
             Expanded(
-              child: ListView(
+              child: ListView.separated(
                 padding: const EdgeInsets.all(20),
-                children: const [
-                  _ReviewTile(name: 'Aminata K.', initial: 'A', rating: 5,
-                      date: 'Il y a 2 jours',
-                      comment: 'Excellente conduite, très ponctuel et sympathique !'),
-                  SizedBox(height: 12),
-                  _ReviewTile(name: 'Kwame A.', initial: 'K', rating: 5,
-                      date: 'Il y a 1 semaine',
-                      comment: 'Trajet confortable, voiture propre. Je recommande.'),
-                  SizedBox(height: 12),
-                  _ReviewTile(name: 'Fatou D.', initial: 'F', rating: 4,
-                      date: 'Il y a 2 semaines',
-                      comment: 'Bon conducteur, léger retard au départ mais trajet agréable.'),
-                  SizedBox(height: 12),
-                  _ReviewTile(name: 'Mariam Y.', initial: 'M', rating: 5,
-                      date: 'Il y a 1 mois',
-                      comment: 'Parfait ! Conduite douce et sécurisée.'),
-                ],
+                itemCount: reviews.length,
+                separatorBuilder: (_, i) => const SizedBox(height: 12),
+                itemBuilder: (_, i) => _ReviewTile(data: reviews[i]),
               ),
             ),
           ],
@@ -120,10 +196,37 @@ class DetailReservationController extends GetxController {
       backgroundColor: Colors.transparent,
     );
   }
+
+  static const List<_ReviewTileData> _staticReviews = [
+    _ReviewTileData(
+        name: 'Aminata K.',
+        initial: 'A',
+        rating: 5,
+        date: 'Il y a 2 jours',
+        comment: 'Excellente conduite, très ponctuel et sympathique !'),
+    _ReviewTileData(
+        name: 'Kwame A.',
+        initial: 'K',
+        rating: 5,
+        date: 'Il y a 1 semaine',
+        comment: 'Trajet confortable, voiture propre. Je recommande.'),
+    _ReviewTileData(
+        name: 'Fatou D.',
+        initial: 'F',
+        rating: 4,
+        date: 'Il y a 2 semaines',
+        comment: 'Bon conducteur, léger retard au départ mais trajet agréable.'),
+    _ReviewTileData(
+        name: 'Mariam Y.',
+        initial: 'M',
+        rating: 5,
+        date: 'Il y a 1 mois',
+        comment: 'Parfait ! Conduite douce et sécurisée.'),
+  ];
 }
 
-class _ReviewTile extends StatelessWidget {
-  const _ReviewTile({
+class _ReviewTileData {
+  const _ReviewTileData({
     required this.name,
     required this.initial,
     required this.rating,
@@ -135,6 +238,11 @@ class _ReviewTile extends StatelessWidget {
   final int rating;
   final String date;
   final String comment;
+}
+
+class _ReviewTile extends StatelessWidget {
+  const _ReviewTile({required this.data});
+  final _ReviewTileData data;
 
   @override
   Widget build(BuildContext context) {
@@ -151,14 +259,16 @@ class _ReviewTile extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 36, height: 36,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.12),
+                  color: AppColors.primary.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Center(
-                  child: Text(initial,
-                      style: const TextStyle(fontWeight: FontWeight.w700,
+                  child: Text(data.initial,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700,
                           color: AppColors.primary)),
                 ),
               ),
@@ -167,25 +277,34 @@ class _ReviewTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(name,
-                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                    Text(date,
-                        style: const TextStyle(fontSize: 11, color: AppColors.textGhost)),
+                    Text(data.name,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 13)),
+                    Text(data.date,
+                        style: const TextStyle(
+                            fontSize: 11, color: AppColors.textGhost)),
                   ],
                 ),
               ),
               Row(
-                children: List.generate(5, (i) => Icon(
-                  i < rating ? Icons.star_rounded : Icons.star_outline_rounded,
-                  size: 14,
-                  color: i < rating ? const Color(0xFFF4B400) : AppColors.textGhost,
-                )),
+                children: List.generate(
+                    5,
+                    (i) => Icon(
+                          i < data.rating
+                              ? Icons.star_rounded
+                              : Icons.star_outline_rounded,
+                          size: 14,
+                          color: i < data.rating
+                              ? const Color(0xFFF4B400)
+                              : AppColors.textGhost,
+                        )),
               ),
             ],
           ),
           const SizedBox(height: 10),
-          Text(comment,
-              style: const TextStyle(fontSize: 13, color: AppColors.textMuted, height: 1.5)),
+          Text(data.comment,
+              style: const TextStyle(
+                  fontSize: 13, color: AppColors.textMuted, height: 1.5)),
         ],
       ),
     );

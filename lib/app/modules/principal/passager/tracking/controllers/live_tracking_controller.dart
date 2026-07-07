@@ -6,33 +6,37 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:get/get.dart';
 import 'package:latlong2/latlong.dart';
 
+import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/passenger_reservation_service.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import '../../search/controllers/search_controller.dart';
+import '../../reservation/controllers/reservation_controller.dart';
 
 class LiveTrackingController extends GetxController {
+  PassengerReservationService get _service =>
+      Get.find<PassengerReservationService>();
+
   final Rxn<SearchRide> ride = Rxn<SearchRide>();
 
-  final driverProgress = 0.05.obs;
-  final etaMinutes      = 45.obs;
-  final distanceRemainingKm = 87.obs;
-  final driverSpeedKmh  = 95.obs;
-  final isTracking      = true.obs;
-  final tripEnded       = false.obs;
+  final driverProgress       = 0.05.obs;
+  final etaMinutes           = 45.obs;
+  final distanceRemainingKm  = 87.obs;
+  final driverSpeedKmh       = 95.obs;
+  final isTracking           = true.obs;
+  final tripEnded            = false.obs;
 
   // Route Cotonou → Parakou (waypoints le long de la N2)
   static const List<LatLng> routePoints = [
-    LatLng(6.3654, 2.4183),  // Cotonou
-    LatLng(6.7800, 2.3100),  // Abomey-Calavi / Allada
-    LatLng(7.1796, 2.0680),  // Bohicon
-    LatLng(7.5300, 2.1200),  // Abomey
-    LatLng(7.7467, 2.1862),  // Dassa-Zoumè
-    LatLng(8.0333, 2.4833),  // Savè
-    LatLng(8.5500, 2.4800),  // Tchaourou
-    LatLng(9.3370, 2.6282),  // Parakou
+    LatLng(6.3654, 2.4183),
+    LatLng(6.7800, 2.3100),
+    LatLng(7.1796, 2.0680),
+    LatLng(7.5300, 2.1200),
+    LatLng(7.7467, 2.1862),
+    LatLng(8.0333, 2.4833),
+    LatLng(8.5500, 2.4800),
+    LatLng(9.3370, 2.6282),
   ];
 
-  late final Rx<LatLng> driverLatLng =
-      Rx<LatLng>(_interpolate(0.05));
+  late final Rx<LatLng> driverLatLng = Rx<LatLng>(_interpolate(0.05));
 
   final MapController mapController = MapController();
 
@@ -43,20 +47,72 @@ class LiveTrackingController extends GetxController {
     'Je vous vois !',
   ];
 
+  String _tripUuid = '';
+  String _bookingUuid = '';
+  Timer? _pollingTimer;
   Timer? _simulationTimer;
 
   @override
   void onInit() {
     super.onInit();
     final dynamic savedArgs = Get.arguments;
-    _startSimulation();
     SchedulerBinding.instance.addPostFrameCallback((_) {
       if (savedArgs is Map<String, dynamic>) {
         final r = savedArgs['ride'];
         if (r is SearchRide) ride.value = r;
+        final tripId = savedArgs['tripUuid'];
+        if (tripId is String && tripId.isNotEmpty) _tripUuid = tripId;
+        if (_tripUuid.isEmpty && r is SearchRide && r.uuid.isNotEmpty) {
+          _tripUuid = r.uuid;
+        }
+        final bUuid = savedArgs['bookingUuid'];
+        if (bUuid is String) _bookingUuid = bUuid;
+      } else if (savedArgs is ReservationItem) {
+        _bookingUuid = savedArgs.id;
+        // ReservationItem doesn't carry tripUuid — simulation fallback
+      }
+
+      if (_tripUuid.isNotEmpty) {
+        _startPolling();
+      } else {
+        _startSimulation();
       }
     });
   }
+
+  // ── API polling ────────────────────────────────────────────────────────────
+
+  void _startPolling() {
+    _pollOnce();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (_) => _pollOnce());
+  }
+
+  Future<void> _pollOnce() async {
+    if (!isTracking.value) return;
+    final result = await _service.fetchLiveTracking(_tripUuid);
+    if (!result.isSuccess) return;
+    final data = result.data!;
+
+    etaMinutes.value = data.etaMinutes;
+    distanceRemainingKm.value = data.distanceRemainingKm.round();
+    driverSpeedKmh.value = data.speedKmh;
+
+    if (data.lat != 0 || data.lng != 0) {
+      driverLatLng.value = LatLng(data.lat, data.lng);
+      try {
+        mapController.move(driverLatLng.value, mapController.camera.zoom);
+      } catch (_) {}
+    }
+
+    if (data.tripEnded) {
+      _pollingTimer?.cancel();
+      isTracking.value = false;
+      tripEnded.value = true;
+      Future.delayed(const Duration(seconds: 2), _onTripEnded);
+    }
+  }
+
+  // ── Simulation fallback ────────────────────────────────────────────────────
 
   void _startSimulation() {
     _simulationTimer = Timer.periodic(const Duration(milliseconds: 1600), (_) {
@@ -70,7 +126,6 @@ class LiveTrackingController extends GetxController {
         distanceRemainingKm.value = (remaining * 87).round().clamp(0, 87);
         driverSpeedKmh.value      = 90 + (driverProgress.value * 10).round();
 
-        // Déplace la caméra pour suivre le conducteur
         try {
           mapController.move(
             driverLatLng.value,
@@ -85,6 +140,8 @@ class LiveTrackingController extends GetxController {
       }
     });
   }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
 
   static LatLng _interpolate(double t) {
     if (t <= 0) return routePoints.first;
@@ -101,7 +158,6 @@ class LiveTrackingController extends GetxController {
     );
   }
 
-  // Points déjà parcourus (pour colorier la portion verte)
   List<LatLng> get completedSegment {
     final progress = driverProgress.value;
     final total    = routePoints.length - 1;
@@ -120,7 +176,10 @@ class LiveTrackingController extends GetxController {
   void _onTripEnded() {
     Get.toNamed(
       AppRoutes.passengerTripConfirmation,
-      arguments: {'ride': ride.value},
+      arguments: {
+        'ride': ride.value,
+        if (_bookingUuid.isNotEmpty) 'bookingUuid': _bookingUuid,
+      },
     );
   }
 
@@ -142,6 +201,7 @@ class LiveTrackingController extends GetxController {
 
   @override
   void onClose() {
+    _pollingTimer?.cancel();
     _simulationTimer?.cancel();
     super.onClose();
   }

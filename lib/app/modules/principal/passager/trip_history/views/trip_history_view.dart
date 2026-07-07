@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
+import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 import '../controllers/trip_history_controller.dart';
 
 class TripHistoryView extends StatelessWidget {
@@ -11,9 +12,7 @@ class TripHistoryView extends StatelessWidget {
 
 	@override
 	Widget build(BuildContext context) {
-		final controller = Get.isRegistered<TripHistoryController>()
-				? Get.find<TripHistoryController>()
-				: Get.put(TripHistoryController());
+		final controller = Get.find<TripHistoryController>();
 		final responsive = AppResponsive(context);
 
 		return Scaffold(
@@ -28,6 +27,17 @@ class TripHistoryView extends StatelessWidget {
 								_FilterChips(responsive: responsive, controller: controller),
 								Expanded(
 									child: Obx(() {
+										if (controller.isLoading.value && controller.trips.isEmpty) {
+											return const Center(
+												child: CircularProgressIndicator(color: AppColors.primary),
+											);
+										}
+										if (controller.hasError.value && controller.trips.isEmpty) {
+											return _ErrorState(
+												responsive: responsive,
+												onRetry: controller.refresh,
+											);
+										}
 										final items = controller.filteredTrips;
 										if (items.isEmpty) {
 											return _EmptyState(
@@ -41,7 +51,7 @@ class TripHistoryView extends StatelessWidget {
 												vertical: responsive.h(16),
 											),
 											itemCount: items.length,
-											separatorBuilder: (_, _) => SizedBox(height: responsive.h(12)),
+											separatorBuilder: (_, i) => SizedBox(height: responsive.h(12)),
 											itemBuilder: (_, i) => _TripCard(
 												responsive: responsive,
 												controller: controller,
@@ -472,6 +482,38 @@ class _ActionButton extends StatelessWidget {
 							label,
 							style: AppTextStyles.caption(responsive).copyWith(color: color, fontWeight: FontWeight.w600),
 						),
+					],
+				),
+			),
+		);
+	}
+}
+
+// ── Error State ────────────────────────────────────────────────────────────
+
+class _ErrorState extends StatelessWidget {
+	const _ErrorState({required this.responsive, required this.onRetry});
+	final AppResponsive responsive;
+	final VoidCallback onRetry;
+
+	@override
+	Widget build(BuildContext context) {
+		return Center(
+			child: Padding(
+				padding: EdgeInsets.all(responsive.w(32)),
+				child: Column(
+					mainAxisAlignment: MainAxisAlignment.center,
+					children: [
+						Icon(Icons.cloud_off_rounded, size: responsive.text(48), color: AppColors.textHint),
+						SizedBox(height: responsive.h(16)),
+						Text('Impossible de charger l\'historique',
+								style: AppTextStyles.subtitle(responsive), textAlign: TextAlign.center),
+						SizedBox(height: responsive.h(8)),
+						Text('Vérifiez votre connexion et réessayez.',
+								style: AppTextStyles.body(responsive).copyWith(color: AppColors.textHint),
+								textAlign: TextAlign.center),
+						SizedBox(height: responsive.h(24)),
+						AppPrimaryButton(responsive: responsive, label: 'Réessayer', onTap: onRetry),
 					],
 				),
 			),

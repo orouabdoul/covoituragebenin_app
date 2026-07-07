@@ -202,7 +202,7 @@ class _AmountDisplay extends StatelessWidget {
 			child: Column(
 				children: [
 					Text(
-						controller.formattedAmount,
+						controller.displayFormattedAmount,
 						style: TextStyle(
 							color: AppColors.primary,
 							fontSize: responsive.text(32),

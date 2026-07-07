@@ -3,40 +3,22 @@ import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
+import 'package:covoiturage_benin_app/app/core/services/passenger/trips/passenger_trips_service.dart';
+import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
+import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
+import 'package:covoiturage_benin_app/app/data/models/passenger/trip_history_model.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 
-class TripRecord {
-  final String id;
-  final String origin;
-  final String destination;
-  final String date;
-  final String time;
-  final String driverName;
-  final String vehicle;
-  final String vehiclePlate;
-  final int price;
-  final int seats;
-  final String status; // 'upcoming' | 'completed' | 'cancelled'
-  final double? rating;
-  const TripRecord({
-    required this.id,
-    required this.origin,
-    required this.destination,
-    required this.date,
-    required this.time,
-    required this.driverName,
-    required this.vehicle,
-    required this.vehiclePlate,
-    required this.price,
-    required this.seats,
-    required this.status,
-    this.rating,
-  });
-}
+export 'package:covoiturage_benin_app/app/data/models/passenger/trip_history_model.dart'
+    show TripRecord;
 
 class TripHistoryController extends GetxController {
+  PassengerTripsService get _service => Get.find<PassengerTripsService>();
+
   final selectedFilter = 'all'.obs;
+  final isLoading = false.obs;
+  final hasError = false.obs;
 
   final filterLabels = const [
     {'key': 'all', 'label': 'Tous'},
@@ -45,102 +27,12 @@ class TripHistoryController extends GetxController {
     {'key': 'cancelled', 'label': 'Annulés'},
   ];
 
-  final trips = <TripRecord>[
-    const TripRecord(
-      id: 'TR001',
-      origin: 'Cotonou',
-      destination: 'Parakou',
-      date: '28 Juin 2026',
-      time: '06:00',
-      driverName: 'Koffi Amédégnato',
-      vehicle: 'Toyota Corolla',
-      vehiclePlate: 'BJ 1234 AB',
-      price: 8500,
-      seats: 1,
-      status: 'upcoming',
-    ),
-    const TripRecord(
-      id: 'TR002',
-      origin: 'Porto-Novo',
-      destination: 'Abomey',
-      date: '30 Juin 2026',
-      time: '09:30',
-      driverName: 'Sébastien Houénou',
-      vehicle: 'Honda Accord',
-      vehiclePlate: 'BJ 5678 CD',
-      price: 4200,
-      seats: 2,
-      status: 'upcoming',
-    ),
-    const TripRecord(
-      id: 'TR003',
-      origin: 'Cotonou',
-      destination: 'Porto-Novo',
-      date: '20 Juin 2026',
-      time: '07:00',
-      driverName: 'Ahoua Bello',
-      vehicle: 'Peugeot 308',
-      vehiclePlate: 'BJ 9012 EF',
-      price: 2500,
-      seats: 1,
-      status: 'completed',
-      rating: 5,
-    ),
-    const TripRecord(
-      id: 'TR004',
-      origin: 'Abomey-Calavi',
-      destination: 'Cotonou',
-      date: '15 Juin 2026',
-      time: '08:00',
-      driverName: 'Yaovi Djossou',
-      vehicle: 'Renault Logan',
-      vehiclePlate: 'BJ 3456 GH',
-      price: 1500,
-      seats: 1,
-      status: 'completed',
-      rating: 4,
-    ),
-    const TripRecord(
-      id: 'TR005',
-      origin: 'Cotonou',
-      destination: 'Lokossa',
-      date: '10 Juin 2026',
-      time: '10:00',
-      driverName: 'Clément Hounkpévi',
-      vehicle: 'Toyota Camry',
-      vehiclePlate: 'BJ 7890 IJ',
-      price: 5500,
-      seats: 2,
-      status: 'completed',
-      rating: 5,
-    ),
-    const TripRecord(
-      id: 'TR006',
-      origin: 'Cotonou',
-      destination: 'Natitingou',
-      date: '5 Juin 2026',
-      time: '05:30',
-      driverName: 'Rachid Alafia',
-      vehicle: 'Mitsubishi Galant',
-      vehiclePlate: 'BJ 2345 KL',
-      price: 12000,
-      seats: 1,
-      status: 'cancelled',
-    ),
-    const TripRecord(
-      id: 'TR007',
-      origin: 'Porto-Novo',
-      destination: 'Cotonou',
-      date: '1 Juin 2026',
-      time: '16:00',
-      driverName: 'Prosper Tokponto',
-      vehicle: 'Nissan Sentra',
-      vehiclePlate: 'BJ 6789 MN',
-      price: 2000,
-      seats: 1,
-      status: 'cancelled',
-    ),
-  ].obs;
+  final RxList<TripRecord> trips = <TripRecord>[].obs;
+
+  // Counts from API summary (more accurate than counting the list)
+  final countUpcoming  = 0.obs;
+  final countCompleted = 0.obs;
+  final countCancelled = 0.obs;
 
   List<TripRecord> get filteredTrips {
     final f = selectedFilter.value;
@@ -148,7 +40,41 @@ class TripHistoryController extends GetxController {
     return trips.where((t) => t.status == f).toList();
   }
 
-  int countByStatus(String status) => trips.where((t) => t.status == status).length;
+  int countByStatus(String status) {
+    switch (status) {
+      case 'upcoming':  return countUpcoming.value;
+      case 'completed': return countCompleted.value;
+      case 'cancelled': return countCancelled.value;
+      default: return trips.where((t) => t.status == status).length;
+    }
+  }
+
+  @override
+  void onInit() {
+    super.onInit();
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    isLoading.value = true;
+    hasError.value = false;
+    final result = await _service.fetchHistory();
+    isLoading.value = false;
+    if (result.isSuccess) {
+      final data = result.data!;
+      countUpcoming.value  = data.counts.upcoming;
+      countCompleted.value = data.counts.completed;
+      countCancelled.value = data.counts.cancelled;
+      trips.assignAll(data.trips);
+    } else {
+      hasError.value = true;
+      logger.e('passengerTripHistory: ${result.error}');
+      if (result.error == AppError.socket) return;
+    }
+  }
+
+  @override
+  Future<void> refresh() => _loadHistory();
 
   String formattedPrice(int price) {
     final str = price.toString();
@@ -168,6 +94,7 @@ class TripHistoryController extends GetxController {
     Get.toNamed(
       AppRoutes.passengerRefundRequest,
       arguments: {
+        'bookingUuid': trip.id,
         'amount': trip.price,
         'route': '${trip.origin} → ${trip.destination}',
         'date': trip.date,
@@ -224,7 +151,6 @@ class _TripDetailSheet extends StatelessWidget {
       expand: false,
       builder: (_, scrollController) => Column(
         children: [
-          // Handle
           Padding(
             padding: EdgeInsets.symmetric(vertical: responsive.h(12)),
             child: Center(
@@ -240,7 +166,6 @@ class _TripDetailSheet extends StatelessWidget {
               controller: scrollController,
               padding: EdgeInsets.symmetric(horizontal: responsive.w(20)),
               children: [
-                // Title
                 Row(
                   children: [
                     Icon(_statusIcon, size: responsive.text(18), color: _statusColor),
@@ -251,7 +176,6 @@ class _TripDetailSheet extends StatelessWidget {
                   ],
                 ),
                 SizedBox(height: responsive.h(16)),
-                // Route
                 Container(
                   padding: EdgeInsets.all(responsive.w(16)),
                   decoration: BoxDecoration(
@@ -271,7 +195,6 @@ class _TripDetailSheet extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: responsive.h(16)),
-                // Info rows
                 _InfoCard(responsive: responsive, children: [
                   _DetailRow(responsive: responsive, icon: Icons.calendar_today_rounded, label: 'Date', value: trip.date),
                   Divider(color: AppColors.border, height: responsive.h(20)),
@@ -294,7 +217,6 @@ class _TripDetailSheet extends StatelessWidget {
                   ],
                 ]),
                 SizedBox(height: responsive.h(20)),
-                // Actions
                 if (trip.status == 'cancelled')
                   OutlinedButton.icon(
                     onPressed: () { Get.back(); controller.requestRefund(trip); },

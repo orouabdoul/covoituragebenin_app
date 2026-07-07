@@ -5,6 +5,7 @@ import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
+import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 
 import '../controllers/profil_controller.dart';
 
@@ -14,7 +15,7 @@ class ProfilView extends StatelessWidget {
 	ProfilController get controller =>
 			Get.isRegistered<ProfilController>()
 					? Get.find<ProfilController>()
-					: Get.put(ProfilController());
+					: Get.put(ProfilController(Get.find()));
 
 	@override
 	Widget build(BuildContext context) {
@@ -29,52 +30,111 @@ class ProfilView extends StatelessWidget {
 		return Scaffold(
 			backgroundColor: AppColors.surface,
 			body: SafeArea(
-				child: SingleChildScrollView(
-					child: Center(
-						child: ConstrainedBox(
-							constraints: BoxConstraints(maxWidth: responsive.maxContentWidth),
-							child: Column(
-								crossAxisAlignment: CrossAxisAlignment.stretch,
-								children: [
-									_HeaderSection(responsive: responsive, controller: controller),
-									Transform.translate(
-										offset: Offset(0, -responsive.h(40)),
-										child: Padding(
-											padding: EdgeInsets.symmetric(horizontal: pagePadding),
-											child: Column(
-												crossAxisAlignment: CrossAxisAlignment.stretch,
-												children: [
-													_SummaryCard(responsive: responsive, controller: controller),
-													SizedBox(height: responsive.h(24)),
-													GestureDetector(
-														onTap: controller.openMyReviews,
-														child: _StatCard(
-															responsive: responsive,
-															value: controller.metrics[0].value,
-															label: controller.metrics[0].label,
-															leadingIcon: Icons.star_rounded,
-															trailingStars: true,
-														),
+				child: Obx(() {
+					final version = controller.profileVersion.value;
+					if (controller.isLoading.value && version == 0) {
+						return const Center(
+							child: CircularProgressIndicator(color: AppColors.primary),
+						);
+					}
+					if (controller.hasLoadError.value && version == 0) {
+						return _ErrorBody(
+							responsive: responsive,
+							onRetry: () => controller.refresh(),
+						);
+					}
+					return RefreshIndicator(
+						onRefresh: controller.refresh,
+						color: AppColors.primary,
+						child: SingleChildScrollView(
+							physics: const AlwaysScrollableScrollPhysics(),
+							child: Center(
+								child: ConstrainedBox(
+									constraints: BoxConstraints(maxWidth: responsive.maxContentWidth),
+									child: Column(
+										crossAxisAlignment: CrossAxisAlignment.stretch,
+										children: [
+											_HeaderSection(responsive: responsive, controller: controller),
+											Transform.translate(
+												offset: Offset(0, -responsive.h(40)),
+												child: Padding(
+													padding: EdgeInsets.symmetric(horizontal: pagePadding),
+													child: Column(
+														crossAxisAlignment: CrossAxisAlignment.stretch,
+														children: [
+															_SummaryCard(responsive: responsive, controller: controller),
+															SizedBox(height: responsive.h(24)),
+															GestureDetector(
+																onTap: controller.openMyReviews,
+																child: _StatCard(
+																	responsive: responsive,
+																	value: controller.ratingMetric.value,
+																	label: controller.ratingMetric.label,
+																	leadingIcon: Icons.star_rounded,
+																	trailingStars: true,
+																),
+															),
+															SizedBox(height: responsive.h(24)),
+															GestureDetector(
+																onTap: controller.openTrustHub,
+																child: _TrustCard(responsive: responsive, controller: controller),
+															),
+															SizedBox(height: responsive.h(24)),
+															_SettingsCard(responsive: responsive, controller: controller),
+															SizedBox(height: responsive.h(24)),
+															_PaymentMethodsCard(responsive: responsive, controller: controller),
+															SizedBox(height: responsive.h(24)),
+															_RecentTripsCard(responsive: responsive, controller: controller),
+														],
 													),
-													SizedBox(height: responsive.h(24)),
-													GestureDetector(
-														onTap: controller.openTrustHub,
-														child: _TrustCard(responsive: responsive, controller: controller),
-													),
-													SizedBox(height: responsive.h(24)),
-													_SettingsCard(responsive: responsive, controller: controller),
-													SizedBox(height: responsive.h(24)),
-													_PaymentMethodsCard(responsive: responsive, controller: controller),
-													SizedBox(height: responsive.h(24)),
-													_RecentTripsCard(responsive: responsive, controller: controller),
-												],
+												),
 											),
-										),
+										],
 									),
-								],
+								),
 							),
 						),
-					),
+					);
+				}),
+			),
+		);
+	}
+}
+
+class _ErrorBody extends StatelessWidget {
+	const _ErrorBody({required this.responsive, required this.onRetry});
+
+	final AppResponsive responsive;
+	final VoidCallback onRetry;
+
+	@override
+	Widget build(BuildContext context) {
+		return Center(
+			child: Padding(
+				padding: EdgeInsets.all(responsive.w(32)),
+				child: Column(
+					mainAxisAlignment: MainAxisAlignment.center,
+					children: [
+						Icon(Icons.cloud_off_rounded, size: responsive.text(48), color: AppColors.textHint),
+						SizedBox(height: responsive.h(16)),
+						Text(
+							'Impossible de charger le profil',
+							style: AppTextStyles.subtitle(responsive),
+							textAlign: TextAlign.center,
+						),
+						SizedBox(height: responsive.h(8)),
+						Text(
+							'Vérifiez votre connexion et réessayez.',
+							style: AppTextStyles.body(responsive).copyWith(color: AppColors.textHint),
+							textAlign: TextAlign.center,
+						),
+						SizedBox(height: responsive.h(24)),
+						AppPrimaryButton(
+							responsive: responsive,
+							label: 'Réessayer',
+							onTap: onRetry,
+						),
+					],
 				),
 			),
 		);
@@ -181,29 +241,40 @@ class _SummaryCard extends StatelessWidget {
 										BoxShadow(color: Color(0x19000000), blurRadius: 6, offset: Offset(0, 4)),
 									],
 								),
-								child: Image.network(summary.avatarUrl, fit: BoxFit.cover),
+								child: summary.avatarUrl.isNotEmpty
+										? Image.network(
+												summary.avatarUrl,
+												fit: BoxFit.cover,
+												errorBuilder: (_, _e, _s) => const Icon(
+													Icons.person_rounded,
+													color: AppColors.textHint,
+													size: 48,
+												),
+											)
+										: const Icon(Icons.person_rounded, color: AppColors.textHint, size: 48),
 							),
-							Positioned(
-								right: -responsive.w(2),
-								bottom: -responsive.w(2),
-								child: Container(
-									width: responsive.w(28),
-									height: responsive.w(28),
-									padding: EdgeInsets.all(responsive.w(6)),
-									decoration: const ShapeDecoration(
-										color: AppColors.primary,
-										shape: RoundedRectangleBorder(
-											side: BorderSide(color: AppColors.border),
-											borderRadius: BorderRadius.all(Radius.circular(9999)),
+							if (summary.isVerified)
+								Positioned(
+									right: -responsive.w(2),
+									bottom: -responsive.w(2),
+									child: Container(
+										width: responsive.w(28),
+										height: responsive.w(28),
+										padding: EdgeInsets.all(responsive.w(6)),
+										decoration: const ShapeDecoration(
+											color: AppColors.primary,
+											shape: RoundedRectangleBorder(
+												side: BorderSide(color: AppColors.border),
+												borderRadius: BorderRadius.all(Radius.circular(9999)),
+											),
+											shadows: [
+												BoxShadow(color: Color(0x19000000), blurRadius: 15, offset: Offset(0, 10)),
+												BoxShadow(color: Color(0x19000000), blurRadius: 6, offset: Offset(0, 4)),
+											],
 										),
-										shadows: [
-											BoxShadow(color: Color(0x19000000), blurRadius: 15, offset: Offset(0, 10)),
-											BoxShadow(color: Color(0x19000000), blurRadius: 6, offset: Offset(0, 4)),
-										],
+										child: const Icon(Icons.verified_rounded, color: Colors.white, size: 16),
 									),
-									child: const Icon(Icons.verified_rounded, color: Colors.white, size: 16),
 								),
-							),
 						],
 					),
 					SizedBox(height: responsive.h(12)),
@@ -216,37 +287,38 @@ class _SummaryCard extends StatelessWidget {
 					SizedBox(height: responsive.h(4)),
 					Text(summary.phone, style: AppTextStyles.profileMeta(responsive)),
 					SizedBox(height: responsive.h(12)),
-					Container(
-						padding: EdgeInsets.symmetric(horizontal: responsive.w(16), vertical: responsive.h(8)),
-						decoration: ShapeDecoration(
-							color: const Color(0x1900A86B),
-							shape: RoundedRectangleBorder(
-								side: const BorderSide(color: AppColors.border),
-								borderRadius: BorderRadius.circular(9999),
+					if (summary.isVerified)
+						Container(
+							padding: EdgeInsets.symmetric(horizontal: responsive.w(16), vertical: responsive.h(8)),
+							decoration: ShapeDecoration(
+								color: const Color(0x1900A86B),
+								shape: RoundedRectangleBorder(
+									side: const BorderSide(color: AppColors.border),
+									borderRadius: BorderRadius.circular(9999),
+								),
+							),
+							child: Row(
+								mainAxisSize: MainAxisSize.min,
+								children: [
+									Container(
+										width: responsive.w(12),
+										height: responsive.w(12),
+										decoration: const ShapeDecoration(
+											color: AppColors.primary,
+											shape: CircleBorder(),
+										),
+									),
+									SizedBox(width: responsive.w(8)),
+									Text(
+										AppStrings.passengerProfileVerified,
+										style: AppTextStyles.profileMeta(responsive).copyWith(
+											color: AppColors.primary,
+											fontWeight: FontWeight.w600,
+										),
+									),
+								],
 							),
 						),
-						child: Row(
-							mainAxisSize: MainAxisSize.min,
-							children: [
-								Container(
-									width: responsive.w(12),
-									height: responsive.w(12),
-									decoration: const ShapeDecoration(
-										color: AppColors.primary,
-										shape: CircleBorder(),
-									),
-								),
-								SizedBox(width: responsive.w(8)),
-								Text(
-									AppStrings.passengerProfileVerified,
-									style: AppTextStyles.profileMeta(responsive).copyWith(
-										color: AppColors.primary,
-										fontWeight: FontWeight.w600,
-									),
-								),
-							],
-						),
-					),
 					SizedBox(height: responsive.h(24)),
 					Row(
 						children: [
@@ -255,8 +327,8 @@ class _SummaryCard extends StatelessWidget {
 									onTap: controller.openMyReviews,
 									child: _StatCard(
 										responsive: responsive,
-										value: controller.metrics[0].value,
-										label: controller.metrics[0].label,
+										value: controller.ratingMetric.value,
+										label: controller.ratingMetric.label,
 										leadingIcon: Icons.star_rounded,
 										trailingStars: true,
 									),
@@ -268,8 +340,8 @@ class _SummaryCard extends StatelessWidget {
 									onTap: controller.viewAllTrips,
 									child: _StatCard(
 										responsive: responsive,
-										value: controller.metrics[1].value,
-										label: controller.metrics[1].label,
+										value: controller.tripsMetric.value,
+										label: controller.tripsMetric.label,
 										leadingIcon: Icons.route_rounded,
 									),
 								),

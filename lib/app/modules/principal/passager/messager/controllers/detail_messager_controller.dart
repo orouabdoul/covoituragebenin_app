@@ -3,95 +3,169 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
-import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
+import 'package:covoiturage_benin_app/app/core/services/passenger/messaging/passenger_messaging_service.dart';
+import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
-
-import 'messager_controller.dart';
+import 'package:covoiturage_benin_app/app/data/models/driver/messenger_model.dart';
 
 class DetailMessagerController extends GetxController {
-  late final MessengerThread thread;
+  PassengerMessagingService get _service => Get.find<PassengerMessagingService>();
+
   final TextEditingController messageController = TextEditingController();
 
-  final RxList<DetailMessage> messages = <DetailMessage>[
-    const DetailMessage(
-      kind: DetailMessageKind.incoming,
-      message:
-          'Bonjour ! Merci pour votre\nréservation. Je confirme le départ à\n8h30 demain matin.',
-      time: '09:45',
-    ),
-    const DetailMessage(
-      kind: DetailMessageKind.outgoing,
-      message:
-          'Parfait ! Je serai prêt. Où exactement\nest le point de rendez-vous ?',
-      time: '09:47',
-    ),
-    const DetailMessage(
-      kind: DetailMessageKind.info,
-      title: 'Station Total Cadjehoun',
-      subtitle: 'Cotonou, Bénin',
-      actionLabel: AppStrings.messengerDetailMapAction,
-    ),
-    const DetailMessage(
-      kind: DetailMessageKind.outgoing,
-      message: "Merci ! Je connais l'endroit. À\ndemain 🚗",
-      time: '09:49',
-    ),
-    const DetailMessage(
-      kind: DetailMessageKind.reminder,
-      message:
-          'Rappel : Partagez uniquement les\ninformations nécessaires pour le trajet.',
-    ),
-    const DetailMessage(
-      kind: DetailMessageKind.incoming,
-      message:
-          'Bonne soirée ! À demain pour un bon\nvoyage 😊',
-      time: '10:15',
-    ),
-  ].obs;
+  final RxBool isLoading = false.obs;
+  final RxBool hasError = false.obs;
+  final RxBool isSending = false.obs;
+  final RxBool isLoadingMore = false.obs;
+  final RxBool hasMore = false.obs;
+
+  final RxList<DetailMessage> messages = <DetailMessage>[].obs;
+
+  // Reactive header fields — pre-populated from args, updated after API load
+  final Rx<String> displayName = ''.obs;
+  final Rx<String?> displayAvatarUrl = Rx<String?>(null);
+  final RxBool displayIsOnline = false.obs;
+  final Rx<String> displayPhone = ''.obs;
+  final Rx<String> displayTripRoute = ''.obs;
+  final Rx<String> displayTripDepartureLabel = ''.obs;
+  final Rx<int> displayTripSeats = 0.obs;
+
+  int? _nextBeforeId;
+  late final String _uuid;
 
   @override
   void onInit() {
     super.onInit();
-    thread = Get.arguments is MessengerThread
-        ? Get.arguments as MessengerThread
-        : const MessengerThread(
-            name: 'Kofi Mensah',
-            time: '14:32',
-            preview: '',
-            badge: '',
-            badgeColor: 0,
-            statusLabel: '',
-            statusLabelColor: 0,
-            statusBackgroundColor: 0,
-            avatarUrl: 'https://placehold.co/32x32.png',
-            roleLabel: 'Conducteur',
-            roleLabelColor: 0,
-            messageType: MessengerType.driver,
-            isUnread: true,
-          );
+    final args = Get.arguments as Map<String, dynamic>?;
+    _uuid = args?['uuid'] as String? ?? '';
+    final preloaded = args?['thread'] as MessengerThreadModel?;
+    if (preloaded != null) {
+      displayName.value = preloaded.name;
+      displayAvatarUrl.value = preloaded.avatarUrl;
+      displayTripRoute.value = preloaded.statusLabel;
+    }
+    if (_uuid.isNotEmpty) _fetchThread();
   }
 
-  void sendMessage() {
-    final String text = messageController.text.trim();
+  @override
+  Future<void> refresh() => _fetchThread();
+
+  Future<void> _fetchThread({bool loadMore = false}) async {
+    if (_uuid.isEmpty) return;
+    if (loadMore) {
+      if (isLoadingMore.value || !hasMore.value) return;
+      isLoadingMore.value = true;
+    } else {
+      isLoading.value = true;
+      hasError.value = false;
+    }
+
+    final result = await _service.fetchThread(
+      _uuid,
+      beforeId: loadMore ? _nextBeforeId : null,
+    );
+
+    if (loadMore) {
+      isLoadingMore.value = false;
+    } else {
+      isLoading.value = false;
+    }
+
+    if (result.isSuccess) {
+      final detail = result.data!;
+      _applyThreadContext(detail.thread);
+      final mapped = detail.messages.map(_toDetailMessage).toList();
+      if (loadMore) {
+        messages.insertAll(0, mapped);
+      } else {
+        messages.assignAll(mapped);
+      }
+      hasMore.value = detail.hasMore;
+      _nextBeforeId = detail.nextBeforeId;
+      _service.markAsRead(_uuid);
+    } else {
+      if (!loadMore) hasError.value = true;
+      if (result.error != AppError.socket) {
+        UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+      }
+    }
+  }
+
+  void _applyThreadContext(ConversationThreadContext ctx) {
+    displayName.value = ctx.otherUser.name;
+    displayAvatarUrl.value = ctx.otherUser.avatarUrl;
+    displayIsOnline.value = ctx.otherUser.isOnline;
+    displayPhone.value = ctx.otherUser.phone;
+    displayTripRoute.value = ctx.trip.route;
+    displayTripDepartureLabel.value = ctx.trip.departureTimeLabel;
+    displayTripSeats.value = ctx.trip.availableSeats;
+  }
+
+  DetailMessage _toDetailMessage(ConversationApiMessage m) {
+    DetailMessageKind kind;
+    if (m.kind == 'outgoing') {
+      kind = (m.title?.isNotEmpty ?? false)
+          ? DetailMessageKind.info
+          : DetailMessageKind.outgoing;
+    } else if (m.kind == 'reminder') {
+      kind = DetailMessageKind.reminder;
+    } else {
+      kind = (m.title?.isNotEmpty ?? false)
+          ? DetailMessageKind.info
+          : DetailMessageKind.incoming;
+    }
+    return DetailMessage(
+      kind: kind,
+      message: m.message,
+      time: m.time,
+      title: m.title ?? '',
+      subtitle: m.subtitle ?? '',
+      actionLabel: m.actionLabel ?? '',
+    );
+  }
+
+  Future<void> loadMore() => _fetchThread(loadMore: true);
+
+  Future<void> sendMessage() async {
+    final text = messageController.text.trim();
     if (text.isEmpty) return;
-    messages.add(DetailMessage(
+    messageController.clear();
+
+    final optimistic = DetailMessage(
       kind: DetailMessageKind.outgoing,
       message: text,
-      time: AppStrings.messengerDetailNow,
-    ));
-    messageController.clear();
+      time: 'maintenant',
+    );
+    messages.add(optimistic);
+
+    if (_uuid.isEmpty) return;
+
+    isSending.value = true;
+    final result = await _service.sendMessage(_uuid, text);
+    isSending.value = false;
+
+    if (!result.isSuccess) {
+      messages.remove(optimistic);
+      if (result.error != null) {
+        UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+      }
+    }
   }
 
   void onCall() {
-    const phone = '+229 97 XX XX XX';
+    final phone = displayPhone.value.isNotEmpty ? displayPhone.value : '+229 XX XX XX XX';
     Get.dialog(
       AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(children: [
           const Icon(Icons.call_rounded, color: AppColors.primary, size: 22),
           const SizedBox(width: 10),
-          Expanded(child: Text('Appeler ${thread.name}',
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700))),
+          Expanded(
+            child: Text(
+              'Appeler ${displayName.value}',
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+            ),
+          ),
         ]),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -102,25 +176,35 @@ class DetailMessagerController extends GetxController {
                 color: const Color(0xFFE6F7EF),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text(phone,
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900,
-                      color: AppColors.primary, letterSpacing: 1)),
+              child: Text(
+                phone,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.primary,
+                  letterSpacing: 1,
+                ),
+              ),
             ),
             const SizedBox(height: 6),
-            const Text('Numéro masqué pour votre sécurité',
-                style: TextStyle(fontSize: 11, color: AppColors.textGhost)),
+            const Text(
+              'Numéro masqué pour votre sécurité',
+              style: TextStyle(fontSize: 11, color: AppColors.textGhost),
+            ),
           ],
         ),
         actions: [
           TextButton(onPressed: Get.back, child: const Text('Fermer')),
           TextButton(
             onPressed: () {
-              Clipboard.setData(const ClipboardData(text: phone));
+              Clipboard.setData(ClipboardData(text: phone));
               Get.back();
               UIHelper().showSnackBar('MINIZON', 'Numéro copié.', 0);
             },
-            child: const Text('Copier',
-                style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
+            child: const Text(
+              'Copier',
+              style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700),
+            ),
           ),
         ],
       ),
@@ -139,16 +223,25 @@ class DetailMessagerController extends GetxController {
           mainAxisSize: MainAxisSize.min,
           children: [
             Center(
-              child: Container(width: 40, height: 4,
-                  decoration: BoxDecoration(color: AppColors.border,
-                      borderRadius: BorderRadius.circular(9999))),
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(9999),
+                ),
+              ),
             ),
             const SizedBox(height: 16),
-            Text(thread.name,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+            Text(
+              displayName.value,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: 4),
-            const Text('Options de conversation',
-                style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+            const Text(
+              'Options de conversation',
+              style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+            ),
             const SizedBox(height: 20),
             _OptionTile(
               icon: Icons.report_rounded,
@@ -156,8 +249,8 @@ class DetailMessagerController extends GetxController {
               color: const Color(0xFFF59E0B),
               onTap: () {
                 Get.back();
-                UIHelper().showSnackBar('MINIZON',
-                    'Signalement enregistré. Notre équipe vous contacte.', 0);
+                UIHelper().showSnackBar(
+                    'MINIZON', 'Signalement enregistré. Notre équipe vous contacte.', 0);
               },
             ),
             const SizedBox(height: 10),
@@ -170,16 +263,21 @@ class DetailMessagerController extends GetxController {
                 Get.dialog(AlertDialog(
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   title: const Text('Bloquer le conducteur ?'),
-                  content: Text("${thread.name} ne pourra plus vous envoyer de messages."),
+                  content: Text('${displayName.value} ne pourra plus vous envoyer de messages.'),
                   actions: [
                     TextButton(onPressed: Get.back, child: const Text('Annuler')),
                     TextButton(
                       onPressed: () {
                         Get.back();
-                        UIHelper().showSnackBar('MINIZON', '${thread.name} bloqué.', 0);
+                        UIHelper().showSnackBar('MINIZON', '${displayName.value} bloqué.', 0);
                       },
-                      child: const Text('Bloquer',
-                          style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.w700)),
+                      child: const Text(
+                        'Bloquer',
+                        style: TextStyle(
+                          color: Color(0xFFEF4444),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ],
                 ));
@@ -231,10 +329,12 @@ class DetailMessagerController extends GetxController {
               child: const Row(children: [
                 Icon(Icons.info_outline_rounded, color: AppColors.primary, size: 16),
                 SizedBox(width: 8),
-                Expanded(child: Text(
-                  "Copiez l'adresse pour l'ouvrir dans Google Maps.",
-                  style: TextStyle(fontSize: 12, color: AppColors.primary),
-                )),
+                Expanded(
+                  child: Text(
+                    "Copiez l'adresse pour l'ouvrir dans Google Maps.",
+                    style: TextStyle(fontSize: 12, color: AppColors.primary),
+                  ),
+                ),
               ]),
             ),
           ],
@@ -248,8 +348,10 @@ class DetailMessagerController extends GetxController {
               Get.back();
               UIHelper().showSnackBar('MINIZON', 'Adresse copiée.', 0);
             },
-            child: const Text("Copier l'adresse",
-                style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
+            child: const Text(
+              "Copier l'adresse",
+              style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700),
+            ),
           ),
         ],
       ),
@@ -263,9 +365,15 @@ class DetailMessagerController extends GetxController {
   }
 }
 
+// ── Widgets helper ────────────────────────────────────────────────────────────
+
 class _OptionTile extends StatelessWidget {
-  const _OptionTile({required this.icon, required this.label,
-      required this.color, required this.onTap});
+  const _OptionTile({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
   final IconData icon;
   final String label;
   final Color color;
@@ -278,9 +386,9 @@ class _OptionTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.07),
+          color: color.withValues(alpha: 0.07),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withOpacity(0.2)),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
         ),
         child: Row(children: [
           Icon(icon, color: color, size: 20),
@@ -291,6 +399,8 @@ class _OptionTile extends StatelessWidget {
     );
   }
 }
+
+// ── View models ───────────────────────────────────────────────────────────────
 
 enum DetailMessageKind { incoming, outgoing, info, reminder }
 

@@ -2,10 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 
+import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/passenger_reservation_service.dart';
+import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
+import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 import '../../search/controllers/search_controller.dart';
+import '../../reservation/controllers/reservation_controller.dart';
 
 class TripConfirmationController extends GetxController {
+  PassengerReservationService get _service =>
+      Get.find<PassengerReservationService>();
+
   final Rxn<SearchRide> ride = Rxn<SearchRide>();
 
   final tripConfirmed = false.obs;
@@ -13,6 +20,7 @@ class TripConfirmationController extends GetxController {
   final isSubmitting = false.obs;
   final submitted = false.obs;
   final hasIssue = false.obs;
+  final alreadyReviewed = false.obs;
 
   final TextEditingController reviewController = TextEditingController();
 
@@ -36,6 +44,8 @@ class TripConfirmationController extends GetxController {
   ];
   final selectedIssues = <String>[].obs;
 
+  String _bookingUuid = '';
+
   @override
   void onInit() {
     super.onInit();
@@ -44,8 +54,45 @@ class TripConfirmationController extends GetxController {
       if (savedArgs is Map<String, dynamic>) {
         final r = savedArgs['ride'];
         if (r is SearchRide) ride.value = r;
+        final uuid = savedArgs['bookingUuid'];
+        if (uuid is String && uuid.isNotEmpty) {
+          _bookingUuid = uuid;
+          _fetchContext();
+        }
+      } else if (savedArgs is ReservationItem) {
+        _bookingUuid = savedArgs.id;
+        _fetchContext();
       }
     });
+  }
+
+  Future<void> _fetchContext() async {
+    if (_bookingUuid.isEmpty) return;
+    final result = await _service.fetchTripConfirmationContext(_bookingUuid);
+    if (!result.isSuccess) return;
+    final ctx = result.data!;
+    alreadyReviewed.value = ctx.alreadyReviewed;
+    if (ctx.passengerConfirmedAt != null) tripConfirmed.value = true;
+    if (ride.value == null) {
+      ride.value = SearchRide(
+        driverName: ctx.ride.driverName,
+        rating: '',
+        reviewCount: '',
+        price: '',
+        priceValue: 0,
+        origin: ctx.ride.origin,
+        destination: ctx.ride.destination,
+        departureTime: '',
+        departureNote: '',
+        arrivalTime: '',
+        arrivalNote: '',
+        duration: ctx.ride.duration,
+        vehicle: '',
+        seatsAvailable: 1,
+        minutesUntilDeparture: 0,
+        isVerified: false,
+      );
+    }
   }
 
   void setRating(int stars) => rating.value = stars;
@@ -66,24 +113,39 @@ class TripConfirmationController extends GetxController {
     }
   }
 
-  // Appelé par "Oui, le trajet est terminé" — affiche seulement l'UI d'évaluation
-  void confirmTrip() {
+  Future<void> confirmTrip() async {
+    if (_bookingUuid.isNotEmpty) {
+      final result = await _service.confirmTrip(
+        _bookingUuid,
+        issues: selectedIssues.toList(),
+      );
+      if (!result.isSuccess && result.error != null) {
+        if (result.error != AppError.socket) {
+          UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+        }
+      }
+    }
     tripConfirmed.value = true;
   }
 
-  // Appelé par "Envoyer mon avis" — soumet l'évaluation puis rentre à l'accueil
-  void submitReview() {
-    if (rating.value > 0) {
-      isSubmitting.value = true;
-      Future.delayed(const Duration(milliseconds: 1500), () {
-        isSubmitting.value = false;
-        submitted.value = true;
-      });
+  Future<void> submitReview() async {
+    if (rating.value <= 0) return;
+    isSubmitting.value = true;
+    if (_bookingUuid.isNotEmpty) {
+      await _service.submitReview(
+        _bookingUuid,
+        rating: rating.value,
+        tags: selectedTags.toList(),
+        comment: reviewController.text.trim(),
+      );
+    } else {
+      await Future.delayed(const Duration(milliseconds: 1500));
     }
+    isSubmitting.value = false;
+    submitted.value = true;
   }
 
   void skipReview() => BottonNavController.goToTab(0);
-
   void goHome() => BottonNavController.goToTab(0);
 
   @override

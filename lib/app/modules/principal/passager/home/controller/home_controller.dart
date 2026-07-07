@@ -1,1 +1,0 @@
-export '../controllers/home_controller.dart';

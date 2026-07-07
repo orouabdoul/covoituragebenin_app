@@ -16,6 +16,7 @@ enum AppError {
   phoneAlreadyInUse,
   endpointNotAvailable,
   tripDataInvalid,
+  refundAlreadySubmitted,
 }
 
 extension AppErrorMessage on AppError {
@@ -40,6 +41,8 @@ extension AppErrorMessage on AppError {
         return 'Cette fonctionnalité n\'est pas encore disponible sur le serveur.';
       case AppError.tripDataInvalid:
         return 'Données invalides. Vérifiez les informations du trajet.';
+      case AppError.refundAlreadySubmitted:
+        return 'Une demande de remboursement a déjà été soumise pour cette réservation.';
       default:
         return 'Une erreur inattendue est survenue.';
     }

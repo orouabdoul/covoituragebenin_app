@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
+import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 import '../controllers/my_reviews_controller.dart';
 
 class MyReviewsView extends StatelessWidget {
@@ -13,7 +14,7 @@ class MyReviewsView extends StatelessWidget {
 	Widget build(BuildContext context) {
 		final controller = Get.isRegistered<MyReviewsController>()
 				? Get.find<MyReviewsController>()
-				: Get.put(MyReviewsController());
+				: Get.put(MyReviewsController(Get.find()));
 		final responsive = AppResponsive(context);
 
 		return Scaffold(
@@ -27,34 +28,92 @@ class MyReviewsView extends StatelessWidget {
 								_HeaderBar(responsive: responsive),
 								Expanded(
 									child: Obx(() {
+										final version = controller.reviewsVersion.value;
+										if (controller.isLoading.value && version == 0) {
+											return const Center(
+												child: CircularProgressIndicator(color: AppColors.primary),
+											);
+										}
+										if (controller.hasLoadError.value && version == 0) {
+											return _ErrorBody(
+												responsive: responsive,
+												onRetry: () => controller.refresh(),
+											);
+										}
 										if (controller.reviews.isEmpty) {
 											return _EmptyState(responsive: responsive);
 										}
-										return ListView(
-											padding: EdgeInsets.symmetric(
-												horizontal: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
-												vertical: responsive.h(16),
-											),
-											children: [
-												_RatingSummaryCard(responsive: responsive, controller: controller),
-												SizedBox(height: responsive.h(20)),
-												Text(
-													'Mes avis (${controller.reviews.length})',
-													style: AppTextStyles.subtitle(responsive).copyWith(fontWeight: FontWeight.w700),
+										return RefreshIndicator(
+											onRefresh: controller.refresh,
+											color: AppColors.primary,
+											child: ListView(
+												physics: const AlwaysScrollableScrollPhysics(),
+												padding: EdgeInsets.symmetric(
+													horizontal: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
+													vertical: responsive.h(16),
 												),
-												SizedBox(height: responsive.h(12)),
-												...controller.reviews.asMap().entries.map((e) => Padding(
-													padding: EdgeInsets.only(bottom: e.key < controller.reviews.length - 1 ? responsive.h(12) : 0),
-													child: _ReviewCard(responsive: responsive, review: e.value),
-												)),
-												SizedBox(height: responsive.h(16)),
-											],
+												children: [
+													_RatingSummaryCard(responsive: responsive, controller: controller),
+													SizedBox(height: responsive.h(20)),
+													Text(
+														'Mes avis (${controller.reviews.length})',
+														style: AppTextStyles.subtitle(responsive).copyWith(fontWeight: FontWeight.w700),
+													),
+													SizedBox(height: responsive.h(12)),
+													...controller.reviews.asMap().entries.map((e) => Padding(
+														padding: EdgeInsets.only(bottom: e.key < controller.reviews.length - 1 ? responsive.h(12) : 0),
+														child: _ReviewCard(responsive: responsive, review: e.value),
+													)),
+													SizedBox(height: responsive.h(16)),
+												],
+											),
 										);
 									}),
 								),
 							],
 						),
 					),
+				),
+			),
+		);
+	}
+}
+
+// ── Error body ─────────────────────────────────────────────────────────────
+
+class _ErrorBody extends StatelessWidget {
+	const _ErrorBody({required this.responsive, required this.onRetry});
+	final AppResponsive responsive;
+	final VoidCallback onRetry;
+
+	@override
+	Widget build(BuildContext context) {
+		return Center(
+			child: Padding(
+				padding: EdgeInsets.all(responsive.w(32)),
+				child: Column(
+					mainAxisAlignment: MainAxisAlignment.center,
+					children: [
+						Icon(Icons.cloud_off_rounded, size: responsive.text(48), color: AppColors.textHint),
+						SizedBox(height: responsive.h(16)),
+						Text(
+							'Impossible de charger les avis',
+							style: AppTextStyles.subtitle(responsive),
+							textAlign: TextAlign.center,
+						),
+						SizedBox(height: responsive.h(8)),
+						Text(
+							'Vérifiez votre connexion et réessayez.',
+							style: AppTextStyles.body(responsive).copyWith(color: AppColors.textHint),
+							textAlign: TextAlign.center,
+						),
+						SizedBox(height: responsive.h(24)),
+						AppPrimaryButton(
+							responsive: responsive,
+							label: 'Réessayer',
+							onTap: onRetry,
+						),
+					],
 				),
 			),
 		);

@@ -176,59 +176,61 @@ class _FaqTab extends StatelessWidget {
 
 	@override
 	Widget build(BuildContext context) {
-		final categories = controller.faqs.map((f) => f.category).toSet().toList();
-		return ListView(
-			padding: EdgeInsets.symmetric(
-				horizontal: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
-				vertical: responsive.h(16),
-			),
-			children: [
-				_ContactBanner(responsive: responsive),
-				SizedBox(height: responsive.h(16)),
-				...categories.map((cat) {
-					final items = controller.faqs.where((f) => f.category == cat).toList();
-					return Column(
-						crossAxisAlignment: CrossAxisAlignment.start,
-						children: [
-							Padding(
-								padding: EdgeInsets.only(bottom: responsive.h(10), top: responsive.h(4)),
-								child: Text(
-									cat,
-									style: AppTextStyles.subtitle(responsive).copyWith(
-										color: AppColors.primary,
-										fontWeight: FontWeight.w700,
+		return Obx(() {
+			final categories = controller.faqs.map((f) => f.category).toSet().toList();
+			return ListView(
+				padding: EdgeInsets.symmetric(
+					horizontal: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
+					vertical: responsive.h(16),
+				),
+				children: [
+					_ContactBanner(responsive: responsive),
+					SizedBox(height: responsive.h(16)),
+					...categories.map((cat) {
+						final items = controller.faqs.where((f) => f.category == cat).toList();
+						return Column(
+							crossAxisAlignment: CrossAxisAlignment.start,
+							children: [
+								Padding(
+									padding: EdgeInsets.only(bottom: responsive.h(10), top: responsive.h(4)),
+									child: Text(
+										cat,
+										style: AppTextStyles.subtitle(responsive).copyWith(
+											color: AppColors.primary,
+											fontWeight: FontWeight.w700,
+										),
 									),
 								),
-							),
-							Container(
-								decoration: ShapeDecoration(
-									color: AppColors.white,
-									shape: RoundedRectangleBorder(
-										side: const BorderSide(color: AppColors.border),
-										borderRadius: BorderRadius.circular(responsive.radius(16)),
+								Container(
+									decoration: ShapeDecoration(
+										color: AppColors.white,
+										shape: RoundedRectangleBorder(
+											side: const BorderSide(color: AppColors.border),
+											borderRadius: BorderRadius.circular(responsive.radius(16)),
+										),
+										shadows: const [BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 2))],
 									),
-									shadows: const [BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 2))],
+									child: Column(
+										children: items.asMap().entries.map((entry) {
+											final globalIndex = controller.faqs.indexOf(entry.value);
+											final isLast = entry.key == items.length - 1;
+											return _FaqItem(
+												responsive: responsive,
+												controller: controller,
+												faq: entry.value,
+												index: globalIndex,
+												isLast: isLast,
+											);
+										}).toList(),
+									),
 								),
-								child: Column(
-									children: items.asMap().entries.map((entry) {
-										final globalIndex = controller.faqs.indexOf(entry.value);
-										final isLast = entry.key == items.length - 1;
-										return _FaqItem(
-											responsive: responsive,
-											controller: controller,
-											faq: entry.value,
-											index: globalIndex,
-											isLast: isLast,
-										);
-									}).toList(),
-								),
-							),
-							SizedBox(height: responsive.h(16)),
-						],
-					);
-				}),
-			],
-		);
+								SizedBox(height: responsive.h(16)),
+							],
+						);
+					}),
+				],
+			);
+		});
 	}
 }
 
@@ -370,6 +372,38 @@ class _TicketsTab extends StatelessWidget {
 	@override
 	Widget build(BuildContext context) {
 		return Obx(() {
+			if (controller.isLoadingTickets.value) {
+				return const Center(
+					child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 3),
+				);
+			}
+			if (controller.hasErrorTickets.value) {
+				return Center(
+					child: Padding(
+						padding: EdgeInsets.all(responsive.w(24)),
+						child: Column(
+							mainAxisSize: MainAxisSize.min,
+							children: [
+								Icon(Icons.cloud_off_rounded, size: responsive.text(40), color: AppColors.textHint),
+								SizedBox(height: responsive.h(12)),
+								Text(
+									'Impossible de charger les tickets.',
+									textAlign: TextAlign.center,
+									style: AppTextStyles.body(responsive).copyWith(color: AppColors.textSecondary),
+								),
+								SizedBox(height: responsive.h(16)),
+								AppPrimaryButton(
+									responsive: responsive,
+									label: 'Réessayer',
+									onTap: controller.loadTickets,
+									height: responsive.h(44),
+									borderRadius: responsive.radius(12),
+								),
+							],
+						),
+					),
+				);
+			}
 			final showForm = controller.showTicketForm.value;
 			return ListView(
 				padding: EdgeInsets.symmetric(

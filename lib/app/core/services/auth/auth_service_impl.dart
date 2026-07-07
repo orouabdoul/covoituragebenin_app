@@ -4,6 +4,7 @@ import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_dio.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/data/models/auth/auth_result.dart';
+import 'package:covoiturage_benin_app/app/data/models/auth/otp_send_result.dart';
 import 'package:dio/dio.dart';
 import 'auth_service.dart';
 
@@ -11,7 +12,7 @@ class AuthServiceImpl implements AuthService {
   final Dio _dio = AppDio.create();
 
   @override
-  Future<ApiResult<String?>> sendOtp({required String phone}) async {
+  Future<ApiResult<OtpSendResult>> sendOtp({required String phone}) async {
     try {
       final response = await _dio.post(
         AppApi.sendOtp,
@@ -22,10 +23,19 @@ class AuthServiceImpl implements AuthService {
         ),
       );
       logger.d('sendOtp [${response.statusCode}] ${response.data}');
+
       if (response.statusCode == 200) {
         final otpCode = response.data?['body']?['otp_code']?.toString();
-        return ApiResult.success(otpCode);
+        return ApiResult.success(OtpSendResult(otpCode: otpCode));
       }
+
+      if (response.statusCode == 429) {
+        final cooldown = response.data?['body']?['resend_available_in'] as int?;
+        // OTP already active — treat as soft success so the caller can navigate
+        // to the OTP screen and initialise the resend timer with the remaining seconds.
+        return ApiResult.success(OtpSendResult(cooldown: cooldown ?? 60));
+      }
+
       if (response.statusCode == 422) return ApiResult.failure(AppError.validationError);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
@@ -74,5 +84,4 @@ class AuthServiceImpl implements AuthService {
       return ApiResult.failure(AppError.unexpected);
     }
   }
-
 }

@@ -1,71 +1,39 @@
 import 'package:get/get.dart';
+import 'package:covoiturage_benin_app/app/core/services/passenger/refund/passenger_refund_service.dart';
+import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
+import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
+import 'package:covoiturage_benin_app/app/data/models/passenger/refund_model.dart';
 
-enum RefundHistoryStatus { pending, underReview, approved, refunded, rejected }
-
-class RefundHistoryItem {
-  const RefundHistoryItem({
-    required this.id,
-    required this.route,
-    required this.date,
-    required this.amount,
-    required this.reason,
-    required this.status,
-    this.processedDate,
-  });
-
-  final String id;
-  final String route;
-  final String date;
-  final String amount;
-  final String reason;
-  final RefundHistoryStatus status;
-  final String? processedDate;
-}
+export 'package:covoiturage_benin_app/app/data/models/passenger/refund_model.dart'
+    show RefundHistoryItem, RefundHistoryStatus;
 
 class RefundHistoryController extends GetxController {
-  final List<RefundHistoryItem> items = const [
-    RefundHistoryItem(
-      id: 'RMB-001',
-      route: 'Cotonou → Parakou',
-      date: '24 juin 2026',
-      amount: '3 500 FCFA',
-      reason: 'Conducteur absent au rendez-vous',
-      status: RefundHistoryStatus.refunded,
-      processedDate: '26 juin 2026',
-    ),
-    RefundHistoryItem(
-      id: 'RMB-002',
-      route: 'Cotonou → Bohicon',
-      date: '23 juin 2026',
-      amount: '2 000 FCFA',
-      reason: 'Trajet annulé par le conducteur',
-      status: RefundHistoryStatus.approved,
-      processedDate: '25 juin 2026',
-    ),
-    RefundHistoryItem(
-      id: 'RMB-003',
-      route: 'Cotonou → Porto-Novo',
-      date: '20 juin 2026',
-      amount: '1 600 FCFA',
-      reason: 'Double paiement accidentel',
-      status: RefundHistoryStatus.underReview,
-    ),
-    RefundHistoryItem(
-      id: 'RMB-004',
-      route: 'Cotonou → Ouidah',
-      date: '18 juin 2026',
-      amount: '1 500 FCFA',
-      reason: 'Trajet non conforme à la description',
-      status: RefundHistoryStatus.rejected,
-      processedDate: '20 juin 2026',
-    ),
-    RefundHistoryItem(
-      id: 'RMB-005',
-      route: 'Cotonou → Abomey-Calavi',
-      date: '15 juin 2026',
-      amount: '4 000 FCFA',
-      reason: 'Problème de sécurité',
-      status: RefundHistoryStatus.pending,
-    ),
-  ];
+  PassengerRefundService get _service => Get.find<PassengerRefundService>();
+
+  final isLoading = true.obs;
+  final hasError  = false.obs;
+
+  final RxList<RefundHistoryItem> items = <RefundHistoryItem>[].obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    isLoading.value = true;
+    hasError.value  = false;
+    final result = await _service.fetchHistory();
+    isLoading.value = false;
+    if (result.isSuccess) {
+      items.assignAll(result.data!);
+    } else {
+      logger.e('passengerRefunds: ${result.error}');
+      if (result.error != AppError.socket) hasError.value = true;
+    }
+  }
+
+  @override
+  Future<void> refresh() => _loadHistory();
 }

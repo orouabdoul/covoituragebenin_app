@@ -43,22 +43,21 @@ class EditProfileView extends StatelessWidget {
 													children: [
 														_Field(
 															responsive: responsive,
-															label: 'Nom complet',
-															hint: 'Votre nom et prénom',
+															label: 'Prénom',
+															hint: 'Votre prénom',
 															icon: Icons.person_outline_rounded,
-															controller: controller.nameController,
-															validator: controller.validateName,
+															controller: controller.firstNameController,
+															validator: controller.validateFirstName,
 															textInputAction: TextInputAction.next,
 														),
 														SizedBox(height: responsive.h(16)),
 														_Field(
 															responsive: responsive,
-															label: 'Téléphone',
-															hint: '+229 XXXXXXXX',
-															icon: Icons.phone_outlined,
-															controller: controller.phoneController,
-															validator: controller.validatePhone,
-															keyboardType: TextInputType.phone,
+															label: 'Nom',
+															hint: 'Votre nom de famille',
+															icon: Icons.person_outline_rounded,
+															controller: controller.lastNameController,
+															validator: controller.validateLastName,
 															textInputAction: TextInputAction.next,
 														),
 														SizedBox(height: responsive.h(16)),
@@ -74,11 +73,19 @@ class EditProfileView extends StatelessWidget {
 														SizedBox(height: responsive.h(16)),
 														_Field(
 															responsive: responsive,
-															label: 'À propos de moi',
-															hint: 'Quelques mots sur vous (optionnel)',
-															icon: Icons.edit_note_rounded,
-															controller: controller.bioController,
-															maxLines: 3,
+															label: 'Ville',
+															hint: 'Ex: Cotonou',
+															icon: Icons.location_city_outlined,
+															controller: controller.cityController,
+															textInputAction: TextInputAction.next,
+														),
+														SizedBox(height: responsive.h(16)),
+														_Field(
+															responsive: responsive,
+															label: 'Quartier',
+															hint: 'Ex: Cadjehoun',
+															icon: Icons.place_outlined,
+															controller: controller.neighborhoodController,
 															textInputAction: TextInputAction.done,
 														),
 													],
@@ -185,7 +192,15 @@ class _AvatarSection extends StatelessWidget {
 										child: ClipOval(
 											child: file != null
 													? Image.file(File(file.path), fit: BoxFit.cover)
-													: Image.network('https://placehold.co/96x96.png', fit: BoxFit.cover),
+													: Image.network(
+															'https://placehold.co/96x96.png',
+															fit: BoxFit.cover,
+															errorBuilder: (_, _e, _s) => const Icon(
+																Icons.person_rounded,
+																color: AppColors.textHint,
+																size: 48,
+															),
+														),
 										),
 									);
 								}),
@@ -210,7 +225,7 @@ class _AvatarSection extends StatelessWidget {
 					TextButton.icon(
 						onPressed: controller.pickAvatar,
 						icon: Icon(Icons.upload_rounded, size: responsive.text(14)),
-						label: Text('Changer la photo'),
+						label: const Text('Changer la photo'),
 						style: TextButton.styleFrom(
 							foregroundColor: AppColors.primary,
 							textStyle: AppTextStyles.caption(responsive).copyWith(fontWeight: FontWeight.w600),
@@ -233,7 +248,6 @@ class _Field extends StatelessWidget {
 		required this.controller,
 		this.validator,
 		this.keyboardType,
-		this.maxLines = 1,
 		this.textInputAction = TextInputAction.next,
 	});
 
@@ -244,7 +258,6 @@ class _Field extends StatelessWidget {
 	final TextEditingController controller;
 	final String? Function(String?)? validator;
 	final TextInputType? keyboardType;
-	final int maxLines;
 	final TextInputAction textInputAction;
 
 	@override
@@ -264,7 +277,6 @@ class _Field extends StatelessWidget {
 					controller: controller,
 					validator: validator,
 					keyboardType: keyboardType,
-					maxLines: maxLines,
 					textInputAction: textInputAction,
 					style: AppTextStyles.body(responsive).copyWith(color: AppColors.textPrimary),
 					decoration: InputDecoration(

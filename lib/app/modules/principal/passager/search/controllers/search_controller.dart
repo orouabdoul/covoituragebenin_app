@@ -3,20 +3,28 @@ import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
+import 'package:covoiturage_benin_app/app/core/services/passenger/search/passenger_search_service.dart';
+import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
+import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 enum SortOption { relevance, priceLow, priceHigh, soonest, bestRated }
 
 class SearchController extends GetxController {
+	PassengerSearchService get _service => Get.find<PassengerSearchService>();
+
 	final RxString originCity = 'Cotonou'.obs;
 	final RxString destinationCity = 'Porto-Novo'.obs;
 	final RxString selectedDateLabel = 'Aujourd\'hui'.obs;
 	final RxInt passengerCount = 1.obs;
 	final RxBool isSearching = false.obs;
 	final RxBool hasSearched = false.obs;
+	final RxBool hasError = false.obs;
 	final RxString selectedTimeLabel = 'Maintenant'.obs;
 	final RxBool isPanelExpanded = true.obs;
+
+	DateTime? _selectedDate;
 
 	static const List<String> _cities = [
 		'Cotonou', 'Porto-Novo', 'Parakou', 'Abomey-Calavi',
@@ -42,103 +50,7 @@ class SearchController extends GetxController {
 		return count;
 	}
 
-	final List<SearchRide> _allRides = const [
-		SearchRide(
-			driverName: 'Koffi Mensah',
-			rating: '4.9',
-			reviewCount: '127',
-			price: '2 500 F',
-			priceValue: 2500,
-			origin: 'Cotonou',
-			destination: 'Porto-Novo',
-			departureTime: '14:30',
-			departureNote: 'Carrefour Tokpa',
-			arrivalTime: '15:15',
-			arrivalNote: 'Gare routière',
-			duration: '45 min',
-			vehicle: 'Toyota Corolla',
-			seatsAvailable: 3,
-			minutesUntilDeparture: 25,
-			isVerified: true,
-			allowsBags: true,
-		),
-		SearchRide(
-			driverName: 'Aminata Dossou',
-			rating: '4.8',
-			reviewCount: '89',
-			price: '2 200 F',
-			priceValue: 2200,
-			origin: 'Cotonou',
-			destination: 'Porto-Novo',
-			departureTime: '15:00',
-			departureNote: 'Rond-point Dantokpa',
-			arrivalTime: '15:50',
-			arrivalNote: 'Centre-ville',
-			duration: '50 min',
-			vehicle: 'Honda Civic',
-			seatsAvailable: 4,
-			minutesUntilDeparture: 55,
-			isVerified: true,
-			allowsBags: false,
-		),
-		SearchRide(
-			driverName: 'Olivier Tossa',
-			rating: '4.6',
-			reviewCount: '45',
-			price: '2 800 F',
-			priceValue: 2800,
-			origin: 'Cotonou',
-			destination: 'Porto-Novo',
-			departureTime: '16:30',
-			departureNote: 'Aéroport',
-			arrivalTime: '17:10',
-			arrivalNote: 'Université',
-			duration: '40 min',
-			vehicle: 'Nissan Sentra',
-			seatsAvailable: 2,
-			minutesUntilDeparture: 145,
-			isVerified: false,
-			allowsBags: true,
-		),
-		SearchRide(
-			driverName: 'Bénédicte Hounsa',
-			rating: '5.0',
-			reviewCount: '203',
-			price: '3 000 F',
-			priceValue: 3000,
-			origin: 'Cotonou',
-			destination: 'Porto-Novo',
-			departureTime: '17:00',
-			departureNote: 'Star Oil Akpakpa',
-			arrivalTime: '17:45',
-			arrivalNote: 'Gare de Porto-Novo',
-			duration: '45 min',
-			vehicle: 'Hyundai Tucson',
-			seatsAvailable: 1,
-			minutesUntilDeparture: 205,
-			isVerified: true,
-			allowsBags: true,
-		),
-		SearchRide(
-			driverName: 'Serge Alladé',
-			rating: '4.3',
-			reviewCount: '18',
-			price: '1 800 F',
-			priceValue: 1800,
-			origin: 'Cotonou',
-			destination: 'Porto-Novo',
-			departureTime: '18:00',
-			departureNote: 'Carrefour Godomey',
-			arrivalTime: '19:00',
-			arrivalNote: 'Marché de Porto-Novo',
-			duration: '60 min',
-			vehicle: 'Renault Logan',
-			seatsAvailable: 3,
-			minutesUntilDeparture: 305,
-			isVerified: false,
-			allowsBags: false,
-		),
-	];
+	final RxList<SearchRide> _allRides = <SearchRide>[].obs;
 
 	List<SearchRide> get filteredSortedRides {
 		var list = _allRides.where((r) {
@@ -177,13 +89,37 @@ class SearchController extends GetxController {
 		if (passengerCount.value > 1) passengerCount.value -= 1;
 	}
 
-	void search() {
+	Future<void> search() async {
 		isSearching.value = true;
-		Future.delayed(const Duration(milliseconds: 800), () {
-			isSearching.value = false;
-			hasSearched.value = true;
-			isPanelExpanded.value = false;
-		});
+		hasError.value = false;
+
+		String? dateParam;
+		if (_selectedDate != null) {
+			final d = _selectedDate!;
+			dateParam =
+				'${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+		}
+
+		final result = await _service.searchRides(
+			origin: originCity.value,
+			destination: destinationCity.value,
+			date: dateParam,
+			passengers: passengerCount.value,
+			maxPrice: maxPrice.value < 9999 ? maxPrice.value : null,
+		);
+
+		isSearching.value = false;
+		hasSearched.value = true;
+		isPanelExpanded.value = false;
+
+		if (result.isSuccess) {
+			_allRides.assignAll(result.data!);
+		} else {
+			hasError.value = true;
+			if (result.error != AppError.socket) {
+				UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+			}
+		}
 	}
 
 	void resetFilters() {
@@ -202,7 +138,10 @@ class SearchController extends GetxController {
 		selectedTimeLabel.value = 'Maintenant';
 		passengerCount.value = 1;
 		hasSearched.value = false;
+		hasError.value = false;
 		isPanelExpanded.value = true;
+		_selectedDate = null;
+		_allRides.clear();
 		resetFilters();
 	}
 
@@ -222,6 +161,7 @@ class SearchController extends GetxController {
 			lastDate: now.add(const Duration(days: 90)),
 		);
 		if (picked == null) return;
+		_selectedDate = picked;
 		const months = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'];
 		final diff = DateTime(picked.year, picked.month, picked.day)
 				.difference(DateTime(now.year, now.month, now.day)).inDays;
@@ -681,7 +621,9 @@ class SearchFilter {
 
 class SearchRide {
 	const SearchRide({
+		this.uuid = '',
 		required this.driverName,
+		this.driverInitials = '',
 		required this.rating,
 		required this.reviewCount,
 		required this.price,
@@ -694,13 +636,18 @@ class SearchRide {
 		required this.arrivalNote,
 		required this.duration,
 		required this.vehicle,
+		this.vehiclePlate = '',
 		required this.seatsAvailable,
 		required this.minutesUntilDeparture,
 		required this.isVerified,
 		this.allowsBags = false,
+		this.waypointCity,
+		this.waypointNote,
 	});
 
+	final String uuid;
 	final String driverName;
+	final String driverInitials;
 	final String rating;
 	final String reviewCount;
 	final String price;
@@ -713,8 +660,11 @@ class SearchRide {
 	final String arrivalNote;
 	final String duration;
 	final String vehicle;
+	final String vehiclePlate;
 	final int seatsAvailable;
 	final int minutesUntilDeparture;
 	final bool isVerified;
 	final bool allowsBags;
+	final String? waypointCity;
+	final String? waypointNote;
 }

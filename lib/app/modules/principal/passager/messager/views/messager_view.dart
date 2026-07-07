@@ -5,6 +5,7 @@ import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
+import 'package:covoiturage_benin_app/app/data/models/driver/messenger_model.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_field.dart';
 
@@ -40,6 +41,30 @@ class MessagerView extends StatelessWidget {
                 _FilterRow(responsive: responsive, controller: controller),
                 SizedBox(height: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
                 Obx(() {
+                  if (controller.isLoading.value && controller.threads.isEmpty) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (controller.hasError.value && controller.threads.isEmpty) {
+                    return Padding(
+                      padding: EdgeInsets.only(top: responsive.h(32)),
+                      child: Column(
+                        children: [
+                          Icon(Icons.wifi_off_rounded, size: responsive.text(40), color: AppColors.border),
+                          SizedBox(height: responsive.h(12)),
+                          Text(
+                            'Erreur de chargement',
+                            style: AppTextStyles.subtitle(responsive).copyWith(color: AppColors.textHint),
+                          ),
+                          SizedBox(height: responsive.h(16)),
+                          AppPrimaryButton(
+                            responsive: responsive,
+                            label: 'Réessayer',
+                            onTap: controller.refresh,
+                          ),
+                        ],
+                      ),
+                    );
+                  }
                   final threads = controller.filteredThreads;
                   if (threads.isEmpty) {
                     return Padding(
@@ -156,7 +181,7 @@ class _FilterRow extends StatelessWidget {
         child: Row(
           children: List.generate(controller.filters.length, (index) {
             final filter = controller.filters[index];
-            final bool selected = controller.selectedFilterIndex.value == index;
+            final bool selected = controller.selectedFilterIndex == index;
 
             return Padding(
               padding: EdgeInsets.only(right: index == controller.filters.length - 1 ? 0 : responsive.w(8)),
@@ -181,7 +206,7 @@ class _ThreadCard extends StatelessWidget {
   const _ThreadCard({required this.responsive, required this.thread, required this.onTap});
 
   final AppResponsive responsive;
-  final MessengerThread thread;
+  final MessengerThreadModel thread;
   final VoidCallback onTap;
 
   @override
@@ -207,7 +232,12 @@ class _ThreadCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _Avatar(responsive: responsive, imageUrl: thread.avatarUrl, badge: thread.badge, badgeColor: thread.badgeColor),
+                _Avatar(
+                  responsive: responsive,
+                  imageUrl: thread.avatarUrl,
+                  badge: thread.badge,
+                  badgeColor: thread.badgeColor,
+                ),
                 SizedBox(width: responsive.w(16)),
                 Expanded(
                   child: Column(
@@ -223,7 +253,10 @@ class _ThreadCard extends StatelessWidget {
                         ],
                       ),
                       SizedBox(height: responsive.h(4)),
-                      Text(thread.preview, style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textSecondary)),
+                      Text(
+                        thread.preview,
+                        style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textSecondary),
+                      ),
                     ],
                   ),
                 ),
@@ -275,7 +308,7 @@ class _ThreadCard extends StatelessWidget {
                     ),
                   ),
                 ],
-            ),
+              ),
             ),
           ],
         ),
@@ -285,15 +318,21 @@ class _ThreadCard extends StatelessWidget {
 }
 
 class _Avatar extends StatelessWidget {
-  const _Avatar({required this.responsive, required this.imageUrl, required this.badge, required this.badgeColor});
+  const _Avatar({
+    required this.responsive,
+    required this.imageUrl,
+    required this.badge,
+    required this.badgeColor,
+  });
 
   final AppResponsive responsive;
-  final String imageUrl;
+  final String? imageUrl;
   final String badge;
   final int badgeColor;
 
   @override
   Widget build(BuildContext context) {
+    final url = imageUrl;
     return Stack(
       children: [
         Container(
@@ -301,12 +340,18 @@ class _Avatar extends StatelessWidget {
           height: responsive.w(56),
           clipBehavior: Clip.antiAlias,
           decoration: ShapeDecoration(
-            image: DecorationImage(image: NetworkImage(imageUrl), fit: BoxFit.cover),
+            color: AppColors.border,
+            image: url != null && url.isNotEmpty
+                ? DecorationImage(image: NetworkImage(url), fit: BoxFit.cover)
+                : null,
             shape: RoundedRectangleBorder(
               side: const BorderSide(color: AppColors.border),
               borderRadius: BorderRadius.circular(9999),
             ),
           ),
+          child: (url == null || url.isEmpty)
+              ? const Icon(Icons.person_rounded, color: AppColors.textGhost)
+              : null,
         ),
         if (badge.isNotEmpty)
           Positioned(

@@ -3,7 +3,10 @@ import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
+import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/passenger_reservation_service.dart';
+import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
+import 'package:covoiturage_benin_app/app/data/models/passenger/reservations_model.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/passager/messager/controllers/messager_controller.dart';
@@ -11,142 +14,23 @@ import 'package:covoiturage_benin_app/app/modules/principal/passager/messager/co
 enum ReservationStatus { pending, confirmed, inProgress, completed, cancelled }
 
 class ReservationController extends GetxController {
+	PassengerReservationService get _service => Get.find<PassengerReservationService>();
+
+	final RxBool isLoading = false.obs;
+	final RxBool hasError = false.obs;
 	final RxInt selectedStatusIndex = 0.obs;
 
-	final List<ReservationStatusTab> statusTabs = const [
-		ReservationStatusTab(label: 'En attente', status: ReservationStatus.pending),
-		ReservationStatusTab(label: 'Confirmé', status: ReservationStatus.confirmed),
-		ReservationStatusTab(label: 'En cours', status: ReservationStatus.inProgress),
-		ReservationStatusTab(label: 'Terminé', status: ReservationStatus.completed),
-		ReservationStatusTab(label: 'Annulé', status: ReservationStatus.cancelled),
-	];
+	final RxList<ReservationStatusTab> statusTabs = <ReservationStatusTab>[
+		const ReservationStatusTab(label: 'En attente', status: ReservationStatus.pending),
+		const ReservationStatusTab(label: 'Confirmé', status: ReservationStatus.confirmed),
+		const ReservationStatusTab(label: 'En cours', status: ReservationStatus.inProgress),
+		const ReservationStatusTab(label: 'Terminé', status: ReservationStatus.completed),
+		const ReservationStatusTab(label: 'Annulé', status: ReservationStatus.cancelled),
+	].obs;
 
-	final RxList<ReservationItem> _allReservations = RxList([
-		ReservationItem(
-			id: 'RES-001',
-			driverName: 'Kofi Mensah',
-			driverInitials: 'KM',
-			rating: '4.8',
-			reviewCount: '127 avis',
-			vehicle: 'Toyota Camry',
-			vehiclePlate: 'AB 1234 BN',
-			price: '2 500 F',
-			totalPrice: '5 000 F',
-			totalPriceValue: 5000,
-			departureCity: 'Cotonou Centre',
-			departureNote: 'Place de l\'Indépendance',
-			arrivalCity: 'Abomey-Calavi',
-			arrivalNote: 'Université d\'Abomey-Calavi',
-			departureTime: '15:30',
-			departureDate: 'Aujourd\'hui',
-			seatsCount: 2,
-			minutesUntilDeparture: 25,
-			status: ReservationStatus.pending,
-			isPaid: false,
-			hasRated: false,
-			timeAgo: 'Il y a 5 min',
-		),
-		ReservationItem(
-			id: 'RES-002',
-			driverName: 'Ama Lawson',
-			driverInitials: 'AL',
-			rating: '4.9',
-			reviewCount: '243 avis',
-			vehicle: 'Honda CR-V',
-			vehiclePlate: 'CD 5678 BN',
-			price: '3 000 F',
-			totalPrice: '3 000 F',
-			totalPriceValue: 3000,
-			departureCity: 'Cotonou',
-			departureNote: 'Carrefour Godomey',
-			arrivalCity: 'Porto-Novo',
-			arrivalNote: 'Gare routière',
-			departureTime: '08:00',
-			departureDate: 'Demain',
-			seatsCount: 1,
-			minutesUntilDeparture: 840,
-			status: ReservationStatus.confirmed,
-			isPaid: false,
-			hasRated: false,
-			timeAgo: 'Accepté il y a 10 min',
-		),
-		ReservationItem(
-			id: 'RES-003',
-			driverName: 'Brice Hounkpè',
-			driverInitials: 'BH',
-			rating: '4.7',
-			reviewCount: '89 avis',
-			vehicle: 'Peugeot 308',
-			vehiclePlate: 'EF 9101 BN',
-			price: '4 500 F',
-			totalPrice: '9 000 F',
-			totalPriceValue: 9000,
-			departureCity: 'Cotonou',
-			departureNote: 'Star Oil, Akpakpa',
-			arrivalCity: 'Parakou',
-			arrivalNote: 'Grand marché',
-			departureTime: '07:00',
-			departureDate: 'Aujourd\'hui',
-			seatsCount: 2,
-			minutesUntilDeparture: 0,
-			status: ReservationStatus.inProgress,
-			isPaid: true,
-			hasRated: false,
-			timeAgo: 'En route depuis 45 min',
-			etaMinutes: 210,
-		),
-		ReservationItem(
-			id: 'RES-004',
-			driverName: 'Céleste Dossou',
-			driverInitials: 'CD',
-			rating: '4.6',
-			reviewCount: '54 avis',
-			vehicle: 'Renault Logan',
-			vehiclePlate: 'GH 2345 BN',
-			price: '1 500 F',
-			totalPrice: '1 500 F',
-			totalPriceValue: 1500,
-			departureCity: 'Cotonou',
-			departureNote: 'Marché Dantokpa',
-			arrivalCity: 'Ouidah',
-			arrivalNote: 'Place du Marché',
-			departureTime: '10:00',
-			departureDate: 'Hier',
-			seatsCount: 1,
-			minutesUntilDeparture: 0,
-			status: ReservationStatus.completed,
-			isPaid: true,
-			hasRated: false,
-			givenRating: null,
-			timeAgo: 'Terminé hier à 11:30',
-		),
-		ReservationItem(
-			id: 'RES-005',
-			driverName: 'Fidèle Ahouandjinou',
-			driverInitials: 'FA',
-			rating: '4.5',
-			reviewCount: '31 avis',
-			vehicle: 'Kia Picanto',
-			vehiclePlate: 'IJ 6789 BN',
-			price: '2 000 F',
-			totalPrice: '2 000 F',
-			totalPriceValue: 2000,
-			departureCity: 'Cotonou',
-			departureNote: 'Carrefour Vèdoko',
-			arrivalCity: 'Bohicon',
-			arrivalNote: 'Gare de Bohicon',
-			departureTime: '14:00',
-			departureDate: 'Lun. 23 juin',
-			seatsCount: 1,
-			minutesUntilDeparture: 0,
-			status: ReservationStatus.cancelled,
-			isPaid: true,
-			hasRated: false,
-			cancelReason: 'Conducteur indisponible',
-			refundStatus: RefundStatus.pending,
-			timeAgo: 'Annulé il y a 2 jours',
-		),
-	]);
+	final RxList<ReservationItem> _allReservations = <ReservationItem>[].obs;
+
+	String? activeTripUuid;
 
 	List<ReservationItem> get filteredReservations {
 		final selected = statusTabs[selectedStatusIndex.value].status;
@@ -158,6 +42,95 @@ class ReservationController extends GetxController {
 			return _allReservations.firstWhere((r) => r.status == ReservationStatus.inProgress);
 		} catch (_) {
 			return null;
+		}
+	}
+
+	@override
+	void onInit() {
+		super.onInit();
+		_fetch();
+	}
+
+	@override
+	Future<void> refresh() => _fetch();
+
+	Future<void> _fetch() async {
+		isLoading.value = true;
+		hasError.value = false;
+		final result = await _service.fetchReservations();
+		isLoading.value = false;
+		if (result.isSuccess) {
+			final page = result.data!;
+			activeTripUuid = page.activeTrip?.uuid;
+			_applyStatusTabs(page.statusTabs);
+			_allReservations.assignAll(page.items.map(_mapItem).toList());
+		} else {
+			hasError.value = true;
+			if (result.error != AppError.socket) {
+				UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+			}
+		}
+	}
+
+	void _applyStatusTabs(List<ReservationStatusTabApi> apiTabs) {
+		if (apiTabs.isEmpty) return;
+		final mapped = apiTabs.map((t) => ReservationStatusTab(
+			label: t.count > 0 ? '${t.label} (${t.count})' : t.label,
+			status: _parseStatus(t.status),
+		)).toList();
+		statusTabs.assignAll(mapped);
+	}
+
+	ReservationItem _mapItem(ReservationApiItem a) {
+		final totalPriceValue = int.tryParse(
+				a.totalPrice.replaceAll(RegExp(r'[^0-9]'), '')) ??
+			0;
+		return ReservationItem(
+			id: a.uuid,
+			driverName: a.driverName,
+			driverInitials: a.driverInitials,
+			rating: a.rating.toStringAsFixed(1),
+			reviewCount: a.reviewCount,
+			vehicle: a.vehicle,
+			vehiclePlate: a.vehiclePlate,
+			price: a.totalPrice,
+			totalPrice: a.totalPrice,
+			totalPriceValue: totalPriceValue,
+			departureCity: a.departureCity,
+			departureNote: a.departureNote,
+			arrivalCity: a.arrivalCity,
+			arrivalNote: a.arrivalNote,
+			departureTime: a.departureTime,
+			departureDate: a.departureDate,
+			seatsCount: a.seatsCount,
+			minutesUntilDeparture: a.etaMinutes ?? 0,
+			status: _parseStatus(a.status),
+			isPaid: a.isPaid,
+			hasRated: a.hasRated,
+			cancelReason: a.cancelReason,
+			refundStatus: _parseRefundStatus(a.refundStatus),
+			etaMinutes: a.etaMinutes,
+			timeAgo: a.timeAgo,
+		);
+	}
+
+	ReservationStatus _parseStatus(String s) {
+		switch (s) {
+			case 'confirmed': return ReservationStatus.confirmed;
+			case 'in_progress': return ReservationStatus.inProgress;
+			case 'completed': return ReservationStatus.completed;
+			case 'cancelled': return ReservationStatus.cancelled;
+			default: return ReservationStatus.pending;
+		}
+	}
+
+	RefundStatus _parseRefundStatus(String s) {
+		switch (s) {
+			case 'pending': return RefundStatus.pending;
+			case 'approved': return RefundStatus.approved;
+			case 'refunded': return RefundStatus.refunded;
+			case 'rejected': return RefundStatus.rejected;
+			default: return RefundStatus.none;
 		}
 	}
 
@@ -183,7 +156,7 @@ class ReservationController extends GetxController {
 
 	void downloadInvoice(ReservationItem r) {
 		Get.bottomSheet(
-			_InvoiceSheet(reservation: r),
+			_InvoiceSheet(reservation: r, service: _service),
 			backgroundColor: Colors.white,
 			shape: const RoundedRectangleBorder(
 				borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -225,7 +198,7 @@ class ReservationController extends GetxController {
 				cancelReason: 'Annulé par le passager',
 			);
 		}
-		selectStatus(4); // tab Annulé
+		selectStatus(4);
 		final formatted = _formatPrice(refundAmount);
 		UIHelper().showSnackBar(
 			'Annulation confirmée',
@@ -273,7 +246,6 @@ class _CancellationDialog extends StatelessWidget {
 				child: Column(
 					mainAxisSize: MainAxisSize.min,
 					children: [
-						// Icon
 						Container(
 							width: responsive.w(56),
 							height: responsive.w(56),
@@ -300,7 +272,6 @@ class _CancellationDialog extends StatelessWidget {
 							textAlign: TextAlign.center,
 						),
 						SizedBox(height: responsive.h(20)),
-						// Policy card
 						Container(
 							width: double.infinity,
 							padding: EdgeInsets.all(responsive.w(16)),
@@ -313,14 +284,13 @@ class _CancellationDialog extends StatelessWidget {
 								: _PenaltyBlock(responsive: responsive, refundAmount: refundAmount, penaltyAmount: penaltyAmount, reservation: reservation),
 						),
 						SizedBox(height: responsive.h(20)),
-						// Buttons
 						Row(
 							children: [
 								Expanded(
 									child: OutlinedButton(
 										onPressed: Get.back,
 										style: OutlinedButton.styleFrom(
-											side: BorderSide(color: AppColors.border),
+											side: const BorderSide(color: AppColors.border),
 											padding: EdgeInsets.symmetric(vertical: responsive.h(14)),
 											shape: RoundedRectangleBorder(
 												borderRadius: BorderRadius.circular(responsive.radius(12)),
@@ -449,8 +419,9 @@ class _PenaltyBlock extends StatelessWidget {
 // ── Invoice Bottom Sheet ─────────────────────────────────────────────────────
 
 class _InvoiceSheet extends StatefulWidget {
-	const _InvoiceSheet({required this.reservation});
+	const _InvoiceSheet({required this.reservation, required this.service});
 	final ReservationItem reservation;
+	final PassengerReservationService service;
 
 	@override
 	State<_InvoiceSheet> createState() => _InvoiceSheetState();
@@ -459,17 +430,32 @@ class _InvoiceSheet extends StatefulWidget {
 class _InvoiceSheetState extends State<_InvoiceSheet> {
 	bool _sending = false;
 	bool _sent = false;
+	InvoiceModel? _invoice;
+
+	@override
+	void initState() {
+		super.initState();
+		_loadInvoice();
+	}
+
+	Future<void> _loadInvoice() async {
+		final result = await widget.service.fetchInvoice(widget.reservation.id);
+		if (mounted && result.isSuccess) {
+			setState(() => _invoice = result.data);
+		}
+	}
 
 	Future<void> _sendSms() async {
 		setState(() => _sending = true);
 		await Future.delayed(const Duration(milliseconds: 1200));
-		setState(() { _sending = false; _sent = true; });
+		if (mounted) setState(() { _sending = false; _sent = true; });
 	}
 
 	@override
 	Widget build(BuildContext context) {
 		final responsive = AppResponsive(context);
 		final r = widget.reservation;
+		final inv = _invoice;
 		return Padding(
 			padding: EdgeInsets.fromLTRB(responsive.w(20), responsive.h(8), responsive.w(20), responsive.h(32)),
 			child: Column(
@@ -494,8 +480,8 @@ class _InvoiceSheetState extends State<_InvoiceSheet> {
 							Column(
 								crossAxisAlignment: CrossAxisAlignment.start,
 								children: [
-									Text('Facture ${r.id}', style: AppTextStyles.title(responsive)),
-									Text(r.timeAgo, style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint)),
+									Text(inv != null ? inv.invoiceRef : 'Facture ${r.id}', style: AppTextStyles.title(responsive)),
+									Text(inv != null ? inv.issuedAt : r.timeAgo, style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint)),
 								],
 							),
 						],
@@ -510,20 +496,26 @@ class _InvoiceSheetState extends State<_InvoiceSheet> {
 						),
 						child: Column(
 							children: [
-								_InvoiceRow(responsive: responsive, label: 'Trajet', value: '${r.departureCity} → ${r.arrivalCity}'),
+								_InvoiceRow(responsive: responsive, label: 'Trajet', value: inv?.route ?? '${r.departureCity} → ${r.arrivalCity}'),
 								Divider(color: AppColors.border, height: responsive.h(20)),
-								_InvoiceRow(responsive: responsive, label: 'Date', value: '${r.departureDate} · ${r.departureTime}'),
+								_InvoiceRow(responsive: responsive, label: 'Date', value: inv?.departureDate ?? '${r.departureDate} · ${r.departureTime}'),
 								Divider(color: AppColors.border, height: responsive.h(20)),
-								_InvoiceRow(responsive: responsive, label: 'Conducteur', value: r.driverName),
+								_InvoiceRow(responsive: responsive, label: 'Conducteur', value: inv?.driverName ?? r.driverName),
 								Divider(color: AppColors.border, height: responsive.h(20)),
 								_InvoiceRow(responsive: responsive, label: 'Places', value: '${r.seatsCount} place${r.seatsCount > 1 ? 's' : ''}'),
 								Divider(color: AppColors.border, height: responsive.h(20)),
 								_InvoiceRow(
 									responsive: responsive,
 									label: 'Total',
-									value: r.totalPrice,
+									value: inv?.totalAmount ?? r.totalPrice,
 									valueStyle: AppTextStyles.subtitle(responsive).copyWith(color: AppColors.primary, fontWeight: FontWeight.w800),
 								),
+								if (inv != null) ...[
+									Divider(color: AppColors.border, height: responsive.h(20)),
+									_InvoiceRow(responsive: responsive, label: 'Paiement', value: inv.paymentMethod),
+									Divider(color: AppColors.border, height: responsive.h(20)),
+									_InvoiceRow(responsive: responsive, label: 'Référence', value: inv.transactionRef),
+								],
 							],
 						),
 					),

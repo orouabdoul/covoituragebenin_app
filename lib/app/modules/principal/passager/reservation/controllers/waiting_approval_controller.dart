@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 
+import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/passenger_reservation_service.dart';
+import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
+import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 import '../../search/controllers/search_controller.dart';
@@ -10,13 +13,19 @@ import '../../search/controllers/search_controller.dart';
 enum WaitingStatus { pending, accepted, rejected, timeout }
 
 class WaitingApprovalController extends GetxController {
+  PassengerReservationService get _service =>
+      Get.find<PassengerReservationService>();
+
   final Rxn<SearchRide> ride = Rxn<SearchRide>();
   final status = WaitingStatus.pending.obs;
   final secondsRemaining = 300.obs;
+  final RxInt totalTimeoutSeconds = 300.obs;
   final RxInt reservedSeats = 1.obs;
   final RxInt paymentIndex = 0.obs;
 
+  String _bookingUuid = '';
   Timer? _countdownTimer;
+  Timer? _pollingTimer;
   Timer? _simulationTimer;
 
   String get timeLabel {
@@ -25,16 +34,13 @@ class WaitingApprovalController extends GetxController {
     return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
-  double get progressFraction => secondsRemaining.value / 300.0;
+  double get progressFraction =>
+      secondsRemaining.value / totalTimeoutSeconds.value.clamp(1, 999999);
 
   @override
   void onInit() {
     super.onInit();
-    // Args captured synchronously; .value= deferred to post-frame to avoid
-    // setState-during-build crash when controller is lazily created by GetX.
     final dynamic savedArgs = Get.arguments;
-    _startCountdown();
-    _simulateAcceptance();
     SchedulerBinding.instance.addPostFrameCallback((_) {
       if (savedArgs is Map<String, dynamic>) {
         final r = savedArgs['ride'];
@@ -43,9 +49,55 @@ class WaitingApprovalController extends GetxController {
         if (seats is int) reservedSeats.value = seats;
         final idx = savedArgs['paymentIndex'];
         if (idx is int) paymentIndex.value = idx;
+        final uuid = savedArgs['bookingUuid'];
+        if (uuid is String && uuid.isNotEmpty) {
+          _bookingUuid = uuid;
+          _startPolling();
+          return;
+        }
       }
+      // Fallback: simulation
+      _startCountdown();
+      _simulateAcceptance();
     });
   }
+
+  // ── API polling ────────────────────────────────────────────────────────────
+
+  void _startPolling() {
+    _pollOnce();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (_) => _pollOnce());
+  }
+
+  Future<void> _pollOnce() async {
+    if (status.value != WaitingStatus.pending) return;
+    final result = await _service.fetchApprovalStatus(_bookingUuid);
+    if (!result.isSuccess) {
+      if (result.error != AppError.socket) {
+        UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+      }
+      return;
+    }
+    final data = result.data!;
+    secondsRemaining.value = data.secondsRemaining;
+    totalTimeoutSeconds.value = data.totalTimeoutSeconds;
+
+    switch (data.status) {
+      case 'accepted':
+        _cancelTimers();
+        _onAccepted();
+      case 'rejected':
+        _cancelTimers();
+        status.value = WaitingStatus.rejected;
+      case 'timeout':
+        _cancelTimers();
+        status.value = WaitingStatus.timeout;
+      default:
+        break;
+    }
+  }
+
+  // ── Simulation fallback ────────────────────────────────────────────────────
 
   void _startCountdown() {
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -65,6 +117,8 @@ class WaitingApprovalController extends GetxController {
     });
   }
 
+  // ── Status transitions ─────────────────────────────────────────────────────
+
   void _onAccepted() {
     _cancelTimers();
     status.value = WaitingStatus.accepted;
@@ -75,6 +129,7 @@ class WaitingApprovalController extends GetxController {
           'ride': ride.value,
           'seats': reservedSeats.value,
           'paymentIndex': paymentIndex.value,
+          if (_bookingUuid.isNotEmpty) 'bookingUuid': _bookingUuid,
         },
       );
     });
@@ -112,6 +167,7 @@ class WaitingApprovalController extends GetxController {
 
   void _cancelTimers() {
     _countdownTimer?.cancel();
+    _pollingTimer?.cancel();
     _simulationTimer?.cancel();
   }
 

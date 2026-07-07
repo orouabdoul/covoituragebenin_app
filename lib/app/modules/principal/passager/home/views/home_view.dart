@@ -7,7 +7,7 @@ import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 
-import '../controller/home_controller.dart';
+import '../controllers/home_controller.dart';
 import '../../notifications/controllers/notifications_controller.dart';
 
 class HomeView extends StatelessWidget {
@@ -16,7 +16,7 @@ class HomeView extends StatelessWidget {
   HomeController get controller =>
       Get.isRegistered<HomeController>()
           ? Get.find<HomeController>()
-          : Get.put(HomeController());
+          : Get.put(HomeController(Get.find()));
 
   @override
   Widget build(BuildContext context) {
@@ -46,102 +46,180 @@ class HomeView extends StatelessWidget {
         child: Center(
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: responsive.maxContentWidth),
-            child: ListView(
-              padding: EdgeInsets.fromLTRB(
-                horizontalPadding,
-                topPadding,
-                horizontalPadding,
-                responsive.adaptive(phone: 20, smallPhone: 18, tablet: 28, desktop: 32),
-              ),
-              children: [
-                _TopBar(responsive: responsive, controller: controller),
-                SizedBox(height: responsive.h(12)),
-                _SearchBar(responsive: responsive, controller: controller),
-                SizedBox(height: responsive.h(16)),
-                _QuickActionsRow(responsive: responsive, controller: controller),
-                SizedBox(height: responsive.h(16)),
-                if (controller.upcomingTrip != null) ...[
-                  _TripTrackingCard(
-                    responsive: responsive,
-                    trip: controller.upcomingTrip!,
-                    controller: controller,
+            child: Obx(() {
+              final version = controller.dashboardVersion.value;
+              final isLoading = controller.isLoadingDashboard.value;
+              final hasError = controller.hasLoadError.value;
+
+              if (version == 0 && isLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (version == 0 && hasError) {
+                return _ErrorBody(
+                  responsive: responsive,
+                  onRetry: controller.refresh,
+                );
+              }
+
+              return RefreshIndicator(
+                onRefresh: controller.refresh,
+                color: AppColors.primary,
+                child: ListView(
+                  padding: EdgeInsets.fromLTRB(
+                    horizontalPadding,
+                    topPadding,
+                    horizontalPadding,
+                    responsive.adaptive(
+                        phone: 20, smallPhone: 18, tablet: 28, desktop: 32),
                   ),
-                  SizedBox(height: responsive.h(10)),
-                  _DriverLevelCard(
-                    responsive: responsive,
-                    trip: controller.upcomingTrip!,
-                  ),
-                  SizedBox(height: responsive.h(sectionSpacing)),
-                ],
-                _HeroSection(
-                  responsive: responsive,
-                  metrics: controller.heroMetrics,
+                  children: [
+                    _TopBar(responsive: responsive, controller: controller),
+                    SizedBox(height: responsive.h(12)),
+                    _SearchBar(responsive: responsive, controller: controller),
+                    SizedBox(height: responsive.h(16)),
+                    _QuickActionsRow(
+                        responsive: responsive, controller: controller),
+                    SizedBox(height: responsive.h(16)),
+                    if (controller.upcomingTrip != null) ...[
+                      _TripTrackingCard(
+                        responsive: responsive,
+                        trip: controller.upcomingTrip!,
+                        controller: controller,
+                      ),
+                      SizedBox(height: responsive.h(10)),
+                      _DriverLevelCard(
+                        responsive: responsive,
+                        trip: controller.upcomingTrip!,
+                      ),
+                      SizedBox(height: responsive.h(sectionSpacing)),
+                    ],
+                    if (controller.heroMetrics.isNotEmpty) ...[
+                      _HeroSection(
+                        responsive: responsive,
+                        metrics: controller.heroMetrics,
+                      ),
+                      SizedBox(height: sectionSpacing),
+                    ],
+                    if (controller.popularRoutes.isNotEmpty) ...[
+                      _SectionHeader(
+                        responsive: responsive,
+                        title: AppStrings.homePopularTrips,
+                        actionLabel: AppStrings.homeViewAll,
+                        onAction: controller.onSeeAllTrips,
+                      ),
+                      SizedBox(height: responsive.adaptive(
+                          phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+                      _PopularRoutesRow(
+                        responsive: responsive,
+                        routes: controller.popularRoutes,
+                        onRouteTap: controller.openRouteSearch,
+                      ),
+                      SizedBox(height: sectionSpacing),
+                    ],
+                    if (controller.availableRides.isNotEmpty) ...[
+                      _SectionHeader(
+                        responsive: responsive,
+                        title: AppStrings.homeAvailableNow,
+                        actionLabel: AppStrings.homeViewAll,
+                        onAction: controller.onSeeAllTrips,
+                      ),
+                      SizedBox(height: responsive.adaptive(
+                          phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+                      _RideList(
+                        responsive: responsive,
+                        rides: controller.availableRides,
+                      ),
+                      SizedBox(height: sectionSpacing),
+                    ],
+                    if (controller.recommendedDrivers.isNotEmpty) ...[
+                      _SectionHeader(
+                        responsive: responsive,
+                        title: AppStrings.homeRecommendedDrivers,
+                        actionLabel: AppStrings.homeViewAll,
+                        onAction: controller.onSeeAllTrips,
+                      ),
+                      SizedBox(height: responsive.adaptive(
+                          phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+                      _DriversRow(
+                        responsive: responsive,
+                        drivers: controller.recommendedDrivers,
+                      ),
+                      SizedBox(height: sectionSpacing),
+                    ],
+                    if (controller.specialOffers.isNotEmpty) ...[
+                      _SectionHeader(
+                        responsive: responsive,
+                        title: AppStrings.homeSpecialOffers,
+                        actionLabel: AppStrings.homeViewAll,
+                        onAction: controller.onSeeAllTrips,
+                      ),
+                      SizedBox(height: responsive.adaptive(
+                          phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+                      _OffersColumn(
+                        responsive: responsive,
+                        offers: controller.specialOffers,
+                      ),
+                      SizedBox(height: sectionSpacing),
+                    ],
+                    if (controller.recentActivities.isNotEmpty) ...[
+                      _SectionHeader(
+                        responsive: responsive,
+                        title: AppStrings.homeRecentActivity,
+                        actionLabel: AppStrings.homeViewAll,
+                        onAction: controller.onSeeAllTrips,
+                      ),
+                      SizedBox(height: responsive.adaptive(
+                          phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+                      _RecentActivityList(
+                        responsive: responsive,
+                        activities: controller.recentActivities,
+                        onRepeatTrip: controller.onRepeatTrip,
+                      ),
+                    ],
+                  ],
                 ),
-                SizedBox(height: sectionSpacing),
-                _SectionHeader(
-                  responsive: responsive,
-                  title: AppStrings.homePopularTrips,
-                  actionLabel: AppStrings.homeViewAll,
-                  onAction: controller.onSeeAllTrips,
-                ),
-                SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                _PopularRoutesRow(
-                  responsive: responsive,
-                  routes: controller.popularRoutes,
-                  onRouteTap: controller.openRouteSearch,
-                ),
-                SizedBox(height: sectionSpacing),
-                _SectionHeader(
-                  responsive: responsive,
-                  title: AppStrings.homeAvailableNow,
-                  actionLabel: AppStrings.homeViewAll,
-                  onAction: controller.onSeeAllTrips,
-                ),
-                SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                _RideList(
-                  responsive: responsive,
-                  rides: controller.availableRides,
-                ),
-                SizedBox(height: sectionSpacing),
-                _SectionHeader(
-                  responsive: responsive,
-                  title: AppStrings.homeRecommendedDrivers,
-                  actionLabel: AppStrings.homeViewAll,
-                  onAction: controller.onSeeAllTrips,
-                ),
-                SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                _DriversRow(
-                  responsive: responsive,
-                  drivers: controller.recommendedDrivers,
-                ),
-                SizedBox(height: sectionSpacing),
-                _SectionHeader(
-                  responsive: responsive,
-                  title: AppStrings.homeSpecialOffers,
-                  actionLabel: AppStrings.homeViewAll,
-                  onAction: controller.onSeeAllTrips,
-                ),
-                SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                _OffersColumn(
-                  responsive: responsive,
-                  offers: controller.specialOffers,
-                ),
-                SizedBox(height: sectionSpacing),
-                _SectionHeader(
-                  responsive: responsive,
-                  title: AppStrings.homeRecentActivity,
-                  actionLabel: AppStrings.homeViewAll,
-                  onAction: controller.onSeeAllTrips,
-                ),
-                SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                _RecentActivityList(
-                  responsive: responsive,
-                  activities: controller.recentActivities,
-                  onRepeatTrip: controller.onRepeatTrip,
-                ),
-              ],
-            ),
+              );
+            }),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Error body ─────────────────────────────────────────────────────────────
+
+class _ErrorBody extends StatelessWidget {
+  const _ErrorBody({required this.responsive, required this.onRetry});
+
+  final AppResponsive responsive;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(responsive.w(32)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.wifi_off_rounded,
+                size: responsive.text(48), color: AppColors.textHint),
+            SizedBox(height: responsive.h(16)),
+            Text(
+              'Impossible de charger le tableau de bord',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.body(responsive)
+                  .copyWith(color: AppColors.textSecondary),
+            ),
+            SizedBox(height: responsive.h(20)),
+            AppPrimaryButton(
+              responsive: responsive,
+              label: 'Réessayer',
+              onTap: onRetry,
+            ),
+          ],
         ),
       ),
     );
@@ -165,7 +243,7 @@ class _TopBar extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '${controller.greeting} 👋',
+                controller.greeting,
                 style: AppTextStyles.caption(responsive).copyWith(
                   color: AppColors.textSecondary,
                   fontSize: responsive.text(13),

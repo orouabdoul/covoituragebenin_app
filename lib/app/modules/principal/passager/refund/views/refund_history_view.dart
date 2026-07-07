@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
+import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 import '../controllers/refund_history_controller.dart';
 
 class RefundHistoryView extends StatelessWidget {
@@ -25,23 +26,59 @@ class RefundHistoryView extends StatelessWidget {
 						child: Column(
 							children: [
 								_HeaderBar(responsive: responsive),
-								if (controller.items.isEmpty)
-									Expanded(child: _EmptyState(responsive: responsive))
-								else
-									Expanded(
+								Obx(() {
+									if (controller.isLoading.value) {
+										return const Expanded(
+											child: Center(child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 3)),
+										);
+									}
+									if (controller.hasError.value) {
+										return Expanded(
+											child: Center(
+												child: Padding(
+													padding: EdgeInsets.all(responsive.w(24)),
+													child: Column(
+														mainAxisSize: MainAxisSize.min,
+														children: [
+															Icon(Icons.cloud_off_rounded, size: responsive.text(40), color: AppColors.textHint),
+															SizedBox(height: responsive.h(12)),
+															Text(
+																'Impossible de charger l\'historique.',
+																textAlign: TextAlign.center,
+																style: AppTextStyles.body(responsive).copyWith(color: AppColors.textSecondary),
+															),
+															SizedBox(height: responsive.h(16)),
+															AppPrimaryButton(
+																responsive: responsive,
+																label: 'Réessayer',
+																onTap: controller.refresh,
+																height: responsive.h(44),
+																borderRadius: responsive.radius(12),
+															),
+														],
+													),
+												),
+											),
+										);
+									}
+									if (controller.items.isEmpty) {
+										return Expanded(child: _EmptyState(responsive: responsive));
+									}
+									return Expanded(
 										child: ListView.separated(
 											padding: EdgeInsets.symmetric(
 												horizontal: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
 												vertical: responsive.h(20),
 											),
 											itemCount: controller.items.length,
-											separatorBuilder: (_, _) => SizedBox(height: responsive.h(12)),
+											separatorBuilder: (_, i) => SizedBox(height: responsive.h(12)),
 											itemBuilder: (_, i) => _RefundCard(
 												responsive: responsive,
 												item: controller.items[i],
 											),
 										),
-									),
+									);
+								}),
 							],
 						),
 					),
@@ -97,7 +134,7 @@ class _RefundCard extends StatelessWidget {
 	final AppResponsive responsive;
 	final RefundHistoryItem item;
 
-	_StatusConfig get _config => switch (item.status) {
+	_StatusConfig get _config => switch (item.historyStatus) {
 		RefundHistoryStatus.pending => _StatusConfig(
 			label: 'En attente',
 			icon: Icons.hourglass_top_rounded,

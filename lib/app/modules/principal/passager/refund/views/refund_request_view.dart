@@ -271,9 +271,9 @@ class _ReasonsCard extends StatelessWidget {
 					SizedBox(height: responsive.h(14)),
 					Obx(() => Column(
 						children: controller.reasons.map((reason) {
-							final selected = controller.selectedReason.value == reason;
+							final selected = controller.selectedReason.value == reason.key;
 							return GestureDetector(
-								onTap: () => controller.selectReason(reason),
+								onTap: () => controller.selectReason(reason.key),
 								child: AnimatedContainer(
 									duration: AppResponsive.fastDuration,
 									margin: EdgeInsets.only(bottom: responsive.h(8)),
@@ -306,7 +306,7 @@ class _ReasonsCard extends StatelessWidget {
 											SizedBox(width: responsive.w(12)),
 											Expanded(
 												child: Text(
-													reason,
+													reason.label,
 													style: AppTextStyles.body(responsive).copyWith(
 														color: selected ? AppColors.textPrimary : AppColors.textSecondary,
 														fontWeight: selected ? FontWeight.w600 : FontWeight.w400,

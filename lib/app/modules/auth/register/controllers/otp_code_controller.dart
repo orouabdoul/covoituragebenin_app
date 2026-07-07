@@ -43,6 +43,11 @@ class OtpCodeController extends GetxController {
       _mode = arg['mode'] as AuthMode? ?? AuthMode.register;
       final otp = arg['testOtp'] as String?;
       if (otp != null && otp.isNotEmpty) testOtpCode.value = otp;
+      // Server-side cooldown from 429: initialise resend timer accordingly
+      final cooldown = arg['cooldown'] as int?;
+      if (cooldown != null && cooldown > 0) {
+        resendSeconds.value = cooldown;
+      }
     } else if (arg is String && arg.trim().isNotEmpty) {
       phoneNumber.value = arg.trim();
     }
@@ -56,17 +61,20 @@ class OtpCodeController extends GetxController {
   }
 
   Future<void> verifyCode() async {
+    if (isLoading.value) return;
     if (!canVerify) {
       UIHelper().showSnackBar('MINIZON', 'Saisissez le code complet.', 2);
       return;
     }
 
     isLoading.value = true;
+    update();
     final result = await Get.find<AuthService>().verifyOtp(
       phone: phoneNumber.value,
       otpCode: enteredCode.value,
     );
     isLoading.value = false;
+    update();
 
     if (!result.isSuccess) {
       UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
@@ -115,20 +123,38 @@ class OtpCodeController extends GetxController {
 
   Future<void> resendCode() async {
     if (!canResend) return;
+    if (isLoading.value) return;
 
     isLoading.value = true;
+    update();
     final result = await Get.find<AuthService>().sendOtp(phone: phoneNumber.value);
     isLoading.value = false;
+    update();
 
-    if (result.isSuccess) {
+    if (!result.isSuccess) {
+      UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+      return;
+    }
+
+    final data = result.data!;
+    if (data.hasCooldown) {
+      // 429 — an OTP is still active, update timer with remaining server cooldown
+      resendSeconds.value = data.cooldown!;
+      _startResendTimer();
+      UIHelper().showSnackBar(
+        'MINIZON',
+        'Un code est déjà actif. Renvoi disponible dans ${data.cooldown}s.',
+        1,
+      );
+    } else {
+      // 200 — new OTP sent
       resendSeconds.value = _initialResendSeconds;
       _startResendTimer();
-      final newOtp = result.data;
-      if (newOtp != null && newOtp.isNotEmpty) testOtpCode.value = newOtp;
+      if (data.otpCode != null && data.otpCode!.isNotEmpty) {
+        testOtpCode.value = data.otpCode!;
+      }
       update();
       UIHelper().showSnackBar('MINIZON', 'Nouveau code envoyé.', 0);
-    } else {
-      UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
     }
   }
 

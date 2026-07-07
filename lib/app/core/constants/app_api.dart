@@ -26,6 +26,22 @@ class AppApi {
   static const String driverSupportFaq     = '/driver/support/faq';
   static const String driverSupportTickets = '/driver/support/tickets';
 
+  // Support — passager
+  static const String passengerSupportFaq     = '/passenger/support/faq';
+  static const String passengerSupportTickets = '/passenger/support/tickets';
+
+  // Remboursement — passager
+  static String passengerRefundContext(String uuid) => '/passenger/bookings/$uuid/refund-context';
+  static String passengerRefundSubmit(String uuid) => '/passenger/bookings/$uuid/refund';
+  static const String passengerRefunds = '/passenger/refunds';
+
+  // Sécurité — passager
+  static const String passengerSafety          = '/passenger/safety';
+  static const String passengerSafetySos       = '/passenger/safety/sos';
+  static const String passengerSafetyTripShare = '/passenger/safety/trip-share';
+  static const String passengerSafetyContacts  = '/passenger/safety/emergency-contacts';
+  static String passengerSafetyContact(String id) => '/passenger/safety/emergency-contacts/$id';
+
   // Véhicules — conducteur
   static const String driverVehicles = '/driver/vehicles';
   static String driverVehicle(String uuid) => '/driver/vehicles/$uuid';
@@ -64,6 +80,34 @@ class AppApi {
   static String driverTripStopDone(String tripUuid, String bookingUuid) =>
       '/driver/trips/$tripUuid/stops/$bookingUuid/done';
   static String driverTripRecalculate(String uuid) => '/driver/trips/$uuid/recalculate';
+
+  // Dashboard / Profil / Avis / Stats / Trajets — passager
+  static const String passengerHome        = '/passenger/home';
+  static const String passengerProfile     = '/passenger/profile';
+  static const String passengerStats       = '/passenger/stats';
+  static const String passengerReviews     = '/passenger/reviews';
+  static const String passengerTripHistory = '/passenger/trips/history';
+
+  // Réservations — passager
+  static String passengerTripConfirmationCtx(String uuid) => '/passenger/trips/$uuid/confirmation-context';
+  static String passengerTripLiveTracking(String uuid) => '/passenger/trips/$uuid/live-tracking';
+  static String passengerTripDetail(String uuid) => '/passenger/trips/$uuid/detail';
+  static String passengerBookingSuccess(String uuid) => '/passenger/bookings/$uuid/success';
+  static String passengerBookingApprovalStatus(String uuid) => '/passenger/bookings/$uuid/approval-status';
+  static String passengerBookingTripConfirmationCtx(String uuid) => '/passenger/bookings/$uuid/trip-confirmation-context';
+  static String passengerBookingConfirm(String uuid) => '/passenger/bookings/$uuid/confirm';
+  static String passengerBookingReview(String uuid) => '/passenger/bookings/$uuid/review';
+  static const String passengerReservationsList = '/passenger/reservations';
+  static String passengerReservationInvoice(String uuid) => '/passenger/reservations/$uuid/invoice';
+  static String createBooking(String tripUuid) => '/trips/$tripUuid/bookings';
+  static String initiateBookingPayment(String bookingUuid) => '/bookings/$bookingUuid/pay';
+
+  // Recherche — passager (public)
+  static const String passengerSearch = '/passenger/search';
+
+  // Messagerie — passager
+  static const String passengerMessager = '/passenger/messager';
+  static String passengerConversationThread(String uuid) => '/passenger/conversations/$uuid/thread';
 
   // Messagerie — conducteur
   static const String driverMessager = '/driver/messager';

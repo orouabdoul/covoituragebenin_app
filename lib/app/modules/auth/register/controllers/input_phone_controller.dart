@@ -47,13 +47,22 @@ class InputPhoneController extends GetxController {
     isLoading.value = false;
 
     if (result.isSuccess) {
+      final data = result.data!;
+      if (data.hasCooldown) {
+        UIHelper().showSnackBar(
+          'MINIZON',
+          'Un code a déjà été envoyé. Vérifiez vos SMS.',
+          1,
+        );
+      }
       Get.toNamed(
         AppRoutes.otpCode,
         arguments: {
           'phone': phone,
           'role': _role,
           'mode': _mode,
-          'testOtp': result.data,
+          'testOtp': data.otpCode,
+          'cooldown': data.cooldown,
         },
       );
     } else {

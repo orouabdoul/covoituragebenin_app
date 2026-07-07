@@ -1,70 +1,109 @@
 import 'package:get/get.dart';
 
+import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
+import 'package:covoiturage_benin_app/app/core/services/passenger/reviews/passenger_reviews_service.dart';
+import 'package:covoiturage_benin_app/app/data/models/passenger/reviews_model.dart';
+
 class ReviewRecord {
-  final String id;
-  final String driverName;
-  final String route;
-  final String date;
-  final int rating;
-  final List<String> tags;
-  final String? comment;
   const ReviewRecord({
-    required this.id,
+    required this.uuid,
     required this.driverName,
+    required this.driverInitials,
     required this.route,
     required this.date,
     required this.rating,
     required this.tags,
     this.comment,
   });
+
+  final String uuid;
+  final String driverName;
+  final String driverInitials;
+  final String route;
+  final String date;
+  final int rating;
+  final List<String> tags;
+  final String? comment;
 }
 
 class MyReviewsController extends GetxController {
-  final reviews = <ReviewRecord>[
-    const ReviewRecord(
-      id: 'RV001',
-      driverName: 'Ahoua Bello',
-      route: 'Cotonou → Porto-Novo',
-      date: '20 Juin 2026',
-      rating: 5,
-      tags: ['Très ponctuel', 'Conduite agréable', 'Véhicule propre'],
-      comment: 'Excellent trajet, conducteur très professionnel et sympathique. Je recommande vivement !',
-    ),
-    const ReviewRecord(
-      id: 'RV002',
-      driverName: 'Yaovi Djossou',
-      route: 'Abomey-Calavi → Cotonou',
-      date: '15 Juin 2026',
-      rating: 4,
-      tags: ['Conduite agréable', 'Courtois'],
-      comment: 'Bon trajet, léger retard au départ mais conducteur très agréable.',
-    ),
-    const ReviewRecord(
-      id: 'RV003',
-      driverName: 'Clément Hounkpévi',
-      route: 'Cotonou → Lokossa',
-      date: '10 Juin 2026',
-      rating: 5,
-      tags: ['Très ponctuel', 'Conduite agréable', 'Musique ok'],
-      comment: null,
-    ),
-  ].obs;
+  MyReviewsController(this._reviewsService);
 
-  double get averageRating {
-    if (reviews.isEmpty) return 0;
-    final total = reviews.fold<int>(0, (sum, r) => sum + r.rating);
-    return total / reviews.length;
+  final PassengerReviewsService _reviewsService;
+
+  // ── Reactive state ─────────────────────────────────────────────────────────
+  final reviewsVersion = 0.obs;
+  final isLoading      = false.obs;
+  final hasLoadError   = false.obs;
+
+  // ── Data ───────────────────────────────────────────────────────────────────
+  final reviews = <ReviewRecord>[].obs;
+  double _apiAverageRating    = 0.0;
+  String _apiFormattedAverage = '0';
+  Map<int, int> _ratingDistribution = {};
+
+  // ── Lifecycle ──────────────────────────────────────────────────────────────
+  @override
+  void onInit() {
+    super.onInit();
+    _loadReviews();
   }
 
-  String get formattedAverage {
-    final avg = averageRating;
-    return avg == avg.truncateToDouble() ? avg.toStringAsFixed(0) : avg.toStringAsFixed(1);
+  // ── API ────────────────────────────────────────────────────────────────────
+  Future<void> _loadReviews() async {
+    isLoading.value = true;
+    hasLoadError.value = false;
+    final result = await _reviewsService.fetchReviews();
+    isLoading.value = false;
+    if (result.isSuccess) {
+      _applyReviews(result.data!);
+    } else {
+      hasLoadError.value = true;
+      logger.e('passengerReviews: ${result.error}');
+    }
   }
 
-  int countByRating(int stars) => reviews.where((r) => r.rating == stars).length;
+  @override
+  Future<void> refresh() => _loadReviews();
+
+  void _applyReviews(PassengerReviewsDashboard data) {
+    _apiAverageRating    = data.averageRating;
+    _apiFormattedAverage = data.formattedAverage;
+    _ratingDistribution  = data.ratingDistribution;
+
+    reviews.value = data.reviews
+        .map((r) => ReviewRecord(
+              uuid: r.uuid,
+              driverName: r.driverName,
+              driverInitials: r.driverInitials,
+              route: r.route,
+              date: r.date,
+              rating: r.rating,
+              tags: r.tags,
+              comment: r.comment,
+            ))
+        .toList();
+
+    reviewsVersion.value++;
+  }
+
+  // ── Computed ───────────────────────────────────────────────────────────────
+  double get averageRating => _apiAverageRating > 0
+      ? _apiAverageRating
+      : reviews.isEmpty
+          ? 0
+          : reviews.fold<int>(0, (s, r) => s + r.rating) / reviews.length;
+
+  String get formattedAverage =>
+      _apiFormattedAverage.isNotEmpty ? _apiFormattedAverage : '0';
+
+  int countByRating(int stars) =>
+      _ratingDistribution[stars] ??
+      reviews.where((r) => r.rating == stars).length;
 
   double fractionByRating(int stars) {
-    if (reviews.isEmpty) return 0;
-    return countByRating(stars) / reviews.length;
+    final total = reviews.length;
+    if (total == 0) return 0;
+    return countByRating(stars) / total;
   }
 }
