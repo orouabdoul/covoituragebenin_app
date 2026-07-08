@@ -3,8 +3,10 @@ const String apiBaseUrl = 'https://minizon-api.onrender.com/api';
 class AppApi {
   static const String baseUrl = apiBaseUrl;
   static const String roles = '/roles';
-  static const String sendOtp = '/auth/send-otp';
+  static const String sendOtp   = '/auth/send-otp';
   static const String verifyOtp = '/auth/verify-otp';
+  static const String logout    = '/auth/logout';
+  static const String me        = '/auth/me';
 
   // Bookings — conducteur
   static const String driverBookings = '/driver/bookings';
@@ -74,6 +76,12 @@ class AppApi {
   static const String driverNotifications     = '/driver/notifications';
   static String driverNotificationRead(String id) => '/driver/notifications/$id/read';
   static const String driverNotificationsReadAll = '/driver/notifications/read-all';
+
+  // Notifications — passager
+  static const String passengerNotifications      = '/passenger/notifications';
+  static String passengerNotificationRead(String id) => '/passenger/notifications/$id/read';
+  static const String passengerNotificationsReadAll = '/passenger/notifications/read-all';
+  static String passengerNotificationDelete(String id) => '/passenger/notifications/$id';
 
   // Carte interactive — conducteur
   static String driverTripMap(String uuid) => '/driver/trips/$uuid/map';

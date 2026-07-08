@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
+import 'package:covoiturage_benin_app/app/data/models/passenger/notification_model.dart';
 import '../controllers/notifications_controller.dart';
 
 class NotificationsView extends StatelessWidget {
@@ -29,14 +30,26 @@ class NotificationsView extends StatelessWidget {
 								_CategoryChips(responsive: responsive, controller: controller),
 								Expanded(
 									child: Obx(() {
+										if (controller.isLoading.value) {
+											return const Center(child: CircularProgressIndicator());
+										}
+										if (controller.hasError.value) {
+											return _ErrorState(
+												responsive: responsive,
+												onRetry: controller.refresh,
+											);
+										}
 										final items = controller.filteredNotifications;
 										if (items.isEmpty) {
 											return _EmptyState(responsive: responsive, category: controller.selectedCategory.value);
 										}
-										return _NotificationList(
-											responsive: responsive,
-											controller: controller,
-											items: items,
+										return RefreshIndicator(
+											onRefresh: controller.refresh,
+											child: _NotificationList(
+												responsive: responsive,
+												controller: controller,
+												items: items,
+											),
 										);
 									}),
 								),
@@ -176,7 +189,7 @@ class _NotificationList extends StatelessWidget {
 
 	final AppResponsive responsive;
 	final NotificationsController controller;
-	final List<AppNotification> items;
+	final List<PassengerNotificationModel> items;
 
 	@override
 	Widget build(BuildContext context) {
@@ -191,7 +204,7 @@ class _NotificationList extends StatelessWidget {
 				key: ValueKey(items[i].id),
 				direction: DismissDirection.endToStart,
 				background: _DismissBackground(responsive: responsive),
-				onDismissed: (_) => controller.deleteNotification(items[i].id),
+				onDismissed: (_) => controller.deleteNotification(items[i]),
 				child: _NotificationTile(
 					responsive: responsive,
 					controller: controller,
@@ -211,7 +224,7 @@ class _NotificationTile extends StatelessWidget {
 
 	final AppResponsive responsive;
 	final NotificationsController controller;
-	final AppNotification notif;
+	final PassengerNotificationModel notif;
 
 	@override
 	Widget build(BuildContext context) {
@@ -335,6 +348,37 @@ class _DismissBackground extends StatelessWidget {
 				borderRadius: BorderRadius.circular(responsive.radius(16)),
 			),
 			child: const Icon(Icons.delete_rounded, color: Colors.white, size: 24),
+		);
+	}
+}
+
+// ── Error State ────────────────────────────────────────────────────────────
+
+class _ErrorState extends StatelessWidget {
+	const _ErrorState({required this.responsive, required this.onRetry});
+
+	final AppResponsive responsive;
+	final VoidCallback onRetry;
+
+	@override
+	Widget build(BuildContext context) {
+		return Center(
+			child: Padding(
+				padding: EdgeInsets.symmetric(horizontal: responsive.w(32)),
+				child: Column(
+					mainAxisAlignment: MainAxisAlignment.center,
+					children: [
+						Icon(Icons.wifi_off_rounded, size: responsive.text(48), color: AppColors.textHint),
+						SizedBox(height: responsive.h(16)),
+						Text('Erreur de connexion', style: AppTextStyles.subtitle(responsive), textAlign: TextAlign.center),
+						SizedBox(height: responsive.h(8)),
+						TextButton(
+							onPressed: onRetry,
+							child: Text('Réessayer', style: AppTextStyles.body(responsive).copyWith(color: AppColors.primary)),
+						),
+					],
+				),
+			),
 		);
 	}
 }

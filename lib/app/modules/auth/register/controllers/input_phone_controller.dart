@@ -48,7 +48,7 @@ class InputPhoneController extends GetxController {
 
     if (result.isSuccess) {
       final data = result.data!;
-      if (data.hasCooldown) {
+      if (data.alreadyActive) {
         UIHelper().showSnackBar(
           'MINIZON',
           'Un code a déjà été envoyé. Vérifiez vos SMS.',
@@ -62,7 +62,7 @@ class InputPhoneController extends GetxController {
           'role': _role,
           'mode': _mode,
           'testOtp': data.otpCode,
-          'cooldown': data.cooldown,
+          'resendIn': data.resendIn,
         },
       );
     } else {

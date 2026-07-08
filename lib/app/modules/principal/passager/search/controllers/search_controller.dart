@@ -289,17 +289,20 @@ class _FilterSheet extends StatelessWidget {
 									// Sort
 									Text('Trier par', style: AppTextStyles.subtitle(responsive)),
 									SizedBox(height: responsive.h(10)),
-									Obx(() => Wrap(
-										spacing: responsive.w(8),
-										runSpacing: responsive.h(8),
-										children: [
-											_SortChip(responsive: responsive, label: 'Pertinence', icon: Icons.tune_rounded, option: SortOption.relevance, controller: controller),
-											_SortChip(responsive: responsive, label: 'Prix ↑', icon: Icons.arrow_upward_rounded, option: SortOption.priceLow, controller: controller),
-											_SortChip(responsive: responsive, label: 'Prix ↓', icon: Icons.arrow_downward_rounded, option: SortOption.priceHigh, controller: controller),
-											_SortChip(responsive: responsive, label: 'Départ imminent', icon: Icons.schedule_rounded, option: SortOption.soonest, controller: controller),
-											_SortChip(responsive: responsive, label: 'Mieux noté', icon: Icons.star_rounded, option: SortOption.bestRated, controller: controller),
-										],
-									)),
+									Obx(() {
+										final currentSort = controller.sortOption.value;
+										return Wrap(
+											spacing: responsive.w(8),
+											runSpacing: responsive.h(8),
+											children: [
+												_SortChip(responsive: responsive, label: 'Pertinence', icon: Icons.tune_rounded, option: SortOption.relevance, selected: currentSort == SortOption.relevance, onTap: () => controller.sortOption.value = SortOption.relevance),
+												_SortChip(responsive: responsive, label: 'Prix ↑', icon: Icons.arrow_upward_rounded, option: SortOption.priceLow, selected: currentSort == SortOption.priceLow, onTap: () => controller.sortOption.value = SortOption.priceLow),
+												_SortChip(responsive: responsive, label: 'Prix ↓', icon: Icons.arrow_downward_rounded, option: SortOption.priceHigh, selected: currentSort == SortOption.priceHigh, onTap: () => controller.sortOption.value = SortOption.priceHigh),
+												_SortChip(responsive: responsive, label: 'Départ imminent', icon: Icons.schedule_rounded, option: SortOption.soonest, selected: currentSort == SortOption.soonest, onTap: () => controller.sortOption.value = SortOption.soonest),
+												_SortChip(responsive: responsive, label: 'Mieux noté', icon: Icons.star_rounded, option: SortOption.bestRated, selected: currentSort == SortOption.bestRated, onTap: () => controller.sortOption.value = SortOption.bestRated),
+											],
+										);
+									}),
 									SizedBox(height: responsive.h(20)),
 									Divider(color: AppColors.border),
 									SizedBox(height: responsive.h(16)),
@@ -420,20 +423,21 @@ class _SortChip extends StatelessWidget {
 		required this.label,
 		required this.icon,
 		required this.option,
-		required this.controller,
+		required this.selected,
+		required this.onTap,
 	});
 
 	final AppResponsive responsive;
 	final String label;
 	final IconData icon;
 	final SortOption option;
-	final SearchController controller;
+	final bool selected;
+	final VoidCallback onTap;
 
 	@override
 	Widget build(BuildContext context) {
-		final selected = controller.sortOption.value == option;
 		return GestureDetector(
-			onTap: () => controller.sortOption.value = option,
+			onTap: onTap,
 			child: AnimatedContainer(
 				duration: const Duration(milliseconds: 150),
 				padding: EdgeInsets.symmetric(horizontal: responsive.w(12), vertical: responsive.h(8)),

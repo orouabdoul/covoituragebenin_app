@@ -85,6 +85,12 @@ class ProfilView extends StatelessWidget {
 															_PaymentMethodsCard(responsive: responsive, controller: controller),
 															SizedBox(height: responsive.h(24)),
 															_RecentTripsCard(responsive: responsive, controller: controller),
+															SizedBox(height: responsive.h(24)),
+															_LogoutButton(
+																responsive: responsive,
+																onTap: controller.logout,
+															),
+															SizedBox(height: responsive.h(32)),
 														],
 													),
 												),
@@ -945,6 +951,46 @@ class _RecentTripTile extends StatelessWidget {
 										],
 									),
 								],
+							),
+						),
+					],
+				),
+			),
+		);
+	}
+}
+
+class _LogoutButton extends StatelessWidget {
+	const _LogoutButton({required this.responsive, required this.onTap});
+
+	final AppResponsive responsive;
+	final VoidCallback onTap;
+
+	@override
+	Widget build(BuildContext context) {
+		return InkWell(
+			onTap: onTap,
+			borderRadius: BorderRadius.circular(responsive.radius(16)),
+			child: Container(
+				width: double.infinity,
+				padding: EdgeInsets.all(responsive.w(16)),
+				decoration: ShapeDecoration(
+					color: const Color(0xFFFFF1F0),
+					shape: RoundedRectangleBorder(
+						side: const BorderSide(color: Color(0xFFFFCDD2)),
+						borderRadius: BorderRadius.circular(responsive.radius(16)),
+					),
+				),
+				child: Row(
+					mainAxisAlignment: MainAxisAlignment.center,
+					children: [
+						Icon(Icons.logout_rounded, color: const Color(0xFFE53935), size: responsive.text(20)),
+						SizedBox(width: responsive.w(10)),
+						Text(
+							'Se déconnecter',
+							style: AppTextStyles.subtitle(responsive).copyWith(
+								color: const Color(0xFFE53935),
+								fontWeight: FontWeight.w600,
 							),
 						),
 					],

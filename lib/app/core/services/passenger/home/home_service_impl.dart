@@ -24,7 +24,7 @@ class PassengerHomeServiceImpl implements PassengerHomeService {
     try {
       final opts = await _authOptions();
       final response = await _dio.get(AppApi.passengerHome, options: opts);
-      logger.d('passengerHome [${response.statusCode}]');
+      logger.d('passengerHome [${response.statusCode}] ${response.data}');
       if (response.statusCode == 200 && response.data['success'] == true) {
         final body = response.data['body'] as Map<String, dynamic>;
         return ApiResult.success(PassengerHomeDashboard.fromJson(body));

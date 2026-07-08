@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
+import 'package:covoiturage_benin_app/app/core/services/auth/auth_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/profile/passenger_profile_service.dart';
@@ -174,6 +175,40 @@ class ProfilController extends GetxController {
   void openMyReviews()      => Get.toNamed(AppRoutes.passengerMyReviews);
   void viewAllTrips()       => Get.toNamed(AppRoutes.passengerTripHistory);
   void openTrip(RecentTrip trip) => Get.toNamed(AppRoutes.passengerTripHistory);
+
+  Future<void> logout() async {
+    final confirmed = await Get.dialog<bool>(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Se déconnecter',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        ),
+        content: const Text(
+          'Voulez-vous vraiment vous déconnecter de votre compte ?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Get.back(result: true),
+            child: const Text(
+              'Se déconnecter',
+              style: TextStyle(
+                color: Color(0xFFE53935),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await Get.find<AuthService>().logout();
+    Get.offAllNamed(AppRoutes.register);
+  }
 
   void addPaymentMethod() {
     Get.bottomSheet(

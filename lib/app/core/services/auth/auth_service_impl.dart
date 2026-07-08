@@ -1,15 +1,23 @@
 import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
+import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/utils/api_result.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_dio.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/data/models/auth/auth_result.dart';
-import 'package:covoiturage_benin_app/app/data/models/auth/otp_send_result.dart';
 import 'package:dio/dio.dart';
 import 'auth_service.dart';
 
 class AuthServiceImpl implements AuthService {
   final Dio _dio = AppDio.create();
+
+  Future<Options> _authOptions() async {
+    final token = await UserController.instance.getSessionToken();
+    return Options(
+      validateStatus: (_) => true,
+      headers: {'Authorization': 'Bearer $token'},
+    );
+  }
 
   @override
   Future<ApiResult<OtpSendResult>> sendOtp({required String phone}) async {
@@ -25,15 +33,16 @@ class AuthServiceImpl implements AuthService {
       logger.d('sendOtp [${response.statusCode}] ${response.data}');
 
       if (response.statusCode == 200) {
-        final otpCode = response.data?['body']?['otp_code']?.toString();
-        return ApiResult.success(OtpSendResult(otpCode: otpCode));
+        final body = response.data?['body'];
+        final otpCode = body?['otp_code']?.toString();
+        final resendIn = body?['resend_available_in'] as int?;
+        return ApiResult.success(OtpSendResult(otpCode: otpCode, resendIn: resendIn));
       }
 
       if (response.statusCode == 429) {
-        final cooldown = response.data?['body']?['resend_available_in'] as int?;
-        // OTP already active — treat as soft success so the caller can navigate
-        // to the OTP screen and initialise the resend timer with the remaining seconds.
-        return ApiResult.success(OtpSendResult(cooldown: cooldown ?? 60));
+        final resendIn = response.data?['body']?['resend_available_in'] as int?;
+        // OTP already active — navigate to OTP screen with remaining cooldown.
+        return ApiResult.success(OtpSendResult(resendIn: resendIn ?? 60, alreadyActive: true));
       }
 
       if (response.statusCode == 422) return ApiResult.failure(AppError.validationError);
@@ -81,6 +90,50 @@ class AuthServiceImpl implements AuthService {
       return ApiResult.failure(AppError.unexpected);
     } catch (e) {
       logger.e('verifyOtp: $e');
+      return ApiResult.failure(AppError.unexpected);
+    }
+  }
+
+  @override
+  Future<ApiResult<void>> logout() async {
+    try {
+      final opts = await _authOptions();
+      final response = await _dio.post(AppApi.logout, options: opts);
+      logger.d('logout [${response.statusCode}]');
+      // Révoque côté serveur ; on efface la session locale dans tous les cas.
+      await UserController.instance.logout();
+      if (response.statusCode == 200) return ApiResult.success(null);
+      if (response.statusCode == 401) return ApiResult.success(null); // déjà expiré
+      return ApiResult.failure(AppError.unexpected);
+    } on DioException catch (e) {
+      logger.e('logout: $e');
+      // On efface quand même la session locale même si le réseau échoue.
+      await UserController.instance.logout();
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
+      logger.e('logout: $e');
+      await UserController.instance.logout();
+      return ApiResult.failure(AppError.unexpected);
+    }
+  }
+
+  @override
+  Future<ApiResult<AuthResult>> me() async {
+    try {
+      final opts = await _authOptions();
+      final response = await _dio.get(AppApi.me, options: opts);
+      logger.d('me [${response.statusCode}] ${response.data}');
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        final body = response.data['body'] as Map<String, dynamic>;
+        return ApiResult.success(AuthResult.fromJson(body));
+      }
+      if (response.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      return ApiResult.failure(AppError.unexpected);
+    } on DioException catch (e) {
+      logger.e('me: $e');
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
+      logger.e('me: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }

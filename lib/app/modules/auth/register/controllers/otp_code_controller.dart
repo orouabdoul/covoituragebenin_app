@@ -43,10 +43,10 @@ class OtpCodeController extends GetxController {
       _mode = arg['mode'] as AuthMode? ?? AuthMode.register;
       final otp = arg['testOtp'] as String?;
       if (otp != null && otp.isNotEmpty) testOtpCode.value = otp;
-      // Server-side cooldown from 429: initialise resend timer accordingly
-      final cooldown = arg['cooldown'] as int?;
-      if (cooldown != null && cooldown > 0) {
-        resendSeconds.value = cooldown;
+      // Use server-supplied resend window (present on both 200 and 429).
+      final resendIn = arg['resendIn'] as int?;
+      if (resendIn != null && resendIn > 0) {
+        resendSeconds.value = resendIn;
       }
     } else if (arg is String && arg.trim().isNotEmpty) {
       phoneNumber.value = arg.trim();
@@ -137,18 +137,18 @@ class OtpCodeController extends GetxController {
     }
 
     final data = result.data!;
-    if (data.hasCooldown) {
-      // 429 — an OTP is still active, update timer with remaining server cooldown
-      resendSeconds.value = data.cooldown!;
+    if (data.alreadyActive) {
+      // 429 — OTP still active, update timer with server-supplied remaining seconds.
+      resendSeconds.value = data.resendIn ?? _initialResendSeconds;
       _startResendTimer();
       UIHelper().showSnackBar(
         'MINIZON',
-        'Un code est déjà actif. Renvoi disponible dans ${data.cooldown}s.',
+        'Un code est déjà actif. Renvoi disponible dans ${data.resendIn}s.',
         1,
       );
     } else {
-      // 200 — new OTP sent
-      resendSeconds.value = _initialResendSeconds;
+      // 200 — new OTP sent, use server-supplied resend window.
+      resendSeconds.value = data.resendIn ?? _initialResendSeconds;
       _startResendTimer();
       if (data.otpCode != null && data.otpCode!.isNotEmpty) {
         testOtpCode.value = data.otpCode!;

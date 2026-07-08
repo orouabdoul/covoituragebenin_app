@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
-import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
+import 'package:covoiturage_benin_app/app/core/services/auth/auth_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/profile/driver_profile_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
@@ -716,25 +716,34 @@ class DriverProfileController extends GetxController {
 
   Future<void> logoutAllDevices() async {
     Get.back();
-    Get.dialog(
+    final confirmed = await Get.dialog<bool>(
       AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Se déconnecter', style: TextStyle(fontSize: 16)),
-        content: const Text('Voulez-vous vraiment vous déconnecter de cet appareil ?'),
+        title: const Text(
+          'Se déconnecter',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        ),
+        content: const Text(
+          'Voulez-vous vraiment vous déconnecter de votre compte ?',
+        ),
         actions: [
-          TextButton(onPressed: Get.back, child: const Text('Annuler')),
           TextButton(
-            onPressed: () async {
-              Get.back();
-              await UserController.instance.logout();
-              Get.offAllNamed(AppRoutes.roles);
-            },
-            child: const Text('Se déconnecter',
-                style: TextStyle(color: Color(0xFFE53935), fontWeight: FontWeight.w700)),
+            onPressed: () => Get.back(result: false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Get.back(result: true),
+            child: const Text(
+              'Se déconnecter',
+              style: TextStyle(color: Color(0xFFE53935), fontWeight: FontWeight.w700),
+            ),
           ),
         ],
       ),
     );
+    if (confirmed != true) return;
+    await Get.find<AuthService>().logout();
+    Get.offAllNamed(AppRoutes.register);
   }
 
   void onNotifications() => Get.toNamed(AppRoutes.driverNotifications);
