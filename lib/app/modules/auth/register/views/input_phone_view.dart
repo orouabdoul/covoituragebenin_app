@@ -11,11 +11,9 @@ import 'package:get/get.dart';
 
 class InputPhoneView extends GetView<InputPhoneController> {
 	const InputPhoneView({super.key});
-
 	@override
 	Widget build(BuildContext context) {
 		final responsive = AppResponsive(context);
-
 		return Scaffold(
 			backgroundColor: AppColors.surfaceMuted,
 			body: SafeArea(

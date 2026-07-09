@@ -26,13 +26,13 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       final opts = await _authOptions();
       final res =
           await _dio.get(AppApi.passengerTripConfirmationCtx(tripUuid), options: opts);
-      logger.d('confirmationContext[$tripUuid] [${res.statusCode}]');
+      logger.d('confirmationContext[$tripUuid] [${res.statusCode}] body=${res.data}');
       if (res.statusCode == 200 && res.data['success'] == true) {
         return ApiResult.success(
             ConfirmationContextModel.fromJson(res.data['body'] as Map<String, dynamic>));
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
-      if (res.statusCode == 404) return ApiResult.failure(AppError.userNotFound);
+      if (res.statusCode == 404) return ApiResult.failure(AppError.tripNotFound);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('confirmationContext: $e');
@@ -53,15 +53,24 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
         data: {'seats': seats},
         options: opts,
       );
-      logger.d('createBooking[$tripUuid] [${res.statusCode}]');
-      if ((res.statusCode == 200 || res.statusCode == 201) &&
-          res.data['success'] == true) {
-        final bookingUuid =
-            (res.data['body'] as Map<String, dynamic>?)?['booking_uuid'] as String? ?? '';
-        return ApiResult.success(bookingUuid);
+      logger.d('createBooking[$tripUuid] [${res.statusCode}] body=${res.data}');
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        final data = res.data;
+        if (data is Map && data['success'] == true) {
+          final body = data['body'];
+          String bookingUuid = '';
+          if (body is Map) {
+            bookingUuid = (body['booking_uuid'] ?? body['uuid'] ?? body['id'] ?? '') as String? ?? '';
+          }
+          return ApiResult.success(bookingUuid);
+        }
+        // success absent ou false : considérer quand même comme OK si 200/201
+        return ApiResult.success('');
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
-      if (res.statusCode == 404) return ApiResult.failure(AppError.userNotFound);
+      if (res.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
+      if (res.statusCode == 404) return ApiResult.failure(AppError.tripNotFound);
+      if (res.statusCode == 422) return ApiResult.failure(AppError.tripDataInvalid);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('createBooking: $e');

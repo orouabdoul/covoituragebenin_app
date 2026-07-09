@@ -16,9 +16,9 @@ class MessagerView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final MessagerController controller = Get.isRegistered<MessagerController>()
-        ? Get.find<MessagerController>()
-        : Get.put(MessagerController());
+    final MessagerController controller = Get.isRegistered<MessagerController>(tag: 'passenger')
+        ? Get.find<MessagerController>(tag: 'passenger')
+        : Get.put(MessagerController(), tag: 'passenger');
     final responsive = AppResponsive(context);
     final double pagePadding = responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32);
 
@@ -150,7 +150,7 @@ class _SearchHeader extends StatelessWidget {
                 SizedBox(width: responsive.w(12)),
                 Expanded(
                   child: TextField(
-                    controller: Get.find<MessagerController>().searchController,
+                    controller: Get.find<MessagerController>(tag: 'passenger').searchController,
                     style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textPrimary),
                     decoration: InputDecoration.collapsed(
                       hintText: AppStrings.messengerSearchHint,

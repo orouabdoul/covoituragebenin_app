@@ -46,13 +46,9 @@ class AddTrajetView extends GetView<AddTrajetController> {
                   icon: Icons.trip_origin_rounded,
                   child: _LocationForm(
                     responsive: responsive,
-                    cityController: controller.departureCityController,
-                    districtController: controller.departureDistrictController,
-                    pointController: controller.departurePointController,
-                    hintCity: 'Ex: Cotonou',
-                    hintDistrict: 'Ex: Akpakpa',
+                    controller: controller,
+                    isDeparture: true,
                     hintPoint: 'Ex: Carrefour Étoile Rouge',
-                    suggestions: controller.departureSuggestions,
                   ),
                 ),
                 SizedBox(height: responsive.h(20)),
@@ -63,13 +59,9 @@ class AddTrajetView extends GetView<AddTrajetController> {
                   icon: Icons.flag_rounded,
                   child: _LocationForm(
                     responsive: responsive,
-                    cityController: controller.destinationCityController,
-                    districtController: controller.destinationDistrictController,
-                    pointController: controller.destinationPointController,
-                    hintCity: 'Ex: Parakou',
-                    hintDistrict: 'Ex: Centre-ville',
+                    controller: controller,
+                    isDeparture: false,
                     hintPoint: 'Ex: Gare routière',
-                    suggestions: controller.destinationSuggestions,
                   ),
                 ),
                 SizedBox(height: responsive.h(20)),
@@ -410,122 +402,353 @@ class _SectionCard extends StatelessWidget {
 class _LocationForm extends StatelessWidget {
   const _LocationForm({
     required this.responsive,
-    required this.cityController,
-    required this.districtController,
-    required this.pointController,
-    required this.hintCity,
-    required this.hintDistrict,
+    required this.controller,
+    required this.isDeparture,
     required this.hintPoint,
-    required this.suggestions,
   });
 
   final AppResponsive responsive;
-  final TextEditingController cityController;
-  final TextEditingController districtController;
-  final TextEditingController pointController;
-  final String hintCity;
-  final String hintDistrict;
+  final AddTrajetController controller;
+  final bool isDeparture;
   final String hintPoint;
-  final List<String> suggestions;
 
   @override
   Widget build(BuildContext context) {
+    return Obx(() {
+      final selectedCity = isDeparture
+          ? controller.selectedDepartureCity.value
+          : controller.selectedDestinationCity.value;
+      final selectedDistrict = isDeparture
+          ? controller.selectedDepartureDistrict.value
+          : controller.selectedDestinationDistrict.value;
+      final districts = controller.getDistricts(selectedCity);
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _LocationAutocompleteField(
+            key: ValueKey(isDeparture ? 'dep-city' : 'dest-city'),
+            responsive: responsive,
+            label: 'Ville',
+            controller: isDeparture
+                ? controller.departureCityController
+                : controller.destinationCityController,
+            items: controller.beninCities,
+            isSelected: selectedCity != null,
+            hint: isDeparture ? 'Ex: Cotonou' : 'Ex: Parakou',
+            onSelected: (v) => isDeparture
+                ? controller.onDepartureCityChanged(v)
+                : controller.onDestinationCityChanged(v),
+            onTextChanged: isDeparture
+                ? controller.onDepartureCityTyped
+                : controller.onDestinationCityTyped,
+          ),
+          SizedBox(height: responsive.h(12)),
+          _LocationAutocompleteField(
+            key: ValueKey(isDeparture ? 'dep-district' : 'dest-district'),
+            responsive: responsive,
+            label: 'Quartier',
+            controller: isDeparture
+                ? controller.departureDistrictController
+                : controller.destinationDistrictController,
+            items: districts,
+            isSelected: selectedDistrict != null,
+            hint: selectedCity == null
+                ? "Choisir d'abord une ville"
+                : 'Ex: Akpakpa',
+            enabled: selectedCity != null,
+            onSelected: (v) => isDeparture
+                ? controller.onDepartureDistrictChanged(v)
+                : controller.onDestinationDistrictChanged(v),
+            onTextChanged: isDeparture
+                ? controller.onDepartureDistrictTyped
+                : controller.onDestinationDistrictTyped,
+          ),
+          SizedBox(height: responsive.h(12)),
+          AppField(
+            responsive: responsive,
+            label: 'Point précis',
+            controller: isDeparture
+                ? controller.departurePointController
+                : controller.destinationPointController,
+            hintText: hintPoint,
+            textStyle: AppTextStyles.profileFieldValue(responsive),
+            hintStyle: AppTextStyles.muted(responsive),
+            labelStyle: AppTextStyles.profileSectionLabel(responsive),
+            backgroundColor: AppColors.surface,
+            borderColor: AppColors.border,
+            borderRadius: responsive.radius(16),
+            padding: EdgeInsets.symmetric(
+              horizontal: responsive.w(16),
+              vertical: responsive.h(12),
+            ),
+          ),
+        ],
+      );
+    });
+  }
+}
+
+// ── Location autocomplete field ────────────────────────────────────────────────
+
+class _LocationAutocompleteField extends StatefulWidget {
+  const _LocationAutocompleteField({
+    super.key,
+    required this.responsive,
+    required this.label,
+    required this.controller,
+    required this.items,
+    required this.isSelected,
+    required this.onSelected,
+    required this.onTextChanged,
+    this.hint = 'Rechercher...',
+    this.enabled = true,
+  });
+
+  final AppResponsive responsive;
+  final String label;
+  final TextEditingController controller;
+  final List<String> items;
+  final bool isSelected;
+  final ValueChanged<String> onSelected;
+  final VoidCallback onTextChanged;
+  final String hint;
+  final bool enabled;
+
+  @override
+  State<_LocationAutocompleteField> createState() =>
+      _LocationAutocompleteFieldState();
+}
+
+class _LocationAutocompleteFieldState
+    extends State<_LocationAutocompleteField> {
+  final FocusNode _focusNode = FocusNode();
+  bool _showList = false;
+  List<String> _filtered = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _filtered = _filterItems(widget.controller.text);
+    _focusNode.addListener(_onFocusChange);
+    widget.controller.addListener(_onControllerChanged);
+  }
+
+  @override
+  void didUpdateWidget(_LocationAutocompleteField old) {
+    super.didUpdateWidget(old);
+    if (old.items != widget.items) {
+      setState(() {
+        _filtered = _filterItems(widget.controller.text);
+        _showList = false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    widget.controller.removeListener(_onControllerChanged);
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _onFocusChange() {
+    if (_focusNode.hasFocus) {
+      setState(() {
+        _showList = true;
+        _filtered = _filterItems(widget.controller.text);
+      });
+    } else {
+      // Délai pour laisser le tap sur un item s'enregistrer
+      Future.delayed(const Duration(milliseconds: 150), () {
+        if (mounted) setState(() => _showList = false);
+      });
+    }
+  }
+
+  void _onControllerChanged() {
+    // Mise à jour de la liste filtrée quand le texte change de l'extérieur
+    final filtered = _filterItems(widget.controller.text);
+    if (filtered.length != _filtered.length && mounted) {
+      setState(() => _filtered = filtered);
+    }
+  }
+
+  List<String> _filterItems(String text) {
+    if (text.isEmpty) return widget.items;
+    final q = text.toLowerCase();
+    return widget.items.where((i) => i.toLowerCase().contains(q)).toList();
+  }
+
+  void _onUserTyped(String text) {
+    setState(() {
+      _showList = true;
+      _filtered = _filterItems(text);
+    });
+    widget.onTextChanged();
+  }
+
+  void _selectItem(String item) {
+    widget.controller.text = item;
+    widget.controller.selection =
+        TextSelection.fromPosition(TextPosition(offset: item.length));
+    widget.onSelected(item);
+    _focusNode.unfocus();
+    setState(() => _showList = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool hasText = widget.controller.text.isNotEmpty;
+    final bool isInvalid = hasText && !widget.isSelected;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AppField(
-          responsive: responsive,
-          label: 'Ville',
-          controller: cityController,
-          hintText: hintCity,
-          textStyle: AppTextStyles.profileFieldValue(responsive),
-          hintStyle: AppTextStyles.muted(responsive),
-          labelStyle: AppTextStyles.profileSectionLabel(responsive),
-          backgroundColor: AppColors.surface,
-          borderColor: AppColors.border,
-          borderRadius: responsive.radius(16),
+        Text(widget.label,
+            style: AppTextStyles.profileSectionLabel(widget.responsive)),
+        SizedBox(height: widget.responsive.h(8)),
+        Container(
+          width: double.infinity,
           padding: EdgeInsets.symmetric(
-            horizontal: responsive.w(16),
-            vertical: responsive.h(12),
+            horizontal: widget.responsive.w(16),
+            vertical: widget.responsive.h(12),
+          ),
+          decoration: ShapeDecoration(
+            color: widget.enabled ? AppColors.surface : AppColors.surfaceSoft,
+            shape: RoundedRectangleBorder(
+              side: BorderSide(
+                width: 2,
+                color: isInvalid
+                    ? const Color(0xFFEF4444)
+                    : widget.isSelected
+                        ? AppColors.primary
+                        : widget.enabled
+                            ? AppColors.border
+                            : AppColors.surfaceSoft,
+              ),
+              borderRadius:
+                  BorderRadius.circular(widget.responsive.radius(16)),
+            ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: widget.controller,
+                  focusNode: _focusNode,
+                  enabled: widget.enabled,
+                  onChanged: _onUserTyped,
+                  decoration: InputDecoration.collapsed(
+                    hintText: widget.hint,
+                    hintStyle: AppTextStyles.muted(widget.responsive),
+                  ),
+                  style: AppTextStyles.profileFieldValue(widget.responsive),
+                ),
+              ),
+              SizedBox(width: widget.responsive.w(8)),
+              if (widget.isSelected)
+                Icon(Icons.check_circle_rounded,
+                    color: AppColors.primary,
+                    size: widget.responsive.text(18))
+              else if (isInvalid)
+                Icon(Icons.error_outline_rounded,
+                    color: const Color(0xFFEF4444),
+                    size: widget.responsive.text(18))
+              else
+                Icon(Icons.search_rounded,
+                    color: AppColors.textGhost,
+                    size: widget.responsive.text(18)),
+            ],
           ),
         ),
-        SizedBox(height: responsive.h(12)),
-        AppField(
-          responsive: responsive,
-          label: 'Quartier',
-          controller: districtController,
-          hintText: hintDistrict,
-          textStyle: AppTextStyles.profileFieldValue(responsive),
-          hintStyle: AppTextStyles.muted(responsive),
-          labelStyle: AppTextStyles.profileSectionLabel(responsive),
-          backgroundColor: AppColors.surface,
-          borderColor: AppColors.border,
-          borderRadius: responsive.radius(16),
-          padding: EdgeInsets.symmetric(
-            horizontal: responsive.w(16),
-            vertical: responsive.h(12),
+        if (isInvalid) ...[
+          SizedBox(height: widget.responsive.h(4)),
+          Text(
+            'Sélectionnez une option dans la liste',
+            style: AppTextStyles.caption(widget.responsive)
+                .copyWith(color: const Color(0xFFEF4444)),
           ),
-        ),
-        SizedBox(height: responsive.h(12)),
-        AppField(
-          responsive: responsive,
-          label: 'Point précis',
-          controller: pointController,
-          hintText: hintPoint,
-          textStyle: AppTextStyles.profileFieldValue(responsive),
-          hintStyle: AppTextStyles.muted(responsive),
-          labelStyle: AppTextStyles.profileSectionLabel(responsive),
-          backgroundColor: AppColors.surface,
-          borderColor: AppColors.border,
-          borderRadius: responsive.radius(16),
-          padding: EdgeInsets.symmetric(
-            horizontal: responsive.w(16),
-            vertical: responsive.h(12),
-          ),
-        ),
-        SizedBox(height: responsive.h(12)),
-        // Suggestion chips — tap fills the city field
-        Wrap(
-          spacing: responsive.w(8),
-          runSpacing: responsive.h(8),
-          children: suggestions
-              .map(
-                (s) => GestureDetector(
-                  onTap: () {
-                    cityController.text = s;
-                    cityController.selection = TextSelection.fromPosition(
-                      TextPosition(offset: s.length),
-                    );
-                  },
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: responsive.w(16),
-                      vertical: responsive.h(8),
-                    ),
-                    decoration: ShapeDecoration(
-                      color: AppColors.surfaceSoft,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(9999),
-                        side: const BorderSide(color: AppColors.border),
+        ],
+        if (_showList && widget.enabled) ...[
+          SizedBox(height: widget.responsive.h(4)),
+          if (_filtered.isNotEmpty)
+            Container(
+              constraints:
+                  BoxConstraints(maxHeight: widget.responsive.h(200)),
+              decoration: ShapeDecoration(
+                color: AppColors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius:
+                      BorderRadius.circular(widget.responsive.radius(16)),
+                  side: const BorderSide(color: AppColors.border),
+                ),
+                shadows: const [
+                  BoxShadow(
+                      color: AppColors.shadow,
+                      blurRadius: 12,
+                      offset: Offset(0, 4)),
+                ],
+              ),
+              child: ListView.builder(
+                padding: EdgeInsets.symmetric(
+                    vertical: widget.responsive.h(4)),
+                shrinkWrap: true,
+                itemCount: _filtered.length,
+                itemBuilder: (context, index) {
+                  final item = _filtered[index];
+                  return InkWell(
+                    onTap: () => _selectItem(item),
+                    borderRadius: BorderRadius.circular(
+                        widget.responsive.radius(12)),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: widget.responsive.w(16),
+                        vertical: widget.responsive.h(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.location_on_rounded,
+                              color: AppColors.primary,
+                              size: widget.responsive.text(14)),
+                          SizedBox(width: widget.responsive.w(8)),
+                          Expanded(
+                            child: Text(item,
+                                style: AppTextStyles.profileFieldValue(
+                                    widget.responsive)),
+                          ),
+                        ],
                       ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.location_on_rounded,
-                          size: responsive.text(12),
-                          color: AppColors.primary,
-                        ),
-                        SizedBox(width: responsive.w(4)),
-                        Text(s, style: AppTextStyles.profileSectionLabel(responsive)),
-                      ],
-                    ),
-                  ),
+                  );
+                },
+              ),
+            )
+          else if (widget.controller.text.isNotEmpty)
+            Container(
+              padding: EdgeInsets.all(widget.responsive.w(16)),
+              decoration: ShapeDecoration(
+                color: AppColors.surfaceSoft,
+                shape: RoundedRectangleBorder(
+                  borderRadius:
+                      BorderRadius.circular(widget.responsive.radius(16)),
+                  side: const BorderSide(color: AppColors.border),
                 ),
-              )
-              .toList(growable: false),
-        ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.search_off_rounded,
+                      color: AppColors.textGhost,
+                      size: widget.responsive.text(16)),
+                  SizedBox(width: widget.responsive.w(8)),
+                  Text('Aucun résultat',
+                      style: AppTextStyles.caption(widget.responsive)),
+                ],
+              ),
+            ),
+        ],
       ],
     );
   }

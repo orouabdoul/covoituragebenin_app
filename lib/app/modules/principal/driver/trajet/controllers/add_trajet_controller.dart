@@ -5,8 +5,8 @@ import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/trips/trips_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/vehicles/vehicles_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/api_result.dart';
-import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
+import 'package:covoiturage_benin_app/app/data/benin_locations_data.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/vehicle_model.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 
@@ -49,6 +49,65 @@ class AddTrajetController extends GetxController {
     final v = selectedVehicle.value;
     if (v == null) return 'Sélectionnez un véhicule';
     return '${v.brand} ${v.model} — ${v.availableSeats} places max';
+  }
+
+  // ── Villes & quartiers ────────────────────────────────────────────────────
+  final RxnString selectedDepartureCity = RxnString();
+  final RxnString selectedDepartureDistrict = RxnString();
+  final RxnString selectedDestinationCity = RxnString();
+  final RxnString selectedDestinationDistrict = RxnString();
+
+  static Map<String, List<String>> get beninCitiesWithDistricts =>
+      BeninLocations.citiesWithDistricts;
+
+  List<String> get beninCities => BeninLocations.cities;
+
+  List<String> getDistricts(String? city) => BeninLocations.getDistricts(city);
+
+  // Appelé quand l'utilisateur SÉLECTIONNE dans la liste
+  void onDepartureCityChanged(String? city) {
+    selectedDepartureCity.value = city;
+    selectedDepartureDistrict.value = null;
+    departureCityController.text = city ?? '';
+    departureDistrictController.text = '';
+  }
+
+  void onDestinationCityChanged(String? city) {
+    selectedDestinationCity.value = city;
+    selectedDestinationDistrict.value = null;
+    destinationCityController.text = city ?? '';
+    destinationDistrictController.text = '';
+  }
+
+  void onDepartureDistrictChanged(String? district) {
+    selectedDepartureDistrict.value = district;
+    departureDistrictController.text = district ?? '';
+  }
+
+  void onDestinationDistrictChanged(String? district) {
+    selectedDestinationDistrict.value = district;
+    destinationDistrictController.text = district ?? '';
+  }
+
+  // Appelé quand l'utilisateur TAPE (invalide la sélection précédente)
+  void onDepartureCityTyped() {
+    selectedDepartureCity.value = null;
+    selectedDepartureDistrict.value = null;
+    departureDistrictController.text = '';
+  }
+
+  void onDestinationCityTyped() {
+    selectedDestinationCity.value = null;
+    selectedDestinationDistrict.value = null;
+    destinationDistrictController.text = '';
+  }
+
+  void onDepartureDistrictTyped() {
+    selectedDepartureDistrict.value = null;
+  }
+
+  void onDestinationDistrictTyped() {
+    selectedDestinationDistrict.value = null;
   }
 
   final List<String> departureSuggestions = const ['Cotonou', 'Porto-Novo', 'Parakou'];
@@ -122,14 +181,27 @@ class AddTrajetController extends GetxController {
   }
 
   void _prefillFromJson(Map<String, dynamic> j) {
-    departureCityController.text = j['departure_city'] as String? ?? '';
-    departureDistrictController.text =
-        ((j['departure_neighborhood'] ?? j['departure_district']) as String?) ?? '';
+    final depCity = j['departure_city'] as String? ?? '';
+    departureCityController.text = depCity;
+    if (depCity.isNotEmpty && beninCitiesWithDistricts.containsKey(depCity)) {
+      selectedDepartureCity.value = depCity;
+    }
+
+    final depDistrict = ((j['departure_neighborhood'] ?? j['departure_district']) as String?) ?? '';
+    departureDistrictController.text = depDistrict;
+    if (depDistrict.isNotEmpty) selectedDepartureDistrict.value = depDistrict;
+
     departurePointController.text = j['departure_point'] as String? ?? '';
-    destinationCityController.text =
-        ((j['arrival_city'] ?? j['destination_city']) as String?) ?? '';
-    destinationDistrictController.text =
-        ((j['arrival_neighborhood'] ?? j['destination_district']) as String?) ?? '';
+
+    final destCity = ((j['arrival_city'] ?? j['destination_city']) as String?) ?? '';
+    destinationCityController.text = destCity;
+    if (destCity.isNotEmpty && beninCitiesWithDistricts.containsKey(destCity)) {
+      selectedDestinationCity.value = destCity;
+    }
+
+    final destDistrict = ((j['arrival_neighborhood'] ?? j['destination_district']) as String?) ?? '';
+    destinationDistrictController.text = destDistrict;
+    if (destDistrict.isNotEmpty) selectedDestinationDistrict.value = destDistrict;
     destinationPointController.text =
         ((j['arrival_point'] ?? j['destination_point']) as String?) ?? '';
     // Accept both DD/MM/YYYY and YYYY-MM-DD
@@ -238,16 +310,24 @@ class AddTrajetController extends GetxController {
   Future<void> publishTrip() async {
     if (isPublishing.value) return;
 
-    final depCity = departureCityController.text.trim();
-    final destCity = destinationCityController.text.trim();
-    if (depCity.isEmpty) {
-      UIHelper().showSnackBar(AppStrings.appName, 'Veuillez entrer la ville de départ.', 2);
+    if (selectedDepartureCity.value == null) {
+      UIHelper().showSnackBar(AppStrings.appName, 'Veuillez sélectionner la ville de départ.', 2);
       return;
     }
-    if (destCity.isEmpty) {
-      UIHelper().showSnackBar(AppStrings.appName, 'Veuillez entrer la ville de destination.', 2);
+    if (selectedDepartureDistrict.value == null) {
+      UIHelper().showSnackBar(AppStrings.appName, 'Veuillez sélectionner le quartier de départ.', 2);
       return;
     }
+    if (selectedDestinationCity.value == null) {
+      UIHelper().showSnackBar(AppStrings.appName, 'Veuillez sélectionner la ville de destination.', 2);
+      return;
+    }
+    if (selectedDestinationDistrict.value == null) {
+      UIHelper().showSnackBar(AppStrings.appName, 'Veuillez sélectionner le quartier de destination.', 2);
+      return;
+    }
+    final depCity = selectedDepartureCity.value!;
+    final destCity = selectedDestinationCity.value!;
     if (dateController.text.isEmpty) {
       UIHelper().showSnackBar(AppStrings.appName, 'Veuillez sélectionner une date de départ.', 2);
       return;

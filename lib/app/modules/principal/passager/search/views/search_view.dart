@@ -202,54 +202,86 @@ class _SearchPanel extends StatelessWidget {
 						],
 					),
 					SizedBox(height: responsive.h(14)),
-					// Origin + Destination + Swap
-					Row(
-						crossAxisAlignment: CrossAxisAlignment.center,
-						children: [
-							Expanded(
-								child: Column(
-									children: [
-										Obx(() => _LocationField(
-											responsive: responsive,
-											icon: Icons.trip_origin_rounded,
-											iconColor: AppColors.primary,
-											label: 'Départ',
-											value: controller.originCity.value,
-											onTap: () => controller.selectCity(context, true),
-										)),
-										SizedBox(height: responsive.h(6)),
-										Obx(() => _LocationField(
-											responsive: responsive,
-											icon: Icons.location_on_rounded,
-											iconColor: const Color(0xFFEF4444),
-											label: 'Arrivée',
-											value: controller.destinationCity.value,
-											onTap: () => controller.selectCity(context, false),
-										)),
-									],
+					// Ville de départ
+					Obx(() => _SearchAutocompleteField(
+						key: const ValueKey('origin-city'),
+						responsive: responsive,
+						label: 'Ville de départ',
+						icon: Icons.trip_origin_rounded,
+						iconColor: AppColors.primary,
+						controller: controller.originCityController,
+						items: controller.beninCities,
+						isSelected: controller.selectedOriginCity.value != null,
+						onSelected: controller.onOriginCityChanged,
+						onTextChanged: controller.onOriginCityTyped,
+					)),
+					SizedBox(height: responsive.h(6)),
+					// Quartier de départ (optionnel)
+					Obx(() => _SearchAutocompleteField(
+						key: const ValueKey('origin-district'),
+						responsive: responsive,
+						label: 'Quartier de départ (optionnel)',
+						icon: Icons.location_on_outlined,
+						iconColor: AppColors.primary,
+						controller: controller.originDistrictController,
+						items: controller.getDistricts(controller.selectedOriginCity.value),
+						isSelected: controller.selectedOriginDistrict.value != null,
+						onSelected: controller.onOriginDistrictChanged,
+						onTextChanged: controller.onOriginDistrictTyped,
+						enabled: controller.selectedOriginCity.value != null,
+						optional: true,
+					)),
+					SizedBox(height: responsive.h(8)),
+					// Swap button
+					Center(
+						child: GestureDetector(
+							onTap: controller.swapLocations,
+							child: Container(
+								width: responsive.w(40),
+								height: responsive.w(40),
+								decoration: BoxDecoration(
+									color: AppColors.surfaceAccent,
+									shape: BoxShape.circle,
+									border: Border.all(color: const Color(0x3300A86B)),
+								),
+								child: Icon(
+									Icons.swap_vert_rounded,
+									size: responsive.text(20),
+									color: AppColors.primary,
 								),
 							),
-							SizedBox(width: responsive.w(10)),
-							// Swap button
-							GestureDetector(
-								onTap: controller.swapLocations,
-								child: Container(
-									width: responsive.w(40),
-									height: responsive.w(40),
-									decoration: BoxDecoration(
-										color: AppColors.surfaceAccent,
-										shape: BoxShape.circle,
-										border: Border.all(color: const Color(0x3300A86B)),
-									),
-									child: Icon(
-										Icons.swap_vert_rounded,
-										size: responsive.text(20),
-										color: AppColors.primary,
-									),
-								),
-							),
-						],
+						),
 					),
+					SizedBox(height: responsive.h(8)),
+					// Ville d'arrivée
+					Obx(() => _SearchAutocompleteField(
+						key: const ValueKey('dest-city'),
+						responsive: responsive,
+						label: "Ville d'arrivée",
+						icon: Icons.location_on_rounded,
+						iconColor: const Color(0xFFEF4444),
+						controller: controller.destinationCityController,
+						items: controller.beninCities,
+						isSelected: controller.selectedDestinationCity.value != null,
+						onSelected: controller.onDestinationCityChanged,
+						onTextChanged: controller.onDestinationCityTyped,
+					)),
+					SizedBox(height: responsive.h(6)),
+					// Quartier d'arrivée (optionnel)
+					Obx(() => _SearchAutocompleteField(
+						key: const ValueKey('dest-district'),
+						responsive: responsive,
+						label: "Quartier d'arrivée (optionnel)",
+						icon: Icons.location_on_outlined,
+						iconColor: const Color(0xFFEF4444),
+						controller: controller.destinationDistrictController,
+						items: controller.getDistricts(controller.selectedDestinationCity.value),
+						isSelected: controller.selectedDestinationDistrict.value != null,
+						onSelected: controller.onDestinationDistrictChanged,
+						onTextChanged: controller.onDestinationDistrictTyped,
+						enabled: controller.selectedDestinationCity.value != null,
+						optional: true,
+					)),
 					SizedBox(height: responsive.h(10)),
 					// Date + Heure row
 					Row(
@@ -304,59 +336,234 @@ class _SearchPanel extends StatelessWidget {
 	}
 }
 
-// ── Location Field ─────────────────────────────────────────────────────────
+// ── Search Autocomplete Field ──────────────────────────────────────────────
 
-class _LocationField extends StatelessWidget {
-	const _LocationField({
+class _SearchAutocompleteField extends StatefulWidget {
+	const _SearchAutocompleteField({
+		super.key,
 		required this.responsive,
+		required this.label,
 		required this.icon,
 		required this.iconColor,
-		required this.label,
-		required this.value,
-		required this.onTap,
+		required this.controller,
+		required this.items,
+		required this.isSelected,
+		required this.onSelected,
+		required this.onTextChanged,
+		this.enabled = true,
+		this.optional = false,
 	});
 
 	final AppResponsive responsive;
+	final String label;
 	final IconData icon;
 	final Color iconColor;
-	final String label;
-	final String value;
-	final VoidCallback onTap;
+	final TextEditingController controller;
+	final List<String> items;
+	final bool isSelected;
+	final ValueChanged<String?> onSelected;
+	final VoidCallback onTextChanged;
+	final bool enabled;
+	final bool optional;
+
+	@override
+	State<_SearchAutocompleteField> createState() => _SearchAutocompleteFieldState();
+}
+
+class _SearchAutocompleteFieldState extends State<_SearchAutocompleteField> {
+	late FocusNode _focusNode;
+	bool _showList = false;
+	List<String> _filtered = [];
+
+	@override
+	void initState() {
+		super.initState();
+		_focusNode = FocusNode();
+		_focusNode.addListener(_onFocusChange);
+		widget.controller.addListener(_onControllerChange);
+		_filtered = widget.items;
+	}
+
+	@override
+	void didUpdateWidget(_SearchAutocompleteField old) {
+		super.didUpdateWidget(old);
+		if (old.items != widget.items) {
+			setState(() {
+				_filtered = _filterItems(widget.controller.text);
+				_showList = false;
+			});
+		}
+	}
+
+	@override
+	void dispose() {
+		_focusNode.removeListener(_onFocusChange);
+		_focusNode.dispose();
+		widget.controller.removeListener(_onControllerChange);
+		super.dispose();
+	}
+
+	void _onFocusChange() {
+		if (_focusNode.hasFocus) {
+			setState(() {
+				_filtered = _filterItems(widget.controller.text);
+				_showList = widget.items.isNotEmpty;
+			});
+		} else {
+			Future.delayed(const Duration(milliseconds: 150), () {
+				if (mounted) setState(() => _showList = false);
+			});
+		}
+	}
+
+	void _onControllerChange() {
+		if (!_focusNode.hasFocus) return;
+		setState(() {
+			_filtered = _filterItems(widget.controller.text);
+			_showList = _filtered.isNotEmpty;
+		});
+	}
+
+	List<String> _filterItems(String text) {
+		if (text.isEmpty) return widget.items;
+		final q = text.toLowerCase();
+		return widget.items.where((item) => item.toLowerCase().contains(q)).toList();
+	}
+
+	void _onUserTyped(String text) {
+		setState(() {
+			_filtered = _filterItems(text);
+			_showList = _filtered.isNotEmpty;
+		});
+		widget.onTextChanged();
+	}
+
+	void _selectItem(String item) {
+		widget.controller.text = item;
+		widget.onSelected(item);
+		setState(() => _showList = false);
+		_focusNode.unfocus();
+	}
+
+	bool get _hasText => widget.controller.text.isNotEmpty;
+	bool get _isError => !widget.optional && _hasText && !widget.isSelected;
 
 	@override
 	Widget build(BuildContext context) {
-		return GestureDetector(
-			onTap: onTap,
-			child: Container(
-				padding: EdgeInsets.symmetric(horizontal: responsive.w(14), vertical: responsive.h(11)),
-				decoration: BoxDecoration(
-					color: AppColors.surfaceMuted,
-					borderRadius: BorderRadius.circular(responsive.radius(12)),
-					border: Border.all(color: AppColors.border),
-				),
-				child: Row(
-					children: [
-						Icon(icon, size: responsive.text(16), color: iconColor),
-						SizedBox(width: responsive.w(10)),
-						Expanded(
-							child: Column(
-								crossAxisAlignment: CrossAxisAlignment.start,
-								children: [
-									Text(
-										label,
-										style: AppTextStyles.caption(responsive).copyWith(
-											color: AppColors.textHint,
-											fontSize: responsive.text(10),
+		final responsive = widget.responsive;
+
+		final Color borderColor;
+		final Color effectiveIconColor;
+		if (widget.isSelected) {
+			borderColor = AppColors.primary;
+			effectiveIconColor = AppColors.primary;
+		} else if (_isError) {
+			borderColor = const Color(0xFFEF4444);
+			effectiveIconColor = const Color(0xFFEF4444);
+		} else {
+			borderColor = AppColors.border;
+			effectiveIconColor = widget.iconColor;
+		}
+
+		return Column(
+			crossAxisAlignment: CrossAxisAlignment.start,
+			children: [
+				Container(
+					decoration: BoxDecoration(
+						color: widget.enabled ? AppColors.surfaceMuted : AppColors.surface,
+						borderRadius: BorderRadius.circular(responsive.radius(12)),
+						border: Border.all(color: borderColor),
+					),
+					child: Row(
+						children: [
+							Padding(
+								padding: EdgeInsets.symmetric(horizontal: responsive.w(12)),
+								child: Icon(
+									widget.isSelected ? Icons.check_circle_rounded : widget.icon,
+									size: responsive.text(16),
+									color: effectiveIconColor,
+								),
+							),
+							Expanded(
+								child: Column(
+									crossAxisAlignment: CrossAxisAlignment.start,
+									children: [
+										Padding(
+											padding: EdgeInsets.only(top: responsive.h(8)),
+											child: Text(
+												widget.label,
+												style: AppTextStyles.caption(responsive).copyWith(
+													color: AppColors.textHint,
+													fontSize: responsive.text(10),
+												),
+											),
 										),
+										TextField(
+											controller: widget.controller,
+											focusNode: _focusNode,
+											enabled: widget.enabled,
+											onChanged: _onUserTyped,
+											style: AppTextStyles.subtitle(responsive),
+											decoration: InputDecoration(
+												hintText: 'Rechercher...',
+												hintStyle: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint),
+												isDense: true,
+												contentPadding: EdgeInsets.only(
+													bottom: responsive.h(8),
+													right: responsive.w(12),
+												),
+												border: InputBorder.none,
+											),
+										),
+									],
+								),
+							),
+							if (_isError)
+								Padding(
+									padding: EdgeInsets.symmetric(horizontal: responsive.w(8)),
+									child: Icon(Icons.close_rounded, size: responsive.text(14), color: const Color(0xFFEF4444)),
+								),
+						],
+					),
+				),
+				if (_showList && _filtered.isNotEmpty)
+					Container(
+						margin: EdgeInsets.only(top: responsive.h(2)),
+						constraints: BoxConstraints(maxHeight: responsive.h(160)),
+						decoration: BoxDecoration(
+							color: AppColors.white,
+							borderRadius: BorderRadius.circular(responsive.radius(10)),
+							border: Border.all(color: AppColors.border),
+							boxShadow: const [BoxShadow(color: Color(0x12000000), blurRadius: 8, offset: Offset(0, 2))],
+						),
+						child: ListView.builder(
+							shrinkWrap: true,
+							padding: EdgeInsets.symmetric(vertical: responsive.h(4)),
+							itemCount: _filtered.length,
+							itemBuilder: (_, i) {
+								final item = _filtered[i];
+								return InkWell(
+									onTap: () => _selectItem(item),
+									child: Padding(
+										padding: EdgeInsets.symmetric(horizontal: responsive.w(14), vertical: responsive.h(10)),
+										child: Text(item, style: AppTextStyles.body(responsive)),
 									),
-									Text(value, style: AppTextStyles.subtitle(responsive)),
-								],
+								);
+							},
+						),
+					),
+				if (_isError)
+					Padding(
+						padding: EdgeInsets.only(top: responsive.h(3), left: responsive.w(4)),
+						child: Text(
+							'Sélectionnez dans la liste',
+							style: AppTextStyles.caption(responsive).copyWith(
+								color: const Color(0xFFEF4444),
+								fontSize: responsive.text(10),
 							),
 						),
-						Icon(Icons.keyboard_arrow_down_rounded, size: responsive.text(18), color: AppColors.textHint),
-					],
-				),
-			),
+					),
+			],
 		);
 	}
 }

@@ -6,6 +6,7 @@ import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/search/passenger_search_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
+import 'package:covoiturage_benin_app/app/data/benin_locations_data.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
@@ -14,8 +15,22 @@ enum SortOption { relevance, priceLow, priceHigh, soonest, bestRated }
 class SearchController extends GetxController {
 	PassengerSearchService get _service => Get.find<PassengerSearchService>();
 
-	final RxString originCity = 'Cotonou'.obs;
-	final RxString destinationCity = 'Porto-Novo'.obs;
+	// Display fields – updated at search time, shown in collapsed bar and results header
+	final RxString originCity = ''.obs;
+	final RxString destinationCity = ''.obs;
+
+	// Selection state
+	final RxnString selectedOriginCity = RxnString();
+	final RxnString selectedOriginDistrict = RxnString();
+	final RxnString selectedDestinationCity = RxnString();
+	final RxnString selectedDestinationDistrict = RxnString();
+
+	// Text controllers for autocomplete fields
+	final TextEditingController originCityController = TextEditingController();
+	final TextEditingController originDistrictController = TextEditingController();
+	final TextEditingController destinationCityController = TextEditingController();
+	final TextEditingController destinationDistrictController = TextEditingController();
+
 	final RxString selectedDateLabel = 'Aujourd\'hui'.obs;
 	final RxInt passengerCount = 1.obs;
 	final RxBool isSearching = false.obs;
@@ -26,18 +41,13 @@ class SearchController extends GetxController {
 
 	DateTime? _selectedDate;
 
-	static const List<String> _cities = [
-		'Cotonou', 'Porto-Novo', 'Parakou', 'Abomey-Calavi',
-		'Bohicon', 'Lokossa', 'Natitingou', 'Abomey', 'Ouidah', 'Kandi',
-	];
-
 	// Filtres
 	final Rx<SortOption> sortOption = SortOption.relevance.obs;
 	final RxBool verifiedOnly = false.obs;
 	final RxBool highRatedOnly = false.obs;
 	final RxInt minSeatsFilter = 1.obs;
 	final RxBool bagsAllowed = false.obs;
-	final RxInt maxPrice = 9999.obs;
+	final RxInt maxPrice = 999999.obs;
 
 	int get activeFilterCount {
 		int count = 0;
@@ -46,7 +56,7 @@ class SearchController extends GetxController {
 		if (highRatedOnly.value) count++;
 		if (minSeatsFilter.value > 1) count++;
 		if (bagsAllowed.value) count++;
-		if (maxPrice.value < 9999) count++;
+		if (maxPrice.value < 999999) count++;
 		return count;
 	}
 
@@ -77,10 +87,71 @@ class SearchController extends GetxController {
 		return list;
 	}
 
+	// ── Location data ─────────────────────────────────────────────────────────
+
+	List<String> get beninCities => BeninLocations.cities;
+	List<String> getDistricts(String? city) => BeninLocations.getDistricts(city);
+
+	// ── Location: selection callbacks ─────────────────────────────────────────
+
+	void onOriginCityChanged(String? city) {
+		selectedOriginCity.value = city;
+		selectedOriginDistrict.value = null;
+		originCityController.text = city ?? '';
+		originDistrictController.text = '';
+	}
+
+	void onDestinationCityChanged(String? city) {
+		selectedDestinationCity.value = city;
+		selectedDestinationDistrict.value = null;
+		destinationCityController.text = city ?? '';
+		destinationDistrictController.text = '';
+	}
+
+	void onOriginDistrictChanged(String? district) {
+		selectedOriginDistrict.value = district;
+		originDistrictController.text = district ?? '';
+	}
+
+	void onDestinationDistrictChanged(String? district) {
+		selectedDestinationDistrict.value = district;
+		destinationDistrictController.text = district ?? '';
+	}
+
+	// ── Location: typing callbacks (invalidate current selection) ────────────
+
+	void onOriginCityTyped() {
+		selectedOriginCity.value = null;
+		selectedOriginDistrict.value = null;
+		originDistrictController.text = '';
+	}
+
+	void onDestinationCityTyped() {
+		selectedDestinationCity.value = null;
+		selectedDestinationDistrict.value = null;
+		destinationDistrictController.text = '';
+	}
+
+	void onOriginDistrictTyped() => selectedOriginDistrict.value = null;
+	void onDestinationDistrictTyped() => selectedDestinationDistrict.value = null;
+
+	// ── Actions ───────────────────────────────────────────────────────────────
+
 	void swapLocations() {
-		final tmp = originCity.value;
-		originCity.value = destinationCity.value;
-		destinationCity.value = tmp;
+		final tmpSelectedCity = selectedOriginCity.value;
+		final tmpCityText = originCityController.text;
+
+		selectedOriginCity.value = selectedDestinationCity.value;
+		originCityController.text = destinationCityController.text;
+
+		selectedDestinationCity.value = tmpSelectedCity;
+		destinationCityController.text = tmpCityText;
+
+		// Districts are city-specific; clear both after swap
+		selectedOriginDistrict.value = null;
+		originDistrictController.text = '';
+		selectedDestinationDistrict.value = null;
+		destinationDistrictController.text = '';
 	}
 
 	void incrementPassengers() => passengerCount.value += 1;
@@ -89,9 +160,43 @@ class SearchController extends GetxController {
 		if (passengerCount.value > 1) passengerCount.value -= 1;
 	}
 
-	Future<void> search() async {
+	@override
+	void onInit() {
+		super.onInit();
+		// Charge tous les trajets disponibles au démarrage
+		_loadAll();
+	}
+
+	Future<void> _loadAll() async {
 		isSearching.value = true;
 		hasError.value = false;
+
+		final result = await _service.searchRides(
+			origin: '',
+			destination: '',
+			passengers: passengerCount.value,
+		);
+
+		isSearching.value = false;
+		hasSearched.value = true;
+
+		if (result.isSuccess) {
+			_allRides.assignAll(result.data!);
+		} else {
+			hasError.value = true;
+		}
+	}
+
+	Future<void> search() async {
+		final origin = originCityController.text.trim();
+		final destination = destinationCityController.text.trim();
+
+		isSearching.value = true;
+		hasError.value = false;
+
+		// Met à jour l'affichage de la barre réduite
+		originCity.value = origin.isNotEmpty ? origin : 'Tous';
+		destinationCity.value = destination.isNotEmpty ? destination : 'Partout';
 
 		String? dateParam;
 		if (_selectedDate != null) {
@@ -101,11 +206,11 @@ class SearchController extends GetxController {
 		}
 
 		final result = await _service.searchRides(
-			origin: originCity.value,
-			destination: destinationCity.value,
+			origin: origin,
+			destination: destination,
 			date: dateParam,
 			passengers: passengerCount.value,
-			maxPrice: maxPrice.value < 9999 ? maxPrice.value : null,
+			maxPrice: maxPrice.value < 999999 ? maxPrice.value : null,
 		);
 
 		isSearching.value = false;
@@ -128,12 +233,20 @@ class SearchController extends GetxController {
 		highRatedOnly.value = false;
 		minSeatsFilter.value = 1;
 		bagsAllowed.value = false;
-		maxPrice.value = 9999;
+		maxPrice.value = 999999;
 	}
 
 	void resetSearch() {
-		originCity.value = 'Cotonou';
-		destinationCity.value = 'Porto-Novo';
+		selectedOriginCity.value = null;
+		selectedOriginDistrict.value = null;
+		selectedDestinationCity.value = null;
+		selectedDestinationDistrict.value = null;
+		originCityController.text = '';
+		originDistrictController.text = '';
+		destinationCityController.text = '';
+		destinationDistrictController.text = '';
+		originCity.value = '';
+		destinationCity.value = '';
 		selectedDateLabel.value = "Aujourd'hui";
 		selectedTimeLabel.value = 'Maintenant';
 		passengerCount.value = 1;
@@ -143,6 +256,7 @@ class SearchController extends GetxController {
 		_selectedDate = null;
 		_allRides.clear();
 		resetFilters();
+		_loadAll();
 	}
 
 	void reserveRide(SearchRide ride) {
@@ -186,15 +300,6 @@ class SearchController extends GetxController {
 				'${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
 	}
 
-	void selectCity(BuildContext context, bool isOrigin) {
-		showModalBottomSheet(
-			context: context,
-			backgroundColor: Colors.transparent,
-			isScrollControlled: true,
-			builder: (_) => _CityPickerSheet(isOrigin: isOrigin, controller: this),
-		);
-	}
-
 	void expandPanel() => isPanelExpanded.value = true;
 
 	void collapsePanel() => isPanelExpanded.value = false;
@@ -221,6 +326,15 @@ class SearchController extends GetxController {
 		final h = minutes ~/ 60;
 		final m = minutes % 60;
 		return m == 0 ? 'Dans ${h}h' : 'Dans ${h}h${m.toString().padLeft(2, '0')}';
+	}
+
+	@override
+	void onClose() {
+		originCityController.dispose();
+		originDistrictController.dispose();
+		destinationCityController.dispose();
+		destinationDistrictController.dispose();
+		super.onClose();
 	}
 }
 
@@ -510,104 +624,6 @@ class _ToggleRow extends StatelessWidget {
 						activeThumbColor: AppColors.primary,
 					activeTrackColor: AppColors.primary.withValues(alpha: 0.40),
 						materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-					),
-				],
-			),
-		);
-	}
-}
-
-// ── City Picker Sheet ──────────────────────────────────────────────────────
-
-class _CityPickerSheet extends StatelessWidget {
-	const _CityPickerSheet({required this.isOrigin, required this.controller});
-	final bool isOrigin;
-	final SearchController controller;
-
-	@override
-	Widget build(BuildContext context) {
-		final responsive = AppResponsive(context);
-		final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-		return Container(
-			constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.72),
-			decoration: BoxDecoration(
-				color: AppColors.white,
-				borderRadius: BorderRadius.vertical(top: Radius.circular(responsive.radius(24))),
-			),
-			child: Column(
-				mainAxisSize: MainAxisSize.min,
-				crossAxisAlignment: CrossAxisAlignment.start,
-				children: [
-					// Handle + title (fixed, never scrolls)
-					Padding(
-						padding: EdgeInsets.fromLTRB(responsive.w(20), responsive.h(8), responsive.w(20), 0),
-						child: Column(
-							crossAxisAlignment: CrossAxisAlignment.start,
-							children: [
-								Center(
-									child: Container(
-										width: responsive.w(40),
-										height: responsive.h(4),
-										decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)),
-									),
-								),
-								SizedBox(height: responsive.h(16)),
-								Text(
-									isOrigin ? 'Ville de départ' : "Ville d'arrivée",
-									style: AppTextStyles.title(responsive),
-								),
-								SizedBox(height: responsive.h(4)),
-							],
-						),
-					),
-					// City list — scrollable
-					Flexible(
-						child: SingleChildScrollView(
-							padding: EdgeInsets.fromLTRB(
-								responsive.w(16),
-								0,
-								responsive.w(16),
-								responsive.h(16) + bottomInset,
-							),
-							child: Column(
-								children: SearchController._cities.map((city) {
-									return Obx(() {
-										final selected = isOrigin
-												? controller.originCity.value == city
-												: controller.destinationCity.value == city;
-										return ListTile(
-											dense: true,
-											contentPadding: EdgeInsets.symmetric(horizontal: responsive.w(4)),
-											shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(responsive.radius(10))),
-											tileColor: selected ? AppColors.surfaceAccent : null,
-											leading: Icon(
-												isOrigin ? Icons.trip_origin_rounded : Icons.location_on_rounded,
-												color: isOrigin ? AppColors.primary : const Color(0xFFEF4444),
-												size: responsive.text(18),
-											),
-											title: Text(
-												city,
-												style: AppTextStyles.body(responsive).copyWith(
-													color: selected ? AppColors.primary : AppColors.textPrimary,
-													fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
-												),
-											),
-											trailing: selected
-													? Icon(Icons.check_rounded, color: AppColors.primary, size: responsive.text(18))
-													: null,
-											onTap: () {
-												if (isOrigin) {
-													controller.originCity.value = city;
-												} else {
-													controller.destinationCity.value = city;
-												}
-												Get.back();
-											},
-										);
-									});
-								}).toList(),
-							),
-						),
 					),
 				],
 			),

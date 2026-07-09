@@ -152,7 +152,7 @@ class DriverHomeView extends StatelessWidget {
 
                 _SectionTitle(responsive: responsive, title: 'Notifications'),
                 SizedBox(height: responsive.adaptive(label: 'gap', phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                Obx(() => _NotificationList(responsive: responsive, items: controller.notifications)),
+                Obx(() => _NotificationList(responsive: responsive, items: controller.notifications.toList())),
               ],
             ),
             ),

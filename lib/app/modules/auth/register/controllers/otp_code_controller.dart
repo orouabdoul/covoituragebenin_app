@@ -43,11 +43,8 @@ class OtpCodeController extends GetxController {
       _mode = arg['mode'] as AuthMode? ?? AuthMode.register;
       final otp = arg['testOtp'] as String?;
       if (otp != null && otp.isNotEmpty) testOtpCode.value = otp;
-      // Use server-supplied resend window (present on both 200 and 429).
       final resendIn = arg['resendIn'] as int?;
-      if (resendIn != null && resendIn > 0) {
-        resendSeconds.value = resendIn;
-      }
+      if (resendIn != null && resendIn > 0) resendSeconds.value = resendIn;
     } else if (arg is String && arg.trim().isNotEmpty) {
       phoneNumber.value = arg.trim();
     }
@@ -122,8 +119,7 @@ class OtpCodeController extends GetxController {
   }
 
   Future<void> resendCode() async {
-    if (!canResend) return;
-    if (isLoading.value) return;
+    if (!canResend || isLoading.value) return;
 
     isLoading.value = true;
     update();
@@ -131,30 +127,25 @@ class OtpCodeController extends GetxController {
     isLoading.value = false;
     update();
 
-    if (!result.isSuccess) {
-      UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
-      return;
-    }
-
-    final data = result.data!;
-    if (data.alreadyActive) {
-      // 429 — OTP still active, update timer with server-supplied remaining seconds.
-      resendSeconds.value = data.resendIn ?? _initialResendSeconds;
-      _startResendTimer();
-      UIHelper().showSnackBar(
-        'MINIZON',
-        'Un code est déjà actif. Renvoi disponible dans ${data.resendIn}s.',
-        1,
-      );
-    } else {
-      // 200 — new OTP sent, use server-supplied resend window.
+    if (result.isSuccess) {
+      final data = result.data!;
       resendSeconds.value = data.resendIn ?? _initialResendSeconds;
       _startResendTimer();
       if (data.otpCode != null && data.otpCode!.isNotEmpty) {
         testOtpCode.value = data.otpCode!;
       }
       update();
-      UIHelper().showSnackBar('MINIZON', 'Nouveau code envoyé.', 0);
+      if (data.alreadyActive) {
+        UIHelper().showSnackBar(
+          'MINIZON',
+          'Un code est déjà actif. Renvoi disponible dans ${data.resendIn}s.',
+          1,
+        );
+      } else {
+        UIHelper().showSnackBar('MINIZON', 'Nouveau code envoyé.', 0);
+      }
+    } else {
+      UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
     }
   }
 

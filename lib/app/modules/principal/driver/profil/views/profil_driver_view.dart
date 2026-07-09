@@ -98,6 +98,39 @@ class ProfilDriverView extends StatelessWidget {
                   responsive: responsive,
                   controller: controller,
                 ),
+                SizedBox(height: responsive.h(12)),
+                GestureDetector(
+                  onTap: controller.logoutAllDevices,
+                  child: Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(vertical: responsive.h(16)),
+                    decoration: ShapeDecoration(
+                      color: const Color(0xFFFFF1F1),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(responsive.radius(16)),
+                        side: const BorderSide(color: Color(0xFFFFCDD2)),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.logout_rounded,
+                          color: const Color(0xFFE53935),
+                          size: responsive.text(18),
+                        ),
+                        SizedBox(width: responsive.w(8)),
+                        Text(
+                          'Se déconnecter',
+                          style: AppTextStyles.profileSectionLabel(responsive).copyWith(
+                            color: const Color(0xFFE53935),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
