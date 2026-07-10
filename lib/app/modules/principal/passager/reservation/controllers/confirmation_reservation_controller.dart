@@ -8,6 +8,7 @@ import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/passenger_reservation_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 import '../../search/controllers/search_controller.dart';
@@ -152,15 +153,7 @@ class ConfirmationReservationController extends GetxController {
   void confirmReservation() async {
     final tripUuid = ride.value?.uuid ?? '';
     if (tripUuid.isEmpty) {
-      // Fallback — no UUID, navigate directly (legacy flow)
-      Get.toNamed(
-        AppRoutes.passengerWaitingApproval,
-        arguments: {
-          'ride': ride.value,
-          'seats': reservedSeats.value,
-          'paymentIndex': selectedPaymentIndex.value,
-        },
-      );
+      UIHelper().showSnackBar('MINIZON', 'Trajet introuvable.', 2);
       return;
     }
 
@@ -176,15 +169,12 @@ class ConfirmationReservationController extends GetxController {
     }
 
     _bookingUuid = result.data!;
-    Get.toNamed(
-      AppRoutes.passengerWaitingApproval,
-      arguments: {
-        'ride': ride.value,
-        'seats': reservedSeats.value,
-        'paymentIndex': selectedPaymentIndex.value,
-        'bookingUuid': _bookingUuid,
-      },
+    UIHelper().showSnackBar(
+      'Réservation confirmée !',
+      'Votre réservation a bien été enregistrée.',
+      3,
     );
+    BottonNavController.goToTab(2);
   }
 
   void sendOTP() {

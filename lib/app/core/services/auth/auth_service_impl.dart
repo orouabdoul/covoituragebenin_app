@@ -5,6 +5,7 @@ import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_dio.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/data/models/auth/auth_result.dart';
+import 'package:covoiturage_benin_app/app/data/models/auth/user_model.dart';
 import 'package:dio/dio.dart';
 import 'auth_service.dart';
 
@@ -125,9 +126,19 @@ class AuthServiceImpl implements AuthService {
       logger.d('me [${response.statusCode}] ${response.data}');
       if (response.statusCode == 200 && response.data['success'] == true) {
         final body = response.data['body'] as Map<String, dynamic>;
-        return ApiResult.success(AuthResult.fromJson(body));
+        // /me retourne les champs user directement dans body (pas de clé 'user')
+        final user = UserModel.fromJson(body);
+        final currentToken = await UserController.instance.getSessionToken();
+        final profileComplete = body['profile'] != null;
+        return ApiResult.success(AuthResult(
+          token: currentToken,
+          profileComplete: profileComplete,
+          isVerified: body['is_verified'] as bool? ?? false,
+          user: user,
+        ));
       }
       if (response.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (response.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('me: $e');

@@ -169,6 +169,8 @@ class ConversationApiMessage {
     this.title,
     this.subtitle,
     this.actionLabel,
+    this.attachmentUrl,
+    this.attachmentType,
   });
 
   final int id;
@@ -178,17 +180,23 @@ class ConversationApiMessage {
   final String? title;
   final String? subtitle;
   final String? actionLabel;
+  final String? attachmentUrl;  // URL de la pièce jointe
+  final String? attachmentType; // 'image' | 'document'
 
-  factory ConversationApiMessage.fromJson(Map<String, dynamic> j) =>
-      ConversationApiMessage(
-        id: j['id'] as int? ?? 0,
-        kind: j['kind'] as String? ?? 'incoming',
-        message: j['message'] as String? ?? '',
-        time: j['time'] as String? ?? '',
-        title: j['title'] as String?,
-        subtitle: j['subtitle'] as String?,
-        actionLabel: j['action_label'] as String?,
-      );
+  factory ConversationApiMessage.fromJson(Map<String, dynamic> j) {
+    final attachment = j['attachment'] as Map<String, dynamic>?;
+    return ConversationApiMessage(
+      id: j['id'] as int? ?? 0,
+      kind: j['kind'] as String? ?? 'incoming',
+      message: j['message'] as String? ?? '',
+      time: j['time'] as String? ?? '',
+      title: j['title'] as String?,
+      subtitle: j['subtitle'] as String?,
+      actionLabel: j['action_label'] as String?,
+      attachmentUrl: attachment?['url'] as String?,
+      attachmentType: attachment?['type'] as String?,
+    );
+  }
 }
 
 class ConversationThreadDetail {

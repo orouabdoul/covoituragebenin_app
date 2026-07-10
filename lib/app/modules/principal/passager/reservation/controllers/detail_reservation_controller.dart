@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
+import 'package:covoiturage_benin_app/app/core/services/passenger/messaging/passenger_messaging_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/passenger_reservation_service.dart';
+import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
+import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/models/passenger/reservations_model.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/passager/messager/controllers/messager_controller.dart';
@@ -18,7 +20,7 @@ class DetailReservationController extends GetxController {
   final RxBool isFavorite = false.obs;
   final RxBool isLoading = false.obs;
 
-  bool isExistingReservation = false;
+  final RxBool isExistingReservation = false.obs;
   ReservationStatus? reservationStatus;
   ReservationItem? _existingReservation;
 
@@ -34,19 +36,39 @@ class DetailReservationController extends GetxController {
   void onInit() {
     super.onInit();
     final arg = Get.arguments;
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      if (arg is ReservationItem) {
-        isExistingReservation = true;
-        reservationStatus = arg.status;
-        _existingReservation = arg;
-      } else if (arg is Map<String, dynamic>) {
-        final dynamic selectedRide = arg['ride'];
-        if (selectedRide is SearchRide) {
-          ride.value = selectedRide;
-          if (selectedRide.uuid.isNotEmpty) _fetchDetail(selectedRide.uuid);
-        }
+    if (arg is ReservationItem) {
+      isExistingReservation.value = true;
+      reservationStatus = arg.status;
+      _existingReservation = arg;
+      // Construire un SearchRide depuis la réservation pour afficher les infos
+      ride.value = SearchRide(
+        uuid: arg.id,
+        driverName: arg.driverName,
+        driverInitials: arg.driverInitials,
+        rating: arg.rating,
+        reviewCount: arg.reviewCount,
+        price: arg.totalPrice,
+        priceValue: arg.totalPriceValue,
+        origin: arg.departureCity,
+        destination: arg.arrivalCity,
+        departureTime: arg.departureTime,
+        departureNote: arg.departureNote,
+        arrivalTime: '',
+        arrivalNote: arg.arrivalNote,
+        duration: '',
+        vehicle: arg.vehicle,
+        vehiclePlate: arg.vehiclePlate,
+        seatsAvailable: arg.seatsCount,
+        minutesUntilDeparture: arg.minutesUntilDeparture,
+        isVerified: false,
+      );
+    } else if (arg is Map<String, dynamic>) {
+      final dynamic selectedRide = arg['ride'];
+      if (selectedRide is SearchRide) {
+        ride.value = selectedRide;
+        if (selectedRide.uuid.isNotEmpty) _fetchDetail(selectedRide.uuid);
       }
-    });
+    }
   }
 
   Future<void> _fetchDetail(String tripUuid) async {
@@ -56,7 +78,7 @@ class DetailReservationController extends GetxController {
     if (!result.isSuccess) return;
     final detail = result.data!;
     isFavorite.value = detail.isFavorite;
-    isExistingReservation = detail.isExistingReservation;
+    isExistingReservation.value = detail.isExistingReservation;
     if (detail.reservationStatus != null) {
       reservationStatus = _parseStatus(detail.reservationStatus!);
     }
@@ -105,19 +127,63 @@ class DetailReservationController extends GetxController {
     );
   }
 
-  void cancelReservation() => Get.back();
+  void payNow() {
+    if (_existingReservation != null) {
+      Get.toNamed(AppRoutes.passengerReservationPayment, arguments: _existingReservation);
+    }
+  }
 
-  void contactDriver() {
+  void cancelReservation() {
+    if (_existingReservation != null) {
+      // Déléguer l'annulation au ReservationController si disponible
+      if (Get.isRegistered<ReservationController>()) {
+        Get.find<ReservationController>().cancelReservation(_existingReservation!);
+      }
+      Get.back();
+    } else {
+      Get.back();
+    }
+  }
+
+  final RxBool isContactingDriver = false.obs;
+
+  Future<void> contactDriver() async {
     final r = _existingReservation;
-    if (r != null) {
+    if (r == null) {
+      // Depuis la fiche trajet sans réservation existante
+      final driverName = ride.value?.driverName ?? 'Votre conducteur';
+      MessagerController.openDriverChat(driverName: driverName);
+      return;
+    }
+
+    // UUID déjà connu (conversation déjà démarrée)
+    if (r.conversationUuid.isNotEmpty) {
       MessagerController.openDriverChat(
         driverName: r.driverName,
         tripRoute: '${r.departureCity} → ${r.arrivalCity}',
+        conversationUuid: r.conversationUuid,
       );
-    } else {
-      final driverName = ride.value?.driverName ?? 'Votre conducteur';
-      MessagerController.openDriverChat(driverName: driverName);
+      return;
     }
+
+    // Pas encore de conversation — on la crée via l'API
+    isContactingDriver.value = true;
+    final messaging = Get.find<PassengerMessagingService>();
+    final result = await messaging.startConversation(r.id);
+    isContactingDriver.value = false;
+
+    if (!result.isSuccess) {
+      if (result.error != AppError.socket) {
+        UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+      }
+      return;
+    }
+
+    MessagerController.openDriverChat(
+      driverName: r.driverName,
+      tripRoute: '${r.departureCity} → ${r.arrivalCity}',
+      conversationUuid: result.data!,
+    );
   }
 
   void toggleFavorite() {

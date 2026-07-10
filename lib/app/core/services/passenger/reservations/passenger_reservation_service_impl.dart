@@ -50,7 +50,7 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       final opts = await _authOptions();
       final res = await _dio.post(
         AppApi.createBooking(tripUuid),
-        data: {'seats': seats},
+        data: {'seats_booked': seats},
         options: opts,
       );
       logger.d('createBooking[$tripUuid] [${res.statusCode}] body=${res.data}');
@@ -77,6 +77,27 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
       logger.e('createBooking: $e');
+      return ApiResult.failure(AppError.unexpected);
+    }
+  }
+
+  @override
+  Future<ApiResult<void>> cancelBooking(String bookingUuid) async {
+    try {
+      final opts = await _authOptions();
+      final res = await _dio.post(AppApi.cancelBooking(bookingUuid), options: opts);
+      logger.d('cancelBooking[$bookingUuid] [${res.statusCode}] body=${res.data}');
+      if (res.statusCode == 200 || res.statusCode == 201) return ApiResult.success(null);
+      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
+      if (res.statusCode == 404) return ApiResult.failure(AppError.tripNotFound);
+      if (res.statusCode == 422) return ApiResult.failure(AppError.tripDataInvalid);
+      return ApiResult.failure(AppError.unexpected);
+    } on DioException catch (e) {
+      logger.e('cancelBooking: $e');
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
+      logger.e('cancelBooking: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }

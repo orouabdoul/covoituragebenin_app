@@ -62,8 +62,11 @@ class MessagerController extends GetxController {
       threads.assignAll(inbox.threads);
       totalUnread.value = inbox.totalUnread;
     } else {
-      hasError.value = true;
-      if (result.error != AppError.socket) {
+      // Si on a déjà des données, échec silencieux pour ne pas perturber l'UX
+      if (threads.isEmpty) {
+        hasError.value = true;
+      }
+      if (result.error != AppError.socket && threads.isEmpty) {
         UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
       }
     }

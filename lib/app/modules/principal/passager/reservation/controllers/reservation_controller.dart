@@ -111,6 +111,7 @@ class ReservationController extends GetxController {
 			refundStatus: _parseRefundStatus(a.refundStatus),
 			etaMinutes: a.etaMinutes,
 			timeAgo: a.timeAgo,
+			conversationUuid: a.conversationUuid,
 		);
 	}
 
@@ -188,8 +189,13 @@ class ReservationController extends GetxController {
 		);
 	}
 
-	void _performCancellation(ReservationItem r, int refundAmount) {
+	Future<void> _performCancellation(ReservationItem r, int refundAmount) async {
 		Get.back();
+		final result = await _service.cancelBooking(r.id);
+		if (!result.isSuccess) {
+			UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+			return;
+		}
 		final index = _allReservations.indexWhere((item) => item.id == r.id);
 		if (index >= 0) {
 			_allReservations[index] = r.copyWith(
@@ -622,6 +628,7 @@ class ReservationItem {
 		this.refundStatus = RefundStatus.none,
 		this.etaMinutes,
 		required this.timeAgo,
+		this.conversationUuid = '',
 	});
 
 	final String id;
@@ -650,6 +657,7 @@ class ReservationItem {
 	final RefundStatus refundStatus;
 	final int? etaMinutes;
 	final String timeAgo;
+	final String conversationUuid;
 
 	ReservationItem copyWith({
 		ReservationStatus? status,
@@ -686,6 +694,7 @@ class ReservationItem {
 			refundStatus: refundStatus ?? this.refundStatus,
 			etaMinutes: etaMinutes,
 			timeAgo: timeAgo,
+			conversationUuid: conversationUuid,
 		);
 	}
 }

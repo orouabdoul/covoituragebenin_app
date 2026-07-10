@@ -109,6 +109,7 @@ class AppApi {
   static String passengerReservationInvoice(String uuid) => '/passenger/reservations/$uuid/invoice';
   static String createBooking(String tripUuid) => '/trips/$tripUuid/bookings';
   static String initiateBookingPayment(String bookingUuid) => '/bookings/$bookingUuid/pay';
+  static String cancelBooking(String bookingUuid) => '/bookings/$bookingUuid/cancel';
 
   // Recherche — passager (public)
   static const String passengerSearch = '/passenger/search';
@@ -116,6 +117,7 @@ class AppApi {
   // Messagerie — passager
   static const String passengerMessager = '/passenger/messager';
   static String passengerConversationThread(String uuid) => '/passenger/conversations/$uuid/thread';
+  static String bookingStartConversation(String bookingUuid) => '/bookings/$bookingUuid/conversation';
 
   // Messagerie — conducteur
   static const String driverMessager = '/driver/messager';

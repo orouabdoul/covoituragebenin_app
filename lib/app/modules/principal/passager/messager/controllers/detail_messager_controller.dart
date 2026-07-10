@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/messaging/passenger_messaging_service.dart';
@@ -121,10 +122,85 @@ class DetailMessagerController extends GetxController {
       title: m.title ?? '',
       subtitle: m.subtitle ?? '',
       actionLabel: m.actionLabel ?? '',
+      attachmentUrl: m.attachmentUrl,
+      attachmentType: m.attachmentType,
     );
   }
 
   Future<void> loadMore() => _fetchThread(loadMore: true);
+
+  void openAttachmentPicker() {
+    Get.bottomSheet(
+      Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(
+              child: Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(9999)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text('Joindre un fichier', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 20),
+            _OptionTile(
+              icon: Icons.camera_alt_rounded,
+              label: 'Prendre une photo',
+              color: AppColors.primary,
+              onTap: () { Get.back(); _pickAndSend(ImageSource.camera); },
+            ),
+            const SizedBox(height: 10),
+            _OptionTile(
+              icon: Icons.photo_library_rounded,
+              label: 'Galerie photo',
+              color: const Color(0xFF6366F1),
+              onTap: () { Get.back(); _pickAndSend(ImageSource.gallery); },
+            ),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
+  }
+
+  Future<void> _pickAndSend(ImageSource source) async {
+    if (_uuid.isEmpty) {
+      UIHelper().showSnackBar('MINIZON', 'Conversation non initialisée.', 2);
+      return;
+    }
+    final picker = ImagePicker();
+    final file = await picker.pickImage(source: source, imageQuality: 85, maxWidth: 1920);
+    if (file == null) return;
+
+    final optimistic = DetailMessage(
+      kind: DetailMessageKind.outgoing,
+      message: '📷 Image en cours d\'envoi…',
+      time: 'maintenant',
+    );
+    messages.add(optimistic);
+
+    isSending.value = true;
+    final result = await _service.sendAttachment(_uuid, file.path);
+    isSending.value = false;
+
+    messages.remove(optimistic);
+
+    if (!result.isSuccess) {
+      if (result.error != null) {
+        UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+      }
+      return;
+    }
+
+    messages.add(_toDetailMessage(result.data!));
+  }
 
   Future<void> sendMessage() async {
     final text = messageController.text.trim();
@@ -412,6 +488,8 @@ class DetailMessage {
     this.title = '',
     this.subtitle = '',
     this.actionLabel = '',
+    this.attachmentUrl,
+    this.attachmentType,
   });
 
   final DetailMessageKind kind;
@@ -420,4 +498,9 @@ class DetailMessage {
   final String title;
   final String subtitle;
   final String actionLabel;
+  final String? attachmentUrl;  // null = pas de pièce jointe
+  final String? attachmentType; // 'image' | 'document'
+
+  bool get hasAttachment => attachmentUrl != null && attachmentUrl!.isNotEmpty;
+  bool get isImageAttachment => attachmentType == 'image';
 }

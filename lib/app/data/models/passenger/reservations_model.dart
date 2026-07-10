@@ -273,6 +273,7 @@ class ReservationApiItem {
     this.etaMinutes,
     required this.hasRated,
     required this.refundStatus,
+    required this.conversationUuid,
   });
 
   final String uuid;
@@ -297,6 +298,7 @@ class ReservationApiItem {
   final int? etaMinutes;
   final bool hasRated;
   final String refundStatus;
+  final String conversationUuid;
 
   factory ReservationApiItem.fromJson(Map<String, dynamic> j) => ReservationApiItem(
         uuid: j['uuid'] as String? ?? '',
@@ -321,6 +323,7 @@ class ReservationApiItem {
         etaMinutes: j['eta_minutes'] as int?,
         hasRated: j['has_rated'] as bool? ?? false,
         refundStatus: j['refund_status'] as String? ?? 'none',
+        conversationUuid: j['conversation_uuid'] as String? ?? '',
       );
 }
 

@@ -9,5 +9,8 @@ abstract class PassengerMessagingService {
     int perPage = 20,
   });
   Future<ApiResult<ConversationApiMessage>> sendMessage(String uuid, String message);
+  Future<ApiResult<ConversationApiMessage>> sendAttachment(String uuid, String filePath, {String? caption});
   Future<ApiResult<void>> markAsRead(String uuid);
+  /// Crée ou récupère la conversation liée à une réservation. Retourne le conversationUuid.
+  Future<ApiResult<String>> startConversation(String bookingUuid);
 }

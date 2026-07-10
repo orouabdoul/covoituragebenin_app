@@ -64,6 +64,7 @@ class SearchController extends GetxController {
 
 	List<SearchRide> get filteredSortedRides {
 		var list = _allRides.where((r) {
+			if (r.minutesUntilDeparture < 0) return false; // trajet déjà parti
 			if (verifiedOnly.value && !r.isVerified) return false;
 			if (highRatedOnly.value && double.parse(r.rating) < 4.5) return false;
 			if (r.seatsAvailable < minSeatsFilter.value) return false;

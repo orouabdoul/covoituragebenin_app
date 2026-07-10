@@ -8,6 +8,8 @@ class UserController extends GetxController {
   static const String _tokenTimestampKey = 'token_timestamp';
   static const String _roleStorageKey = 'user_role';
   static const String _profileCompleteKey = 'profile_complete';
+  static const String _accountVerifiedKey = 'account_verified';
+  static const String _accountBlockedKey = 'account_blocked';
   static const int _sessionDurationHours = 24;
 
   static UserController get instance => Get.find<UserController>();
@@ -16,6 +18,8 @@ class UserController extends GetxController {
   final RxString token = ''.obs;
   final RxString role = ''.obs;
   final RxBool profileComplete = false.obs;
+  final RxBool accountVerified = false.obs;
+  final RxBool accountBlocked = false.obs;
 
   @override
   void onInit() {
@@ -32,6 +36,8 @@ class UserController extends GetxController {
     user.value = u;
     token.value = t;
     profileComplete.value = isProfileComplete;
+    accountVerified.value = u.isVerified;
+    accountBlocked.value = u.isBlocked;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenStorageKey, t);
     await prefs.setInt(
@@ -39,6 +45,14 @@ class UserController extends GetxController {
       DateTime.now().millisecondsSinceEpoch,
     );
     await prefs.setBool(_profileCompleteKey, isProfileComplete);
+    await prefs.setBool(_accountVerifiedKey, u.isVerified);
+    await prefs.setBool(_accountBlockedKey, u.isBlocked);
+  }
+
+  Future<void> persistBlockedStatus({required bool blocked}) async {
+    accountBlocked.value = blocked;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_accountBlockedKey, blocked);
   }
 
   Future<void> setProfileComplete(bool value) async {
@@ -67,6 +81,8 @@ class UserController extends GetxController {
 
     token.value = stored;
     profileComplete.value = prefs.getBool(_profileCompleteKey) ?? false;
+    accountVerified.value = prefs.getBool(_accountVerifiedKey) ?? false;
+    accountBlocked.value = prefs.getBool(_accountBlockedKey) ?? false;
     return stored;
   }
 
@@ -96,6 +112,8 @@ class UserController extends GetxController {
     token.value = '';
     role.value = '';
     profileComplete.value = false;
+    accountVerified.value = false;
+    accountBlocked.value = false;
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
   }
@@ -106,6 +124,8 @@ class UserController extends GetxController {
     if (stored.isNotEmpty && token.value.isEmpty) {
       token.value = stored;
       profileComplete.value = prefs.getBool(_profileCompleteKey) ?? false;
+      accountVerified.value = prefs.getBool(_accountVerifiedKey) ?? false;
+      accountBlocked.value = prefs.getBool(_accountBlockedKey) ?? false;
     }
   }
 

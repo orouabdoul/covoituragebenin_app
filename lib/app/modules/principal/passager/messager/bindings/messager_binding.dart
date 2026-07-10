@@ -11,6 +11,6 @@ class MessagerBinding extends Bindings {
       () => PassengerMessagingServiceImpl(),
       fenix: true,
     );
-    Get.lazyPut<MessagerController>(() => MessagerController(), fenix: true);
+    Get.lazyPut<MessagerController>(() => MessagerController(), tag: 'passenger', fenix: true);
   }
 }

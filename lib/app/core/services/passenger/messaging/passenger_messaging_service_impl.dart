@@ -79,13 +79,53 @@ class PassengerMessagingServiceImpl implements PassengerMessagingService {
   }
 
   @override
+  Future<ApiResult<ConversationApiMessage>> sendAttachment(
+      String uuid, String filePath, {String? caption}) async {
+    try {
+      final opts = await _authOptions();
+      final formData = FormData.fromMap({
+        if (caption != null && caption.isNotEmpty) 'body': caption,
+        'attachment': await MultipartFile.fromFile(filePath),
+      });
+      final res = await _dio.post(
+        AppApi.conversationMessages(uuid),
+        data: formData,
+        options: Options(
+          validateStatus: (_) => true,
+          headers: {
+            'Authorization': opts.headers?['Authorization'],
+          },
+        ),
+      );
+      logger.d('passengerSendAttachment[$uuid] [${res.statusCode}]');
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        if (res.data['success'] == true) {
+          return ApiResult.success(
+            ConversationApiMessage.fromJson(
+              res.data['body'] as Map<String, dynamic>? ?? {},
+            ),
+          );
+        }
+      }
+      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      return ApiResult.failure(AppError.unexpected);
+    } on DioException catch (e) {
+      logger.e('passengerSendAttachment: $e');
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
+      logger.e('passengerSendAttachment: $e');
+      return ApiResult.failure(AppError.unexpected);
+    }
+  }
+
+  @override
   Future<ApiResult<ConversationApiMessage>> sendMessage(
       String uuid, String message) async {
     try {
       final opts = await _authOptions();
       final res = await _dio.post(
         AppApi.conversationMessages(uuid),
-        data: {'message': message},
+        data: {'body': message},
         options: opts,
       );
       logger.d('passengerSendMessage[$uuid] [${res.statusCode}]');
@@ -105,6 +145,32 @@ class PassengerMessagingServiceImpl implements PassengerMessagingService {
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
       logger.e('passengerSendMessage: $e');
+      return ApiResult.failure(AppError.unexpected);
+    }
+  }
+
+  @override
+  Future<ApiResult<String>> startConversation(String bookingUuid) async {
+    try {
+      final opts = await _authOptions();
+      final res = await _dio.post(
+        AppApi.bookingStartConversation(bookingUuid),
+        options: opts,
+      );
+      logger.d('startConversation[$bookingUuid] [${res.statusCode}]');
+      if ((res.statusCode == 200 || res.statusCode == 201) &&
+          res.data['success'] == true) {
+        final uuid = res.data['body']?['conversation_uuid'] as String? ?? '';
+        if (uuid.isEmpty) return ApiResult.failure(AppError.unexpected);
+        return ApiResult.success(uuid);
+      }
+      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      return ApiResult.failure(AppError.unexpected);
+    } on DioException catch (e) {
+      logger.e('startConversation: $e');
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
+      logger.e('startConversation: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }

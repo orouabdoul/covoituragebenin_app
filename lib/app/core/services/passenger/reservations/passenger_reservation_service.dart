@@ -6,6 +6,8 @@ abstract class PassengerReservationService {
 
   Future<ApiResult<String>> createBooking(String tripUuid, {required int seats});
 
+  Future<ApiResult<void>> cancelBooking(String bookingUuid);
+
   Future<ApiResult<void>> initiatePayment(
     String bookingUuid, {
     required String phone,

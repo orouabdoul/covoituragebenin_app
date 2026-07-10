@@ -16,9 +16,7 @@ class MessagerView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final MessagerController controller = Get.isRegistered<MessagerController>(tag: 'passenger')
-        ? Get.find<MessagerController>(tag: 'passenger')
-        : Get.put(MessagerController(), tag: 'passenger');
+    final MessagerController controller = Get.find<MessagerController>(tag: 'passenger');
     final responsive = AppResponsive(context);
     final double pagePadding = responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32);
 

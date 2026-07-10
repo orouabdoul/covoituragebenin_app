@@ -83,12 +83,16 @@ class DetailMessagerView extends GetView<DetailMessagerController> {
                               avatarUrl: controller.displayAvatarUrl.value,
                               message: message.message,
                               time: message.time,
+                              attachmentUrl: message.attachmentUrl,
+                              attachmentType: message.attachmentType,
                             );
                           case DetailMessageKind.outgoing:
                             return _OutgoingMessage(
                               responsive: responsive,
                               message: message.message,
                               time: message.time,
+                              attachmentUrl: message.attachmentUrl,
+                              attachmentType: message.attachmentType,
                             );
                           case DetailMessageKind.info:
                             return _LocationCard(
@@ -415,12 +419,16 @@ class _IncomingMessage extends StatelessWidget {
     required this.avatarUrl,
     required this.message,
     required this.time,
+    this.attachmentUrl,
+    this.attachmentType,
   });
 
   final AppResponsive responsive;
   final String? avatarUrl;
   final String message;
   final String time;
+  final String? attachmentUrl;
+  final String? attachmentType;
 
   @override
   Widget build(BuildContext context) {
@@ -449,12 +457,29 @@ class _IncomingMessage extends StatelessWidget {
                       ),
                     ),
                   ),
-                  child: Text(
-                    message,
-                    style: AppTextStyles.caption(responsive).copyWith(
-                      color: AppColors.textPrimary,
-                      height: 1.64,
-                    ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (attachmentUrl != null && attachmentUrl!.isNotEmpty)
+                        _AttachmentPreview(
+                          responsive: responsive,
+                          url: attachmentUrl!,
+                          isImage: attachmentType == 'image',
+                          isIncoming: true,
+                        ),
+                      if (message.isNotEmpty)
+                        Padding(
+                          padding: attachmentUrl != null ? EdgeInsets.only(top: responsive.h(8)) : EdgeInsets.zero,
+                          child: Text(
+                            message,
+                            style: AppTextStyles.caption(responsive).copyWith(
+                              color: AppColors.textPrimary,
+                              height: 1.64,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ),
@@ -469,11 +494,19 @@ class _IncomingMessage extends StatelessWidget {
 }
 
 class _OutgoingMessage extends StatelessWidget {
-  const _OutgoingMessage({required this.responsive, required this.message, required this.time});
+  const _OutgoingMessage({
+    required this.responsive,
+    required this.message,
+    required this.time,
+    this.attachmentUrl,
+    this.attachmentType,
+  });
 
   final AppResponsive responsive;
   final String message;
   final String time;
+  final String? attachmentUrl;
+  final String? attachmentType;
 
   @override
   Widget build(BuildContext context) {
@@ -500,12 +533,29 @@ class _OutgoingMessage extends StatelessWidget {
                     ),
                   ),
                 ),
-                child: Text(
-                  message,
-                  style: AppTextStyles.caption(responsive).copyWith(
-                    color: Colors.white,
-                    height: 1.64,
-                  ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (attachmentUrl != null && attachmentUrl!.isNotEmpty)
+                      _AttachmentPreview(
+                        responsive: responsive,
+                        url: attachmentUrl!,
+                        isImage: attachmentType == 'image',
+                        isIncoming: false,
+                      ),
+                    if (message.isNotEmpty)
+                      Padding(
+                        padding: attachmentUrl != null ? EdgeInsets.only(top: responsive.h(8)) : EdgeInsets.zero,
+                        child: Text(
+                          message,
+                          style: AppTextStyles.caption(responsive).copyWith(
+                            color: Colors.white,
+                            height: 1.64,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),
@@ -658,7 +708,7 @@ class _Composer extends StatelessWidget {
         AppCircularButton(
           responsive: responsive,
           icon: Icons.add_rounded,
-          onTap: controller.openMap,
+          onTap: controller.openAttachmentPicker,
           size: responsive.w(40),
           filled: false,
         ),
@@ -724,5 +774,79 @@ class _Avatar extends StatelessWidget {
           ? const Icon(Icons.person_rounded, size: 18, color: AppColors.textGhost)
           : null,
     );
+  }
+}
+
+class _AttachmentPreview extends StatelessWidget {
+  const _AttachmentPreview({
+    required this.responsive,
+    required this.url,
+    required this.isImage,
+    required this.isIncoming,
+  });
+
+  final AppResponsive responsive;
+  final String url;
+  final bool isImage;
+  final bool isIncoming;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isImage) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(responsive.radius(10)),
+        child: Image.network(
+          url,
+          width: responsive.w(220),
+          height: responsive.h(160),
+          fit: BoxFit.cover,
+          errorBuilder: (ctx, err, stack) => Container(
+            width: responsive.w(220),
+            height: responsive.h(80),
+            color: isIncoming ? const Color(0xFFE5E7EB) : Colors.white24,
+            child: Icon(Icons.broken_image_rounded,
+                color: isIncoming ? AppColors.textGhost : Colors.white54),
+          ),
+        ),
+      );
+    }
+
+    // Document
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: responsive.w(12), vertical: responsive.h(10)),
+      decoration: BoxDecoration(
+        color: isIncoming ? Colors.white : Colors.white24,
+        borderRadius: BorderRadius.circular(responsive.radius(10)),
+        border: Border.all(color: isIncoming ? AppColors.border : Colors.white38),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.insert_drive_file_rounded,
+              size: responsive.text(20),
+              color: isIncoming ? AppColors.primary : Colors.white),
+          SizedBox(width: responsive.w(8)),
+          Flexible(
+            child: Text(
+              _filename(url),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.caption(responsive).copyWith(
+                color: isIncoming ? AppColors.textPrimary : Colors.white,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _filename(String url) {
+    try {
+      return Uri.parse(url).pathSegments.last;
+    } catch (_) {
+      return 'Document';
+    }
   }
 }

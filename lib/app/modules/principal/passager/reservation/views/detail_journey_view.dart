@@ -16,11 +16,8 @@ class DetailJourneyView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final DetailReservationController controller = Get.isRegistered<DetailReservationController>()
-        ? Get.find<DetailReservationController>()
-        : Get.put(DetailReservationController());
+    final DetailReservationController controller = Get.find<DetailReservationController>();
     final responsive = AppResponsive(context);
-    final SearchRide? ride = controller.ride.value;
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -38,41 +35,46 @@ class DetailJourneyView extends StatelessWidget {
               children: [
                 _HeaderBar(responsive: responsive, controller: controller),
                 SizedBox(height: responsive.h(16)),
-                _DriverCard(responsive: responsive, ride: ride),
+                Obx(() => _DriverCard(responsive: responsive, ride: controller.ride.value)),
                 SizedBox(height: responsive.h(16)),
                 _MetricRow(responsive: responsive),
                 SizedBox(height: responsive.h(16)),
-                _VehicleCard(responsive: responsive, ride: ride),
+                Obx(() => _VehicleCard(responsive: responsive, ride: controller.ride.value)),
                 SizedBox(height: responsive.h(16)),
-                _ItineraryCard(responsive: responsive, ride: ride),
+                Obx(() => _ItineraryCard(responsive: responsive, ride: controller.ride.value)),
                 SizedBox(height: responsive.h(16)),
                 _ConditionsCard(responsive: responsive),
                 SizedBox(height: responsive.h(16)),
-                _PriceCard(responsive: responsive, ride: ride),
+                Obx(() => _PriceCard(responsive: responsive, ride: controller.ride.value)),
                 SizedBox(height: responsive.h(16)),
                 _ReviewsCard(responsive: responsive, controller: controller),
                 SizedBox(height: responsive.h(16)),
-                if (controller.isExistingReservation)
-                  _ExistingReservationActions(responsive: responsive, controller: controller)
-                else ...[
-                  AppPrimaryButton(
-                    responsive: responsive,
-                    label: AppStrings.searchReserve,
-                    onTap: controller.bookNow,
-                    backgroundColor: AppColors.primary,
-                    textColor: AppColors.white,
-                    borderRadius: responsive.radius(16),
-                    height: responsive.h(56),
-                  ),
-                  SizedBox(height: responsive.h(8)),
-                  Center(
-                    child: Text(
-                      AppStrings.reservationAcceptedCancellation,
-                      textAlign: TextAlign.center,
-                      style: AppTextStyles.body(responsive).copyWith(color: AppColors.textHint),
-                    ),
-                  ),
-                ],
+                Obx(() {
+                  if (controller.isExistingReservation.value) {
+                    return _ExistingReservationActions(responsive: responsive, controller: controller);
+                  }
+                  return Column(
+                    children: [
+                      AppPrimaryButton(
+                        responsive: responsive,
+                        label: AppStrings.searchReserve,
+                        onTap: controller.bookNow,
+                        backgroundColor: AppColors.primary,
+                        textColor: AppColors.white,
+                        borderRadius: responsive.radius(16),
+                        height: responsive.h(56),
+                      ),
+                      SizedBox(height: responsive.h(8)),
+                      Center(
+                        child: Text(
+                          AppStrings.reservationAcceptedCancellation,
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.body(responsive).copyWith(color: AppColors.textHint),
+                        ),
+                      ),
+                    ],
+                  );
+                }),
               ],
             ),
           ),
@@ -791,18 +793,60 @@ class _ExistingReservationActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = controller.reservationStatus;
+
     if (status == ReservationStatus.pending) {
       return Column(
         children: [
-          AppPrimaryButton(
+          // Bandeau info attente
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(responsive.w(14)),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF8E1),
+              borderRadius: BorderRadius.circular(responsive.radius(14)),
+              border: Border.all(color: const Color(0xFFFFE082)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.hourglass_top_rounded,
+                    size: responsive.text(18), color: const Color(0xFFFFA000)),
+                SizedBox(width: responsive.w(10)),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'En attente de confirmation',
+                        style: AppTextStyles.bodyMedium(responsive).copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFFF57F17),
+                        ),
+                      ),
+                      SizedBox(height: responsive.h(4)),
+                      Text(
+                        'Le conducteur doit confirmer votre réservation avant que vous puissiez procéder au paiement.',
+                        style: AppTextStyles.bodySmall(responsive).copyWith(
+                          color: const Color(0xFF795548),
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: responsive.h(12)),
+          Obx(() => AppPrimaryButton(
             responsive: responsive,
-            label: 'Contacter le conducteur',
-            onTap: controller.contactDriver,
+            label: controller.isContactingDriver.value ? 'Connexion…' : 'Contacter le conducteur',
+            onTap: controller.isContactingDriver.value ? () {} : controller.contactDriver,
             backgroundColor: AppColors.primary,
             textColor: AppColors.white,
             borderRadius: responsive.radius(16),
             height: responsive.h(56),
-          ),
+          )),
           SizedBox(height: responsive.h(12)),
           AppPrimaryButton(
             responsive: responsive,
@@ -816,18 +860,61 @@ class _ExistingReservationActions extends StatelessWidget {
         ],
       );
     }
+
     if (status == ReservationStatus.confirmed) {
-      return AppPrimaryButton(
-        responsive: responsive,
-        label: 'Contacter le conducteur',
-        onTap: controller.contactDriver,
-        backgroundColor: AppColors.primary,
-        textColor: AppColors.white,
-        borderRadius: responsive.radius(16),
-        height: responsive.h(56),
+      return Column(
+        children: [
+          // Bandeau info confirmé
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(responsive.w(14)),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F8F1),
+              borderRadius: BorderRadius.circular(responsive.radius(14)),
+              border: Border.all(color: const Color(0xFFC8E6C9)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.check_circle_rounded,
+                    size: responsive.text(18), color: const Color(0xFF43A047)),
+                SizedBox(width: responsive.w(10)),
+                Expanded(
+                  child: Text(
+                    'Réservation confirmée par le conducteur. Vous pouvez maintenant procéder au paiement.',
+                    style: AppTextStyles.bodySmall(responsive).copyWith(
+                      color: const Color(0xFF2E7D32),
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: responsive.h(12)),
+          AppPrimaryButton(
+            responsive: responsive,
+            label: 'Payer maintenant',
+            onTap: controller.payNow,
+            backgroundColor: AppColors.primary,
+            textColor: AppColors.white,
+            borderRadius: responsive.radius(16),
+            height: responsive.h(56),
+          ),
+          SizedBox(height: responsive.h(12)),
+          Obx(() => AppPrimaryButton(
+            responsive: responsive,
+            label: controller.isContactingDriver.value ? 'Connexion…' : 'Contacter le conducteur',
+            onTap: controller.isContactingDriver.value ? () {} : controller.contactDriver,
+            backgroundColor: AppColors.surfaceMuted,
+            textColor: AppColors.textPrimary,
+            borderRadius: responsive.radius(16),
+            height: responsive.h(56),
+          )),
+        ],
       );
     }
-    // completed, cancelled, inProgress → pas d'action depuis ce détail
+
+    // completed, cancelled, inProgress → pas d'action
     return const SizedBox.shrink();
   }
 }

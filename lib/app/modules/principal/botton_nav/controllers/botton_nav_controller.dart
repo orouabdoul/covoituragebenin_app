@@ -1,7 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
+import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
+import 'package:covoiturage_benin_app/app/core/services/auth/auth_service.dart';
+import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/driver/home/views/home_view.dart'
     as driver_home;
@@ -102,12 +107,26 @@ class BottonNavController extends GetxController {
     );
   }
 
+  final RxBool isCheckingStatus = true.obs;
+
   @override
   void onInit() {
     super.onInit();
     initialIndex = _resolveInitialIndex();
     currentIndex.value = initialIndex;
     pageController = PageController(initialPage: initialIndex);
+    // Toujours vérifier le vrai statut côté serveur au démarrage
+    _initialStatusCheck();
+  }
+
+  Future<void> _initialStatusCheck() async {
+    await refreshVerificationStatus();
+    isCheckingStatus.value = false;
+    final uc = UserController.instance;
+    // Démarrer le polling seulement si compte en attente
+    if (!uc.accountBlocked.value && !uc.accountVerified.value) {
+      _startVerificationPolling();
+    }
   }
 
   int _resolveInitialIndex() {
@@ -144,6 +163,53 @@ class BottonNavController extends GetxController {
     currentIndex.value = index;
   }
 
+  final RxBool isRefreshingStatus = false.obs;
+  Timer? _verificationTimer;
+
+  static const Duration _verificationPollInterval = Duration(seconds: 30);
+
+  void _startVerificationPolling() {
+    _verificationTimer?.cancel();
+    _verificationTimer = Timer.periodic(_verificationPollInterval, (_) {
+      final uc = UserController.instance;
+      if (uc.accountVerified.value || uc.accountBlocked.value) {
+        _verificationTimer?.cancel();
+        return;
+      }
+      refreshVerificationStatus();
+    });
+  }
+
+  Future<void> refreshVerificationStatus() async {
+    if (isRefreshingStatus.value) return;
+    isRefreshingStatus.value = true;
+    final result = await Get.find<AuthService>().me();
+    isRefreshingStatus.value = false;
+    if (!result.isSuccess) {
+      // 403 = compte suspendu côté serveur
+      if (result.error == AppError.permissionDenied) {
+        await UserController.instance.persistBlockedStatus(blocked: true);
+      }
+      return;
+    }
+    final auth = result.data!;
+    final uc = UserController.instance;
+    await uc.setUserAndToken(
+      auth.user,
+      auth.token,
+      isProfileComplete: auth.profileComplete,
+    );
+    if (uc.accountVerified.value) {
+      _verificationTimer?.cancel();
+    }
+  }
+
+  Future<void> logoutAndRedirect() async {
+    _verificationTimer?.cancel();
+    await Get.find<AuthService>().logout();
+    Get.offAllNamed(AppRoutes.register);
+  }
+
   void onNotificationTap() {
     final route = role == BottonNavRole.driver
         ? AppRoutes.driverNotifications
@@ -165,6 +231,7 @@ class BottonNavController extends GetxController {
 
   @override
   void onClose() {
+    _verificationTimer?.cancel();
     pageController.dispose();
     super.onClose();
   }

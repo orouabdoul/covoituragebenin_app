@@ -55,6 +55,7 @@ class OtpCodeController extends GetxController {
     final String digits = value.replaceAll(RegExp(r'\D'), '');
     enteredCode.value = digits.length > 6 ? digits.substring(0, 6) : digits;
     update();
+    if (canVerify) verifyCode();
   }
 
   Future<void> verifyCode() async {
