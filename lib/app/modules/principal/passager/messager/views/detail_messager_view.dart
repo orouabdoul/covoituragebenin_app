@@ -10,7 +10,7 @@ import 'package:covoiturage_benin_app/app/modules/widgets/app_field.dart';
 
 import '../controllers/detail_messager_controller.dart';
 
-class DetailMessagerView extends GetView<DetailMessagerController> {
+class DetailMessagerView extends GetView<PassengerDetailMessagerController> {
   const DetailMessagerView({super.key});
 
   @override
@@ -87,12 +87,16 @@ class DetailMessagerView extends GetView<DetailMessagerController> {
                               attachmentType: message.attachmentType,
                             );
                           case DetailMessageKind.outgoing:
-                            return _OutgoingMessage(
-                              responsive: responsive,
-                              message: message.message,
-                              time: message.time,
-                              attachmentUrl: message.attachmentUrl,
-                              attachmentType: message.attachmentType,
+                            return GestureDetector(
+                              onLongPress: () => controller.showMessageOptions(index, message),
+                              child: _OutgoingMessage(
+                                responsive: responsive,
+                                message: message.message,
+                                time: message.time,
+                                isEdited: message.isEdited,
+                                attachmentUrl: message.attachmentUrl,
+                                attachmentType: message.attachmentType,
+                              ),
                             );
                           case DetailMessageKind.info:
                             return _LocationCard(
@@ -131,7 +135,7 @@ class _ConversationHeader extends StatelessWidget {
   const _ConversationHeader({required this.responsive, required this.controller});
 
   final AppResponsive responsive;
-  final DetailMessagerController controller;
+  final PassengerDetailMessagerController controller;
 
   @override
   Widget build(BuildContext context) {
@@ -497,6 +501,7 @@ class _OutgoingMessage extends StatelessWidget {
     required this.responsive,
     required this.message,
     required this.time,
+    this.isEdited = false,
     this.attachmentUrl,
     this.attachmentType,
   });
@@ -504,6 +509,7 @@ class _OutgoingMessage extends StatelessWidget {
   final AppResponsive responsive;
   final String message;
   final String time;
+  final bool isEdited;
   final String? attachmentUrl;
   final String? attachmentType;
 
@@ -559,7 +565,22 @@ class _OutgoingMessage extends StatelessWidget {
               ),
             ),
             SizedBox(height: responsive.h(4)),
-            Text(time, style: AppTextStyles.caption(responsive)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (isEdited) ...[
+                  Text(
+                    'Modifié · ',
+                    style: AppTextStyles.caption(responsive).copyWith(
+                      color: AppColors.textGhost,
+                      fontSize: responsive.text(10),
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+                Text(time, style: AppTextStyles.caption(responsive)),
+              ],
+            ),
           ],
         ),
       ),
@@ -697,51 +718,140 @@ class _Composer extends StatelessWidget {
   const _Composer({required this.responsive, required this.controller});
 
   final AppResponsive responsive;
-  final DetailMessagerController controller;
+  final PassengerDetailMessagerController controller;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        AppCircularButton(
-          responsive: responsive,
-          icon: Icons.add_rounded,
-          onTap: controller.openAttachmentPicker,
-          size: responsive.w(40),
-          filled: false,
-        ),
-        SizedBox(width: responsive.w(12)),
-        Expanded(
-          child: AppField(
+        Obx(() {
+          final idx = controller.editingIndex.value;
+          if (idx == null) return const SizedBox.shrink();
+          final msg = idx < controller.messages.length ? controller.messages[idx] : null;
+          return _EditBanner(
             responsive: responsive,
-            label: '',
-            borderRadius: responsive.radius(9999),
-            backgroundColor: const Color(0xFFF9FAFB),
-            padding: EdgeInsets.symmetric(
-              horizontal: responsive.w(16),
-              vertical: responsive.h(12),
+            message: msg?.message ?? '',
+            onCancel: controller.cancelEdit,
+          );
+        }),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            AppCircularButton(
+              responsive: responsive,
+              icon: Icons.add_rounded,
+              onTap: controller.openAttachmentPicker,
+              size: responsive.w(40),
+              filled: false,
             ),
-            child: TextField(
-              controller: controller.messageController,
-              decoration: InputDecoration.collapsed(
-                hintText: AppStrings.messengerDetailInputHint,
-                hintStyle: AppTextStyles.caption(responsive).copyWith(color: AppColors.textGhost),
+            SizedBox(width: responsive.w(12)),
+            Expanded(
+              child: AppField(
+                responsive: responsive,
+                label: '',
+                borderRadius: responsive.radius(9999),
+                backgroundColor: const Color(0xFFF9FAFB),
+                padding: EdgeInsets.symmetric(
+                  horizontal: responsive.w(16),
+                  vertical: responsive.h(12),
+                ),
+                child: TextField(
+                  controller: controller.messageController,
+                  decoration: InputDecoration.collapsed(
+                    hintText: AppStrings.messengerDetailInputHint,
+                    hintStyle: AppTextStyles.caption(responsive).copyWith(color: AppColors.textGhost),
+                  ),
+                  style: AppTextStyles.caption(responsive).copyWith(color: Colors.black),
+                  maxLines: 1,
+                  scrollPhysics: const BouncingScrollPhysics(),
+                ),
               ),
-              style: AppTextStyles.caption(responsive).copyWith(color: Colors.black),
-              maxLines: null,
             ),
-          ),
-        ),
-        SizedBox(width: responsive.w(12)),
-        AppCircularButton(
-          responsive: responsive,
-          icon: Icons.send_rounded,
-          onTap: controller.sendMessage,
-          filled: true,
-          size: responsive.w(40),
+            SizedBox(width: responsive.w(12)),
+            Obx(() => AppCircularButton(
+              responsive: responsive,
+              icon: controller.editingIndex.value != null
+                  ? Icons.check_rounded
+                  : Icons.send_rounded,
+              onTap: controller.sendMessage,
+              filled: true,
+              size: responsive.w(40),
+            )),
+          ],
         ),
       ],
+    );
+  }
+}
+
+class _EditBanner extends StatelessWidget {
+  const _EditBanner({
+    required this.responsive,
+    required this.message,
+    required this.onCancel,
+  });
+
+  final AppResponsive responsive;
+  final String message;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: EdgeInsets.only(bottom: responsive.h(6)),
+      padding: EdgeInsets.symmetric(horizontal: responsive.w(12), vertical: responsive.h(8)),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(responsive.radius(12)),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.20)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 3,
+            height: responsive.h(32),
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(9999),
+            ),
+          ),
+          SizedBox(width: responsive.w(10)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Modifier le message',
+                  style: TextStyle(
+                    fontSize: responsive.text(12),
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                  ),
+                ),
+                SizedBox(height: responsive.h(2)),
+                Text(
+                  message,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: responsive.text(12),
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          GestureDetector(
+            onTap: onCancel,
+            child: Padding(
+              padding: EdgeInsets.all(responsive.w(4)),
+              child: Icon(Icons.close_rounded, size: responsive.text(18), color: AppColors.textMuted),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

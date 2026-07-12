@@ -45,8 +45,9 @@ class BookingServiceImpl implements BookingService {
   Future<ApiResult<void>> acceptBooking(String uuid) async {
     try {
       final opts = await _authOptions();
-      final response = await _dio.post(AppApi.bookingAccept(uuid), options: opts);
-      logger.d('acceptBooking [$uuid] [${response.statusCode}]');
+      final response = await _dio.post(AppApi.bookingAccept(uuid), data: {}, options: opts);
+      logger.d('acceptBooking [$uuid] [${response.statusCode}] body=${response.data}');
+      if (response.statusCode == 200 && response.data['success'] == true) return ApiResult.success(null);
       if (response.statusCode == 200) return ApiResult.success(null);
       if (response.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       if (response.statusCode == 422) return ApiResult.failure(AppError.validationError);
@@ -64,8 +65,9 @@ class BookingServiceImpl implements BookingService {
   Future<ApiResult<void>> rejectBooking(String uuid) async {
     try {
       final opts = await _authOptions();
-      final response = await _dio.post(AppApi.bookingReject(uuid), options: opts);
-      logger.d('rejectBooking [$uuid] [${response.statusCode}]');
+      final response = await _dio.post(AppApi.bookingReject(uuid), data: {}, options: opts);
+      logger.d('rejectBooking [$uuid] [${response.statusCode}] body=${response.data}');
+      if (response.statusCode == 200 && response.data['success'] == true) return ApiResult.success(null);
       if (response.statusCode == 200) return ApiResult.success(null);
       if (response.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       if (response.statusCode == 422) return ApiResult.failure(AppError.validationError);

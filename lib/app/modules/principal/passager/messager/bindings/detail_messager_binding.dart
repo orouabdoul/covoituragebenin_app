@@ -13,6 +13,6 @@ class DetailMessagerBinding extends Bindings {
         fenix: true,
       );
     }
-    Get.lazyPut<DetailMessagerController>(() => DetailMessagerController(), fenix: true);
+    Get.lazyPut<PassengerDetailMessagerController>(() => PassengerDetailMessagerController(), fenix: true);
   }
 }

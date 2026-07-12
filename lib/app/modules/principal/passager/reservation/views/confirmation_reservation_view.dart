@@ -662,36 +662,47 @@ class _SeatsCard extends StatelessWidget {
 								borderRadius: BorderRadius.circular(responsive.radius(16)),
 							),
 						),
-						child: Row(
-							mainAxisAlignment: MainAxisAlignment.spaceBetween,
-							children: [
-								AppCircularButton(
-									responsive: responsive,
-									icon: Icons.remove_rounded,
-									onTap: controller.decrementSeats,
-									size: responsive.w(48),
-								),
-								Obx(
-									() => Column(
+						child: Obx(() {
+							final current = controller.reservedSeats.value;
+							final max = controller.maxSeats;
+							return Row(
+								mainAxisAlignment: MainAxisAlignment.spaceBetween,
+								children: [
+									AppCircularButton(
+										responsive: responsive,
+										icon: Icons.remove_rounded,
+										onTap: controller.decrementSeats,
+										enabled: current > 1,
+										size: responsive.w(48),
+									),
+									Column(
 										children: [
 											Text(
-												controller.reservedSeats.value.toString(),
+												current.toString(),
 												textAlign: TextAlign.center,
 												style: AppTextStyles.price(responsive).copyWith(fontSize: responsive.text(30)),
 											),
 											Text(AppStrings.reservationSeatsReserved, style: AppTextStyles.caption(responsive)),
+											if (max > 0) ...[
+												SizedBox(height: responsive.h(4)),
+												Text(
+													'$max place(s) disponible(s)',
+													style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint, fontSize: responsive.text(10)),
+												),
+											],
 										],
 									),
-								),
-								AppCircularButton(
-									responsive: responsive,
-									icon: Icons.add_rounded,
-									onTap: controller.incrementSeats,
-									filled: true,
-									size: responsive.w(48),
-								),
-							],
-						),
+									AppCircularButton(
+										responsive: responsive,
+										icon: Icons.add_rounded,
+										onTap: controller.incrementSeats,
+										filled: true,
+										enabled: max <= 0 || current < max,
+										size: responsive.w(48),
+									),
+								],
+							);
+						}),
 					),
 				],
 			),

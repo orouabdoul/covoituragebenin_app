@@ -11,6 +11,31 @@ import 'passenger_reservation_service.dart';
 class PassengerReservationServiceImpl implements PassengerReservationService {
   final Dio _dio = AppDio.create();
 
+  // Searches every known field path for the booking UUID in an API response.
+  static String _extractBookingUuid(dynamic response) {
+    if (response is! Map) return '';
+    final candidates = <dynamic>[];
+
+    void collect(dynamic node) {
+      if (node is! Map) return;
+      candidates.addAll([
+        node['booking_uuid'],
+        node['uuid'],
+        node['id'],
+        node['booking_id'],
+      ]);
+      for (final sub in ['booking', 'body', 'data']) {
+        if (node[sub] is Map) collect(node[sub] as Map);
+      }
+    }
+
+    collect(response);
+    return candidates.whereType<String>().firstWhere(
+      (s) => s.isNotEmpty,
+      orElse: () => '',
+    );
+  }
+
   Future<Options> _authOptions() async {
     final token = await UserController.instance.getSessionToken();
     return Options(
@@ -56,16 +81,9 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       logger.d('createBooking[$tripUuid] [${res.statusCode}] body=${res.data}');
       if (res.statusCode == 200 || res.statusCode == 201) {
         final data = res.data;
-        if (data is Map && data['success'] == true) {
-          final body = data['body'];
-          String bookingUuid = '';
-          if (body is Map) {
-            bookingUuid = (body['booking_uuid'] ?? body['uuid'] ?? body['id'] ?? '') as String? ?? '';
-          }
-          return ApiResult.success(bookingUuid);
-        }
-        // success absent ou false : considérer quand même comme OK si 200/201
-        return ApiResult.success('');
+        final bookingUuid = _extractBookingUuid(data);
+        logger.d('createBooking UUID extracted: "$bookingUuid"');
+        return ApiResult.success(bookingUuid);
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       if (res.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
@@ -109,15 +127,34 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       final opts = await _authOptions();
       final res = await _dio.post(
         AppApi.initiateBookingPayment(bookingUuid),
-        data: {'phone': phone, 'provider': provider},
+        data: {'phone_number': phone, 'provider': provider},
         options: opts,
       );
-      logger.d('initiatePayment[$bookingUuid] [${res.statusCode}]');
+      logger.d('initiatePayment[$bookingUuid] [${res.statusCode}] body=${res.data}');
       if (res.statusCode == 200 || res.statusCode == 201) {
+        if (res.data is Map && res.data['success'] == false) {
+          logger.e('initiatePayment failed: ${res.data['message']}');
+          return ApiResult.failure(AppError.unexpected);
+        }
+        return ApiResult.success(null);
+      }
+      // 409 = paiement déjà effectué → traiter comme succès
+      if (res.statusCode == 409) {
+        logger.d('initiatePayment[$bookingUuid] already paid, treating as success');
         return ApiResult.success(null);
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
-      return ApiResult.failure(AppError.unexpected);
+      if (res.statusCode == 422) return ApiResult.failure(AppError.validationError);
+      if (res.statusCode == 500) return ApiResult.failure(AppError.paymentProviderError);
+      // 502 = FedaPay a rejeté la demande (mauvais numéro, réseau incorrect, sandbox…)
+      if (res.statusCode == 502) {
+        final msg = res.data is Map ? res.data['message'] as String? : null;
+        logger.e('initiatePayment 502: $msg');
+        return ApiResult.failure(AppError.paymentProviderError, message: msg);
+      }
+      logger.e('initiatePayment unexpected status ${res.statusCode}: ${res.data}');
+      final fallbackMsg = res.data is Map ? res.data['message'] as String? : null;
+      return ApiResult.failure(AppError.unexpected, message: fallbackMsg);
     } on DioException catch (e) {
       logger.e('initiatePayment: $e');
       return ApiResult.failure(AppDio.classifyDioError(e));

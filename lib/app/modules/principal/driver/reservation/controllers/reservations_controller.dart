@@ -320,9 +320,10 @@ class ReservationsController extends GetxController {
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
             Center(
               child: Container(
                 width: 40, height: 4,
@@ -417,6 +418,7 @@ class ReservationsController extends GetxController {
               ),
             ),
           ],
+        ),
         ),
       ),
       isScrollControlled: true,

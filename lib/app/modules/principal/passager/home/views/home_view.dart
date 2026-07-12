@@ -8,7 +8,6 @@ import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 
 import '../controllers/home_controller.dart';
-import '../../notifications/controllers/notifications_controller.dart';
 
 class HomeView extends StatelessWidget {
   const HomeView({super.key});
@@ -269,53 +268,6 @@ class _TopBar extends StatelessWidget {
             ),
             child: Icon(Icons.shield_rounded, color: AppColors.primary, size: responsive.text(18)),
           ),
-        ),
-        SizedBox(width: responsive.w(10)),
-        GestureDetector(
-          onTap: controller.openNotifications,
-          child: Obx(() {
-            final count = Get.find<NotificationsController>().unreadCount.value;
-            return Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  width: responsive.w(40),
-                  height: responsive.w(40),
-                  decoration: BoxDecoration(
-                    color: AppColors.white,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Icon(Icons.notifications_none_rounded, color: AppColors.textPrimary, size: responsive.text(20)),
-                ),
-                if (count > 0)
-                  Positioned(
-                    top: -responsive.h(2),
-                    right: -responsive.w(2),
-                    child: Container(
-                      constraints: BoxConstraints(minWidth: responsive.w(18), minHeight: responsive.w(18)),
-                      padding: EdgeInsets.symmetric(horizontal: responsive.w(4)),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEF4444),
-                        borderRadius: BorderRadius.circular(9999),
-                        border: Border.all(color: AppColors.white, width: 1.5),
-                      ),
-                      child: Center(
-                        child: Text(
-                          count > 9 ? '9+' : '$count',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: responsive.text(9),
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            );
-          }),
         ),
       ],
     );

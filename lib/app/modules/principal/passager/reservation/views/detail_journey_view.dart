@@ -8,6 +8,7 @@ import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 
 import '../../search/controllers/search_controller.dart';
+import '../bindings/detail_reservation_binding.dart';
 import '../controllers/detail_reservation_controller.dart';
 import '../controllers/reservation_controller.dart';
 
@@ -16,6 +17,9 @@ class DetailJourneyView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!Get.isRegistered<DetailReservationController>()) {
+      DetailReservationBinding().dependencies();
+    }
     final DetailReservationController controller = Get.find<DetailReservationController>();
     final responsive = AppResponsive(context);
 

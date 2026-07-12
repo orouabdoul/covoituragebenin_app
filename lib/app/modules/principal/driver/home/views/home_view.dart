@@ -1387,25 +1387,30 @@ class _QuickRequestCard extends StatelessWidget {
             ),
             SizedBox(width: responsive.w(8)),
             // Actions
-            Column(
-              children: [
-                _MiniButton(
-                  responsive: responsive,
-                  label: 'Accepter',
-                  bgColor: AppColors.primary,
-                  textColor: Colors.white,
-                  onTap: onAccept,
-                ),
-                SizedBox(height: responsive.h(6)),
-                _MiniButton(
-                  responsive: responsive,
-                  label: 'Refuser',
-                  bgColor: const Color(0xFFFEF2F2),
-                  textColor: const Color(0xFFE53935),
-                  onTap: onReject,
-                ),
-              ],
-            ),
+            Obx(() {
+              final processing = request.isProcessing.value;
+              return Column(
+                children: [
+                  _MiniButton(
+                    responsive: responsive,
+                    label: 'Accepter',
+                    bgColor: AppColors.primary,
+                    textColor: Colors.white,
+                    isLoading: processing,
+                    onTap: processing ? null : onAccept,
+                  ),
+                  SizedBox(height: responsive.h(6)),
+                  _MiniButton(
+                    responsive: responsive,
+                    label: 'Refuser',
+                    bgColor: const Color(0xFFFEF2F2),
+                    textColor: const Color(0xFFE53935),
+                    isLoading: false,
+                    onTap: processing ? null : onReject,
+                  ),
+                ],
+              );
+            }),
           ],
         ),
       );
@@ -1419,38 +1424,53 @@ class _MiniButton extends StatelessWidget {
     required this.label,
     required this.bgColor,
     required this.textColor,
-    required this.onTap,
+    this.onTap,
+    this.isLoading = false,
   });
   final AppResponsive responsive;
   final String label;
   final Color bgColor;
   final Color textColor;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(responsive.radius(8)),
-        child: Container(
-          width: responsive.w(70),
-          height: responsive.h(30),
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: BorderRadius.circular(responsive.radius(8)),
-            border: Border.all(color: bgColor.withValues(alpha: 0.50)),
-          ),
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: responsive.text(11),
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w700,
-                color: textColor,
-              ),
+    final disabled = onTap == null || isLoading;
+    return Opacity(
+      opacity: disabled ? 0.6 : 1.0,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(responsive.radius(8)),
+          child: Container(
+            width: responsive.w(70),
+            height: responsive.h(30),
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(responsive.radius(8)),
+              border: Border.all(color: bgColor.withValues(alpha: 0.50)),
+            ),
+            child: Center(
+              child: isLoading
+                  ? SizedBox(
+                      width: responsive.w(14),
+                      height: responsive.w(14),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(textColor),
+                      ),
+                    )
+                  : Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: responsive.text(11),
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w700,
+                        color: textColor,
+                      ),
+                    ),
             ),
           ),
         ),

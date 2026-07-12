@@ -38,6 +38,7 @@ class QuickRequest {
   final int seats;
   final int expiresInSeconds;
   final RxInt remainingSeconds;
+  final RxBool isProcessing = false.obs;
   Timer? _timer;
 
   String get countdownLabel {
@@ -251,7 +252,6 @@ class DriverHomeController extends GetxController {
 
   // ── Quick requests with countdown ────────────────────────────────────────
   final RxList<QuickRequest> quickRequests = <QuickRequest>[].obs;
-  final _processingIds = <String>{};
 
   // ── Mutable data (populated from API, fallback to defaults) ──────────────
   DriverSummary summary = const DriverSummary(
@@ -482,7 +482,7 @@ class DriverHomeController extends GetxController {
     }
     pendingRequestsCount.value = quickRequests.length;
 
-    recentRequests = data.recentRequests.where((r) => r.status != 'cancelled').map((r) {
+    recentRequests = data.recentRequests.where((r) => r.status != 'cancelled' && r.status != 'accepted').map((r) {
       final statusInfo = _requestStatusInfo(r.status);
       return DriverRequest(
         name: r.passenger.name,
@@ -679,10 +679,15 @@ class DriverHomeController extends GetxController {
   }
 
   Future<void> onQuickAccept(QuickRequest r) async {
-    if (_processingIds.contains(r.id)) return;
-    _processingIds.add(r.id);
+    if (r.isProcessing.value) return;
+    logger.d('onQuickAccept uuid=${r.id}');
+    if (r.id.isEmpty) {
+      UIHelper().showSnackBar('MINIZON', 'Identifiant de réservation manquant.', 2);
+      return;
+    }
+    r.isProcessing.value = true;
     final result = await Get.find<BookingService>().acceptBooking(r.id);
-    _processingIds.remove(r.id);
+    r.isProcessing.value = false;
     if (result.isSuccess) {
       r.cancelTimer();
       quickRequests.remove(r);
@@ -694,10 +699,15 @@ class DriverHomeController extends GetxController {
   }
 
   Future<void> onQuickReject(QuickRequest r) async {
-    if (_processingIds.contains(r.id)) return;
-    _processingIds.add(r.id);
+    if (r.isProcessing.value) return;
+    logger.d('onQuickReject uuid=${r.id}');
+    if (r.id.isEmpty) {
+      UIHelper().showSnackBar('MINIZON', 'Identifiant de réservation manquant.', 2);
+      return;
+    }
+    r.isProcessing.value = true;
     final result = await Get.find<BookingService>().rejectBooking(r.id);
-    _processingIds.remove(r.id);
+    r.isProcessing.value = false;
     if (result.isSuccess) {
       r.cancelTimer();
       quickRequests.remove(r);

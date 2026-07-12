@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart' hide SearchController;
+﻿import 'package:flutter/material.dart' hide SearchController;
 import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
-import '../../reservation/views/detail_journey_view.dart';
+import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import '../controllers/search_controller.dart';
 
 class SearchView extends StatelessWidget {
@@ -23,42 +23,47 @@ class SearchView extends StatelessWidget {
 				child: Center(
 					child: ConstrainedBox(
 						constraints: BoxConstraints(maxWidth: responsive.maxContentWidth),
-						child: Column(
-							children: [
-								_SearchPanel(responsive: responsive, controller: controller),
-								Expanded(
-									child: Obx(() {
-										if (controller.isSearching.value) {
-											return const Center(
-												child: CircularProgressIndicator(
-													color: AppColors.primary,
-													strokeWidth: 2.5,
-												),
-											);
-										}
-										final rides = controller.filteredSortedRides;
-										return ListView.separated(
-											padding: EdgeInsets.symmetric(
-												horizontal: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
-												vertical: responsive.h(16),
-											),
-											itemCount: rides.length + 1,
-											separatorBuilder: (_, _) => SizedBox(height: responsive.h(12)),
-											itemBuilder: (_, i) {
-												if (i == 0) {
-													return _ResultsHeader(responsive: responsive, controller: controller);
-												}
-												return _RideCard(
-													responsive: responsive,
-													ride: rides[i - 1],
-													controller: controller,
+						child: Obx(() {
+							if (controller.isPanelExpanded.value) {
+								return _SearchPanel(responsive: responsive, controller: controller);
+							}
+							return Column(
+								children: [
+									_SearchPanel(responsive: responsive, controller: controller),
+									Expanded(
+										child: Obx(() {
+											if (controller.isSearching.value) {
+												return const Center(
+													child: CircularProgressIndicator(
+														color: AppColors.primary,
+														strokeWidth: 2.5,
+													),
 												);
-											},
-										);
-									}),
-								),
-							],
-						),
+											}
+											final rides = controller.filteredSortedRides;
+											return ListView.separated(
+												padding: EdgeInsets.symmetric(
+													horizontal: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
+													vertical: responsive.h(16),
+												),
+												itemCount: rides.length + 1,
+												separatorBuilder: (_, _) => SizedBox(height: responsive.h(12)),
+												itemBuilder: (_, i) {
+													if (i == 0) {
+														return _ResultsHeader(responsive: responsive, controller: controller);
+													}
+													return _RideCard(
+														responsive: responsive,
+														ride: rides[i - 1],
+														controller: controller,
+													);
+												},
+											);
+										}),
+									),
+								],
+							);
+						}),
 					),
 				),
 			),
@@ -164,18 +169,16 @@ class _SearchPanel extends StatelessWidget {
 	// ── Expanded: full search form ───────────────────────────────────────────
 
 	Widget _buildExpanded(BuildContext context) {
+		final hp = responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32);
 		return Container(
 			decoration: const BoxDecoration(
 				color: AppColors.white,
 				border: Border(bottom: BorderSide(color: AppColors.border)),
 			),
-			padding: EdgeInsets.fromLTRB(
-				responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
-				responsive.h(12),
-				responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
-				responsive.h(12),
-			),
-			child: Column(
+			child: SingleChildScrollView(
+				keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+				padding: EdgeInsets.fromLTRB(hp, responsive.h(12), hp, responsive.h(12)),
+				child: Column(
 				crossAxisAlignment: CrossAxisAlignment.start,
 				children: [
 					// Title row
@@ -332,6 +335,7 @@ class _SearchPanel extends StatelessWidget {
 					)),
 				],
 			),
+		),
 		);
 	}
 }
@@ -755,8 +759,8 @@ class _RideCard extends StatelessWidget {
 	@override
 	Widget build(BuildContext context) {
 		return InkWell(
-			onTap: () => Get.to(
-				() => const DetailJourneyView(),
+			onTap: () => Get.toNamed(
+				AppRoutes.passengerReservationDetail,
 				arguments: {'ride': ride},
 			),
 			borderRadius: BorderRadius.circular(responsive.radius(16)),

@@ -6,6 +6,7 @@ import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/driver/home/controllers/home_controller.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/driver/profil/controllers/profil_driver_controller.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/passager/notifications/controllers/notifications_controller.dart';
 import '../controllers/botton_nav_controller.dart';
 import '../controllers/botton_nav_role.dart';
 
@@ -31,7 +32,8 @@ class BottonNavHeader extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
+          Expanded(
+            child: Row(
             children: [
               CircleAvatar(
                 radius: responsive.w(22),
@@ -51,13 +53,15 @@ class BottonNavHeader extends StatelessWidget {
                 ),
               ),
               SizedBox(width: responsive.w(12)),
-              Obx(() {
+              Flexible(
+                child: Obx(() {
+                controller.currentIndex.value; // always subscribe
                 String displayName = '';
                 String displayCity = '';
                 if (controller.role == BottonNavRole.driver &&
                     Get.isRegistered<DriverProfileController>()) {
                   final prof = Get.find<DriverProfileController>();
-                  prof.profileVersion.value; // subscribe
+                  prof.profileVersion.value;
                   displayName = prof.heroName;
                   displayCity = prof.heroLocation;
                 }
@@ -82,17 +86,24 @@ class BottonNavHeader extends StatelessWidget {
                   ],
                 );
               }),
+              ),
             ],
+            ),
           ),
 
           // Right actions
           Row(
             children: [
               Obx(() {
-                final count = controller.role == BottonNavRole.driver &&
-                        Get.isRegistered<DriverHomeController>()
-                    ? Get.find<DriverHomeController>().unreadNotifCount.value
-                    : 0;
+                controller.currentIndex.value; // always subscribe
+                int count = 0;
+                if (controller.role == BottonNavRole.driver &&
+                    Get.isRegistered<DriverHomeController>()) {
+                  count = Get.find<DriverHomeController>().unreadNotifCount.value;
+                } else if (controller.role == BottonNavRole.passenger &&
+                    Get.isRegistered<NotificationsController>()) {
+                  count = Get.find<NotificationsController>().unreadCount.value;
+                }
                 return Stack(
                   clipBehavior: Clip.none,
                   children: [

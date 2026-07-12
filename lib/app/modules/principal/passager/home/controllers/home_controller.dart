@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide SearchController;
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
@@ -6,6 +6,7 @@ import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/home/home_service.dart';
 import 'package:covoiturage_benin_app/app/data/models/passenger/home_model.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/passager/search/controllers/search_controller.dart';
 
 class HomeController extends GetxController {
   HomeController(this._homeService);
@@ -235,8 +236,24 @@ class HomeController extends GetxController {
   // ── Navigation ─────────────────────────────────────────────────────────────
   void openNotifications() => Get.toNamed(AppRoutes.passengerNotifications);
   void openTrustHub() => Get.toNamed(AppRoutes.passengerTrustHub);
-  void openSearch() => BottonNavController.goToTab(1);
-  void openRouteSearch(HomePopularRoute route) => BottonNavController.goToTab(1);
+
+  void openSearch() {
+    BottonNavController.goToTab(1);
+    if (Get.isRegistered<SearchController>()) {
+      Get.find<SearchController>().expandPanel();
+    }
+  }
+
+  void openRouteSearch(HomePopularRoute route) {
+    BottonNavController.goToTab(1);
+    if (Get.isRegistered<SearchController>()) {
+      final sc = Get.find<SearchController>();
+      sc.expandPanel();
+      sc.onOriginCityChanged(route.from);
+      sc.onDestinationCityChanged(route.to);
+    }
+  }
+
   void onSeeAllTrips() => BottonNavController.goToTab(1);
   void openReservations() => BottonNavController.goToTab(2);
   void openTripHistory() => Get.toNamed(AppRoutes.passengerTripHistory);

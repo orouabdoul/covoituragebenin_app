@@ -128,9 +128,13 @@ class DetailReservationController extends GetxController {
   }
 
   void payNow() {
-    if (_existingReservation != null) {
-      Get.toNamed(AppRoutes.passengerReservationPayment, arguments: _existingReservation);
-    }
+    if (_existingReservation == null) return;
+    final r = _existingReservation!;
+    Get.toNamed(AppRoutes.passengerReservationPayment, arguments: {
+      'bookingUuid': r.id,
+      'seats': r.seatsCount,
+      'ride': ride.value,
+    });
   }
 
   void cancelReservation() {

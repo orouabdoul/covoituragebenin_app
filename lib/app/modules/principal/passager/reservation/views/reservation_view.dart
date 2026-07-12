@@ -892,29 +892,62 @@ class _ActionButtons extends StatelessWidget {
 				],
 			);
 		}
-		return Row(
+		return Column(
 			children: [
-				Expanded(
-					child: _Btn(
-						responsive: responsive,
-						label: 'Contacter',
-						icon: Icons.chat_bubble_outline_rounded,
-						color: AppColors.textSecondary,
-						bg: AppColors.surfaceMuted,
-						border: AppColors.border,
-						onTap: () => controller.contactDriver(reservation),
+				Container(
+					width: double.infinity,
+					padding: EdgeInsets.symmetric(
+						vertical: responsive.h(10),
+						horizontal: responsive.w(14),
+					),
+					decoration: BoxDecoration(
+						color: const Color(0xFFD1FAE5),
+						borderRadius: BorderRadius.circular(10),
+						border: Border.all(color: const Color(0xFF6EE7B7)),
+					),
+					child: Row(
+						mainAxisAlignment: MainAxisAlignment.center,
+						children: [
+							const Icon(Icons.check_circle_rounded,
+									color: Color(0xFF059669), size: 16),
+							SizedBox(width: responsive.w(6)),
+							const Text(
+								'Payé',
+								style: TextStyle(
+									color: Color(0xFF065F46),
+									fontWeight: FontWeight.w700,
+									fontSize: 13,
+								),
+							),
+						],
 					),
 				),
-				SizedBox(width: responsive.w(10)),
-				Expanded(
-					child: _Btn(
-						responsive: responsive,
-						label: 'Voir trajet',
-						icon: Icons.map_outlined,
-						color: AppColors.white,
-						bg: AppColors.primary,
-						onTap: () => controller.viewDetails(reservation),
-					),
+				SizedBox(height: responsive.h(8)),
+				Row(
+					children: [
+						Expanded(
+							child: _Btn(
+								responsive: responsive,
+								label: 'Contacter',
+								icon: Icons.chat_bubble_outline_rounded,
+								color: AppColors.textSecondary,
+								bg: AppColors.surfaceMuted,
+								border: AppColors.border,
+								onTap: () => controller.contactDriver(reservation),
+							),
+						),
+						SizedBox(width: responsive.w(10)),
+						Expanded(
+							child: _Btn(
+								responsive: responsive,
+								label: 'Voir trajet',
+								icon: Icons.map_outlined,
+								color: AppColors.white,
+								bg: AppColors.primary,
+								onTap: () => controller.viewDetails(reservation),
+							),
+						),
+					],
 				),
 			],
 		);

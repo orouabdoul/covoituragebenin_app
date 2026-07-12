@@ -7,8 +7,8 @@ import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/passenger_reservation_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
+import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
-import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 import '../../search/controllers/search_controller.dart';
@@ -21,7 +21,7 @@ class ConfirmationReservationController extends GetxController {
 
   final Rxn<SearchRide> ride = Rxn<SearchRide>();
   final RxInt selectedPaymentIndex = 0.obs;
-  final RxInt reservedSeats = 2.obs;
+  final RxInt reservedSeats = 1.obs;
   final Rx<MobileMoneyService> selectedMobileService = MobileMoneyService.mtn.obs;
   final TextEditingController pickupController = TextEditingController();
   final TextEditingController dropoffController = TextEditingController();
@@ -40,6 +40,7 @@ class ConfirmationReservationController extends GetxController {
   final RxInt commissionRate = 10.obs;
   final RxInt maxPerBooking = 4.obs;
   int _pricePerSeat = 0;
+  String _bookingMode = 'approval';
 
   // Booking UUID obtained after createBooking API call
   String _bookingUuid = '';
@@ -71,9 +72,17 @@ class ConfirmationReservationController extends GetxController {
         if (selectedRide is SearchRide) {
           ride.value = selectedRide;
           if (selectedRide.uuid.isNotEmpty) _fetchContext(selectedRide.uuid);
+          // Clamp seats to what's actually available
+          final available = selectedRide.seatsAvailable;
+          if (available > 0 && reservedSeats.value > available) {
+            reservedSeats.value = available;
+          }
         }
         final dynamic seats = savedArgs['seats'];
-        if (seats is int) reservedSeats.value = seats;
+        if (seats is int) {
+          final available = ride.value?.seatsAvailable ?? 0;
+          reservedSeats.value = (available > 0 && seats > available) ? available : seats;
+        }
         final dynamic idx = savedArgs['paymentIndex'];
         if (idx is int) selectedPaymentIndex.value = idx;
         final dynamic bUuid = savedArgs['bookingUuid'];
@@ -91,6 +100,7 @@ class ConfirmationReservationController extends GetxController {
     commissionRate.value = ctx.commissionRate;
     maxPerBooking.value = ctx.trip.maxPerBooking;
     _pricePerSeat = ctx.trip.pricePerSeat;
+    _bookingMode = ctx.trip.bookingMode;
     // Pre-fill phone
     if (ctx.userPhone.isNotEmpty) {
       paymentContactController.text = ctx.userPhone;
@@ -143,7 +153,18 @@ class ConfirmationReservationController extends GetxController {
   String get cardCodeLabel => AppStrings.reservationCardCodeLabel;
   String get cardCodeHint => AppStrings.reservationCardCodeHint;
 
-  void incrementSeats() => reservedSeats.value += 1;
+  int get maxSeats {
+    final available = ride.value?.seatsAvailable ?? 0;
+    final cap = maxPerBooking.value;
+    if (available > 0) return available < cap ? available : cap;
+    return cap;
+  }
+
+  void incrementSeats() {
+    final max = maxSeats;
+    if (max > 0 && reservedSeats.value >= max) return;
+    reservedSeats.value += 1;
+  }
 
   void decrementSeats() {
     if (reservedSeats.value <= 1) return;
@@ -169,12 +190,40 @@ class ConfirmationReservationController extends GetxController {
     }
 
     _bookingUuid = result.data!;
-    UIHelper().showSnackBar(
-      'Réservation confirmée !',
-      'Votre réservation a bien été enregistrée.',
-      3,
-    );
-    BottonNavController.goToTab(2);
+    logger.d('confirmReservation bookingUuid=$_bookingUuid mode=$_bookingMode');
+
+    if (_bookingUuid.isEmpty) {
+      logger.w('createBooking succeeded but UUID is empty — check API response');
+      UIHelper().showSnackBar(
+        'Réservation créée',
+        'Votre réservation est enregistrée. Consultez Mes Réservations.',
+        0,
+      );
+      Get.back();
+      return;
+    }
+
+    if (_bookingMode == 'instant') {
+      Get.toNamed(
+        AppRoutes.passengerReservationPayment,
+        arguments: {
+          'ride': ride.value,
+          'seats': reservedSeats.value,
+          'bookingUuid': _bookingUuid,
+          'paymentIndex': selectedPaymentIndex.value,
+        },
+      );
+    } else {
+      Get.toNamed(
+        AppRoutes.passengerWaitingApproval,
+        arguments: {
+          'ride': ride.value,
+          'seats': reservedSeats.value,
+          'bookingUuid': _bookingUuid,
+          'paymentIndex': selectedPaymentIndex.value,
+        },
+      );
+    }
   }
 
   void sendOTP() {
@@ -210,44 +259,39 @@ class ConfirmationReservationController extends GetxController {
   }
 
   Future<void> confirmPayment() async {
-    if (_bookingUuid.isNotEmpty) {
-      isProcessingPayment.value = true;
-      final phone = paymentContactController.text.trim();
-      final provider = selectedMobileService.value.name;
-      final result = await _service.initiatePayment(
-        _bookingUuid,
-        phone: phone,
-        provider: provider,
-      );
-      isProcessingPayment.value = false;
-      if (!result.isSuccess) {
-        if (result.error != AppError.socket) {
-          UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
-        }
-        return;
-      }
-      Get.toNamed(
-        AppRoutes.passengerPaymentSuccess,
-        arguments: {
-          'ride': ride.value,
-          'bookingUuid': _bookingUuid,
-          'seats': reservedSeats.value,
-        },
-      );
+    if (_bookingUuid.isEmpty) {
+      UIHelper().showSnackBar('MINIZON', 'Réservation introuvable. Veuillez recommencer.', 3);
       return;
     }
 
-    // Legacy fallback
+    final phone = paymentContactController.text.trim();
+    if (phone.isEmpty) {
+      UIHelper().showSnackBar('MINIZON', 'Veuillez entrer votre numéro de téléphone.', 2);
+      return;
+    }
+
     isProcessingPayment.value = true;
-    await Future.delayed(const Duration(milliseconds: 1800));
+    final provider = selectedMobileService.value.name;
+    logger.d('confirmPayment bookingUuid=$_bookingUuid phone=$phone provider=$provider');
+    final result = await _service.initiatePayment(
+      _bookingUuid,
+      phone: phone,
+      provider: provider,
+    );
     isProcessingPayment.value = false;
-    final ref = '#TXN-${(DateTime.now().millisecondsSinceEpoch % 100000).toString().padLeft(5, '0')}';
+
+    if (!result.isSuccess) {
+      if (result.error != AppError.socket) {
+        UIHelper().showSnackBar('MINIZON', result.displayMessage, 2);
+      }
+      return;
+    }
+
     Get.toNamed(
       AppRoutes.passengerPaymentSuccess,
       arguments: {
         'ride': ride.value,
-        'ref': ref,
-        'amount': totalAmount,
+        'bookingUuid': _bookingUuid,
         'seats': reservedSeats.value,
       },
     );

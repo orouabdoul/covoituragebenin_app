@@ -141,7 +141,10 @@ class ReservationController extends GetxController {
 			Get.toNamed(AppRoutes.passengerReservationDetail, arguments: r);
 
 	void payNow(ReservationItem r) =>
-			Get.toNamed(AppRoutes.passengerReservationPayment, arguments: r);
+			Get.toNamed(AppRoutes.passengerReservationPayment, arguments: {
+				'bookingUuid': r.id,
+				'seats': r.seatsCount,
+			});
 
 	void contactDriver(ReservationItem r) =>
 			MessagerController.openDriverChat(

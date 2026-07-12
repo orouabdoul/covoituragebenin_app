@@ -9,7 +9,7 @@ import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/messenger_model.dart';
 
-class DetailMessagerController extends GetxController {
+class PassengerDetailMessagerController extends GetxController {
   PassengerMessagingService get _service => Get.find<PassengerMessagingService>();
 
   final TextEditingController messageController = TextEditingController();
@@ -19,6 +19,9 @@ class DetailMessagerController extends GetxController {
   final RxBool isSending = false.obs;
   final RxBool isLoadingMore = false.obs;
   final RxBool hasMore = false.obs;
+
+  // Edit mode
+  final Rxn<int> editingIndex = Rxn<int>();
 
   final RxList<DetailMessage> messages = <DetailMessage>[].obs;
 
@@ -205,6 +208,18 @@ class DetailMessagerController extends GetxController {
   Future<void> sendMessage() async {
     final text = messageController.text.trim();
     if (text.isEmpty) return;
+
+    // Edit mode — update message in place
+    if (editingIndex.value != null) {
+      final idx = editingIndex.value!;
+      if (idx < messages.length) {
+        messages[idx] = messages[idx].copyWith(message: text, isEdited: true);
+      }
+      messageController.clear();
+      editingIndex.value = null;
+      return;
+    }
+
     messageController.clear();
 
     final optimistic = DetailMessage(
@@ -226,6 +241,119 @@ class DetailMessagerController extends GetxController {
         UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
       }
     }
+  }
+
+  void cancelEdit() {
+    editingIndex.value = null;
+    messageController.clear();
+  }
+
+  void showMessageOptions(int index, DetailMessage msg) {
+    final canEdit = msg.message.isNotEmpty && !msg.hasAttachment;
+    Get.bottomSheet(
+      Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(9999),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3F4F6),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Text(
+                msg.message.isNotEmpty ? msg.message : '📷 Image',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
+              ),
+            ),
+            const SizedBox(height: 16),
+            _OptionTile(
+              icon: Icons.copy_rounded,
+              label: 'Copier le texte',
+              color: AppColors.textSecondary,
+              onTap: () {
+                Get.back();
+                if (msg.message.isNotEmpty) {
+                  Clipboard.setData(ClipboardData(text: msg.message));
+                  UIHelper().showSnackBar('MINIZON', 'Message copié.', 0);
+                }
+              },
+            ),
+            if (canEdit) ...[
+              const SizedBox(height: 10),
+              _OptionTile(
+                icon: Icons.edit_rounded,
+                label: 'Modifier le message',
+                color: AppColors.primary,
+                onTap: () {
+                  Get.back();
+                  editingIndex.value = index;
+                  messageController.text = msg.message;
+                  messageController.selection = TextSelection.fromPosition(
+                    TextPosition(offset: msg.message.length),
+                  );
+                },
+              ),
+            ],
+            const SizedBox(height: 10),
+            _OptionTile(
+              icon: Icons.delete_outline_rounded,
+              label: 'Supprimer le message',
+              color: const Color(0xFFEF4444),
+              onTap: () {
+                Get.back();
+                Get.dialog(
+                  AlertDialog(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    title: const Row(children: [
+                      Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444), size: 20),
+                      SizedBox(width: 8),
+                      Expanded(child: Text('Supprimer ce message ?', style: TextStyle(fontSize: 15))),
+                    ]),
+                    content: const Text('Ce message sera supprimé pour vous uniquement.'),
+                    actions: [
+                      TextButton(onPressed: Get.back, child: const Text('Annuler')),
+                      TextButton(
+                        onPressed: () {
+                          Get.back();
+                          if (index < messages.length) messages.removeAt(index);
+                        },
+                        child: const Text(
+                          'Supprimer',
+                          style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
   }
 
   void onCall() {
@@ -485,6 +613,7 @@ class DetailMessage {
     required this.kind,
     this.message = '',
     this.time = '',
+    this.isEdited = false,
     this.title = '',
     this.subtitle = '',
     this.actionLabel = '',
@@ -495,12 +624,25 @@ class DetailMessage {
   final DetailMessageKind kind;
   final String message;
   final String time;
+  final bool isEdited;
   final String title;
   final String subtitle;
   final String actionLabel;
-  final String? attachmentUrl;  // null = pas de pièce jointe
-  final String? attachmentType; // 'image' | 'document'
+  final String? attachmentUrl;
+  final String? attachmentType;
 
   bool get hasAttachment => attachmentUrl != null && attachmentUrl!.isNotEmpty;
   bool get isImageAttachment => attachmentType == 'image';
+
+  DetailMessage copyWith({String? message, bool? isEdited}) => DetailMessage(
+    kind: kind,
+    message: message ?? this.message,
+    time: time,
+    isEdited: isEdited ?? this.isEdited,
+    title: title,
+    subtitle: subtitle,
+    actionLabel: actionLabel,
+    attachmentUrl: attachmentUrl,
+    attachmentType: attachmentType,
+  );
 }

@@ -165,7 +165,9 @@ class DashboardRequestData {
 
   factory DashboardRequestData.fromJson(Map<String, dynamic> json) =>
       DashboardRequestData(
-        uuid: (json['uuid'] as String?) ?? '',
+        uuid: (json['uuid'] as String?)?.isNotEmpty == true
+            ? json['uuid'] as String
+            : (json['id'] as String?) ?? (json['booking_uuid'] as String?) ?? '',
         status: (json['status'] as String?) ?? '',
         seatsBooked: (json['seats_booked'] as num?)?.toInt() ?? 1,
         createdAt: (json['created_at'] as String?) ?? '',
