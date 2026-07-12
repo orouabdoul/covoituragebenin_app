@@ -5,7 +5,6 @@ import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/wallet/wallet_service.dart';
-import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 
 class RevenusController extends GetxController {
@@ -31,21 +30,9 @@ class RevenusController extends GetxController {
     WeeklyRevenuePoint(label: 'Dim', amount: 0),
   ];
 
-  final _defaultMethods = const [
-    RevenueMethod(title: 'MTN Mobile Money', subtitle: '+229 97 ** ** 45',
-        icon: Icons.phone_android_rounded, color: Color(0xFFF4B400)),
-    RevenueMethod(title: 'Moov Money', subtitle: '+229 96 ** ** 12',
-        icon: Icons.phone_android_rounded, color: Color(0xFF6366F1)),
-    RevenueMethod(title: 'Celtiis Cash', subtitle: '+229 95 ** ** 78',
-        icon: Icons.phone_android_rounded, color: Color(0xFFE31E24)),
-    RevenueMethod(title: 'Compte bancaire', subtitle: '****4582',
-        icon: Icons.account_balance_outlined, color: Color(0xFF00A86B)),
-  ];
-
   @override
   void onInit() {
     super.onInit();
-    methods.assignAll(_defaultMethods);
     _loadWallet();
   }
 

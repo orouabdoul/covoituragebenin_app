@@ -112,13 +112,20 @@ class DriverHomeView extends StatelessWidget {
 
                 SizedBox(height: responsive.adaptive(label: 'gap', phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
 
-                _SectionTitle(responsive: responsive, title: AppStrings.dashboardNextTrip),
-                SizedBox(height: responsive.adaptive(label: 'gap', phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                _NextTripCard(responsive: responsive, trip: controller.nextTrip, onSeeDetails: controller.onSeeDetails, onContact: controller.onContact),
+                if (controller.nextTrip.uuid.isNotEmpty) ...[
+                  _SectionTitle(responsive: responsive, title: AppStrings.dashboardNextTrip),
+                  SizedBox(height: responsive.adaptive(label: 'gap', phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+                  _NextTripCard(responsive: responsive, trip: controller.nextTrip, onSeeDetails: controller.onSeeDetails, onContact: controller.onContact),
+                  SizedBox(height: responsive.adaptive(label: 'gap', phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
+                ],
 
-                SizedBox(height: responsive.adaptive(label: 'gap', phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
-
-                _SectionHeader(responsive: responsive, title: AppStrings.dashboardRecentRequests, badge: AppStrings.dashboardTwoNew),
+                _SectionHeader(
+                  responsive: responsive,
+                  title: AppStrings.dashboardRecentRequests,
+                  badge: controller.recentRequests.isEmpty
+                      ? ''
+                      : '${controller.recentRequests.length} nouvelle${controller.recentRequests.length > 1 ? 's' : ''}',
+                ),
                 SizedBox(height: responsive.adaptive(label: 'gap', phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
                 _RequestList(responsive: responsive, controller: controller),
 
@@ -1209,7 +1216,7 @@ class _SectionHeader extends StatelessWidget {
               ),
             ),
           )
-        else
+        else if (badge.isNotEmpty)
           Container(
             padding: EdgeInsets.symmetric(
               horizontal: responsive.w(10),

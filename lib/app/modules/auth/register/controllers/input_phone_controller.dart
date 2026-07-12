@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/auth_mode.dart';
 import 'package:covoiturage_benin_app/app/core/services/auth/auth_service.dart';
-import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/modules/auth/roles/controllers/roles_controller.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
@@ -17,11 +16,16 @@ class InputPhoneController extends GetxController {
   RoleType? _role;
   AuthMode _mode = AuthMode.register;
 
-  bool get canContinue => phoneController.text.trim().isNotEmpty;
+  bool get canContinue {
+    final v = phoneController.text.trim();
+    return v.length == 10 && v.startsWith('01');
+  }
 
   @override
   void onInit() {
     super.onInit();
+    phoneController.text = '01';
+    phoneController.selection = TextSelection.collapsed(offset: 2);
     final arg = Get.arguments;
     if (arg is Map) {
       _role = arg['role'] as RoleType?;
@@ -30,17 +34,17 @@ class InputPhoneController extends GetxController {
   }
 
   void onPhoneChanged(String value) {
-    canContinueRx.value = value.trim().isNotEmpty;
+    canContinueRx.value = value.trim().length == 10 && value.trim().startsWith('01');
   }
 
   Future<void> continueWithPhone() async {
-    if (!canContinue) {
-      UIHelper().showSnackBar('MINIZON', 'Entrez votre numéro de téléphone.', 2);
+    final rawPhone = phoneController.text.trim();
+    if (rawPhone.length != 10 || !rawPhone.startsWith('01')) {
+      UIHelper().showSnackBar('MINIZON', 'Le numéro doit commencer par 01 et contenir 10 chiffres.', 2);
       return;
     }
 
-    final rawPhone = phoneController.text.trim();
-    final phone = rawPhone.startsWith('+') ? rawPhone : '+229$rawPhone';
+    final phone = '+229$rawPhone';
 
     isLoading.value = true;
     final result = await Get.find<AuthService>().sendOtp(phone: phone);

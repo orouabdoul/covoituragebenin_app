@@ -7,10 +7,12 @@ import '../controllers/detail_messager_controller.dart';
 class DetailMessagerBinding extends Bindings {
   @override
   void dependencies() {
-    Get.lazyPut<PassengerMessagingService>(
-      () => PassengerMessagingServiceImpl(),
-      fenix: true,
-    );
+    if (!Get.isRegistered<PassengerMessagingService>()) {
+      Get.lazyPut<PassengerMessagingService>(
+        () => PassengerMessagingServiceImpl(),
+        fenix: true,
+      );
+    }
     Get.lazyPut<DetailMessagerController>(() => DetailMessagerController(), fenix: true);
   }
 }

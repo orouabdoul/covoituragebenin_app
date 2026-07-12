@@ -13,6 +13,7 @@ class MessagerController extends GetxController {
   final TextEditingController searchController = TextEditingController();
   final RxBool isLoading = false.obs;
   final RxBool hasError = false.obs;
+  bool _isFetching = false;
 
   final RxList<MessengerFilterModel> filters = <MessengerFilterModel>[].obs;
   final RxList<MessengerThreadModel> threads = <MessengerThreadModel>[].obs;
@@ -44,17 +45,24 @@ class MessagerController extends GetxController {
   void selectFilter(int index) {
     if (index >= filters.length) return;
     final key = filters[index].key;
+    final previous = _activeFilterKey.value;
+    if (key == previous) return;
     _activeFilterKey.value = key;
-    _fetch(key);
+    _fetchFilter(key, previous);
   }
 
   @override
   Future<void> refresh() => _fetch(_activeFilterKey.value);
 
-  Future<void> _fetch(String filter) async {
+  Future<void> _fetchFilter(String filter, String fallbackFilter) async {
+    if (_isFetching) {
+      _activeFilterKey.value = fallbackFilter;
+      return;
+    }
+    _isFetching = true;
     isLoading.value = true;
-    hasError.value = false;
     final result = await _service.fetchInbox(filter: filter);
+    _isFetching = false;
     isLoading.value = false;
     if (result.isSuccess) {
       final inbox = result.data!;
@@ -62,10 +70,26 @@ class MessagerController extends GetxController {
       threads.assignAll(inbox.threads);
       totalUnread.value = inbox.totalUnread;
     } else {
-      // Si on a déjà des données, échec silencieux pour ne pas perturber l'UX
-      if (threads.isEmpty) {
-        hasError.value = true;
-      }
+      _activeFilterKey.value = fallbackFilter;
+      UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+    }
+  }
+
+  Future<void> _fetch(String filter) async {
+    if (_isFetching) return;
+    _isFetching = true;
+    isLoading.value = true;
+    hasError.value = false;
+    final result = await _service.fetchInbox(filter: filter);
+    _isFetching = false;
+    isLoading.value = false;
+    if (result.isSuccess) {
+      final inbox = result.data!;
+      filters.assignAll(inbox.filters);
+      threads.assignAll(inbox.threads);
+      totalUnread.value = inbox.totalUnread;
+    } else {
+      if (threads.isEmpty) hasError.value = true;
       if (result.error != AppError.socket && threads.isEmpty) {
         UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
       }

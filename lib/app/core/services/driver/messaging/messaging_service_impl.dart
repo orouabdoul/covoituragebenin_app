@@ -84,7 +84,7 @@ class MessagingServiceImpl implements MessagingService {
       final opts = await _authOptions();
       final res = await _dio.post(
         AppApi.conversationMessages(uuid),
-        data: {'message': message},
+        data: {'body': message},
         options: opts,
       );
       logger.d('sendMessage[$uuid] [${res.statusCode}]');

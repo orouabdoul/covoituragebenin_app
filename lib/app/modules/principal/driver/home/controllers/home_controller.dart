@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
+import 'package:covoiturage_benin_app/app/core/services/driver/booking/booking_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/home/dashboard_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/notifications/notifications_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/extensions.dart';
@@ -232,23 +233,6 @@ class DriverBadge {
   final Color iconColor;
 }
 
-class ActivityItem {
-  const ActivityItem({
-    required this.icon,
-    required this.iconColor,
-    required this.iconBg,
-    required this.title,
-    required this.subtitle,
-    required this.time,
-  });
-
-  final IconData icon;
-  final Color iconColor;
-  final Color iconBg;
-  final String title;
-  final String subtitle;
-  final String time;
-}
 
 // ── Controller ──────────────────────────────────────────────────────────────
 
@@ -267,6 +251,7 @@ class DriverHomeController extends GetxController {
 
   // ── Quick requests with countdown ────────────────────────────────────────
   final RxList<QuickRequest> quickRequests = <QuickRequest>[].obs;
+  final _processingIds = <String>{};
 
   // ── Mutable data (populated from API, fallback to defaults) ──────────────
   DriverSummary summary = const DriverSummary(
@@ -388,33 +373,8 @@ class DriverHomeController extends GetxController {
 
   final RxList<DriverNotificationModel> notifications =
       <DriverNotificationModel>[].obs;
+  final RxInt unreadNotifCount = 0.obs;
 
-  final List<ActivityItem> recentActivity = const [
-    ActivityItem(
-      icon: Icons.payments_rounded,
-      iconColor: Color(0xFF16A34A),
-      iconBg: Color(0xFFDCFCE7),
-      title: 'Paiement reçu',
-      subtitle: '8 500 FCFA — Aminata Koné',
-      time: 'Il y a 5 min',
-    ),
-    ActivityItem(
-      icon: Icons.star_rounded,
-      iconColor: Color(0xFFF4B400),
-      iconBg: Color(0xFFFFFBEB),
-      title: 'Nouvel avis reçu',
-      subtitle: '⭐⭐⭐⭐⭐ — "Très ponctuel et agréable"',
-      time: 'Il y a 38 min',
-    ),
-    ActivityItem(
-      icon: Icons.check_circle_rounded,
-      iconColor: Color(0xFF2563EB),
-      iconBg: Color(0xFFDBEAFE),
-      title: 'Trajet terminé',
-      subtitle: 'Cotonou → Porto-Novo · 4 500 FCFA nets',
-      time: 'Hier 17:42',
-    ),
-  ];
 
   // ── Lifecycle ────────────────────────────────────────────────────────────
 
@@ -444,6 +404,7 @@ class DriverHomeController extends GetxController {
     final result = await _notifService.fetchNotifications(perPage: 5);
     if (result.isSuccess) {
       notifications.assignAll(result.data!.notifications);
+      unreadNotifCount.value = result.data!.unreadCount;
     } else {
       logger.w('notifications load failed: ${result.error}');
     }
@@ -468,7 +429,8 @@ class DriverHomeController extends GetxController {
 
     metrics = data.metrics.map(_metricFromApi).toList();
 
-    if (data.nextTrip != null) {
+    const _visibleStatuses = {'pending', 'confirmed', 'active', 'in_progress', 'started'};
+    if (data.nextTrip != null && _visibleStatuses.contains(data.nextTrip!.status)) {
       final t = data.nextTrip!;
       nextTrip = DriverTripCard(
         uuid: t.uuid,
@@ -480,6 +442,17 @@ class DriverHomeController extends GetxController {
         destination: '${t.arrivalNeighborhood}, ${t.arrivalCity}',
         passengersLabel: '${t.passengersCount} passager${t.passengersCount > 1 ? 's' : ''} confirmé${t.passengersCount > 1 ? 's' : ''}',
         avatarUrls: t.passengers.map((p) => p.name).toList(),
+      );
+    } else {
+      nextTrip = const DriverTripCard(
+        statusLabel: '',
+        time: '',
+        departureLabel: '',
+        departure: '',
+        destinationLabel: '',
+        destination: '',
+        passengersLabel: '',
+        avatarUrls: [],
       );
     }
 
@@ -509,7 +482,7 @@ class DriverHomeController extends GetxController {
     }
     pendingRequestsCount.value = quickRequests.length;
 
-    recentRequests = data.recentRequests.map((r) {
+    recentRequests = data.recentRequests.where((r) => r.status != 'cancelled').map((r) {
       final statusInfo = _requestStatusInfo(r.status);
       return DriverRequest(
         name: r.passenger.name,
@@ -705,20 +678,34 @@ class DriverHomeController extends GetxController {
     }
   }
 
-  void onQuickAccept(QuickRequest r) {
-    r.cancelTimer();
-    quickRequests.remove(r);
-    pendingRequestsCount.value = quickRequests.length;
-    UIHelper().showSnackBar(
-        'MINIZON', '✅ ${r.passengerName} accepté(e) !', 0);
+  Future<void> onQuickAccept(QuickRequest r) async {
+    if (_processingIds.contains(r.id)) return;
+    _processingIds.add(r.id);
+    final result = await Get.find<BookingService>().acceptBooking(r.id);
+    _processingIds.remove(r.id);
+    if (result.isSuccess) {
+      r.cancelTimer();
+      quickRequests.remove(r);
+      pendingRequestsCount.value = quickRequests.length;
+      UIHelper().showSnackBar('MINIZON', '✅ ${r.passengerName} accepté(e) !', 0);
+    } else {
+      UIHelper().showSnackBar('MINIZON', 'Erreur lors de l\'acceptation. Réessayez.', 2);
+    }
   }
 
-  void onQuickReject(QuickRequest r) {
-    r.cancelTimer();
-    quickRequests.remove(r);
-    pendingRequestsCount.value = quickRequests.length;
-    UIHelper().showSnackBar(
-        'MINIZON', 'Demande de ${r.passengerName} refusée.', 2);
+  Future<void> onQuickReject(QuickRequest r) async {
+    if (_processingIds.contains(r.id)) return;
+    _processingIds.add(r.id);
+    final result = await Get.find<BookingService>().rejectBooking(r.id);
+    _processingIds.remove(r.id);
+    if (result.isSuccess) {
+      r.cancelTimer();
+      quickRequests.remove(r);
+      pendingRequestsCount.value = quickRequests.length;
+      UIHelper().showSnackBar('MINIZON', 'Demande de ${r.passengerName} refusée.', 2);
+    } else {
+      UIHelper().showSnackBar('MINIZON', 'Erreur lors du refus. Réessayez.', 2);
+    }
   }
 
   void onSeeAllRequests() => Get.toNamed(AppRoutes.driverReservations);

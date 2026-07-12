@@ -8,6 +8,7 @@ import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/services/auth/auth_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/driver/home/controllers/home_controller.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/driver/home/views/home_view.dart'
     as driver_home;
 import 'package:covoiturage_benin_app/app/modules/principal/driver/messager/views/messager_view.dart'
@@ -35,10 +36,6 @@ class BottonNavController extends GetxController {
 
   final BottonNavRole role;
   final RxInt currentIndex = 0.obs;
-  late final PageController pageController;
-  late final int initialIndex;
-
-  static const Duration _pageTransitionDuration = Duration(milliseconds: 280);
 
   List<BottonNavItemData> get items =>
       role == BottonNavRole.driver ? _driverItems : _passengerItems;
@@ -112,10 +109,7 @@ class BottonNavController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    initialIndex = _resolveInitialIndex();
-    currentIndex.value = initialIndex;
-    pageController = PageController(initialPage: initialIndex);
-    // Toujours vérifier le vrai statut côté serveur au démarrage
+    currentIndex.value = _resolveInitialIndex();
     _initialStatusCheck();
   }
 
@@ -147,20 +141,13 @@ class BottonNavController extends GetxController {
   }
 
   void onTabSelected(int index) {
-    if (currentIndex.value == index) {
-      return;
+    if (currentIndex.value == index) return;
+    currentIndex.value = index;
+    if (role == BottonNavRole.driver && index == 0) {
+      if (Get.isRegistered<DriverHomeController>()) {
+        Get.find<DriverHomeController>().refresh();
+      }
     }
-
-    currentIndex.value = index;
-    pageController.animateToPage(
-      index,
-      duration: _pageTransitionDuration,
-      curve: Curves.easeOutCubic,
-    );
-  }
-
-  void onPageChanged(int index) {
-    currentIndex.value = index;
   }
 
   final RxBool isRefreshingStatus = false.obs;
@@ -232,7 +219,6 @@ class BottonNavController extends GetxController {
   @override
   void onClose() {
     _verificationTimer?.cancel();
-    pageController.dispose();
     super.onClose();
   }
 

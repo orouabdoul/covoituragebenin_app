@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/driver/home/controllers/home_controller.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/driver/profil/controllers/profil_driver_controller.dart';
 import '../controllers/botton_nav_controller.dart';
+import '../controllers/botton_nav_role.dart';
 
 class BottonNavHeader extends StatelessWidget {
   const BottonNavHeader({super.key, required this.responsive, required this.controller});
@@ -47,58 +51,93 @@ class BottonNavHeader extends StatelessWidget {
                 ),
               ),
               SizedBox(width: responsive.w(12)),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('Bonjour Abdoulaye 👋', style: AppTextStyles.h6(responsive)),
-                  SizedBox(height: responsive.h(4)),
-                  Row(
-                    children: [
-                      Icon(Icons.location_on_outlined, size: responsive.text(14), color: AppColors.textHint),
-                      SizedBox(width: responsive.w(4)),
-                      Text('Cotonou', style: AppTextStyles.caption(responsive)),
+              Obx(() {
+                String displayName = '';
+                String displayCity = '';
+                if (controller.role == BottonNavRole.driver &&
+                    Get.isRegistered<DriverProfileController>()) {
+                  final prof = Get.find<DriverProfileController>();
+                  prof.profileVersion.value; // subscribe
+                  displayName = prof.heroName;
+                  displayCity = prof.heroLocation;
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      displayName.isNotEmpty ? 'Bonjour $displayName 👋' : 'Bonjour 👋',
+                      style: AppTextStyles.h6(responsive),
+                    ),
+                    if (displayCity.isNotEmpty) ...[
+                      SizedBox(height: responsive.h(4)),
+                      Row(
+                        children: [
+                          Icon(Icons.location_on_outlined, size: responsive.text(14), color: AppColors.textHint),
+                          SizedBox(width: responsive.w(4)),
+                          Text(displayCity, style: AppTextStyles.caption(responsive)),
+                        ],
+                      ),
                     ],
-                  ),
-                ],
-              ),
+                  ],
+                );
+              }),
             ],
           ),
 
           // Right actions
           Row(
             children: [
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  InkWell(
-                    borderRadius: BorderRadius.circular(9999),
-                    onTap: controller.onNotificationTap,
-                    child: Container(
-                      width: responsive.w(40),
-                      height: responsive.w(40),
-                      padding: EdgeInsets.symmetric(horizontal: responsive.w(8), vertical: responsive.h(6)),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceMuted,
-                        borderRadius: BorderRadius.circular(9999),
-                      ),
-                      child: Icon(Icons.notifications_none_rounded, size: responsive.text(18), color: AppColors.textSecondary),
-                    ),
-                  ),
-                  Positioned(
-                    right: -2,
-                    top: -2,
-                    child: Container(
-                      width: responsive.w(8),
-                      height: responsive.w(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE53935),
-                        borderRadius: BorderRadius.circular(9999),
+              Obx(() {
+                final count = controller.role == BottonNavRole.driver &&
+                        Get.isRegistered<DriverHomeController>()
+                    ? Get.find<DriverHomeController>().unreadNotifCount.value
+                    : 0;
+                return Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    InkWell(
+                      borderRadius: BorderRadius.circular(9999),
+                      onTap: controller.onNotificationTap,
+                      child: Container(
+                        width: responsive.w(40),
+                        height: responsive.w(40),
+                        padding: EdgeInsets.symmetric(horizontal: responsive.w(8), vertical: responsive.h(6)),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceMuted,
+                          borderRadius: BorderRadius.circular(9999),
+                        ),
+                        child: Icon(Icons.notifications_none_rounded, size: responsive.text(18), color: AppColors.textSecondary),
                       ),
                     ),
-                  ),
-                ],
-              ),
+                    if (count > 0)
+                      Positioned(
+                        right: -4,
+                        top: -4,
+                        child: Container(
+                          constraints: BoxConstraints(minWidth: responsive.w(16), minHeight: responsive.w(16)),
+                          padding: EdgeInsets.symmetric(horizontal: responsive.w(4)),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE53935),
+                            borderRadius: BorderRadius.circular(9999),
+                            border: Border.all(color: AppColors.white, width: 1.5),
+                          ),
+                          child: Center(
+                            child: Text(
+                              count > 99 ? '99+' : '$count',
+                              style: TextStyle(
+                                color: AppColors.white,
+                                fontSize: responsive.text(9),
+                                fontWeight: FontWeight.w700,
+                                height: 1,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              }),
             ],
           ),
         ],

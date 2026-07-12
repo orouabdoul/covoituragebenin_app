@@ -40,7 +40,7 @@ class AppStrings {
   static const String registerCountryLabel = 'Pays';
   static const String registerCountryValue = 'Bénin (+229)';
   static const String registerPhoneLabel = 'Numéro de téléphone';
-  static const String registerPhoneHint = 'XX XX XX XX';
+  static const String registerPhoneHint = '01 XX XX XX XX';
   static const String registerPhoneHelp =
       'Nous vous enverrons un code de vérification';
   static const String registerAlternative = 'Ou connectez-vous avec';
@@ -426,4 +426,9 @@ class AppStrings {
       'Vos documents sont sécurisés et vérifiés automatiquement';
   static const String driverVehicleSecurityTitle = 'Sécurité MINIZON';
   static const String driverVehicleRegisterButton = 'Enregistrer le véhicule';
+
+  // Support contacts
+  static const String supportWhatsApp = '+229 21 31 00 01';
+  static const String supportPhone    = '+229 21 31 00 00';
+  static const String supportEmail    = 'support@minizon.bj';
 }

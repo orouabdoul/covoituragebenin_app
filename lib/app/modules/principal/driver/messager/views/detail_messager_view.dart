@@ -35,8 +35,15 @@ class DetailMessagerView extends GetView<DetailMessagerController> {
                         phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
                     responsive.h(8),
                   ),
-                  child: Obx(() => _ConversationHeader(
-                      responsive: responsive, controller: controller)),
+                  child: Obx(() {
+                    controller.displayAvatarUrl.value;
+                    controller.displayIsOnline.value;
+                    controller.displayName.value;
+                    controller.displayTripRoute.value;
+                    controller.displayTripDepartureLabel.value;
+                    return _ConversationHeader(
+                        responsive: responsive, controller: controller);
+                  }),
                 ),
                 Expanded(
                   child: Obx(() {
@@ -188,24 +195,24 @@ class _ConversationHeader extends StatelessWidget {
                                 height: responsive.w(48),
                                 clipBehavior: Clip.antiAlias,
                                 decoration: ShapeDecoration(
-                                  image: avatarUrl != null
-                                      ? DecorationImage(
-                                          image: NetworkImage(avatarUrl),
-                                          fit: BoxFit.cover)
-                                      : null,
-                                  color: avatarUrl == null
-                                      ? AppColors.surface
-                                      : null,
+                                  color: AppColors.surface,
                                   shape: RoundedRectangleBorder(
                                     side: const BorderSide(
                                         width: 2, color: Color(0xFF00A86B)),
                                     borderRadius: BorderRadius.circular(9999),
                                   ),
                                 ),
-                                child: avatarUrl == null
-                                    ? const Icon(Icons.person_rounded,
-                                        color: AppColors.textGhost, size: 24)
-                                    : null,
+                                child: avatarUrl != null
+                                    ? Image.network(
+                                        avatarUrl,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (ctx, e, s) => const Icon(
+                                            Icons.person_rounded,
+                                            color: AppColors.textGhost,
+                                            size: 24),
+                                      )
+                                    : const Icon(Icons.person_rounded,
+                                        color: AppColors.textGhost, size: 24),
                               ),
                               if (controller.displayIsOnline.value)
                                 Positioned(
@@ -793,17 +800,20 @@ class _Avatar extends StatelessWidget {
       height: responsive.w(32),
       clipBehavior: Clip.antiAlias,
       decoration: ShapeDecoration(
-        image: url != null
-            ? DecorationImage(image: NetworkImage(url), fit: BoxFit.cover)
-            : null,
-        color: url == null ? AppColors.surface : null,
+        color: AppColors.surface,
         shape: RoundedRectangleBorder(
           side: const BorderSide(color: AppColors.border),
           borderRadius: BorderRadius.circular(9999),
         ),
       ),
-      child:
-          url == null ? const Icon(Icons.person_rounded, color: AppColors.textGhost, size: 18) : null,
+      child: url != null
+          ? Image.network(
+              url,
+              fit: BoxFit.cover,
+              errorBuilder: (ctx, e, s) =>
+                  const Icon(Icons.person_rounded, color: AppColors.textGhost, size: 18),
+            )
+          : const Icon(Icons.person_rounded, color: AppColors.textGhost, size: 18),
     );
   }
 }

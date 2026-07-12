@@ -12,6 +12,25 @@ import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 
 import '../controllers/revenus_controller.dart';
 
+double _niceMax(double value) {
+  if (value <= 0) return 30000;
+  const candidates = [3000, 6000, 9000, 12000, 15000, 18000, 21000, 24000,
+    27000, 30000, 45000, 60000, 90000, 120000, 150000, 180000, 210000,
+    300000, 600000, 900000, 1200000];
+  for (final c in candidates) {
+    if (c >= value) return c.toDouble();
+  }
+  return (value / 3).ceilToDouble() * 3;
+}
+
+String _fmtAxisLabel(double amount) {
+  if (amount <= 0) return '0';
+  return amount.toInt().toString().replaceAllMapped(
+    RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+    (m) => '${m[1]},',
+  );
+}
+
 class RevenusView extends StatelessWidget {
 	const RevenusView({super.key});
 
@@ -54,7 +73,7 @@ class RevenusView extends StatelessWidget {
 									trailing: AppStrings.revenuesViewAll,
 								),
 								SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
-								Obx(() => _WeeklyChartCard(responsive: responsive, points: controller.weeklyPoints)),
+								Obx(() => _WeeklyChartCard(responsive: responsive, points: controller.weeklyPoints.toList())),
 								SizedBox(height: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 16, desktop: 18)),
 								Obx(() {
 									if (controller.isLoading.value) {
@@ -507,7 +526,10 @@ class _WeeklyChartCard extends StatelessWidget {
 
 	@override
 	Widget build(BuildContext context) {
-		final double maxAmount = points.fold<double>(0, (maxValue, point) => math.max(maxValue, point.amount));
+		final double rawMax = points.fold<double>(0, (maxValue, point) => math.max(maxValue, point.amount));
+		final double maxAmount = _niceMax(rawMax);
+		const dayLabels = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+		final todayLabel = dayLabels[DateTime.now().weekday - 1];
 
 		return Container(
 			width: double.infinity,
@@ -569,11 +591,11 @@ class _WeeklyChartCard extends StatelessWidget {
 									child: Column(
 										mainAxisAlignment: MainAxisAlignment.spaceBetween,
 										crossAxisAlignment: CrossAxisAlignment.end,
-										children: const [
-											Text('30,000', style: TextStyle(fontSize: 11, fontFamily: 'Inter')),
-											Text('20,000', style: TextStyle(fontSize: 11, fontFamily: 'Inter')),
-											Text('10,000', style: TextStyle(fontSize: 11, fontFamily: 'Inter')),
-											Text('0', style: TextStyle(fontSize: 11, fontFamily: 'Inter')),
+										children: [
+											Text(_fmtAxisLabel(maxAmount),       style: const TextStyle(fontSize: 11, fontFamily: 'Inter')),
+											Text(_fmtAxisLabel(maxAmount * 2/3), style: const TextStyle(fontSize: 11, fontFamily: 'Inter')),
+											Text(_fmtAxisLabel(maxAmount / 3),   style: const TextStyle(fontSize: 11, fontFamily: 'Inter')),
+											const Text('0',                      style: TextStyle(fontSize: 11, fontFamily: 'Inter')),
 										],
 									),
 								),
@@ -596,7 +618,7 @@ class _WeeklyChartCard extends StatelessWidget {
 																				width: double.infinity,
 																				height: maxAmount > 0 ? (point.amount / maxAmount) * responsive.adaptive(phone: 120, smallPhone: 112, tablet: 124, desktop: 128) : 0.0,
 																				decoration: ShapeDecoration(
-																					color: point.label == 'Mer' ? AppColors.primary : AppColors.surfaceSoft,
+																					color: point.label == todayLabel ? AppColors.primary : AppColors.surfaceSoft,
 																					shape: RoundedRectangleBorder(
 																						borderRadius: BorderRadius.circular(responsive.radius(10)),
 																					),

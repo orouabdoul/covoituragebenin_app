@@ -1,5 +1,6 @@
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
+import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
@@ -74,11 +75,11 @@ class BottonNavView extends GetView<BottonNavController> {
             children: [
               header,
               Expanded(
-                child: PageView(
-                  controller: controller.pageController,
-                  physics: const NeverScrollableScrollPhysics(),
-                  onPageChanged: controller.onPageChanged,
-                  children: controller.pages,
+                child: Obx(
+                  () => IndexedStack(
+                    index: controller.currentIndex.value,
+                    children: controller.pages,
+                  ),
                 ),
               ),
             ],
@@ -198,12 +199,12 @@ class _AccountSuspendedView extends StatelessWidget {
             iconColor: const Color(0xFF00A86B),
             iconBg: const Color(0xFFDCFCE7),
             title: 'WhatsApp',
-            subtitle: '+229 21 31 00 01',
+            subtitle: AppStrings.supportWhatsApp,
             onTap: () => _showContactDialog(
               icon: Icons.chat_rounded,
               iconColor: const Color(0xFF00A86B),
               title: 'WhatsApp Support',
-              contact: '+229 21 31 00 01',
+              contact: AppStrings.supportWhatsApp,
               hint: 'Numéro copié. Ouvrez WhatsApp pour démarrer.',
             ),
           ),
@@ -214,12 +215,12 @@ class _AccountSuspendedView extends StatelessWidget {
             iconColor: const Color(0xFF1E88E5),
             iconBg: const Color(0xFFDBEAFE),
             title: 'Appel téléphonique',
-            subtitle: '+229 21 31 00 00',
+            subtitle: AppStrings.supportPhone,
             onTap: () => _showContactDialog(
               icon: Icons.headset_mic_rounded,
               iconColor: const Color(0xFF1E88E5),
               title: 'Support téléphonique',
-              contact: '+229 21 31 00 00',
+              contact: AppStrings.supportPhone,
               hint: 'Numéro copié dans le presse-papiers.',
             ),
           ),
@@ -230,12 +231,12 @@ class _AccountSuspendedView extends StatelessWidget {
             iconColor: const Color(0xFF8B5CF6),
             iconBg: const Color(0xFFEDE9FE),
             title: 'Email',
-            subtitle: 'support@minizon.bj',
+            subtitle: AppStrings.supportEmail,
             onTap: () => _showContactDialog(
               icon: Icons.email_rounded,
               iconColor: const Color(0xFF8B5CF6),
               title: 'Email support',
-              contact: 'support@minizon.bj',
+              contact: AppStrings.supportEmail,
               hint: 'Adresse email copiée dans le presse-papiers.',
             ),
           ),

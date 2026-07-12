@@ -30,9 +30,9 @@ class PassengerMessagingServiceImpl implements PassengerMessagingService {
       );
       logger.d('passengerMessager[$filter] [${res.statusCode}]');
       if (res.statusCode == 200 && res.data['success'] == true) {
-        return ApiResult.success(
-          MessengerInboxModel.fromJson(res.data['body'] as Map<String, dynamic>),
-        );
+        final raw = res.data['body'];
+        final body = raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
+        return ApiResult.success(MessengerInboxModel.fromJson(body));
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
@@ -62,9 +62,9 @@ class PassengerMessagingServiceImpl implements PassengerMessagingService {
       );
       logger.d('passengerFetchThread[$uuid] [${res.statusCode}]');
       if (res.statusCode == 200 && res.data['success'] == true) {
-        return ApiResult.success(
-          ConversationThreadDetail.fromJson(res.data['body'] as Map<String, dynamic>),
-        );
+        final raw = res.data['body'];
+        final body = raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
+        return ApiResult.success(ConversationThreadDetail.fromJson(body));
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       if (res.statusCode == 404) return ApiResult.failure(AppError.userNotFound);

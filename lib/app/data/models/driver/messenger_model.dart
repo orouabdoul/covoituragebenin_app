@@ -51,16 +51,16 @@ class MessengerThreadModel {
         tripUuid: j['trip_uuid'] as String? ?? '',
         avatarUrl: j['avatar_url'] as String?,
         badge: j['badge'] as String? ?? '',
-        badgeColor: j['badge_color'] as int? ?? 0,
+        badgeColor: (j['badge_color'] as num?)?.toInt() ?? 0,
         name: j['name'] as String? ?? '',
         time: j['time'] as String? ?? '',
         preview: j['preview'] as String? ?? '',
-        statusBackgroundColor: j['status_background_color'] as int? ?? 0,
+        statusBackgroundColor: (j['status_background_color'] as num?)?.toInt() ?? 0,
         statusLabel: j['status_label'] as String? ?? '',
-        statusLabelColor: j['status_label_color'] as int? ?? 0,
-        isUnread: j['is_unread'] as bool? ?? false,
+        statusLabelColor: (j['status_label_color'] as num?)?.toInt() ?? 0,
+        isUnread: j['is_unread'] == true || j['is_unread'] == 1,
         roleLabel: j['role_label'] as String? ?? '',
-        roleLabelColor: j['role_label_color'] as int? ?? 0,
+        roleLabelColor: (j['role_label_color'] as num?)?.toInt() ?? 0,
       );
 }
 
@@ -78,12 +78,12 @@ class MessengerInboxModel {
   factory MessengerInboxModel.fromJson(Map<String, dynamic> j) =>
       MessengerInboxModel(
         filters: (j['filters'] as List<dynamic>? ?? [])
-            .map((e) => MessengerFilterModel.fromJson(e as Map<String, dynamic>))
+            .map((e) => MessengerFilterModel.fromJson(Map<String, dynamic>.from(e as Map)))
             .toList(),
         threads: (j['threads'] as List<dynamic>? ?? [])
-            .map((e) => MessengerThreadModel.fromJson(e as Map<String, dynamic>))
+            .map((e) => MessengerThreadModel.fromJson(Map<String, dynamic>.from(e as Map)))
             .toList(),
-        totalUnread: j['total_unread'] as int? ?? 0,
+        totalUnread: (j['total_unread'] as num?)?.toInt() ?? 0,
       );
 }
 
@@ -155,8 +155,8 @@ class ConversationThreadContext {
       ConversationThreadContext(
         uuid: j['uuid'] as String? ?? '',
         bookingUuid: j['booking_uuid'] as String? ?? '',
-        otherUser: ConversationUser.fromJson(j['other_user'] as Map<String, dynamic>),
-        trip: ConversationTripInfo.fromJson(j['trip'] as Map<String, dynamic>),
+        otherUser: ConversationUser.fromJson(Map<String, dynamic>.from(j['other_user'] as Map? ?? {})),
+        trip: ConversationTripInfo.fromJson(Map<String, dynamic>.from(j['trip'] as Map? ?? {})),
       );
 }
 
@@ -184,11 +184,12 @@ class ConversationApiMessage {
   final String? attachmentType; // 'image' | 'document'
 
   factory ConversationApiMessage.fromJson(Map<String, dynamic> j) {
-    final attachment = j['attachment'] as Map<String, dynamic>?;
+    final rawAtt = j['attachment'];
+    final attachment = rawAtt is Map ? Map<String, dynamic>.from(rawAtt) : null;
     return ConversationApiMessage(
-      id: j['id'] as int? ?? 0,
+      id: (j['id'] as num?)?.toInt() ?? 0,
       kind: j['kind'] as String? ?? 'incoming',
-      message: j['message'] as String? ?? '',
+      message: j['body'] as String? ?? j['message'] as String? ?? '',
       time: j['time'] as String? ?? '',
       title: j['title'] as String?,
       subtitle: j['subtitle'] as String?,
@@ -214,11 +215,12 @@ class ConversationThreadDetail {
 
   factory ConversationThreadDetail.fromJson(Map<String, dynamic> j) =>
       ConversationThreadDetail(
-        thread: ConversationThreadContext.fromJson(j['thread'] as Map<String, dynamic>),
+        thread: ConversationThreadContext.fromJson(
+            Map<String, dynamic>.from(j['thread'] as Map? ?? {})),
         messages: (j['messages'] as List<dynamic>? ?? [])
-            .map((e) => ConversationApiMessage.fromJson(e as Map<String, dynamic>))
+            .map((e) => ConversationApiMessage.fromJson(Map<String, dynamic>.from(e as Map)))
             .toList(),
-        hasMore: j['has_more'] as bool? ?? false,
-        nextBeforeId: j['next_before_id'] as int?,
+        hasMore: j['has_more'] == true || j['has_more'] == 1,
+        nextBeforeId: (j['next_before_id'] as num?)?.toInt(),
       );
 }

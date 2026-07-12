@@ -25,8 +25,9 @@ class BookingServiceImpl implements BookingService {
       final response = await _dio.get(AppApi.driverBookings, options: opts);
       logger.d('driverBookings [${response.statusCode}]');
       if (response.statusCode == 200 && response.data['success'] == true) {
-        final list =
-            (response.data['body'] as List).cast<Map<String, dynamic>>();
+        final raw = response.data['body'];
+        final rawList = raw is List ? raw : (raw is Map ? (raw['data'] ?? raw['bookings'] ?? raw['items'] ?? []) : []);
+        final list = (rawList as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
         return ApiResult.success(list);
       }
       if (response.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);

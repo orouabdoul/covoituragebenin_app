@@ -254,15 +254,6 @@ class OtpCodeView extends GetView<OtpCodeController> {
                             ),
                           ),
                           SizedBox(height: responsive.h(24)),
-                          AppPrimaryButton(
-                            responsive: responsive,
-                            label: controller.isLoading.value
-                                ? 'Vérification...'
-                                : AppStrings.otpVerify,
-                            enabled: controller.canVerify && !controller.isLoading.value,
-                            onTap: controller.verifyCode,
-                          ),
-                          SizedBox(height: responsive.h(12)),
                           Center(
                             child: Row(
                               mainAxisSize: MainAxisSize.min,

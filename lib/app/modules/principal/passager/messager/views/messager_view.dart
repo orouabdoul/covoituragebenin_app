@@ -339,17 +339,19 @@ class _Avatar extends StatelessWidget {
           clipBehavior: Clip.antiAlias,
           decoration: ShapeDecoration(
             color: AppColors.border,
-            image: url != null && url.isNotEmpty
-                ? DecorationImage(image: NetworkImage(url), fit: BoxFit.cover)
-                : null,
             shape: RoundedRectangleBorder(
               side: const BorderSide(color: AppColors.border),
               borderRadius: BorderRadius.circular(9999),
             ),
           ),
-          child: (url == null || url.isEmpty)
-              ? const Icon(Icons.person_rounded, color: AppColors.textGhost)
-              : null,
+          child: (url != null && url.isNotEmpty)
+              ? Image.network(
+                  url,
+                  fit: BoxFit.cover,
+                  errorBuilder: (ctx, e, s) =>
+                      const Icon(Icons.person_rounded, color: AppColors.textGhost),
+                )
+              : const Icon(Icons.person_rounded, color: AppColors.textGhost),
         ),
         if (badge.isNotEmpty)
           Positioned(

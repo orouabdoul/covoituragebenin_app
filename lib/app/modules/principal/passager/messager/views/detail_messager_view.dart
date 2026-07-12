@@ -187,20 +187,19 @@ class _ConversationHeader extends StatelessWidget {
                                   clipBehavior: Clip.antiAlias,
                                   decoration: ShapeDecoration(
                                     color: AppColors.border,
-                                    image: (avatarUrl != null && avatarUrl.isNotEmpty)
-                                        ? DecorationImage(
-                                            image: NetworkImage(avatarUrl),
-                                            fit: BoxFit.cover,
-                                          )
-                                        : null,
                                     shape: RoundedRectangleBorder(
                                       side: const BorderSide(width: 2, color: Color(0xFF00A86B)),
                                       borderRadius: BorderRadius.circular(9999),
                                     ),
                                   ),
-                                  child: (avatarUrl == null || avatarUrl.isEmpty)
-                                      ? const Icon(Icons.person_rounded, color: AppColors.textGhost)
-                                      : null,
+                                  child: (avatarUrl != null && avatarUrl.isNotEmpty)
+                                      ? Image.network(
+                                          avatarUrl,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (ctx, e, s) =>
+                                              const Icon(Icons.person_rounded, color: AppColors.textGhost),
+                                        )
+                                      : const Icon(Icons.person_rounded, color: AppColors.textGhost),
                                 ),
                                 if (isOnline)
                                   Positioned(
@@ -762,17 +761,19 @@ class _Avatar extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       decoration: ShapeDecoration(
         color: AppColors.border,
-        image: (url != null && url.isNotEmpty)
-            ? DecorationImage(image: NetworkImage(url), fit: BoxFit.cover)
-            : null,
         shape: RoundedRectangleBorder(
           side: const BorderSide(color: AppColors.border),
           borderRadius: BorderRadius.circular(9999),
         ),
       ),
-      child: (url == null || url.isEmpty)
-          ? const Icon(Icons.person_rounded, size: 18, color: AppColors.textGhost)
-          : null,
+      child: (url != null && url.isNotEmpty)
+          ? Image.network(
+              url,
+              fit: BoxFit.cover,
+              errorBuilder: (ctx, e, s) =>
+                  const Icon(Icons.person_rounded, size: 18, color: AppColors.textGhost),
+            )
+          : const Icon(Icons.person_rounded, size: 18, color: AppColors.textGhost),
     );
   }
 }
