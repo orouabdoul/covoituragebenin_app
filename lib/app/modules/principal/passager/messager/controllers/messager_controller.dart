@@ -103,16 +103,18 @@ class MessagerController extends GetxController {
     );
   }
 
-  /// Ouvre directement le chat depuis une autre page (ex: confirmation réservation).
-  /// Passe [conversationUuid] si connu pour charger le thread depuis l'API.
+  /// Ouvre directement le chat depuis une autre page (ex: réservation).
+  /// Passe [conversationUuid] si connu pour charger le thread directement.
+  /// Sinon passe [bookingUuid] pour que le controller crée/récupère la conversation.
   static void openDriverChat({
     required String driverName,
     String tripRoute = '',
     String conversationUuid = '',
+    String bookingUuid = '',
   }) {
     final preview = MessengerThreadModel(
       uuid: conversationUuid,
-      bookingUuid: '',
+      bookingUuid: bookingUuid,
       tripUuid: '',
       name: driverName,
       time: '',
@@ -129,7 +131,11 @@ class MessagerController extends GetxController {
     );
     Get.toNamed(
       AppRoutes.passengerMessageDetail,
-      arguments: {'uuid': conversationUuid, 'thread': preview},
+      arguments: {
+        'uuid': conversationUuid,
+        'booking_uuid': bookingUuid,
+        'thread': preview,
+      },
     );
   }
 

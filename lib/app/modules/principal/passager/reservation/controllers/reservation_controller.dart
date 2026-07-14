@@ -150,6 +150,8 @@ class ReservationController extends GetxController {
 			MessagerController.openDriverChat(
 				driverName: r.driverName,
 				tripRoute: '${r.departureCity} → ${r.arrivalCity}',
+				conversationUuid: r.conversationUuid,
+				bookingUuid: r.id,
 			);
 
 	void trackLive(ReservationItem r) =>

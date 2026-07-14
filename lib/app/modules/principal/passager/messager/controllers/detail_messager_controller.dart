@@ -35,20 +35,43 @@ class PassengerDetailMessagerController extends GetxController {
   final Rx<int> displayTripSeats = 0.obs;
 
   int? _nextBeforeId;
-  late final String _uuid;
+  String _uuid = '';
+  String _bookingUuid = '';
 
   @override
   void onInit() {
     super.onInit();
     final args = Get.arguments as Map<String, dynamic>?;
     _uuid = args?['uuid'] as String? ?? '';
+    _bookingUuid = args?['booking_uuid'] as String? ?? '';
     final preloaded = args?['thread'] as MessengerThreadModel?;
     if (preloaded != null) {
       displayName.value = preloaded.name;
       displayAvatarUrl.value = preloaded.avatarUrl;
       displayTripRoute.value = preloaded.statusLabel;
     }
-    if (_uuid.isNotEmpty) _fetchThread();
+    if (_uuid.isNotEmpty) {
+      _fetchThread();
+    } else if (_bookingUuid.isNotEmpty) {
+      _startAndFetch();
+    }
+  }
+
+  /// UUID inconnu mais bookingUuid disponible : crée ou récupère la conversation.
+  Future<void> _startAndFetch() async {
+    isLoading.value = true;
+    hasError.value = false;
+    final result = await _service.startConversation(_bookingUuid);
+    if (result.isSuccess) {
+      _uuid = result.data!;
+      _fetchThread();
+    } else {
+      isLoading.value = false;
+      hasError.value = true;
+      if (result.error != AppError.socket) {
+        UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+      }
+    }
   }
 
   @override
