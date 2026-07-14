@@ -7,6 +7,8 @@ import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 
+import 'package:covoiturage_benin_app/app/data/models/passenger/safety_model.dart';
+
 import '../controllers/profil_controller.dart';
 
 class ProfilView extends StatelessWidget {
@@ -79,6 +81,8 @@ class ProfilView extends StatelessWidget {
 																onTap: controller.openTrustHub,
 																child: _TrustCard(responsive: responsive, controller: controller),
 															),
+															SizedBox(height: responsive.h(24)),
+															_EmergencyContactsCard(responsive: responsive, controller: controller),
 															SizedBox(height: responsive.h(24)),
 															_SettingsCard(responsive: responsive, controller: controller),
 															SizedBox(height: responsive.h(24)),
@@ -959,6 +963,205 @@ class _RecentTripTile extends StatelessWidget {
 		);
 	}
 }
+
+// ── Emergency Contacts Card ───────────────────────────────────────────────────
+
+class _EmergencyContactsCard extends StatelessWidget {
+	const _EmergencyContactsCard({required this.responsive, required this.controller});
+
+	final AppResponsive responsive;
+	final ProfilController controller;
+
+	@override
+	Widget build(BuildContext context) {
+		return Container(
+			width: double.infinity,
+			padding: EdgeInsets.all(responsive.w(24)),
+			decoration: ShapeDecoration(
+				color: Colors.white,
+				shape: RoundedRectangleBorder(
+					side: const BorderSide(color: AppColors.border),
+					borderRadius: BorderRadius.circular(responsive.radius(24)),
+				),
+				shadows: const [
+					BoxShadow(color: Color(0x19000000), blurRadius: 15, offset: Offset(0, 10)),
+					BoxShadow(color: Color(0x19000000), blurRadius: 6, offset: Offset(0, 4)),
+				],
+			),
+			child: Column(
+				crossAxisAlignment: CrossAxisAlignment.start,
+				children: [
+					Row(
+						mainAxisAlignment: MainAxisAlignment.spaceBetween,
+						children: [
+							Row(
+								children: [
+									Container(
+										width: responsive.w(36),
+										height: responsive.w(36),
+										decoration: BoxDecoration(
+											color: const Color(0xFFEF4444).withValues(alpha: 0.10),
+											shape: BoxShape.circle,
+										),
+										child: Icon(Icons.shield_rounded,
+												color: const Color(0xFFEF4444),
+												size: responsive.text(18)),
+									),
+									SizedBox(width: responsive.w(10)),
+									Column(
+										crossAxisAlignment: CrossAxisAlignment.start,
+										children: [
+											Text('Contacts d\'urgence',
+													style: AppTextStyles.profileSectionTitle(responsive)),
+											Obx(() => Text(
+												'${controller.emergencyContacts.length}/5 contacts',
+												style: AppTextStyles.caption(responsive)
+														.copyWith(color: AppColors.textHint),
+											)),
+										],
+									),
+								],
+							),
+							Obx(() {
+								if (controller.emergencyContacts.length >= 5) return const SizedBox.shrink();
+								return InkWell(
+									onTap: controller.showAddContactSheet,
+									borderRadius: BorderRadius.circular(99),
+									child: Container(
+										padding: EdgeInsets.all(responsive.w(6)),
+										decoration: BoxDecoration(
+											color: AppColors.primary.withValues(alpha: 0.10),
+											shape: BoxShape.circle,
+										),
+										child: Icon(Icons.add_rounded,
+												color: AppColors.primary, size: responsive.text(18)),
+									),
+								);
+							}),
+						],
+					),
+					Obx(() {
+						if (controller.isLoadingContacts.value) {
+							return Padding(
+								padding: EdgeInsets.only(top: responsive.h(16)),
+								child: const Center(child: CircularProgressIndicator(
+										strokeWidth: 2, color: AppColors.primary)),
+							);
+						}
+						if (controller.emergencyContacts.isEmpty) {
+							return Padding(
+								padding: EdgeInsets.only(top: responsive.h(16)),
+								child: GestureDetector(
+									onTap: controller.showAddContactSheet,
+									child: Container(
+										width: double.infinity,
+										padding: EdgeInsets.all(responsive.w(16)),
+										decoration: BoxDecoration(
+											color: AppColors.surfaceMuted,
+											borderRadius: BorderRadius.circular(responsive.radius(12)),
+											border: Border.all(color: AppColors.border, style: BorderStyle.none),
+										),
+										child: Column(
+											children: [
+												Icon(Icons.person_add_alt_1_rounded,
+														color: AppColors.textHint, size: responsive.text(28)),
+												SizedBox(height: responsive.h(8)),
+												Text('Ajouter un contact d\'urgence',
+														style: AppTextStyles.body(responsive)
+																.copyWith(color: AppColors.textHint),
+														textAlign: TextAlign.center),
+											],
+										),
+									),
+								),
+							);
+						}
+						return Column(
+							children: [
+								SizedBox(height: responsive.h(16)),
+								...controller.emergencyContacts.map((c) => Padding(
+									padding: EdgeInsets.only(bottom: responsive.h(10)),
+									child: _ContactTile(
+											responsive: responsive, contact: c,
+											onDelete: () => controller.deleteEmergencyContact(c.id)),
+								)),
+							],
+						);
+					}),
+				],
+			),
+		);
+	}
+}
+
+class _ContactTile extends StatelessWidget {
+	const _ContactTile({
+		required this.responsive, required this.contact, required this.onDelete});
+
+	final AppResponsive responsive;
+	final EmergencyContact contact;
+	final VoidCallback onDelete;
+
+	@override
+	Widget build(BuildContext context) {
+		final initials = contact.initials.isNotEmpty
+				? contact.initials
+				: contact.name.isNotEmpty ? contact.name[0].toUpperCase() : '?';
+		return Container(
+			padding: EdgeInsets.symmetric(
+					horizontal: responsive.w(12), vertical: responsive.h(10)),
+			decoration: BoxDecoration(
+				color: AppColors.surfaceMuted,
+				borderRadius: BorderRadius.circular(responsive.radius(12)),
+				border: Border.all(color: AppColors.border),
+			),
+			child: Row(
+				children: [
+					Container(
+						width: responsive.w(38), height: responsive.w(38),
+						decoration: BoxDecoration(
+							color: const Color(0xFFEF4444).withValues(alpha: 0.10),
+							shape: BoxShape.circle,
+						),
+						child: Center(
+							child: Text(initials,
+									style: TextStyle(
+										fontWeight: FontWeight.w700,
+										color: const Color(0xFFEF4444),
+										fontSize: responsive.text(14),
+									)),
+						),
+					),
+					SizedBox(width: responsive.w(10)),
+					Expanded(
+						child: Column(
+							crossAxisAlignment: CrossAxisAlignment.start,
+							children: [
+								Text(contact.name,
+										style: AppTextStyles.body(responsive)
+												.copyWith(fontWeight: FontWeight.w600),
+										maxLines: 1, overflow: TextOverflow.ellipsis),
+								Text('${contact.relation} · ${contact.phone}',
+										style: AppTextStyles.caption(responsive)
+												.copyWith(color: AppColors.textMuted),
+										maxLines: 1, overflow: TextOverflow.ellipsis),
+							],
+						),
+					),
+					IconButton(
+						onPressed: onDelete,
+						icon: Icon(Icons.delete_outline_rounded,
+								color: const Color(0xFFEF4444), size: responsive.text(20)),
+						padding: EdgeInsets.zero,
+						constraints: const BoxConstraints(),
+					),
+				],
+			),
+		);
+	}
+}
+
+// ── Logout Button ─────────────────────────────────────────────────────────────
 
 class _LogoutButton extends StatelessWidget {
 	const _LogoutButton({required this.responsive, required this.onTap});

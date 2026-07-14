@@ -124,6 +124,13 @@ class ProfilePassagerView extends GetView<ProfilePassagerController> {
                         _BenefitsCard(responsive: responsive),
                         SizedBox(height: responsive.h(20)),
                         _TrustCard(responsive: responsive),
+                        SizedBox(height: responsive.h(20)),
+                        _EmergencyContactsRegSection(
+                          responsive: responsive,
+                          contacts: controller.emergencyContacts.toList(),
+                          onAdd: controller.addEmergencyContact,
+                          onRemove: controller.removeEmergencyContact,
+                        ),
                         SizedBox(height: responsive.h(24)),
                         AppPrimaryButton(
                           responsive: responsive,
@@ -623,6 +630,180 @@ class _DocumentUploadTile extends StatelessWidget {
             label: selectedValue.isNotEmpty ? 'Remplacer' : actionLabel,
             onTap: onTap,
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmergencyContactsRegSection extends StatefulWidget {
+  const _EmergencyContactsRegSection({
+    required this.responsive,
+    required this.contacts,
+    required this.onAdd,
+    required this.onRemove,
+  });
+
+  final AppResponsive responsive;
+  final List<EmergencyContactEntry> contacts;
+  final void Function(String, String, String) onAdd;
+  final void Function(int) onRemove;
+
+  @override
+  State<_EmergencyContactsRegSection> createState() =>
+      _EmergencyContactsRegSectionState();
+}
+
+class _EmergencyContactsRegSectionState
+    extends State<_EmergencyContactsRegSection> {
+  bool _showForm = false;
+  final _nameCtrl = TextEditingController();
+  final _relCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _relCtrl.dispose();
+    _phoneCtrl.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final name = _nameCtrl.text.trim();
+    final phone = _phoneCtrl.text.trim();
+    final rel = _relCtrl.text.trim();
+    if (name.isEmpty || phone.isEmpty || rel.isEmpty) return;
+    widget.onAdd(name, phone, rel);
+    _nameCtrl.clear();
+    _relCtrl.clear();
+    _phoneCtrl.clear();
+    setState(() => _showForm = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final r = widget.responsive;
+    return _SectionContainer(
+      responsive: r,
+      title: 'Contacts d\'urgence',
+      icon: Icons.emergency_rounded,
+      subtitle: 'Famille ou amis à prévenir (max 5)',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (widget.contacts.isEmpty)
+            Text(
+              'Aucun contact. Recommandé pour votre sécurité.',
+              style: AppTextStyles.profileMeta(r),
+            ),
+          ...widget.contacts.asMap().entries.map((entry) {
+            final i = entry.key;
+            final c = entry.value;
+            return Container(
+              margin: EdgeInsets.only(bottom: r.h(8)),
+              padding: EdgeInsets.symmetric(
+                  horizontal: r.w(12), vertical: r.h(10)),
+              decoration: ShapeDecoration(
+                color: AppColors.surfaceMuted,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(r.radius(10)),
+                  side: const BorderSide(color: AppColors.border),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: r.w(36),
+                    height: r.w(36),
+                    alignment: Alignment.center,
+                    decoration: const BoxDecoration(
+                      color: AppColors.surfaceAccent,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      c.name.isNotEmpty ? c.name[0].toUpperCase() : '?',
+                      style: AppTextStyles.profileSectionLabel(r)
+                          .copyWith(color: AppColors.primary),
+                    ),
+                  ),
+                  SizedBox(width: r.w(10)),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(c.name,
+                            style: AppTextStyles.profileSectionLabel(r)),
+                        Text('${c.relationship} · ${c.phone}',
+                            style: AppTextStyles.profileMeta(r)),
+                      ],
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => widget.onRemove(i),
+                    child: Icon(Icons.close_rounded,
+                        size: r.text(18), color: AppColors.textMuted),
+                  ),
+                ],
+              ),
+            );
+          }),
+          if (_showForm) ...[
+            SizedBox(height: r.h(12)),
+            AppField(
+              responsive: r,
+              label: 'Nom complet',
+              labelStyle: AppTextStyles.profileSectionLabel(r),
+              controller: _nameCtrl,
+              hintText: 'Ex: Kouassi Jean',
+              textStyle: AppTextStyles.profileFieldValue(r),
+              hintStyle: AppTextStyles.profileFieldValue(r)
+                  .copyWith(color: AppColors.textGhost),
+            ),
+            SizedBox(height: r.h(10)),
+            AppField(
+              responsive: r,
+              label: 'Relation',
+              labelStyle: AppTextStyles.profileSectionLabel(r),
+              controller: _relCtrl,
+              hintText: 'Ex: Père, Mère, Ami...',
+              textStyle: AppTextStyles.profileFieldValue(r),
+              hintStyle: AppTextStyles.profileFieldValue(r)
+                  .copyWith(color: AppColors.textGhost),
+            ),
+            SizedBox(height: r.h(10)),
+            PhoneFieldWidget(
+              responsive: r,
+              controller: _phoneCtrl,
+              label: 'Téléphone',
+              labelStyle: AppTextStyles.profileSectionLabel(r),
+            ),
+            SizedBox(height: r.h(12)),
+            Row(
+              children: [
+                Expanded(
+                  child: AppPrimaryButton(
+                    responsive: r,
+                    label: 'Ajouter',
+                    onTap: _submit,
+                  ),
+                ),
+                SizedBox(width: r.w(10)),
+                AppChipButton(
+                  responsive: r,
+                  label: 'Annuler',
+                  onTap: () => setState(() => _showForm = false),
+                ),
+              ],
+            ),
+          ] else if (widget.contacts.length < 5) ...[
+            SizedBox(height: r.h(12)),
+            AppChipButton(
+              responsive: r,
+              label: '+ Ajouter un contact',
+              onTap: () => setState(() => _showForm = true),
+            ),
+          ],
         ],
       ),
     );

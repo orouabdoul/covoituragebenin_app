@@ -5,7 +5,10 @@ import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/core/services/auth/auth_service.dart';
+import 'package:covoiturage_benin_app/app/core/services/passenger/safety/passenger_safety_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
+import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
+import 'package:covoiturage_benin_app/app/data/models/passenger/safety_model.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/profile/passenger_profile_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/stats/passenger_stats_service.dart';
@@ -17,11 +20,16 @@ class ProfilController extends GetxController {
 
   final PassengerProfileService _profileService;
   PassengerStatsService get _statsService => Get.find<PassengerStatsService>();
+  PassengerSafetyService get _safetyService => Get.find<PassengerSafetyService>();
 
   // ── Reactive state ─────────────────────────────────────────────────────────
   final profileVersion = 0.obs;
   final isLoading = false.obs;
   final hasLoadError = false.obs;
+
+  // ── Emergency contacts ─────────────────────────────────────────────────────
+  final RxList<EmergencyContact> emergencyContacts = <EmergencyContact>[].obs;
+  final RxBool isLoadingContacts = false.obs;
 
   // ── Stats from /passenger/stats ────────────────────────────────────────────
   final statsBookingsTotal     = 0.obs;
@@ -75,14 +83,18 @@ class ProfilController extends GetxController {
   Future<void> _loadAll() async {
     isLoading.value = true;
     hasLoadError.value = false;
-    // Fire both requests in parallel
     final results = await Future.wait([
       _profileService.fetchProfile(),
       _statsService.fetchStats(),
+      _safetyService.fetchContacts(),
     ]);
     isLoading.value = false;
-    final profileResult = results[0];
-    final statsResult   = results[1];
+    final profileResult  = results[0];
+    final statsResult    = results[1];
+    final contactsResult = results[2];
+    if (contactsResult.isSuccess) {
+      emergencyContacts.assignAll(contactsResult.data as List<EmergencyContact>);
+    }
     if (profileResult.isSuccess) {
       _applyProfile(profileResult.data as PassengerProfileDashboard);
     } else {
@@ -218,6 +230,200 @@ class ProfilController extends GetxController {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       isScrollControlled: true,
+    );
+  }
+
+  // ── Emergency contacts ─────────────────────────────────────────────────────
+  void showAddContactSheet() {
+    if (emergencyContacts.length >= 5) {
+      UIHelper().showSnackBar('MINIZON', 'Maximum 5 contacts d\'urgence atteint.', 2);
+      return;
+    }
+    Get.bottomSheet(
+      _AddContactSheet(onAdd: addEmergencyContact),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
+  }
+
+  Future<void> addEmergencyContact(String name, String phone, String relation) async {
+    final result = await _safetyService.addContact(
+      name: name, phone: phone, relation: relation,
+    );
+    if (!result.isSuccess) {
+      UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+      return;
+    }
+    emergencyContacts.add(result.data!);
+    Get.back();
+  }
+
+  Future<void> deleteEmergencyContact(String id) async {
+    final result = await _safetyService.deleteContact(id);
+    if (!result.isSuccess) {
+      UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+      return;
+    }
+    emergencyContacts.removeWhere((c) => c.id == id);
+  }
+}
+
+// ── Add Emergency Contact Sheet ───────────────────────────────────────────────
+
+class _AddContactSheet extends StatefulWidget {
+  const _AddContactSheet({required this.onAdd});
+  final Future<void> Function(String name, String phone, String relation) onAdd;
+
+  @override
+  State<_AddContactSheet> createState() => _AddContactSheetState();
+}
+
+class _AddContactSheetState extends State<_AddContactSheet> {
+  final _nameCtrl     = TextEditingController();
+  final _phoneCtrl    = TextEditingController();
+  final _relationCtrl = TextEditingController();
+  bool _isSaving = false;
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _phoneCtrl.dispose();
+    _relationCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final name     = _nameCtrl.text.trim();
+    final phone    = _phoneCtrl.text.trim();
+    final relation = _relationCtrl.text.trim();
+    if (name.isEmpty || phone.isEmpty || relation.isEmpty) {
+      UIHelper().showSnackBar('MINIZON', 'Veuillez remplir tous les champs.', 2);
+      return;
+    }
+    setState(() => _isSaving = true);
+    await widget.onAdd(name, phone, relation);
+    if (mounted) setState(() => _isSaving = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final responsive = AppResponsive(context);
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.fromLTRB(
+        responsive.w(20), responsive.h(16),
+        responsive.w(20),
+        responsive.h(24) + MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: responsive.w(40), height: responsive.h(4),
+                decoration: BoxDecoration(
+                    color: AppColors.border,
+                    borderRadius: BorderRadius.circular(9999)),
+              ),
+            ),
+            SizedBox(height: responsive.h(16)),
+            Text('Ajouter un contact d\'urgence',
+                style: AppTextStyles.title(responsive)),
+            SizedBox(height: responsive.h(4)),
+            Text('Ce contact sera alerté en cas d\'urgence.',
+                style: AppTextStyles.caption(responsive)
+                    .copyWith(color: AppColors.textHint)),
+            SizedBox(height: responsive.h(20)),
+            _Field(label: 'Nom complet', controller: _nameCtrl,
+                hint: 'Ex: Mama Adèle', responsive: responsive),
+            SizedBox(height: responsive.h(12)),
+            _Field(label: 'Lien de parenté', controller: _relationCtrl,
+                hint: 'Ex: maman, ami, frère', responsive: responsive),
+            SizedBox(height: responsive.h(12)),
+            _Field(label: 'Numéro de téléphone', controller: _phoneCtrl,
+                hint: '+229 01 XX XX XX XX',
+                keyboardType: TextInputType.phone, responsive: responsive),
+            SizedBox(height: responsive.h(24)),
+            SizedBox(
+              width: double.infinity,
+              height: responsive.h(50),
+              child: ElevatedButton(
+                onPressed: _isSaving ? null : _submit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                  elevation: 0,
+                ),
+                child: _isSaving
+                    ? const SizedBox(width: 20, height: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
+                    : Text('Enregistrer',
+                        style: AppTextStyles.subtitle(responsive)
+                            .copyWith(color: Colors.white,
+                                fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Field extends StatelessWidget {
+  const _Field({
+    required this.label, required this.controller,
+    required this.hint, required this.responsive,
+    this.keyboardType = TextInputType.text,
+  });
+  final String label;
+  final TextEditingController controller;
+  final String hint;
+  final AppResponsive responsive;
+  final TextInputType keyboardType;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: AppTextStyles.caption(responsive)
+                .copyWith(fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary)),
+        SizedBox(height: responsive.h(6)),
+        TextField(
+          controller: controller,
+          keyboardType: keyboardType,
+          style: AppTextStyles.body(responsive),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: AppTextStyles.body(responsive)
+                .copyWith(color: AppColors.textHint),
+            filled: true,
+            fillColor: AppColors.surfaceMuted,
+            contentPadding: EdgeInsets.symmetric(
+                horizontal: responsive.w(14), vertical: responsive.h(12)),
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.border)),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.border)),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide:
+                    const BorderSide(color: AppColors.primary, width: 1.5)),
+          ),
+        ),
+      ],
     );
   }
 }

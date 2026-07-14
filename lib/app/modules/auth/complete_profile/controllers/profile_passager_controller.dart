@@ -17,6 +17,24 @@ class ProfilePassagerController extends GetxController {
   final TextEditingController neighborhoodController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
 
+  // ── Emergency contacts (max 5) ─────────────────────────────────────────────
+  final RxList<EmergencyContactEntry> emergencyContacts =
+      <EmergencyContactEntry>[].obs;
+
+  void addEmergencyContact(String name, String phone, String relationship) {
+    if (emergencyContacts.length >= 5) return;
+    emergencyContacts.add(EmergencyContactEntry(
+        name: name, phone: phone, relationship: relationship));
+    update();
+  }
+
+  void removeEmergencyContact(int index) {
+    if (index >= 0 && index < emergencyContacts.length) {
+      emergencyContacts.removeAt(index);
+      update();
+    }
+  }
+
   final RxInt progress = 60.obs;
   final RxString avatarImageName = ''.obs;
   final Rxn<String> selectedGender = Rxn<String>();
@@ -163,4 +181,18 @@ class ProfilePassagerController extends GetxController {
     addressController.dispose();
     super.onClose();
   }
+}
+
+class EmergencyContactEntry {
+  String name;
+  String phone;
+  String relationship;
+  EmergencyContactEntry({
+    required this.name,
+    required this.phone,
+    required this.relationship,
+  });
+
+  Map<String, String> toMap() =>
+      {'name': name, 'phone': phone, 'relationship': relationship};
 }

@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/services/face_verification_service.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
+import 'profile_passager_controller.dart' show EmergencyContactEntry;
 
 enum DriverType { car, moto }
 
@@ -20,6 +21,24 @@ class ProfileDriverController extends GetxController {
   final TextEditingController vehicleColorController = TextEditingController();
   final TextEditingController vehicleSeatsController = TextEditingController();
   final TextEditingController plateController = TextEditingController();
+
+  // ── Emergency contacts (max 5) ─────────────────────────────────────────────
+  final RxList<EmergencyContactEntry> emergencyContacts =
+      <EmergencyContactEntry>[].obs;
+
+  void addEmergencyContact(String name, String phone, String relationship) {
+    if (emergencyContacts.length >= 5) return;
+    emergencyContacts.add(EmergencyContactEntry(
+        name: name, phone: phone, relationship: relationship));
+    update();
+  }
+
+  void removeEmergencyContact(int index) {
+    if (index >= 0 && index < emergencyContacts.length) {
+      emergencyContacts.removeAt(index);
+      update();
+    }
+  }
 
   final Rx<DriverType> selectedDriverType = DriverType.car.obs;
   final RxInt progress = 75.obs;

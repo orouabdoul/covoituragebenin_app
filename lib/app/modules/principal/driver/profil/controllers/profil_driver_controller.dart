@@ -5,19 +5,26 @@ import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/services/auth/auth_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/profile/driver_profile_service.dart';
+import 'package:covoiturage_benin_app/app/core/services/driver/safety/safety_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/profile_model.dart';
+import 'package:covoiturage_benin_app/app/data/models/passenger/safety_model.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 class DriverProfileController extends GetxController {
   DriverProfileService get _service => Get.find<DriverProfileService>();
+  SafetyService get _safetyService => Get.find<SafetyService>();
 
   // ── Reactive state ───────────────────────────────────────────────────────
   final RxBool autoAvailability = false.obs;
   final RxBool notificationsEnabled = true.obs;
   final RxBool isLoading = false.obs;
   final RxInt profileVersion = 0.obs;
+
+  // ── Emergency contacts ──────────────────────────────────────────────────
+  final RxList<EmergencyContact> emergencyContacts = <EmergencyContact>[].obs;
+  final RxBool isLoadingContacts = false.obs;
 
   // ── Hero data ────────────────────────────────────────────────────────────
   String heroName = AppStrings.driverProfileName;
@@ -178,12 +185,22 @@ class DriverProfileController extends GetxController {
 
   Future<void> _loadProfile() async {
     isLoading.value = true;
-    final result = await _service.fetchProfile();
+    final results = await Future.wait([
+      _service.fetchProfile(),
+      _safetyService.fetchContacts(),
+    ]);
     isLoading.value = false;
-    if (result.isSuccess) {
-      _applyProfile(result.data!);
+    final profileResult   = results[0];
+    final contactsResult  = results[1];
+    if (profileResult.isSuccess) {
+      _applyProfile(profileResult.data as ProfileModel);
     } else {
-      logger.w('profile load failed: ${result.error}');
+      logger.w('profile load failed: ${profileResult.error}');
+    }
+    if (contactsResult.isSuccess) {
+      final maps = contactsResult.data as List<Map<String, dynamic>>;
+      emergencyContacts.assignAll(
+          maps.map((m) => EmergencyContact.fromJson(m)).toList());
     }
   }
 
@@ -746,6 +763,45 @@ class DriverProfileController extends GetxController {
     Get.offAllNamed(AppRoutes.register);
   }
 
+  // ── Emergency contacts ──────────────────────────────────────────────────
+  void showAddContactSheet() {
+    if (emergencyContacts.length >= 5) {
+      UIHelper().showSnackBar(AppStrings.appName,
+          'Maximum 5 contacts d\'urgence atteint.', 2);
+      return;
+    }
+    Get.bottomSheet(
+      _DriverAddContactSheet(onAdd: addEmergencyContact),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
+  }
+
+  Future<void> addEmergencyContact(
+      String name, String phone, String relation) async {
+    final result = await _safetyService.addContact(
+        name: name, phone: phone, relation: relation);
+    if (!result.isSuccess) {
+      UIHelper().showSnackBar(AppStrings.appName, result.error!.message, 2);
+      return;
+    }
+    final maps = result.data as List<Map<String, dynamic>>;
+    emergencyContacts.assignAll(
+        maps.map((m) => EmergencyContact.fromJson(m)).toList());
+    Get.back();
+  }
+
+  Future<void> deleteEmergencyContact(String id) async {
+    final result = await _safetyService.removeContact(id);
+    if (!result.isSuccess) {
+      UIHelper().showSnackBar(AppStrings.appName, result.error!.message, 2);
+      return;
+    }
+    final maps = result.data as List<Map<String, dynamic>>;
+    emergencyContacts.assignAll(
+        maps.map((m) => EmergencyContact.fromJson(m)).toList());
+  }
+
   void onNotifications() => Get.toNamed(AppRoutes.driverNotifications);
 
   void onTune() {
@@ -789,6 +845,104 @@ class DriverProfileController extends GetxController {
       UIHelper().showSnackBar(
           AppStrings.appName, 'Erreur lors de la mise à jour.', 2);
     }
+  }
+}
+
+// ── Driver Add Contact Sheet ──────────────────────────────────────────────────
+
+class _DriverAddContactSheet extends StatefulWidget {
+  const _DriverAddContactSheet({required this.onAdd});
+  final Future<void> Function(String name, String phone, String relation) onAdd;
+
+  @override
+  State<_DriverAddContactSheet> createState() => _DriverAddContactSheetState();
+}
+
+class _DriverAddContactSheetState extends State<_DriverAddContactSheet> {
+  final _nameCtrl     = TextEditingController();
+  final _phoneCtrl    = TextEditingController();
+  final _relationCtrl = TextEditingController();
+  bool _isSaving = false;
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose(); _phoneCtrl.dispose(); _relationCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final name = _nameCtrl.text.trim();
+    final phone = _phoneCtrl.text.trim();
+    final relation = _relationCtrl.text.trim();
+    if (name.isEmpty || phone.isEmpty || relation.isEmpty) {
+      UIHelper().showSnackBar('MINIZON', 'Veuillez remplir tous les champs.', 2);
+      return;
+    }
+    setState(() => _isSaving = true);
+    await widget.onAdd(name, phone, relation);
+    if (mounted) setState(() => _isSaving = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.fromLTRB(20, 16, 20,
+          24 + MediaQuery.of(context).viewInsets.bottom),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(child: Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(9999)),
+            )),
+            const SizedBox(height: 16),
+            const Text('Ajouter un contact d\'urgence',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 4),
+            const Text('Ce contact sera alerté en cas d\'urgence.',
+                style: TextStyle(fontSize: 13, color: AppColors.textHint)),
+            const SizedBox(height: 20),
+            _ProfileField(label: 'Nom complet', controller: _nameCtrl,
+                icon: Icons.person_rounded),
+            const SizedBox(height: 12),
+            _ProfileField(label: 'Lien de parenté', controller: _relationCtrl,
+                icon: Icons.family_restroom_rounded),
+            const SizedBox(height: 12),
+            _ProfileField(label: 'Numéro de téléphone', controller: _phoneCtrl,
+                icon: Icons.phone_rounded,
+                keyboardType: TextInputType.phone),
+            const SizedBox(height: 20),
+            GestureDetector(
+              onTap: _isSaving ? null : _submit,
+              child: Container(
+                width: double.infinity, height: 50,
+                decoration: BoxDecoration(
+                  color: _isSaving ? AppColors.textHint : AppColors.primary,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Center(
+                  child: _isSaving
+                      ? const SizedBox(width: 20, height: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white))
+                      : const Text('Enregistrer',
+                          style: TextStyle(fontWeight: FontWeight.w700,
+                              color: Colors.white, fontSize: 15)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
