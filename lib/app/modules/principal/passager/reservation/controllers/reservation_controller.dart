@@ -144,7 +144,7 @@ class ReservationController extends GetxController {
 			Get.toNamed(AppRoutes.passengerReservationPayment, arguments: {
 				'bookingUuid': r.id,
 				'seats': r.seatsCount,
-			});
+			})?.then((_) => _fetch());
 
 	void contactDriver(ReservationItem r) =>
 			MessagerController.openDriverChat(
@@ -669,6 +669,7 @@ class ReservationItem {
 		double? givenRating,
 		String? cancelReason,
 		RefundStatus? refundStatus,
+		String? conversationUuid,
 	}) {
 		return ReservationItem(
 			id: id,
@@ -697,7 +698,7 @@ class ReservationItem {
 			refundStatus: refundStatus ?? this.refundStatus,
 			etaMinutes: etaMinutes,
 			timeAgo: timeAgo,
-			conversationUuid: conversationUuid,
+			conversationUuid: conversationUuid ?? this.conversationUuid,
 		);
 	}
 }

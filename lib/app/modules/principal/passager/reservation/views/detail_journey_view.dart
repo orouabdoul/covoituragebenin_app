@@ -866,6 +866,7 @@ class _ExistingReservationActions extends StatelessWidget {
     }
 
     if (status == ReservationStatus.confirmed) {
+      final isPaid = controller.isPaid;
       return Column(
         children: [
           // Bandeau info confirmé
@@ -884,7 +885,9 @@ class _ExistingReservationActions extends StatelessWidget {
                 SizedBox(width: responsive.w(10)),
                 Expanded(
                   child: Text(
-                    'Réservation confirmée par le conducteur. Vous pouvez maintenant procéder au paiement.',
+                    isPaid
+                        ? 'Réservation confirmée et payée. Votre place est réservée.'
+                        : 'Réservation confirmée par le conducteur. Vous pouvez maintenant procéder au paiement.',
                     style: AppTextStyles.bodySmall(responsive).copyWith(
                       color: const Color(0xFF2E7D32),
                       height: 1.4,
@@ -895,16 +898,17 @@ class _ExistingReservationActions extends StatelessWidget {
             ),
           ),
           SizedBox(height: responsive.h(12)),
-          AppPrimaryButton(
-            responsive: responsive,
-            label: 'Payer maintenant',
-            onTap: controller.payNow,
-            backgroundColor: AppColors.primary,
-            textColor: AppColors.white,
-            borderRadius: responsive.radius(16),
-            height: responsive.h(56),
-          ),
-          SizedBox(height: responsive.h(12)),
+          if (!isPaid)
+            AppPrimaryButton(
+              responsive: responsive,
+              label: 'Payer maintenant',
+              onTap: controller.payNow,
+              backgroundColor: AppColors.primary,
+              textColor: AppColors.white,
+              borderRadius: responsive.radius(16),
+              height: responsive.h(56),
+            ),
+          if (!isPaid) SizedBox(height: responsive.h(12)),
           Obx(() => AppPrimaryButton(
             responsive: responsive,
             label: controller.isContactingDriver.value ? 'Connexion…' : 'Contacter le conducteur',

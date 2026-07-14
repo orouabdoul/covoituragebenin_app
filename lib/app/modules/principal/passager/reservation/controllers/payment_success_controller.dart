@@ -6,6 +6,7 @@ import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/passenger_reservation_service.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/passager/messager/controllers/messager_controller.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/passager/reservation/controllers/reservation_controller.dart';
 import '../../search/controllers/search_controller.dart';
 
 class PaymentSuccessController extends GetxController {
@@ -117,7 +118,13 @@ class PaymentSuccessController extends GetxController {
     );
   }
 
-  void goToReservations() => BottonNavController.goToTab(2);
+  void goToReservations() {
+    // Forcer le rechargement de la liste avant de switcher l'onglet
+    try {
+      Get.find<ReservationController>().refresh();
+    } catch (_) {}
+    BottonNavController.goToTab(2);
+  }
 
   void goHome() => BottonNavController.goToTab(0);
 }

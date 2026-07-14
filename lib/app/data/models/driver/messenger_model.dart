@@ -163,9 +163,11 @@ class ConversationThreadContext {
 class ConversationApiMessage {
   const ConversationApiMessage({
     required this.id,
+    required this.messageUuid,
     required this.kind,
     required this.message,
     required this.time,
+    required this.rawDate,
     this.title,
     this.subtitle,
     this.actionLabel,
@@ -174,23 +176,27 @@ class ConversationApiMessage {
   });
 
   final int id;
+  final String messageUuid; // UUID returned by send API, used for delete/edit
   final String kind; // 'incoming' | 'outgoing' | 'reminder'
   final String message;
   final String time;
+  final String rawDate; // ISO date "2026-07-14", used for date separators
   final String? title;
   final String? subtitle;
   final String? actionLabel;
-  final String? attachmentUrl;  // URL de la pièce jointe
-  final String? attachmentType; // 'image' | 'document'
+  final String? attachmentUrl;
+  final String? attachmentType;
 
   factory ConversationApiMessage.fromJson(Map<String, dynamic> j) {
     final rawAtt = j['attachment'];
     final attachment = rawAtt is Map ? Map<String, dynamic>.from(rawAtt) : null;
     return ConversationApiMessage(
       id: (j['id'] as num?)?.toInt() ?? 0,
+      messageUuid: j['uuid'] as String? ?? '',
       kind: j['kind'] as String? ?? 'incoming',
       message: j['body'] as String? ?? j['message'] as String? ?? '',
       time: j['time'] as String? ?? '',
+      rawDate: j['raw_date'] as String? ?? j['date'] as String? ?? '',
       title: j['title'] as String?,
       subtitle: j['subtitle'] as String?,
       actionLabel: j['action_label'] as String?,

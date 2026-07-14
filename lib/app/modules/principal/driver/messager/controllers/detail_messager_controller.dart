@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/messaging/messaging_service.dart';
@@ -77,9 +78,9 @@ class DriverDetailMessagerController extends GetxController {
       _applyThreadContext(detail.thread);
       final mapped = detail.messages.map(_toDetailMessage).toList();
       if (loadMore) {
-        messages.insertAll(0, mapped);
+        messages.insertAll(0, _withDateSeparators(mapped));
       } else {
-        messages.assignAll(mapped);
+        messages.assignAll(_withDateSeparators(mapped));
       }
       hasMore.value = detail.hasMore;
       _nextBeforeId = detail.nextBeforeId;
@@ -118,10 +119,51 @@ class DriverDetailMessagerController extends GetxController {
       kind: kind,
       message: m.message,
       time: m.time,
+      rawDate: m.rawDate,
+      messageUuid: m.messageUuid,
       title: m.title ?? '',
       subtitle: m.subtitle ?? '',
       actionLabel: m.actionLabel ?? '',
+      attachmentUrl: m.attachmentUrl,
+      attachmentType: m.attachmentType,
     );
+  }
+
+  List<DetailMessage> _withDateSeparators(List<DetailMessage> msgs) {
+    final result = <DetailMessage>[];
+    String? lastDate;
+    for (final msg in msgs) {
+      final d = msg.rawDate;
+      if (d.isNotEmpty && d != lastDate) {
+        result.add(DetailMessage(
+          kind: DetailMessageKind.dateHeader,
+          rawDate: d,
+          dateLabel: _formatDate(d),
+        ));
+        lastDate = d;
+      }
+      result.add(msg);
+    }
+    return result;
+  }
+
+  String _formatDate(String rawDate) {
+    try {
+      final date = DateTime.parse(rawDate);
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final yesterday = today.subtract(const Duration(days: 1));
+      final d = DateTime(date.year, date.month, date.day);
+      if (d == today) return 'Aujourd\'hui';
+      if (d == yesterday) return 'Hier';
+      const months = [
+        'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+        'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'
+      ];
+      return '${date.day} ${months[date.month - 1]} ${date.year}';
+    } catch (_) {
+      return rawDate;
+    }
   }
 
   Future<void> loadMore() => _fetchThread(loadMore: true);
@@ -130,17 +172,31 @@ class DriverDetailMessagerController extends GetxController {
     final text = messageController.text.trim();
     if (text.isEmpty) return;
 
-    // Edit mode — update message in place
+    // ── Mode édition ──────────────────────────────────────────────────────────
     if (editingIndex.value != null) {
       final idx = editingIndex.value!;
-      if (idx < messages.length) {
-        messages[idx] = messages[idx].copyWith(message: text, isEdited: true);
-      }
       messageController.clear();
       editingIndex.value = null;
+      if (idx >= messages.length) return;
+
+      final msg = messages[idx];
+      if (msg.messageUuid.isNotEmpty) {
+        isSending.value = true;
+        final result = await _service.editMessage(msg.messageUuid, text);
+        isSending.value = false;
+        if (result.isSuccess) {
+          messages[idx] = msg.copyWith(message: text, isEdited: true);
+        } else if (result.error != null) {
+          UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+        }
+      } else {
+        // Message chargé depuis l'historique (pas d'UUID) : mise à jour locale
+        messages[idx] = msg.copyWith(message: text, isEdited: true);
+      }
       return;
     }
 
+    // ── Envoi normal ─────────────────────────────────────────────────────────
     messageController.clear();
 
     final optimistic = DetailMessage(
@@ -154,11 +210,100 @@ class DriverDetailMessagerController extends GetxController {
     final result = await _service.sendMessage(_uuid, text);
     isSending.value = false;
 
-    if (!result.isSuccess) {
+    if (result.isSuccess) {
+      final idx = messages.indexOf(optimistic);
+      if (idx >= 0) {
+        messages[idx] = _toDetailMessage(result.data!);
+      }
+    } else {
       messages.remove(optimistic);
       if (result.error != null) {
         UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
       }
+    }
+  }
+
+  void openAttachmentPicker() {
+    Get.bottomSheet(
+      Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(9999),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Joindre un fichier',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 20),
+            _OptionRow(
+              icon: Icons.camera_alt_rounded,
+              label: 'Prendre une photo',
+              color: AppColors.primary,
+              onTap: () {
+                Get.back();
+                _pickAndSend(ImageSource.camera);
+              },
+            ),
+            const SizedBox(height: 10),
+            _OptionRow(
+              icon: Icons.photo_library_rounded,
+              label: 'Galerie photo',
+              color: const Color(0xFF6366F1),
+              onTap: () {
+                Get.back();
+                _pickAndSend(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
+  }
+
+  Future<void> _pickAndSend(ImageSource source) async {
+    if (_uuid.isEmpty) return;
+    final picker = ImagePicker();
+    final file = await picker.pickImage(
+      source: source,
+      imageQuality: 85,
+      maxWidth: 1920,
+    );
+    if (file == null) return;
+
+    final optimistic = DetailMessage(
+      kind: DetailMessageKind.outgoing,
+      message: '📷 Image en cours d\'envoi…',
+      time: 'maintenant',
+    );
+    messages.add(optimistic);
+
+    isSending.value = true;
+    final result = await _service.sendAttachment(_uuid, file.path);
+    isSending.value = false;
+
+    messages.remove(optimistic);
+
+    if (result.isSuccess) {
+      messages.add(_toDetailMessage(result.data!));
+    } else if (result.error != null) {
+      UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
     }
   }
 
@@ -168,6 +313,7 @@ class DriverDetailMessagerController extends GetxController {
   }
 
   void showMessageOptions(int index, DetailMessage msg) {
+    final canEdit = msg.message.isNotEmpty && !msg.hasAttachment;
     Get.bottomSheet(
       Container(
         decoration: const BoxDecoration(
@@ -198,7 +344,7 @@ class DriverDetailMessagerController extends GetxController {
                 border: Border.all(color: AppColors.border),
               ),
               child: Text(
-                msg.message.isNotEmpty ? msg.message : '–',
+                msg.message.isNotEmpty ? msg.message : '📷 Image',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
@@ -217,7 +363,7 @@ class DriverDetailMessagerController extends GetxController {
                 }
               },
             ),
-            if (msg.message.isNotEmpty) ...[
+            if (canEdit) ...[
               const SizedBox(height: 10),
               _OptionRow(
                 icon: Icons.edit_rounded,
@@ -242,23 +388,49 @@ class DriverDetailMessagerController extends GetxController {
                 Get.back();
                 Get.dialog(
                   AlertDialog(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
                     title: const Row(children: [
-                      Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444), size: 20),
+                      Icon(Icons.delete_outline_rounded,
+                          color: Color(0xFFEF4444), size: 20),
                       SizedBox(width: 8),
-                      Expanded(child: Text('Supprimer ce message ?', style: TextStyle(fontSize: 15))),
+                      Expanded(
+                          child: Text('Supprimer ce message ?',
+                              style: TextStyle(fontSize: 15))),
                     ]),
-                    content: const Text('Ce message sera supprimé pour vous uniquement.'),
+                    content: const Text(
+                        'Ce message sera supprimé définitivement.'),
                     actions: [
-                      TextButton(onPressed: Get.back, child: const Text('Annuler')),
                       TextButton(
-                        onPressed: () {
+                          onPressed: Get.back,
+                          child: const Text('Annuler')),
+                      TextButton(
+                        onPressed: () async {
                           Get.back();
-                          if (index < messages.length) messages.removeAt(index);
+                          if (index >= messages.length) return;
+                          final m = messages[index];
+                          if (m.messageUuid.isNotEmpty) {
+                            final result =
+                                await _service.deleteMessage(m.messageUuid);
+                            if (result.isSuccess) {
+                              if (index < messages.length) {
+                                messages.removeAt(index);
+                              }
+                            } else if (result.error != null) {
+                              UIHelper().showSnackBar(
+                                  'MINIZON', result.error!.message, 2);
+                            }
+                          } else {
+                            if (index < messages.length) {
+                              messages.removeAt(index);
+                            }
+                          }
                         },
                         child: const Text(
                           'Supprimer',
-                          style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.w700),
+                          style: TextStyle(
+                              color: Color(0xFFEF4444),
+                              fontWeight: FontWeight.w700),
                         ),
                       ),
                     ],
@@ -275,27 +447,37 @@ class DriverDetailMessagerController extends GetxController {
   }
 
   void onCall() {
-    final phone = displayPhone.value.isNotEmpty ? displayPhone.value : '+229 XX XX XX XX';
+    final phone =
+        displayPhone.value.isNotEmpty ? displayPhone.value : '+229 XX XX XX XX';
     Get.dialog(AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: Row(children: [
         const Icon(Icons.call_rounded, color: AppColors.primary, size: 22),
         const SizedBox(width: 10),
-        Expanded(child: Text('Appeler ${displayName.value}',
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700))),
+        Expanded(
+            child: Text('Appeler ${displayName.value}',
+                style: const TextStyle(
+                    fontSize: 15, fontWeight: FontWeight.w700))),
       ]),
       content: Column(mainAxisSize: MainAxisSize.min, children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          padding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           decoration: BoxDecoration(
-              color: const Color(0xFFE6F7EF), borderRadius: BorderRadius.circular(12)),
+              color: const Color(0xFFE6F7EF),
+              borderRadius: BorderRadius.circular(12)),
           child: Text(phone,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900,
-                  color: AppColors.primary, letterSpacing: 1)),
+              style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.primary,
+                  letterSpacing: 1)),
         ),
         const SizedBox(height: 6),
         const Text('Numéro masqué pour votre sécurité',
-            style: TextStyle(fontSize: 11, color: AppColors.textGhost)),
+            style:
+                TextStyle(fontSize: 11, color: AppColors.textGhost)),
       ]),
       actions: [
         TextButton(onPressed: Get.back, child: const Text('Fermer')),
@@ -306,7 +488,9 @@ class DriverDetailMessagerController extends GetxController {
             UIHelper().showSnackBar('MINIZON', 'Numéro copié.', 0);
           },
           child: const Text('Copier',
-              style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
+              style: TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700)),
         ),
       ],
     ));
@@ -317,20 +501,25 @@ class DriverDetailMessagerController extends GetxController {
       Container(
         decoration: const BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+            borderRadius:
+                BorderRadius.vertical(top: Radius.circular(24))),
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Center(child: Container(
-              width: 40, height: 4,
-              decoration: BoxDecoration(
-                  color: AppColors.border,
-                  borderRadius: BorderRadius.circular(9999)))),
+          Center(
+              child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                      color: AppColors.border,
+                      borderRadius: BorderRadius.circular(9999)))),
           const SizedBox(height: 16),
           Obx(() => Text(displayName.value,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700))),
+              style: const TextStyle(
+                  fontSize: 16, fontWeight: FontWeight.w700))),
           const SizedBox(height: 4),
           const Text('Options de conversation',
-              style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+              style:
+                  TextStyle(fontSize: 12, color: AppColors.textMuted)),
           const SizedBox(height: 20),
           _OptionRow(
             icon: Icons.block_rounded,
@@ -340,19 +529,25 @@ class DriverDetailMessagerController extends GetxController {
               Get.back();
               final n = displayName.value;
               Get.dialog(AlertDialog(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
                 title: const Text('Bloquer le contact ?'),
-                content: Text('$n ne pourra plus vous envoyer de messages.'),
+                content:
+                    Text('$n ne pourra plus vous envoyer de messages.'),
                 actions: [
-                  TextButton(onPressed: Get.back, child: const Text('Annuler')),
+                  TextButton(
+                      onPressed: Get.back,
+                      child: const Text('Annuler')),
                   TextButton(
                     onPressed: () {
                       Get.back();
-                      UIHelper().showSnackBar('MINIZON', '$n bloqué.', 0);
+                      UIHelper()
+                          .showSnackBar('MINIZON', '$n bloqué.', 0);
                     },
                     child: const Text('Bloquer',
                         style: TextStyle(
-                            color: Color(0xFFEF4444), fontWeight: FontWeight.w700)),
+                            color: Color(0xFFEF4444),
+                            fontWeight: FontWeight.w700)),
                   ),
                 ],
               ));
@@ -365,8 +560,9 @@ class DriverDetailMessagerController extends GetxController {
             color: const Color(0xFFF59E0B),
             onTap: () {
               Get.back();
-              UIHelper().showSnackBar(
-                  'MINIZON', 'Signalement enregistré. Notre équipe vous contacte.', 0);
+              UIHelper().showSnackBar('MINIZON',
+                  'Signalement enregistré. Notre équipe vous contacte.',
+                  0);
             },
           ),
           const SizedBox(height: 10),
@@ -376,7 +572,8 @@ class DriverDetailMessagerController extends GetxController {
             color: const Color(0xFF9CA3AF),
             onTap: () {
               Get.back();
-              UIHelper().showSnackBar('MINIZON', 'Conversation supprimée.', 0);
+              UIHelper()
+                  .showSnackBar('MINIZON', 'Conversation supprimée.', 0);
             },
           ),
         ]),
@@ -391,21 +588,27 @@ class DriverDetailMessagerController extends GetxController {
     final departure = displayTripDepartureLabel.value;
     final address = route.isNotEmpty ? route : 'Trajet en cours';
     Get.dialog(AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: const Row(children: [
-        Icon(Icons.location_on_rounded, color: AppColors.primary, size: 22),
+        Icon(Icons.location_on_rounded,
+            color: AppColors.primary, size: 22),
         SizedBox(width: 10),
-        Text('Point de rendez-vous', style: TextStyle(fontSize: 16)),
+        Text('Point de rendez-vous',
+            style: TextStyle(fontSize: 16)),
       ]),
       content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(address,
-                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                style: const TextStyle(
+                    fontWeight: FontWeight.w700, fontSize: 15)),
             if (departure.isNotEmpty) ...[
               const SizedBox(height: 4),
-              Text(departure, style: const TextStyle(color: AppColors.textMuted)),
+              Text(departure,
+                  style:
+                      const TextStyle(color: AppColors.textMuted)),
             ],
             const SizedBox(height: 12),
             Container(
@@ -414,11 +617,15 @@ class DriverDetailMessagerController extends GetxController {
                   color: const Color(0xFFE6F7EF),
                   borderRadius: BorderRadius.circular(12)),
               child: const Row(children: [
-                Icon(Icons.info_outline_rounded, color: AppColors.primary, size: 16),
+                Icon(Icons.info_outline_rounded,
+                    color: AppColors.primary, size: 16),
                 SizedBox(width: 8),
-                Expanded(child: Text(
-                    'Copiez l\'adresse pour l\'ouvrir dans Google Maps.',
-                    style: TextStyle(fontSize: 12, color: AppColors.primary))),
+                Expanded(
+                    child: Text(
+                        'Copiez l\'adresse pour l\'ouvrir dans Google Maps.',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.primary))),
               ]),
             ),
           ]),
@@ -428,10 +635,13 @@ class DriverDetailMessagerController extends GetxController {
           onPressed: () {
             Clipboard.setData(ClipboardData(text: address));
             Get.back();
-            UIHelper().showSnackBar('MINIZON', 'Adresse copiée.', 0);
+            UIHelper()
+                .showSnackBar('MINIZON', 'Adresse copiée.', 0);
           },
           child: const Text('Copier l\'adresse',
-              style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
+              style: TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700)),
         ),
       ],
     ));
@@ -445,11 +655,12 @@ class DriverDetailMessagerController extends GetxController {
 }
 
 class _OptionRow extends StatelessWidget {
-  const _OptionRow(
-      {required this.icon,
-      required this.label,
-      required this.color,
-      required this.onTap});
+  const _OptionRow({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
   final IconData icon;
   final String label;
   final Color color;
@@ -460,7 +671,8 @@ class _OptionRow extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.07),
           borderRadius: BorderRadius.circular(14),
@@ -470,41 +682,64 @@ class _OptionRow extends StatelessWidget {
           Icon(icon, color: color, size: 20),
           const SizedBox(width: 12),
           Text(label,
-              style: TextStyle(fontWeight: FontWeight.w600, color: color)),
+              style: TextStyle(
+                  fontWeight: FontWeight.w600, color: color)),
         ]),
       ),
     );
   }
 }
 
-enum DetailMessageKind { incoming, outgoing, info, reminder }
+// ── Enums & view models ────────────────────────────────────────────────────────
+
+enum DetailMessageKind { incoming, outgoing, info, reminder, dateHeader }
 
 class DetailMessage {
   const DetailMessage({
     required this.kind,
     this.message = '',
     this.time = '',
+    this.rawDate = '',
+    this.dateLabel = '',
+    this.messageUuid = '',
     this.isEdited = false,
     this.title = '',
     this.subtitle = '',
     this.actionLabel = '',
+    this.attachmentUrl,
+    this.attachmentType,
   });
 
   final DetailMessageKind kind;
   final String message;
   final String time;
+  final String rawDate;
+  final String dateLabel;
+  final String messageUuid; // UUID pour delete/edit via API
   final bool isEdited;
   final String title;
   final String subtitle;
   final String actionLabel;
+  final String? attachmentUrl;
+  final String? attachmentType;
 
-  DetailMessage copyWith({String? message, bool? isEdited}) => DetailMessage(
-    kind: kind,
-    message: message ?? this.message,
-    time: time,
-    isEdited: isEdited ?? this.isEdited,
-    title: title,
-    subtitle: subtitle,
-    actionLabel: actionLabel,
-  );
+  bool get hasAttachment =>
+      attachmentUrl != null && attachmentUrl!.isNotEmpty;
+  bool get isImageAttachment => attachmentType == 'image';
+
+  DetailMessage copyWith({String? message, bool? isEdited}) =>
+      DetailMessage(
+        kind: kind,
+        message: message ?? this.message,
+        time: time,
+        rawDate: rawDate,
+        dateLabel: dateLabel,
+        messageUuid: messageUuid,
+        isEdited: isEdited ?? this.isEdited,
+        title: title,
+        subtitle: subtitle,
+        actionLabel: actionLabel,
+        attachmentUrl: attachmentUrl,
+        attachmentType: attachmentType,
+      );
 }

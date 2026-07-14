@@ -80,9 +80,9 @@ class PassengerDetailMessagerController extends GetxController {
       _applyThreadContext(detail.thread);
       final mapped = detail.messages.map(_toDetailMessage).toList();
       if (loadMore) {
-        messages.insertAll(0, mapped);
+        messages.insertAll(0, _withDateSeparators(mapped));
       } else {
-        messages.assignAll(mapped);
+        messages.assignAll(_withDateSeparators(mapped));
       }
       hasMore.value = detail.hasMore;
       _nextBeforeId = detail.nextBeforeId;
@@ -122,12 +122,49 @@ class PassengerDetailMessagerController extends GetxController {
       kind: kind,
       message: m.message,
       time: m.time,
+      rawDate: m.rawDate,
+      messageUuid: m.messageUuid,
       title: m.title ?? '',
       subtitle: m.subtitle ?? '',
       actionLabel: m.actionLabel ?? '',
       attachmentUrl: m.attachmentUrl,
       attachmentType: m.attachmentType,
     );
+  }
+
+  List<DetailMessage> _withDateSeparators(List<DetailMessage> msgs) {
+    final result = <DetailMessage>[];
+    String? lastDate;
+    for (final msg in msgs) {
+      final d = msg.rawDate;
+      if (d.isNotEmpty && d != lastDate) {
+        result.add(DetailMessage(
+          kind: DetailMessageKind.dateHeader,
+          rawDate: d,
+          dateLabel: _formatDate(d),
+        ));
+        lastDate = d;
+      }
+      result.add(msg);
+    }
+    return result;
+  }
+
+  String _formatDate(String rawDate) {
+    try {
+      final date = DateTime.parse(rawDate);
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final yesterday = today.subtract(const Duration(days: 1));
+      final d = DateTime(date.year, date.month, date.day);
+      if (d == today) return 'Aujourd\'hui';
+      if (d == yesterday) return 'Hier';
+      const months = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+          'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+      return '${date.day} ${months[date.month - 1]} ${date.year}';
+    } catch (_) {
+      return rawDate;
+    }
   }
 
   Future<void> loadMore() => _fetchThread(loadMore: true);
@@ -209,17 +246,30 @@ class PassengerDetailMessagerController extends GetxController {
     final text = messageController.text.trim();
     if (text.isEmpty) return;
 
-    // Edit mode — update message in place
+    // ── Mode édition ──────────────────────────────────────────────────────────
     if (editingIndex.value != null) {
       final idx = editingIndex.value!;
-      if (idx < messages.length) {
-        messages[idx] = messages[idx].copyWith(message: text, isEdited: true);
-      }
       messageController.clear();
       editingIndex.value = null;
+      if (idx >= messages.length) return;
+
+      final msg = messages[idx];
+      if (msg.messageUuid.isNotEmpty) {
+        isSending.value = true;
+        final result = await _service.editMessage(msg.messageUuid, text);
+        isSending.value = false;
+        if (result.isSuccess) {
+          messages[idx] = msg.copyWith(message: text, isEdited: true);
+        } else if (result.error != null) {
+          UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+        }
+      } else {
+        messages[idx] = msg.copyWith(message: text, isEdited: true);
+      }
       return;
     }
 
+    // ── Envoi normal ─────────────────────────────────────────────────────────
     messageController.clear();
 
     final optimistic = DetailMessage(
@@ -235,7 +285,12 @@ class PassengerDetailMessagerController extends GetxController {
     final result = await _service.sendMessage(_uuid, text);
     isSending.value = false;
 
-    if (!result.isSuccess) {
+    if (result.isSuccess) {
+      final idx = messages.indexOf(optimistic);
+      if (idx >= 0) {
+        messages[idx] = _toDetailMessage(result.data!);
+      }
+    } else {
       messages.remove(optimistic);
       if (result.error != null) {
         UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
@@ -334,13 +389,32 @@ class PassengerDetailMessagerController extends GetxController {
                     actions: [
                       TextButton(onPressed: Get.back, child: const Text('Annuler')),
                       TextButton(
-                        onPressed: () {
+                        onPressed: () async {
                           Get.back();
-                          if (index < messages.length) messages.removeAt(index);
+                          if (index >= messages.length) return;
+                          final m = messages[index];
+                          if (m.messageUuid.isNotEmpty) {
+                            final result =
+                                await _service.deleteMessage(m.messageUuid);
+                            if (result.isSuccess) {
+                              if (index < messages.length) {
+                                messages.removeAt(index);
+                              }
+                            } else if (result.error != null) {
+                              UIHelper().showSnackBar(
+                                  'MINIZON', result.error!.message, 2);
+                            }
+                          } else {
+                            if (index < messages.length) {
+                              messages.removeAt(index);
+                            }
+                          }
                         },
                         child: const Text(
                           'Supprimer',
-                          style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.w700),
+                          style: TextStyle(
+                              color: Color(0xFFEF4444),
+                              fontWeight: FontWeight.w700),
                         ),
                       ),
                     ],
@@ -606,13 +680,16 @@ class _OptionTile extends StatelessWidget {
 
 // ── View models ───────────────────────────────────────────────────────────────
 
-enum DetailMessageKind { incoming, outgoing, info, reminder }
+enum DetailMessageKind { incoming, outgoing, info, reminder, dateHeader }
 
 class DetailMessage {
   const DetailMessage({
     required this.kind,
     this.message = '',
     this.time = '',
+    this.rawDate = '',
+    this.dateLabel = '',
+    this.messageUuid = '',
     this.isEdited = false,
     this.title = '',
     this.subtitle = '',
@@ -624,6 +701,9 @@ class DetailMessage {
   final DetailMessageKind kind;
   final String message;
   final String time;
+  final String rawDate;
+  final String dateLabel;
+  final String messageUuid; // UUID pour delete/edit via API
   final bool isEdited;
   final String title;
   final String subtitle;
@@ -638,6 +718,9 @@ class DetailMessage {
     kind: kind,
     message: message ?? this.message,
     time: time,
+    rawDate: rawDate,
+    dateLabel: dateLabel,
+    messageUuid: messageUuid,
     isEdited: isEdited ?? this.isEdited,
     title: title,
     subtitle: subtitle,

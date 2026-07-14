@@ -24,6 +24,8 @@ class DetailReservationController extends GetxController {
   ReservationStatus? reservationStatus;
   ReservationItem? _existingReservation;
 
+  bool get isPaid => _existingReservation?.isPaid ?? false;
+
   // Driver metrics from API
   final acceptanceRate = ''.obs;
   final responseTime = ''.obs;
@@ -182,6 +184,9 @@ class DetailReservationController extends GetxController {
       }
       return;
     }
+
+    // Mémoriser l'UUID pour éviter de créer une nouvelle conversation à chaque appel
+    _existingReservation = r.copyWith(conversationUuid: result.data!);
 
     MessagerController.openDriverChat(
       driverName: r.driverName,

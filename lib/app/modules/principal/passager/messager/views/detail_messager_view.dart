@@ -71,12 +71,40 @@ class DetailMessagerView extends GetView<PassengerDetailMessagerController> {
                         responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
                         responsive.h(12),
                       ),
-                      itemCount: controller.messages.length,
+                      itemCount: controller.messages.length +
+                          (controller.hasMore.value ? 1 : 0),
                       separatorBuilder: (_, idx) => SizedBox(height: responsive.h(16)),
                       itemBuilder: (context, index) {
-                        final message = controller.messages[index];
+                        if (index == 0 && controller.hasMore.value) {
+                          return Center(
+                            child: Padding(
+                              padding: EdgeInsets.only(bottom: responsive.h(8)),
+                              child: controller.isLoadingMore.value
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2))
+                                  : TextButton.icon(
+                                      onPressed: controller.loadMore,
+                                      icon: const Icon(
+                                          Icons.expand_less_rounded),
+                                      label: const Text(
+                                          'Messages précédents'),
+                                    ),
+                            ),
+                          );
+                        }
+                        final msgIndex =
+                            controller.hasMore.value ? index - 1 : index;
+                        final message = controller.messages[msgIndex];
 
                         switch (message.kind) {
+                          case DetailMessageKind.dateHeader:
+                            return _DateSeparator(
+                              responsive: responsive,
+                              label: message.dateLabel,
+                            );
                           case DetailMessageKind.incoming:
                             return _IncomingMessage(
                               responsive: responsive,
@@ -411,6 +439,35 @@ class _HeaderActionButton extends StatelessWidget {
           ),
         ),
         child: Icon(icon, color: iconColor, size: iconSize),
+      ),
+    );
+  }
+}
+
+class _DateSeparator extends StatelessWidget {
+  const _DateSeparator({required this.responsive, required this.label});
+
+  final AppResponsive responsive;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        margin: EdgeInsets.symmetric(vertical: responsive.h(4)),
+        padding: EdgeInsets.symmetric(
+            horizontal: responsive.w(14), vertical: responsive.h(5)),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE9E9E9),
+          borderRadius: BorderRadius.circular(9999),
+        ),
+        child: Text(
+          label,
+          style: AppTextStyles.caption(responsive).copyWith(
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ),
     );
   }

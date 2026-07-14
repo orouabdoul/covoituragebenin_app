@@ -117,11 +117,25 @@ class AppApi {
   // Messagerie — passager
   static const String passengerMessager = '/passenger/messager';
   static String passengerConversationThread(String uuid) => '/passenger/conversations/$uuid/thread';
+  static String passengerConversationMessages(String uuid) => '/passenger/conversations/$uuid/messages';
+  static String passengerConversationRead(String uuid) => '/passenger/conversations/$uuid/read';
+  static String passengerBookingStartConversation(String bookingUuid) => '/passenger/bookings/$bookingUuid/conversation';
+  static String passengerMessageDelete(String messageUuid) => '/passenger/messages/$messageUuid';
+  static String passengerMessageEdit(String messageUuid) => '/passenger/messages/$messageUuid';
+
+  // Messagerie — partagé (legacy, conservé pour compatibilité)
   static String bookingStartConversation(String bookingUuid) => '/bookings/$bookingUuid/conversation';
 
   // Messagerie — conducteur
   static const String driverMessager = '/driver/messager';
   static String driverConversationThread(String uuid) => '/driver/conversations/$uuid/thread';
+  static String driverConversationMessages(String uuid) => '/driver/conversations/$uuid/messages';
+  static String driverConversationRead(String uuid) => '/driver/conversations/$uuid/read';
+  static String driverBookingStartConversation(String bookingUuid) => '/driver/bookings/$bookingUuid/conversation';
+  static String driverMessageDelete(String messageUuid) => '/driver/messages/$messageUuid';
+  static String driverMessageEdit(String messageUuid) => '/driver/messages/$messageUuid';
+
+  // Messagerie — partagé (passager garde ses propres routes)
   static String conversationMessages(String uuid) => '/conversations/$uuid/messages';
   static String conversationRead(String uuid) => '/conversations/$uuid/read';
 

@@ -25,7 +25,7 @@ class UserModel {
       isVerified: json['is_verified'] as bool? ?? false,
       isBlocked: json['is_blocked'] as bool? ?? false,
       penaltyPoints: json['penalty_points'] as int? ?? 0,
-      role: json['role'] as String? ?? 'passenger',
+      role: json['role'] as String? ?? '',
     );
   }
 }

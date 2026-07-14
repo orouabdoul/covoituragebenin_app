@@ -87,12 +87,19 @@ class DetailMessagerView extends GetView<DriverDetailMessagerController> {
                             controller.hasMore.value ? index - 1 : index;
                         final message = controller.messages[msgIndex];
                         switch (message.kind) {
+                          case DetailMessageKind.dateHeader:
+                            return _DateSeparator(
+                              responsive: responsive,
+                              label: message.dateLabel,
+                            );
                           case DetailMessageKind.incoming:
                             return _IncomingMessage(
                               responsive: responsive,
                               avatarUrl: controller.displayAvatarUrl.value,
                               message: message.message,
                               time: message.time,
+                              attachmentUrl: message.attachmentUrl,
+                              isImageAttachment: message.isImageAttachment,
                             );
                           case DetailMessageKind.outgoing:
                             return GestureDetector(
@@ -102,6 +109,8 @@ class DetailMessagerView extends GetView<DriverDetailMessagerController> {
                                 message: message.message,
                                 time: message.time,
                                 isEdited: message.isEdited,
+                                attachmentUrl: message.attachmentUrl,
+                                isImageAttachment: message.isImageAttachment,
                               ),
                             );
                           case DetailMessageKind.info:
@@ -499,18 +508,51 @@ class _HeaderActionButton extends StatelessWidget {
   }
 }
 
+class _DateSeparator extends StatelessWidget {
+  const _DateSeparator({required this.responsive, required this.label});
+
+  final AppResponsive responsive;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        margin: EdgeInsets.symmetric(vertical: responsive.h(4)),
+        padding: EdgeInsets.symmetric(
+            horizontal: responsive.w(14), vertical: responsive.h(5)),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE9E9E9),
+          borderRadius: BorderRadius.circular(9999),
+        ),
+        child: Text(
+          label,
+          style: AppTextStyles.caption(responsive).copyWith(
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _IncomingMessage extends StatelessWidget {
   const _IncomingMessage({
     required this.responsive,
     required this.avatarUrl,
     required this.message,
     required this.time,
+    this.attachmentUrl,
+    this.isImageAttachment = false,
   });
 
   final AppResponsive responsive;
   final String? avatarUrl;
   final String message;
   final String time;
+  final String? attachmentUrl;
+  final bool isImageAttachment;
 
   @override
   Widget build(BuildContext context) {
@@ -526,8 +568,12 @@ class _IncomingMessage extends StatelessWidget {
               ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: responsive.w(280)),
                 child: Container(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: responsive.w(16), vertical: responsive.h(12)),
+                  padding: isImageAttachment && message.isEmpty
+                      ? EdgeInsets.zero
+                      : EdgeInsets.symmetric(
+                          horizontal: responsive.w(16),
+                          vertical: responsive.h(12)),
+                  clipBehavior: Clip.antiAlias,
                   decoration: ShapeDecoration(
                     color: const Color(0xFFF3F4F6),
                     shape: RoundedRectangleBorder(
@@ -540,9 +586,33 @@ class _IncomingMessage extends StatelessWidget {
                       ),
                     ),
                   ),
-                  child: Text(message,
-                      style: AppTextStyles.caption(responsive)
-                          .copyWith(color: AppColors.textPrimary, height: 1.64)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isImageAttachment && attachmentUrl != null)
+                        Image.network(
+                          attachmentUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (ctx, e, s) => Padding(
+                            padding: EdgeInsets.all(responsive.w(12)),
+                            child: const Icon(Icons.broken_image_rounded,
+                                color: AppColors.textGhost, size: 36),
+                          ),
+                        ),
+                      if (message.isNotEmpty)
+                        Padding(
+                          padding: isImageAttachment
+                              ? EdgeInsets.fromLTRB(responsive.w(12),
+                                  responsive.h(8), responsive.w(12),
+                                  responsive.h(10))
+                              : EdgeInsets.zero,
+                          child: Text(message,
+                              style: AppTextStyles.caption(responsive).copyWith(
+                                  color: AppColors.textPrimary, height: 1.64)),
+                        ),
+                    ],
+                  ),
                 ),
               ),
               SizedBox(height: responsive.h(4)),
@@ -561,12 +631,16 @@ class _OutgoingMessage extends StatelessWidget {
     required this.message,
     required this.time,
     this.isEdited = false,
+    this.attachmentUrl,
+    this.isImageAttachment = false,
   });
 
   final AppResponsive responsive;
   final String message;
   final String time;
   final bool isEdited;
+  final String? attachmentUrl;
+  final bool isImageAttachment;
 
   @override
   Widget build(BuildContext context) {
@@ -580,8 +654,12 @@ class _OutgoingMessage extends StatelessWidget {
             ConstrainedBox(
               constraints: BoxConstraints(maxWidth: responsive.w(280)),
               child: Container(
-                padding: EdgeInsets.symmetric(
-                    horizontal: responsive.w(16), vertical: responsive.h(12)),
+                padding: isImageAttachment && message.isEmpty
+                    ? EdgeInsets.zero
+                    : EdgeInsets.symmetric(
+                        horizontal: responsive.w(16),
+                        vertical: responsive.h(12)),
+                clipBehavior: Clip.antiAlias,
                 decoration: ShapeDecoration(
                   color: AppColors.primary,
                   shape: RoundedRectangleBorder(
@@ -594,9 +672,33 @@ class _OutgoingMessage extends StatelessWidget {
                     ),
                   ),
                 ),
-                child: Text(message,
-                    style: AppTextStyles.caption(responsive)
-                        .copyWith(color: Colors.white, height: 1.64)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (isImageAttachment && attachmentUrl != null)
+                      Image.network(
+                        attachmentUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (ctx, e, s) => Padding(
+                          padding: EdgeInsets.all(responsive.w(12)),
+                          child: const Icon(Icons.broken_image_rounded,
+                              color: Colors.white70, size: 36),
+                        ),
+                      ),
+                    if (message.isNotEmpty)
+                      Padding(
+                        padding: isImageAttachment
+                            ? EdgeInsets.fromLTRB(responsive.w(12),
+                                responsive.h(8), responsive.w(12),
+                                responsive.h(10))
+                            : EdgeInsets.zero,
+                        child: Text(message,
+                            style: AppTextStyles.caption(responsive)
+                                .copyWith(color: Colors.white, height: 1.64)),
+                      ),
+                  ],
+                ),
               ),
             ),
             SizedBox(height: responsive.h(4)),
@@ -782,7 +884,7 @@ class _Composer extends StatelessWidget {
             AppCircularButton(
               responsive: responsive,
               icon: Icons.add_rounded,
-              onTap: controller.openMap,
+              onTap: controller.openAttachmentPicker,
               size: responsive.w(40),
               filled: false,
             ),

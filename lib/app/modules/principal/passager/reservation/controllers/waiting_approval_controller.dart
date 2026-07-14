@@ -24,9 +24,7 @@ class WaitingApprovalController extends GetxController {
   final RxInt paymentIndex = 0.obs;
 
   String _bookingUuid = '';
-  Timer? _countdownTimer;
   Timer? _pollingTimer;
-  Timer? _simulationTimer;
 
   String get timeLabel {
     final m = secondsRemaining.value ~/ 60;
@@ -56,9 +54,13 @@ class WaitingApprovalController extends GetxController {
           return;
         }
       }
-      // Fallback: simulation
-      _startCountdown();
-      _simulateAcceptance();
+      // UUID manquant — on ne peut pas attendre la confirmation d'un conducteur sans référence
+      UIHelper().showSnackBar(
+        'MINIZON',
+        'Réservation introuvable. Vérifiez dans Mes Réservations.',
+        3,
+      );
+      Get.back();
     });
   }
 
@@ -95,26 +97,6 @@ class WaitingApprovalController extends GetxController {
       default:
         break;
     }
-  }
-
-  // ── Simulation fallback ────────────────────────────────────────────────────
-
-  void _startCountdown() {
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (secondsRemaining.value > 0) {
-        secondsRemaining.value--;
-      } else {
-        _onTimeout();
-      }
-    });
-  }
-
-  void _simulateAcceptance() {
-    _simulationTimer = Timer(const Duration(seconds: 4), () {
-      if (status.value == WaitingStatus.pending) {
-        _onAccepted();
-      }
-    });
   }
 
   // ── Status transitions ─────────────────────────────────────────────────────
@@ -166,9 +148,7 @@ class WaitingApprovalController extends GetxController {
   }
 
   void _cancelTimers() {
-    _countdownTimer?.cancel();
     _pollingTimer?.cancel();
-    _simulationTimer?.cancel();
   }
 
   @override

@@ -96,27 +96,37 @@ class OtpCodeController extends GetxController {
         serverRole == 'conducteur' ||
         _role == RoleType.driver;
 
-    if (_mode == AuthMode.login && !profileComplete) {
+    if (profileComplete) {
+      Get.offAllNamed(
+        isDriver ? AppRoutes.dashboardDriver : AppRoutes.dashboardPassenger,
+      );
+      return;
+    }
+
+    // Profil incomplet : vérifier si le rôle est déjà connu
+    final bool hasRole = _role != null ||
+        serverRole == 'driver' ||
+        serverRole == 'conducteur' ||
+        serverRole == 'passenger' ||
+        serverRole == 'passager';
+
+    if (!hasRole) {
+      // Nouveau user sans rôle → passer par la sélection de rôle d'abord
       UIHelper().showSnackBar(
         'MINIZON',
-        'Bienvenue ! Finalisez votre inscription pour accéder à l\'application.',
+        'Bienvenue ! Choisissez votre profil pour finaliser votre inscription.',
         1,
       );
       Get.offAllNamed(AppRoutes.roles, arguments: {'skipAuth': true});
       return;
     }
 
-    if (!profileComplete) {
-      Get.offAllNamed(
-        isDriver
-            ? AppRoutes.completeProfileDriver
-            : AppRoutes.completeProfilePassenger,
-      );
-    } else {
-      Get.offAllNamed(
-        isDriver ? AppRoutes.dashboardDriver : AppRoutes.dashboardPassenger,
-      );
-    }
+    // Rôle connu → aller directement à la complétion de profil
+    Get.offAllNamed(
+      isDriver
+          ? AppRoutes.completeProfileDriver
+          : AppRoutes.completeProfilePassenger,
+    );
   }
 
   Future<void> resendCode() async {

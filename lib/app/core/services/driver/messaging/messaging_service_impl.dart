@@ -19,6 +19,11 @@ class MessagingServiceImpl implements MessagingService {
     );
   }
 
+  Future<String> _bearerToken() async {
+    final token = await UserController.instance.getSessionToken();
+    return 'Bearer $token';
+  }
+
   @override
   Future<ApiResult<MessengerInboxModel>> fetchInbox({String filter = 'all'}) async {
     try {
@@ -30,17 +35,17 @@ class MessagingServiceImpl implements MessagingService {
       );
       logger.d('driverMessager[$filter] [${res.statusCode}]');
       if (res.statusCode == 200 && res.data['success'] == true) {
-        return ApiResult.success(
-          MessengerInboxModel.fromJson(res.data['body'] as Map<String, dynamic>),
-        );
+        final raw = res.data['body'];
+        final body = raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
+        return ApiResult.success(MessengerInboxModel.fromJson(body));
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('fetchInbox: $e');
+      logger.e('driverFetchInbox: $e');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('fetchInbox: $e');
+      logger.e('driverFetchInbox: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -60,50 +65,92 @@ class MessagingServiceImpl implements MessagingService {
         queryParameters: params,
         options: opts,
       );
-      logger.d('fetchThread[$uuid] [${res.statusCode}]');
+      logger.d('driverFetchThread[$uuid] [${res.statusCode}]');
       if (res.statusCode == 200 && res.data['success'] == true) {
-        return ApiResult.success(
-          ConversationThreadDetail.fromJson(res.data['body'] as Map<String, dynamic>),
-        );
+        final raw = res.data['body'];
+        final body = raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
+        return ApiResult.success(ConversationThreadDetail.fromJson(body));
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 403) return ApiResult.failure(AppError.unexpected);
+      if (res.statusCode == 404) return ApiResult.failure(AppError.userNotFound);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('fetchThread: $e');
+      logger.e('driverFetchThread: $e');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('fetchThread: $e');
+      logger.e('driverFetchThread: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
 
   @override
   Future<ApiResult<ConversationApiMessage>> sendMessage(
-      String uuid, String message) async {
+    String uuid,
+    String message,
+  ) async {
     try {
       final opts = await _authOptions();
       final res = await _dio.post(
-        AppApi.conversationMessages(uuid),
+        AppApi.driverConversationMessages(uuid),
         data: {'body': message},
         options: opts,
       );
-      logger.d('sendMessage[$uuid] [${res.statusCode}]');
+      logger.d('driverSendMessage[$uuid] [${res.statusCode}]');
       if (res.statusCode == 200 || res.statusCode == 201) {
         if (res.data['success'] == true) {
-          return ApiResult.success(
-            ConversationApiMessage.fromJson(
-              res.data['body'] as Map<String, dynamic>? ?? {},
-            ),
-          );
+          final raw = res.data['body'];
+          final body = raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
+          return ApiResult.success(ConversationApiMessage.fromJson(body));
         }
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('sendMessage: $e');
+      logger.e('driverSendMessage: $e');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('sendMessage: $e');
+      logger.e('driverSendMessage: $e');
+      return ApiResult.failure(AppError.unexpected);
+    }
+  }
+
+  @override
+  Future<ApiResult<ConversationApiMessage>> sendAttachment(
+    String uuid,
+    String filePath, {
+    String? caption,
+  }) async {
+    try {
+      final bearer = await _bearerToken();
+      final formData = FormData.fromMap({
+        if (caption != null && caption.isNotEmpty) 'body': caption,
+        'attachment': await MultipartFile.fromFile(filePath),
+      });
+      final res = await _dio.post(
+        AppApi.driverConversationMessages(uuid),
+        data: formData,
+        options: Options(
+          validateStatus: (_) => true,
+          headers: {'Authorization': bearer},
+        ),
+      );
+      logger.d('driverSendAttachment[$uuid] [${res.statusCode}]');
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        if (res.data['success'] == true) {
+          final raw = res.data['body'];
+          final body = raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
+          return ApiResult.success(ConversationApiMessage.fromJson(body));
+        }
+      }
+      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 422) return ApiResult.failure(AppError.unexpected);
+      return ApiResult.failure(AppError.unexpected);
+    } on DioException catch (e) {
+      logger.e('driverSendAttachment: $e');
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
+      logger.e('driverSendAttachment: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -112,18 +159,90 @@ class MessagingServiceImpl implements MessagingService {
   Future<ApiResult<void>> markAsRead(String uuid) async {
     try {
       final opts = await _authOptions();
-      final res = await _dio.post(AppApi.conversationRead(uuid), options: opts);
-      logger.d('markAsRead[$uuid] [${res.statusCode}]');
+      final res = await _dio.post(AppApi.driverConversationRead(uuid), options: opts);
+      logger.d('driverMarkAsRead[$uuid] [${res.statusCode}]');
       if (res.statusCode == 200) return ApiResult.success(null);
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('markAsRead: $e');
+      logger.e('driverMarkAsRead: $e');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('markAsRead: $e');
+      logger.e('driverMarkAsRead: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
 
+  @override
+  Future<ApiResult<String>> startConversation(String bookingUuid) async {
+    try {
+      final opts = await _authOptions();
+      final res = await _dio.post(
+        AppApi.driverBookingStartConversation(bookingUuid),
+        options: opts,
+      );
+      logger.d('driverStartConversation[$bookingUuid] [${res.statusCode}]');
+      if ((res.statusCode == 200 || res.statusCode == 201) &&
+          res.data['success'] == true) {
+        final uuid = res.data['body']?['conversation_uuid'] as String? ?? '';
+        if (uuid.isEmpty) return ApiResult.failure(AppError.unexpected);
+        return ApiResult.success(uuid);
+      }
+      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      return ApiResult.failure(AppError.unexpected);
+    } on DioException catch (e) {
+      logger.e('driverStartConversation: $e');
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
+      logger.e('driverStartConversation: $e');
+      return ApiResult.failure(AppError.unexpected);
+    }
+  }
+
+  @override
+  Future<ApiResult<void>> deleteMessage(String messageUuid) async {
+    try {
+      final opts = await _authOptions();
+      final res = await _dio.delete(
+        AppApi.driverMessageDelete(messageUuid),
+        options: opts,
+      );
+      logger.d('driverDeleteMessage[$messageUuid] [${res.statusCode}]');
+      if (res.statusCode == 200) return ApiResult.success(null);
+      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 403) return ApiResult.failure(AppError.unexpected);
+      if (res.statusCode == 404) return ApiResult.failure(AppError.userNotFound);
+      return ApiResult.failure(AppError.unexpected);
+    } on DioException catch (e) {
+      logger.e('driverDeleteMessage: $e');
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
+      logger.e('driverDeleteMessage: $e');
+      return ApiResult.failure(AppError.unexpected);
+    }
+  }
+
+  @override
+  Future<ApiResult<void>> editMessage(String messageUuid, String newBody) async {
+    try {
+      final opts = await _authOptions();
+      final res = await _dio.patch(
+        AppApi.driverMessageEdit(messageUuid),
+        data: {'body': newBody},
+        options: opts,
+      );
+      logger.d('driverEditMessage[$messageUuid] [${res.statusCode}]');
+      if (res.statusCode == 200) return ApiResult.success(null);
+      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 403) return ApiResult.failure(AppError.unexpected);
+      if (res.statusCode == 422) return ApiResult.failure(AppError.unexpected);
+      return ApiResult.failure(AppError.unexpected);
+    } on DioException catch (e) {
+      logger.e('driverEditMessage: $e');
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
+      logger.e('driverEditMessage: $e');
+      return ApiResult.failure(AppError.unexpected);
+    }
+  }
 }
