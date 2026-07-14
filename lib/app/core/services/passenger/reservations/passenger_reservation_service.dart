@@ -4,7 +4,20 @@ import 'package:covoiturage_benin_app/app/data/models/passenger/reservations_mod
 abstract class PassengerReservationService {
   Future<ApiResult<ConfirmationContextModel>> fetchConfirmationContext(String tripUuid);
 
-  Future<ApiResult<String>> createBooking(String tripUuid, {required int seats});
+  Future<ApiResult<CreateBookingResult>> createBooking(
+    String tripUuid, {
+    required int seats,
+    required String pickupCity,
+    required String pickupNeighborhood,
+    required String pickupAddress,
+    required double pickupLat,
+    required double pickupLng,
+    required String dropoffCity,
+    required String dropoffNeighborhood,
+    required String dropoffAddress,
+    required double dropoffLat,
+    required double dropoffLng,
+  });
 
   Future<ApiResult<void>> cancelBooking(String bookingUuid);
 

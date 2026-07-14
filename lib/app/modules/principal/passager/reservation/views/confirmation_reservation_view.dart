@@ -185,78 +185,289 @@ class _StopsCard extends StatelessWidget {
 					Row(
 						children: [
 							Container(
-								padding: EdgeInsets.symmetric(horizontal: responsive.w(8), vertical: responsive.h(4)),
+								padding: EdgeInsets.symmetric(
+										horizontal: responsive.w(8), vertical: responsive.h(4)),
 								decoration: BoxDecoration(
 									color: AppColors.primary.withValues(alpha: 0.10),
 									borderRadius: BorderRadius.circular(9999),
 								),
 								child: Row(
 									children: [
-										Icon(Icons.pin_drop_rounded, size: responsive.text(12), color: AppColors.primary),
+										Icon(Icons.pin_drop_rounded,
+												size: responsive.text(12), color: AppColors.primary),
 										SizedBox(width: responsive.w(4)),
 										Text(
 											'Obligatoire',
-											style: AppTextStyles.caption(responsive).copyWith(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: responsive.text(10)),
+											style: AppTextStyles.caption(responsive).copyWith(
+													color: AppColors.primary,
+													fontWeight: FontWeight.w700,
+													fontSize: responsive.text(10)),
 										),
 									],
 								),
 							),
 							SizedBox(width: responsive.w(8)),
 							Expanded(
-								child: Text('Votre itinéraire précis', style: AppTextStyles.subtitle(responsive)),
+								child: Text('Votre itinéraire précis',
+										style: AppTextStyles.subtitle(responsive)),
 							),
 						],
 					),
 					SizedBox(height: responsive.h(4)),
 					Text(
-						'Indiquez exactement où vous prendre et déposer. Le conducteur utilise ces points pour optimiser son trajet.',
-						style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint, height: 1.4),
+						'Sélectionnez votre ville et quartier de prise en charge et de dépose.',
+						style: AppTextStyles.caption(responsive)
+								.copyWith(color: AppColors.textHint, height: 1.4),
 					),
 					SizedBox(height: responsive.h(16)),
-					// Pickup field
-					_StopField(
+
+					// ── PRISE EN CHARGE ──────────────────────────────────────────
+					_SectionLabel(
 						responsive: responsive,
 						icon: Icons.trip_origin_rounded,
 						iconColor: AppColors.primary,
-						label: 'Point de prise en charge',
-						hint: 'Ex: Carrefour Tokpa, devant Ecobank…',
+						label: 'Prise en charge',
+					),
+					SizedBox(height: responsive.h(8)),
+
+					// Ville (autocomplete avec villes du trajet en priorité)
+					Obx(() => _LocationAutocompleteField(
+						key: const ValueKey('pickup-city'),
+						responsive: responsive,
+						label: 'Ville *',
+						icon: Icons.location_city_rounded,
+						iconColor: AppColors.primary,
+						controller: controller.pickupCityController,
+						items: controller.pickupCityItems,
+						isSelected: controller.pickupSelectedCity.value != null,
+						onSelected: controller.onPickupCitySelected,
+						onTextChanged: controller.onPickupCityTyped,
+					)),
+					SizedBox(height: responsive.h(8)),
+
+					// Quartier (filtré selon la ville sélectionnée)
+					Obx(() {
+						final districts = controller.pickupNeighborhoodItems;
+						return _LocationAutocompleteField(
+							key: ValueKey('pickup-district-${controller.pickupSelectedCity.value}'),
+							responsive: responsive,
+							label: 'Quartier *',
+							icon: Icons.map_rounded,
+							iconColor: AppColors.primary,
+							controller: controller.pickupNeighborhoodController,
+							items: districts,
+							isSelected: controller.pickupSelectedNeighborhood.value != null,
+							onSelected: controller.onPickupNeighborhoodSelected,
+							onTextChanged: controller.onPickupNeighborhoodTyped,
+							enabled: controller.pickupSelectedCity.value != null,
+							emptyHint: controller.pickupSelectedCity.value == null
+									? 'Choisissez d\'abord une ville'
+									: 'Saisissez votre quartier',
+						);
+					}),
+					SizedBox(height: responsive.h(8)),
+
+					// Repère (champ libre)
+					_PlainTextField(
+						responsive: responsive,
+						label: 'Repère / Adresse (optionnel)',
+						hint: 'Ex: Face pharmacie du centre',
 						controller: controller.pickupController,
 					),
-					// Connector line
+					SizedBox(height: responsive.h(10)),
+
+					// Bouton GPS prise en charge
+					Obx(() => _GpsButton(
+						responsive: responsive,
+						hasCoords: controller.pickupLat.value != null,
+						isLocating: controller.isLocatingPickup.value,
+						onTap: controller.locatePickup,
+					)),
+
+					// ── Séparateur ───────────────────────────────────────────────
 					Padding(
-						padding: EdgeInsets.only(left: responsive.w(15)),
-						child: Column(
-							children: List.generate(3, (_) => Padding(
-								padding: EdgeInsets.symmetric(vertical: responsive.h(2)),
-								child: Container(width: 2, height: responsive.h(4), color: AppColors.border),
-							)),
+						padding: EdgeInsets.symmetric(vertical: responsive.h(14)),
+						child: Row(
+							children: [
+								const Expanded(child: Divider(color: Color(0xFFE5E7EB))),
+								Padding(
+									padding: EdgeInsets.symmetric(horizontal: responsive.w(10)),
+									child: Icon(Icons.swap_vert_rounded,
+											size: responsive.text(18), color: AppColors.textHint),
+								),
+								const Expanded(child: Divider(color: Color(0xFFE5E7EB))),
+							],
 						),
 					),
-					// Dropoff field
-					_StopField(
+
+					// ── DÉPOSE ───────────────────────────────────────────────────
+					_SectionLabel(
 						responsive: responsive,
 						icon: Icons.location_on_rounded,
 						iconColor: const Color(0xFFEF4444),
-						label: 'Point de dépose',
-						hint: 'Ex: Université, Marché central, Arrêt bus…',
+						label: 'Dépose',
+					),
+					SizedBox(height: responsive.h(8)),
+
+					// Ville
+					Obx(() => _LocationAutocompleteField(
+						key: const ValueKey('dropoff-city'),
+						responsive: responsive,
+						label: 'Ville *',
+						icon: Icons.location_city_rounded,
+						iconColor: const Color(0xFFEF4444),
+						controller: controller.dropoffCityController,
+						items: controller.dropoffCityItems,
+						isSelected: controller.dropoffSelectedCity.value != null,
+						onSelected: controller.onDropoffCitySelected,
+						onTextChanged: controller.onDropoffCityTyped,
+					)),
+					SizedBox(height: responsive.h(8)),
+
+					// Quartier
+					Obx(() {
+						final districts = controller.dropoffNeighborhoodItems;
+						return _LocationAutocompleteField(
+							key: ValueKey('dropoff-district-${controller.dropoffSelectedCity.value}'),
+							responsive: responsive,
+							label: 'Quartier *',
+							icon: Icons.map_rounded,
+							iconColor: const Color(0xFFEF4444),
+							controller: controller.dropoffNeighborhoodController,
+							items: districts,
+							isSelected: controller.dropoffSelectedNeighborhood.value != null,
+							onSelected: controller.onDropoffNeighborhoodSelected,
+							onTextChanged: controller.onDropoffNeighborhoodTyped,
+							enabled: controller.dropoffSelectedCity.value != null,
+							emptyHint: controller.dropoffSelectedCity.value == null
+									? 'Choisissez d\'abord une ville'
+									: 'Saisissez votre quartier',
+						);
+					}),
+					SizedBox(height: responsive.h(8)),
+
+					// Repère (champ libre)
+					_PlainTextField(
+						responsive: responsive,
+						label: 'Repère / Adresse (optionnel)',
+						hint: 'Ex: Carrefour étoile rouge',
 						controller: controller.dropoffController,
 					),
+					SizedBox(height: responsive.h(10)),
+
+					// GPS dépose (si ville pas dans la base de coords)
+					Obx(() {
+						final city = controller.dropoffSelectedCity.value;
+						final hasCoords = controller.dropoffLat.value != null;
+						final needsGps = city != null && !hasCoords;
+						if (!needsGps && !controller.isLocatingDropoff.value) {
+							// Coordonnées OK depuis la base — afficher simplement le statut
+							if (hasCoords) {
+								return Container(
+									padding: EdgeInsets.symmetric(
+											horizontal: responsive.w(10), vertical: responsive.h(6)),
+									decoration: BoxDecoration(
+										color: const Color(0xFFE6F7EF),
+										borderRadius: BorderRadius.circular(responsive.radius(8)),
+										border: Border.all(
+												color: AppColors.primary.withValues(alpha: 0.25)),
+									),
+									child: Row(
+										children: [
+											Icon(Icons.check_circle_outline_rounded,
+													size: responsive.text(13),
+													color: AppColors.primary),
+											SizedBox(width: responsive.w(6)),
+											Expanded(
+												child: Text(
+													'Coordonnées GPS définies pour $city',
+													style: AppTextStyles.caption(responsive).copyWith(
+														color: AppColors.primary,
+														fontSize: responsive.text(11),
+													),
+												),
+											),
+										],
+									),
+								);
+							}
+							return const SizedBox.shrink();
+						}
+						// Ville non reconnue ou GPS en attente → bouton GPS
+						return Column(
+							crossAxisAlignment: CrossAxisAlignment.start,
+							children: [
+								if (needsGps)
+									Padding(
+										padding: EdgeInsets.only(bottom: responsive.h(6)),
+										child: Container(
+											padding: EdgeInsets.symmetric(
+													horizontal: responsive.w(10),
+													vertical: responsive.h(6)),
+											decoration: BoxDecoration(
+												color: const Color(0xFFFFF7ED),
+												borderRadius:
+														BorderRadius.circular(responsive.radius(8)),
+												border: Border.all(
+														color: const Color(0xFFF59E0B)
+																.withValues(alpha: 0.4)),
+											),
+											child: Row(
+												children: [
+													Icon(Icons.warning_amber_rounded,
+															size: responsive.text(13),
+															color: const Color(0xFFF59E0B)),
+													SizedBox(width: responsive.w(6)),
+													Expanded(
+														child: Text(
+															'GPS requis pour $city. Utilisez le bouton ci-dessous.',
+															style: AppTextStyles.caption(responsive).copyWith(
+																color: const Color(0xFF92400E),
+																fontSize: responsive.text(11),
+															),
+														),
+													),
+												],
+											),
+										),
+									),
+								_GpsButton(
+									responsive: responsive,
+									hasCoords: hasCoords,
+									isLocating: controller.isLocatingDropoff.value,
+									onTap: controller.locateDropoff,
+									label: hasCoords
+											? 'Position GPS dépose obtenue'
+											: 'Obtenir ma position GPS (dépose)',
+								),
+							],
+						);
+					}),
+
 					SizedBox(height: responsive.h(12)),
+					// Info calcul prix
 					Container(
-						padding: EdgeInsets.symmetric(horizontal: responsive.w(12), vertical: responsive.h(8)),
+						padding: EdgeInsets.symmetric(
+								horizontal: responsive.w(12), vertical: responsive.h(8)),
 						decoration: BoxDecoration(
-							color: const Color(0xFFFFF7ED),
+							color: const Color(0xFFF0FDF4),
 							borderRadius: BorderRadius.circular(responsive.radius(10)),
-							border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.30)),
+							border: Border.all(
+									color: AppColors.primary.withValues(alpha: 0.20)),
 						),
 						child: Row(
 							children: [
-								Icon(Icons.info_outline_rounded, size: responsive.text(14), color: const Color(0xFFF59E0B)),
+								Icon(Icons.calculate_outlined,
+										size: responsive.text(14), color: AppColors.primary),
 								SizedBox(width: responsive.w(8)),
 								Expanded(
 									child: Text(
-										'Vous n\'êtes pas obligé d\'aller jusqu\'à la destination finale du conducteur.',
-										style: AppTextStyles.caption(responsive).copyWith(color: const Color(0xFF92400E), height: 1.3, fontSize: responsive.text(11)),
+										'Le prix est calculé selon votre distance exacte, pas celle du trajet complet.',
+										style: AppTextStyles.caption(responsive).copyWith(
+											color: AppColors.primary,
+											height: 1.3,
+											fontSize: responsive.text(11),
+										),
 									),
 								),
 							],
@@ -268,19 +479,50 @@ class _StopsCard extends StatelessWidget {
 	}
 }
 
-class _StopField extends StatelessWidget {
-	const _StopField({
+// ── Section label ──────────────────────────────────────────────────────────
+
+class _SectionLabel extends StatelessWidget {
+	const _SectionLabel({
 		required this.responsive,
 		required this.icon,
 		required this.iconColor,
+		required this.label,
+	});
+
+	final AppResponsive responsive;
+	final IconData icon;
+	final Color iconColor;
+	final String label;
+
+	@override
+	Widget build(BuildContext context) {
+		return Row(
+			children: [
+				Icon(icon, size: responsive.text(14), color: iconColor),
+				SizedBox(width: responsive.w(6)),
+				Text(
+					label,
+					style: AppTextStyles.caption(responsive).copyWith(
+						fontWeight: FontWeight.w700,
+						color: AppColors.textPrimary,
+					),
+				),
+			],
+		);
+	}
+}
+
+// ── Champ texte libre (repère/adresse) ────────────────────────────────────
+
+class _PlainTextField extends StatelessWidget {
+	const _PlainTextField({
+		required this.responsive,
 		required this.label,
 		required this.hint,
 		required this.controller,
 	});
 
 	final AppResponsive responsive;
-	final IconData icon;
-	final Color iconColor;
 	final String label;
 	final String hint;
 	final TextEditingController controller;
@@ -288,42 +530,342 @@ class _StopField extends StatelessWidget {
 	@override
 	Widget build(BuildContext context) {
 		return Container(
-			padding: EdgeInsets.symmetric(horizontal: responsive.w(12), vertical: responsive.h(10)),
+			padding: EdgeInsets.symmetric(
+					horizontal: responsive.w(12), vertical: responsive.h(10)),
 			decoration: BoxDecoration(
 				color: AppColors.surfaceMuted,
-				borderRadius: BorderRadius.circular(responsive.radius(12)),
+				borderRadius: BorderRadius.circular(responsive.radius(10)),
 				border: Border.all(color: AppColors.border),
 			),
-			child: Row(
+			child: Column(
+				crossAxisAlignment: CrossAxisAlignment.start,
 				children: [
-					Icon(icon, size: responsive.text(18), color: iconColor),
-					SizedBox(width: responsive.w(10)),
-					Expanded(
-						child: Column(
-							crossAxisAlignment: CrossAxisAlignment.start,
-							children: [
-								Text(
-									label,
-									style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint, fontSize: responsive.text(10)),
-								),
-								SizedBox(height: responsive.h(2)),
-								TextField(
-									controller: controller,
-									style: AppTextStyles.subtitle(responsive),
-									decoration: InputDecoration(
-										hintText: hint,
-										hintStyle: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint),
-										isDense: true,
-										contentPadding: EdgeInsets.zero,
-										border: InputBorder.none,
-									),
-									textCapitalization: TextCapitalization.words,
-								),
-							],
+					Text(
+						label,
+						style: AppTextStyles.caption(responsive)
+								.copyWith(color: AppColors.textHint, fontSize: responsive.text(10)),
+					),
+					SizedBox(height: responsive.h(2)),
+					TextField(
+						controller: controller,
+						style: AppTextStyles.subtitle(responsive),
+						textCapitalization: TextCapitalization.sentences,
+						decoration: InputDecoration(
+							hintText: hint,
+							hintStyle: AppTextStyles.caption(responsive)
+									.copyWith(color: AppColors.textHint),
+							isDense: true,
+							contentPadding: EdgeInsets.zero,
+							border: InputBorder.none,
 						),
 					),
 				],
 			),
+		);
+	}
+}
+
+// ── Bouton GPS ─────────────────────────────────────────────────────────────
+
+class _GpsButton extends StatelessWidget {
+	const _GpsButton({
+		required this.responsive,
+		required this.hasCoords,
+		required this.isLocating,
+		required this.onTap,
+		this.label,
+	});
+
+	final AppResponsive responsive;
+	final bool hasCoords;
+	final bool isLocating;
+	final VoidCallback onTap;
+	final String? label;
+
+	@override
+	Widget build(BuildContext context) {
+		final text = label ??
+				(isLocating
+						? 'Localisation en cours…'
+						: hasCoords
+								? 'Position GPS obtenue'
+								: 'Ma position GPS');
+
+		return GestureDetector(
+			onTap: isLocating ? null : onTap,
+			child: Container(
+				padding: EdgeInsets.symmetric(
+						horizontal: responsive.w(12), vertical: responsive.h(10)),
+				decoration: BoxDecoration(
+					color: hasCoords
+							? const Color(0xFFE6F7EF)
+							: const Color(0xFFF5F5F5),
+					borderRadius: BorderRadius.circular(responsive.radius(10)),
+					border: Border.all(
+						color: hasCoords
+								? AppColors.primary.withValues(alpha: 0.4)
+								: AppColors.border,
+					),
+				),
+				child: Row(
+					mainAxisAlignment: MainAxisAlignment.center,
+					children: [
+						if (isLocating)
+							SizedBox(
+								width: responsive.w(14),
+								height: responsive.w(14),
+								child: const CircularProgressIndicator(
+									strokeWidth: 2,
+									color: AppColors.primary,
+								),
+							)
+						else
+							Icon(
+								hasCoords
+										? Icons.gps_fixed_rounded
+										: Icons.my_location_rounded,
+								size: responsive.text(16),
+								color: hasCoords ? AppColors.primary : AppColors.textSecondary,
+							),
+						SizedBox(width: responsive.w(8)),
+						Flexible(
+							child: Text(
+								text,
+								style: AppTextStyles.caption(responsive).copyWith(
+									fontWeight: FontWeight.w600,
+									color: hasCoords
+											? AppColors.primary
+											: AppColors.textSecondary,
+								),
+							),
+						),
+					],
+				),
+			),
+		);
+	}
+}
+
+// ── Champ autocomplete ville/quartier ─────────────────────────────────────
+
+class _LocationAutocompleteField extends StatefulWidget {
+	const _LocationAutocompleteField({
+		super.key,
+		required this.responsive,
+		required this.label,
+		required this.icon,
+		required this.iconColor,
+		required this.controller,
+		required this.items,
+		required this.isSelected,
+		required this.onSelected,
+		required this.onTextChanged,
+		this.enabled = true,
+		this.emptyHint,
+	});
+
+	final AppResponsive responsive;
+	final String label;
+	final IconData icon;
+	final Color iconColor;
+	final TextEditingController controller;
+	final List<String> items;
+	final bool isSelected;
+	final ValueChanged<String> onSelected;
+	final VoidCallback onTextChanged;
+	final bool enabled;
+	final String? emptyHint;
+
+	@override
+	State<_LocationAutocompleteField> createState() =>
+			_LocationAutocompleteFieldState();
+}
+
+class _LocationAutocompleteFieldState
+		extends State<_LocationAutocompleteField> {
+	late FocusNode _focusNode;
+	bool _showList = false;
+	List<String> _filtered = [];
+
+	@override
+	void initState() {
+		super.initState();
+		_focusNode = FocusNode();
+		_focusNode.addListener(_onFocusChange);
+		widget.controller.addListener(_onControllerChange);
+		_filtered = widget.items;
+	}
+
+	@override
+	void didUpdateWidget(_LocationAutocompleteField old) {
+		super.didUpdateWidget(old);
+		if (old.items != widget.items) {
+			setState(() {
+				_filtered = _filterItems(widget.controller.text);
+				_showList = false;
+			});
+		}
+	}
+
+	@override
+	void dispose() {
+		_focusNode.removeListener(_onFocusChange);
+		_focusNode.dispose();
+		widget.controller.removeListener(_onControllerChange);
+		super.dispose();
+	}
+
+	void _onFocusChange() {
+		if (_focusNode.hasFocus) {
+			setState(() {
+				_filtered = _filterItems(widget.controller.text);
+				_showList = widget.items.isNotEmpty;
+			});
+		} else {
+			Future.delayed(const Duration(milliseconds: 150), () {
+				if (mounted) setState(() => _showList = false);
+			});
+		}
+	}
+
+	void _onControllerChange() {
+		if (!_focusNode.hasFocus) return;
+		setState(() {
+			_filtered = _filterItems(widget.controller.text);
+			_showList = _filtered.isNotEmpty;
+		});
+	}
+
+	List<String> _filterItems(String text) {
+		if (text.isEmpty) return widget.items;
+		final q = text.toLowerCase();
+		return widget.items
+				.where((item) => item.toLowerCase().contains(q))
+				.toList();
+	}
+
+	void _onUserTyped(String text) {
+		setState(() {
+			_filtered = _filterItems(text);
+			_showList = _filtered.isNotEmpty;
+		});
+		widget.onTextChanged();
+	}
+
+	void _selectItem(String item) {
+		widget.controller.text = item;
+		widget.onSelected(item);
+		setState(() => _showList = false);
+		_focusNode.unfocus();
+	}
+
+	@override
+	Widget build(BuildContext context) {
+		final responsive = widget.responsive;
+		final bool isSelected = widget.isSelected;
+
+		final Color borderColor = isSelected
+				? widget.iconColor
+				: AppColors.border;
+		final Color effectiveIconColor =
+				isSelected ? widget.iconColor : AppColors.textHint;
+
+		return Column(
+			crossAxisAlignment: CrossAxisAlignment.start,
+			children: [
+				Container(
+					decoration: BoxDecoration(
+						color: widget.enabled
+								? AppColors.surfaceMuted
+								: AppColors.surface,
+						borderRadius: BorderRadius.circular(responsive.radius(10)),
+						border: Border.all(color: borderColor),
+					),
+					child: Row(
+						children: [
+							Padding(
+								padding: EdgeInsets.symmetric(
+										horizontal: responsive.w(12)),
+								child: Icon(
+									isSelected ? Icons.check_circle_rounded : widget.icon,
+									size: responsive.text(16),
+									color: effectiveIconColor,
+								),
+							),
+							Expanded(
+								child: Column(
+									crossAxisAlignment: CrossAxisAlignment.start,
+									children: [
+										Padding(
+											padding: EdgeInsets.only(top: responsive.h(8)),
+											child: Text(
+												widget.label,
+												style: AppTextStyles.caption(responsive).copyWith(
+													color: AppColors.textHint,
+													fontSize: responsive.text(10),
+												),
+											),
+										),
+										TextField(
+											controller: widget.controller,
+											focusNode: _focusNode,
+											enabled: widget.enabled,
+											onChanged: _onUserTyped,
+											style: AppTextStyles.subtitle(responsive),
+											textCapitalization: TextCapitalization.words,
+											decoration: InputDecoration(
+												hintText: widget.emptyHint ?? 'Rechercher…',
+												hintStyle: AppTextStyles.caption(responsive)
+														.copyWith(color: AppColors.textHint),
+												isDense: true,
+												contentPadding: EdgeInsets.only(
+													bottom: responsive.h(8),
+													right: responsive.w(12),
+												),
+												border: InputBorder.none,
+											),
+										),
+									],
+								),
+							),
+						],
+					),
+				),
+				if (_showList && _filtered.isNotEmpty)
+					Container(
+						margin: EdgeInsets.only(top: responsive.h(2)),
+						constraints: BoxConstraints(maxHeight: responsive.h(180)),
+						decoration: BoxDecoration(
+							color: AppColors.white,
+							borderRadius: BorderRadius.circular(responsive.radius(10)),
+							border: Border.all(color: AppColors.border),
+							boxShadow: const [
+								BoxShadow(
+										color: Color(0x14000000),
+										blurRadius: 10,
+										offset: Offset(0, 3)),
+							],
+						),
+						child: ListView.builder(
+							shrinkWrap: true,
+							padding: EdgeInsets.symmetric(vertical: responsive.h(4)),
+							itemCount: _filtered.length,
+							itemBuilder: (_, i) {
+								final item = _filtered[i];
+								return InkWell(
+									onTap: () => _selectItem(item),
+									child: Padding(
+										padding: EdgeInsets.symmetric(
+												horizontal: responsive.w(14),
+												vertical: responsive.h(11)),
+										child:
+												Text(item, style: AppTextStyles.body(responsive)),
+									),
+								);
+							},
+						),
+					),
+			],
 		);
 	}
 }

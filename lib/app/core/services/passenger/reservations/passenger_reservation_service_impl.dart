@@ -11,31 +11,6 @@ import 'passenger_reservation_service.dart';
 class PassengerReservationServiceImpl implements PassengerReservationService {
   final Dio _dio = AppDio.create();
 
-  // Searches every known field path for the booking UUID in an API response.
-  static String _extractBookingUuid(dynamic response) {
-    if (response is! Map) return '';
-    final candidates = <dynamic>[];
-
-    void collect(dynamic node) {
-      if (node is! Map) return;
-      candidates.addAll([
-        node['booking_uuid'],
-        node['uuid'],
-        node['id'],
-        node['booking_id'],
-      ]);
-      for (final sub in ['booking', 'body', 'data']) {
-        if (node[sub] is Map) collect(node[sub] as Map);
-      }
-    }
-
-    collect(response);
-    return candidates.whereType<String>().firstWhere(
-      (s) => s.isNotEmpty,
-      orElse: () => '',
-    );
-  }
-
   Future<Options> _authOptions() async {
     final token = await UserController.instance.getSessionToken();
     return Options(
@@ -69,26 +44,56 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
   }
 
   @override
-  Future<ApiResult<String>> createBooking(String tripUuid,
-      {required int seats}) async {
+  Future<ApiResult<CreateBookingResult>> createBooking(
+    String tripUuid, {
+    required int seats,
+    required String pickupCity,
+    required String pickupNeighborhood,
+    required String pickupAddress,
+    required double pickupLat,
+    required double pickupLng,
+    required String dropoffCity,
+    required String dropoffNeighborhood,
+    required String dropoffAddress,
+    required double dropoffLat,
+    required double dropoffLng,
+  }) async {
     try {
       final opts = await _authOptions();
       final res = await _dio.post(
         AppApi.createBooking(tripUuid),
-        data: {'seats_booked': seats},
+        data: {
+          'seats_booked': seats,
+          'pickup_city': pickupCity,
+          'pickup_neighborhood': pickupNeighborhood,
+          'pickup_address': pickupAddress,
+          'pickup_latitude': pickupLat,
+          'pickup_longitude': pickupLng,
+          'dropoff_city': dropoffCity,
+          'dropoff_neighborhood': dropoffNeighborhood,
+          'dropoff_address': dropoffAddress,
+          'dropoff_latitude': dropoffLat,
+          'dropoff_longitude': dropoffLng,
+        },
         options: opts,
       );
       logger.d('createBooking[$tripUuid] [${res.statusCode}] body=${res.data}');
       if (res.statusCode == 200 || res.statusCode == 201) {
-        final data = res.data;
-        final bookingUuid = _extractBookingUuid(data);
-        logger.d('createBooking UUID extracted: "$bookingUuid"');
-        return ApiResult.success(bookingUuid);
+        final body = res.data['body'] as Map<String, dynamic>? ?? {};
+        return ApiResult.success(CreateBookingResult.fromJson(body));
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       if (res.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
       if (res.statusCode == 404) return ApiResult.failure(AppError.tripNotFound);
-      if (res.statusCode == 422) return ApiResult.failure(AppError.tripDataInvalid);
+      if (res.statusCode == 409) {
+        final msg = res.data is Map ? res.data['message'] as String? : null;
+        return ApiResult.failure(AppError.unexpected,
+            message: msg ?? 'Vous avez déjà une réservation pour ce trajet.');
+      }
+      if (res.statusCode == 422) {
+        final msg = res.data is Map ? res.data['message'] as String? : null;
+        return ApiResult.failure(AppError.tripDataInvalid, message: msg);
+      }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('createBooking: $e');

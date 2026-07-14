@@ -76,6 +76,50 @@ class ConfirmationContextModel {
       );
 }
 
+// ── Create Booking Result ──────────────────────────────────────────────────
+
+class CreateBookingResult {
+  const CreateBookingResult({
+    required this.bookingUuid,
+    required this.bookingMode,
+    required this.priceTotal,
+    required this.calculatedPrice,
+    required this.passengerDistanceKm,
+    required this.tripDistanceKm,
+  });
+
+  final String bookingUuid;
+  final String bookingMode; // 'approval' | 'instant'
+  final int priceTotal;
+  final int calculatedPrice; // Prix pour le trajet exact du passager
+  final double passengerDistanceKm;
+  final double tripDistanceKm;
+
+  factory CreateBookingResult.fromJson(Map<String, dynamic> j) =>
+      CreateBookingResult(
+        bookingUuid: j['booking_uuid'] as String? ?? '',
+        bookingMode: j['booking_mode'] as String? ?? 'approval',
+        priceTotal: (j['price_total'] as num?)?.toInt() ?? 0,
+        calculatedPrice: (j['calculated_price'] as num?)?.toInt() ?? 0,
+        passengerDistanceKm:
+            (j['passenger_distance_km'] as num?)?.toDouble() ?? 0.0,
+        tripDistanceKm: (j['trip_distance_km'] as num?)?.toDouble() ?? 0.0,
+      );
+
+  String get formattedCalculatedPrice {
+    final s = calculatedPrice
+        .toString()
+        .replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ' ');
+    return '$s FCFA';
+  }
+
+  String get formattedPassengerDistance =>
+      '${passengerDistanceKm.toStringAsFixed(1)} km';
+
+  String get formattedTripDistance =>
+      '${tripDistanceKm.toStringAsFixed(1)} km';
+}
+
 // ── Live Tracking ──────────────────────────────────────────────────────────
 
 class LiveTrackingRideInfo {

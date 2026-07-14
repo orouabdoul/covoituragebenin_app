@@ -36,6 +36,10 @@ class DriverDetailMessagerController extends GetxController {
   int? _nextBeforeId;
   late final String _uuid;
 
+  // Overrides locaux — persistants pendant la vie du controller
+  final _deletedIds = <int>{};
+  final _localEdits = <int, String>{};
+
   @override
   void onInit() {
     super.onInit();
@@ -77,10 +81,11 @@ class DriverDetailMessagerController extends GetxController {
       final detail = result.data!;
       _applyThreadContext(detail.thread);
       final mapped = detail.messages.map(_toDetailMessage).toList();
+      final overridden = _withLocalOverrides(mapped);
       if (loadMore) {
-        messages.insertAll(0, _withDateSeparators(mapped));
+        messages.insertAll(0, _withDateSeparators(overridden));
       } else {
-        messages.assignAll(_withDateSeparators(mapped));
+        messages.assignAll(_withDateSeparators(overridden));
       }
       hasMore.value = detail.hasMore;
       _nextBeforeId = detail.nextBeforeId;
@@ -120,6 +125,7 @@ class DriverDetailMessagerController extends GetxController {
       message: m.message,
       time: m.time,
       rawDate: m.rawDate,
+      messageId: m.id,
       messageUuid: m.messageUuid,
       title: m.title ?? '',
       subtitle: m.subtitle ?? '',
@@ -127,6 +133,16 @@ class DriverDetailMessagerController extends GetxController {
       attachmentUrl: m.attachmentUrl,
       attachmentType: m.attachmentType,
     );
+  }
+
+  List<DetailMessage> _withLocalOverrides(List<DetailMessage> msgs) {
+    final result = <DetailMessage>[];
+    for (final m in msgs) {
+      if (m.messageId > 0 && _deletedIds.contains(m.messageId)) continue;
+      final edit = m.messageId > 0 ? _localEdits[m.messageId] : null;
+      result.add(edit != null ? m.copyWith(message: edit, isEdited: true) : m);
+    }
+    return result;
   }
 
   List<DetailMessage> _withDateSeparators(List<DetailMessage> msgs) {
@@ -180,18 +196,12 @@ class DriverDetailMessagerController extends GetxController {
       if (idx >= messages.length) return;
 
       final msg = messages[idx];
+      // Tracking local persistant pour réapplication après rechargement
+      if (msg.messageId > 0) _localEdits[msg.messageId] = text;
+      messages[idx] = msg.copyWith(message: text, isEdited: true);
+      // Fire-and-forget API si UUID disponible
       if (msg.messageUuid.isNotEmpty) {
-        isSending.value = true;
-        final result = await _service.editMessage(msg.messageUuid, text);
-        isSending.value = false;
-        if (result.isSuccess) {
-          messages[idx] = msg.copyWith(message: text, isEdited: true);
-        } else if (result.error != null) {
-          UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
-        }
-      } else {
-        // Message chargé depuis l'historique (pas d'UUID) : mise à jour locale
-        messages[idx] = msg.copyWith(message: text, isEdited: true);
+        _service.editMessage(msg.messageUuid, text);
       }
       return;
     }
@@ -405,25 +415,16 @@ class DriverDetailMessagerController extends GetxController {
                           onPressed: Get.back,
                           child: const Text('Annuler')),
                       TextButton(
-                        onPressed: () async {
+                        onPressed: () {
                           Get.back();
                           if (index >= messages.length) return;
                           final m = messages[index];
+                          // Tracking local persistant pour réapplication après rechargement
+                          if (m.messageId > 0) _deletedIds.add(m.messageId);
+                          messages.removeAt(index);
+                          // Fire-and-forget API si UUID disponible
                           if (m.messageUuid.isNotEmpty) {
-                            final result =
-                                await _service.deleteMessage(m.messageUuid);
-                            if (result.isSuccess) {
-                              if (index < messages.length) {
-                                messages.removeAt(index);
-                              }
-                            } else if (result.error != null) {
-                              UIHelper().showSnackBar(
-                                  'MINIZON', result.error!.message, 2);
-                            }
-                          } else {
-                            if (index < messages.length) {
-                              messages.removeAt(index);
-                            }
+                            _service.deleteMessage(m.messageUuid);
                           }
                         },
                         child: const Text(
@@ -701,6 +702,7 @@ class DetailMessage {
     this.time = '',
     this.rawDate = '',
     this.dateLabel = '',
+    this.messageId = 0,
     this.messageUuid = '',
     this.isEdited = false,
     this.title = '',
@@ -715,6 +717,7 @@ class DetailMessage {
   final String time;
   final String rawDate;
   final String dateLabel;
+  final int messageId;    // ID entier pour tracking local (delete/edit)
   final String messageUuid; // UUID pour delete/edit via API
   final bool isEdited;
   final String title;
@@ -734,6 +737,7 @@ class DetailMessage {
         time: time,
         rawDate: rawDate,
         dateLabel: dateLabel,
+        messageId: messageId,
         messageUuid: messageUuid,
         isEdited: isEdited ?? this.isEdited,
         title: title,
