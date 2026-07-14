@@ -1,0 +1,28 @@
+# Normalize all text files to LF in the repository
+* text=auto eol=lf
+
+# Dart / Flutter source files — always LF
+*.dart text eol=lf
+*.yaml text eol=lf
+*.yml  text eol=lf
+*.json text eol=lf
+*.md   text eol=lf
+*.sh   text eol=lf
+
+# Windows batch scripts — keep CRLF
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+
+# Binary files — no conversion
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.ttf  binary
+*.otf  binary
+*.woff binary
+*.woff2 binary
+*.zip  binary
+*.apk  binary
+*.aab  binary
