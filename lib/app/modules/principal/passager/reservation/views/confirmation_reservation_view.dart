@@ -274,15 +274,26 @@ class _StopsCard extends StatelessWidget {
 						hint: 'Ex: Face pharmacie du centre',
 						controller: controller.pickupController,
 					),
-					SizedBox(height: responsive.h(10)),
+					SizedBox(height: responsive.h(8)),
 
-					// Bouton GPS prise en charge
-					Obx(() => _GpsButton(
-						responsive: responsive,
-						hasCoords: controller.pickupLat.value != null,
-						isLocating: controller.isLocatingPickup.value,
-						onTap: controller.locatePickup,
-					)),
+					// Statut GPS auto (prise en charge)
+					Obx(() {
+						if (controller.isAutoLocating.value) {
+							return _GpsStatusBadge(
+								responsive: responsive,
+								isLoading: true,
+								message: 'Détection de votre position en cours…',
+							);
+						}
+						if (controller.pickupLat.value != null) {
+							return _GpsStatusBadge(
+								responsive: responsive,
+								isLoading: false,
+								message: 'Position GPS obtenue automatiquement',
+							);
+						}
+						return const SizedBox.shrink();
+					}),
 
 					// ── Séparateur ───────────────────────────────────────────────
 					Padding(
@@ -353,94 +364,51 @@ class _StopsCard extends StatelessWidget {
 						hint: 'Ex: Carrefour étoile rouge',
 						controller: controller.dropoffController,
 					),
-					SizedBox(height: responsive.h(10)),
 
-					// GPS dépose (si ville pas dans la base de coords)
+					// Statut coordonnées dépose
 					Obx(() {
 						final city = controller.dropoffSelectedCity.value;
 						final hasCoords = controller.dropoffLat.value != null;
-						final needsGps = city != null && !hasCoords;
-						if (!needsGps && !controller.isLocatingDropoff.value) {
-							// Coordonnées OK depuis la base — afficher simplement le statut
-							if (hasCoords) {
-								return Container(
-									padding: EdgeInsets.symmetric(
-											horizontal: responsive.w(10), vertical: responsive.h(6)),
-									decoration: BoxDecoration(
-										color: const Color(0xFFE6F7EF),
-										borderRadius: BorderRadius.circular(responsive.radius(8)),
-										border: Border.all(
-												color: AppColors.primary.withValues(alpha: 0.25)),
-									),
-									child: Row(
-										children: [
-											Icon(Icons.check_circle_outline_rounded,
-													size: responsive.text(13),
-													color: AppColors.primary),
-											SizedBox(width: responsive.w(6)),
-											Expanded(
-												child: Text(
-													'Coordonnées GPS définies pour $city',
-													style: AppTextStyles.caption(responsive).copyWith(
-														color: AppColors.primary,
-														fontSize: responsive.text(11),
-													),
+						if (city == null) return const SizedBox.shrink();
+						if (hasCoords) {
+							return Padding(
+								padding: EdgeInsets.only(top: responsive.h(8)),
+								child: _GpsStatusBadge(
+									responsive: responsive,
+									isLoading: false,
+									message: 'Coordonnées définies pour $city',
+								),
+							);
+						}
+						return Padding(
+							padding: EdgeInsets.only(top: responsive.h(8)),
+							child: Container(
+								padding: EdgeInsets.symmetric(
+										horizontal: responsive.w(10), vertical: responsive.h(8)),
+								decoration: BoxDecoration(
+									color: const Color(0xFFFFF7ED),
+									borderRadius: BorderRadius.circular(responsive.radius(8)),
+									border: Border.all(
+											color: const Color(0xFFF59E0B).withValues(alpha: 0.4)),
+								),
+								child: Row(
+									children: [
+										Icon(Icons.warning_amber_rounded,
+												size: responsive.text(13),
+												color: const Color(0xFFF59E0B)),
+										SizedBox(width: responsive.w(6)),
+										Expanded(
+											child: Text(
+												'"$city" non reconnue. Choisissez une ville de la liste.',
+												style: AppTextStyles.caption(responsive).copyWith(
+													color: const Color(0xFF92400E),
+													fontSize: responsive.text(11),
 												),
 											),
-										],
-									),
-								);
-							}
-							return const SizedBox.shrink();
-						}
-						// Ville non reconnue ou GPS en attente → bouton GPS
-						return Column(
-							crossAxisAlignment: CrossAxisAlignment.start,
-							children: [
-								if (needsGps)
-									Padding(
-										padding: EdgeInsets.only(bottom: responsive.h(6)),
-										child: Container(
-											padding: EdgeInsets.symmetric(
-													horizontal: responsive.w(10),
-													vertical: responsive.h(6)),
-											decoration: BoxDecoration(
-												color: const Color(0xFFFFF7ED),
-												borderRadius:
-														BorderRadius.circular(responsive.radius(8)),
-												border: Border.all(
-														color: const Color(0xFFF59E0B)
-																.withValues(alpha: 0.4)),
-											),
-											child: Row(
-												children: [
-													Icon(Icons.warning_amber_rounded,
-															size: responsive.text(13),
-															color: const Color(0xFFF59E0B)),
-													SizedBox(width: responsive.w(6)),
-													Expanded(
-														child: Text(
-															'GPS requis pour $city. Utilisez le bouton ci-dessous.',
-															style: AppTextStyles.caption(responsive).copyWith(
-																color: const Color(0xFF92400E),
-																fontSize: responsive.text(11),
-															),
-														),
-													),
-												],
-											),
 										),
-									),
-								_GpsButton(
-									responsive: responsive,
-									hasCoords: hasCoords,
-									isLocating: controller.isLocatingDropoff.value,
-									onTap: controller.locateDropoff,
-									label: hasCoords
-											? 'Position GPS dépose obtenue'
-											: 'Obtenir ma position GPS (dépose)',
+									],
 								),
-							],
+							),
 						);
 					}),
 
@@ -565,82 +533,62 @@ class _PlainTextField extends StatelessWidget {
 	}
 }
 
-// ── Bouton GPS ─────────────────────────────────────────────────────────────
+// ── Badge statut GPS ───────────────────────────────────────────────────────
 
-class _GpsButton extends StatelessWidget {
-	const _GpsButton({
+class _GpsStatusBadge extends StatelessWidget {
+	const _GpsStatusBadge({
 		required this.responsive,
-		required this.hasCoords,
-		required this.isLocating,
-		required this.onTap,
-		this.label,
+		required this.isLoading,
+		required this.message,
 	});
 
 	final AppResponsive responsive;
-	final bool hasCoords;
-	final bool isLocating;
-	final VoidCallback onTap;
-	final String? label;
+	final bool isLoading;
+	final String message;
 
 	@override
 	Widget build(BuildContext context) {
-		final text = label ??
-				(isLocating
-						? 'Localisation en cours…'
-						: hasCoords
-								? 'Position GPS obtenue'
-								: 'Ma position GPS');
-
-		return GestureDetector(
-			onTap: isLocating ? null : onTap,
-			child: Container(
-				padding: EdgeInsets.symmetric(
-						horizontal: responsive.w(12), vertical: responsive.h(10)),
-				decoration: BoxDecoration(
-					color: hasCoords
-							? const Color(0xFFE6F7EF)
-							: const Color(0xFFF5F5F5),
-					borderRadius: BorderRadius.circular(responsive.radius(10)),
-					border: Border.all(
-						color: hasCoords
-								? AppColors.primary.withValues(alpha: 0.4)
-								: AppColors.border,
-					),
+		return Container(
+			padding: EdgeInsets.symmetric(
+					horizontal: responsive.w(10), vertical: responsive.h(6)),
+			decoration: BoxDecoration(
+				color: isLoading
+						? const Color(0xFFF5F5F5)
+						: const Color(0xFFE6F7EF),
+				borderRadius: BorderRadius.circular(responsive.radius(8)),
+				border: Border.all(
+					color: isLoading
+							? AppColors.border
+							: AppColors.primary.withValues(alpha: 0.25),
 				),
-				child: Row(
-					mainAxisAlignment: MainAxisAlignment.center,
-					children: [
-						if (isLocating)
-							SizedBox(
-								width: responsive.w(14),
-								height: responsive.w(14),
-								child: const CircularProgressIndicator(
-									strokeWidth: 2,
-									color: AppColors.primary,
-								),
-							)
-						else
-							Icon(
-								hasCoords
-										? Icons.gps_fixed_rounded
-										: Icons.my_location_rounded,
-								size: responsive.text(16),
-								color: hasCoords ? AppColors.primary : AppColors.textSecondary,
+			),
+			child: Row(
+				children: [
+					if (isLoading)
+						SizedBox(
+							width: responsive.w(12),
+							height: responsive.w(12),
+							child: const CircularProgressIndicator(
+								strokeWidth: 2,
+								color: AppColors.primary,
 							),
-						SizedBox(width: responsive.w(8)),
-						Flexible(
-							child: Text(
-								text,
-								style: AppTextStyles.caption(responsive).copyWith(
-									fontWeight: FontWeight.w600,
-									color: hasCoords
-											? AppColors.primary
-											: AppColors.textSecondary,
-								),
+						)
+					else
+						Icon(Icons.gps_fixed_rounded,
+								size: responsive.text(13), color: AppColors.primary),
+					SizedBox(width: responsive.w(6)),
+					Expanded(
+						child: Text(
+							message,
+							style: AppTextStyles.caption(responsive).copyWith(
+								color: isLoading
+										? AppColors.textSecondary
+										: AppColors.primary,
+								fontSize: responsive.text(11),
 							),
 						),
-					],
-				),
+					),
+				],
 			),
 		);
 	}

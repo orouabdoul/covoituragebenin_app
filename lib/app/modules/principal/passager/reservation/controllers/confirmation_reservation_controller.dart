@@ -60,8 +60,8 @@ class ConfirmationReservationController extends GetxController {
   final Rx<double?> pickupLng = Rx<double?>(null);
   final Rx<double?> dropoffLat = Rx<double?>(null);
   final Rx<double?> dropoffLng = Rx<double?>(null);
-  final RxBool isLocatingPickup = false.obs;
-  final RxBool isLocatingDropoff = false.obs;
+  Position? _gpsPosition;
+  final RxBool isAutoLocating = false.obs;
 
   // ── Quartiers disponibles (réactif à la ville sélectionnée) ───────────────
   List<String> get pickupNeighborhoodItems =>
@@ -113,6 +113,8 @@ class ConfirmationReservationController extends GetxController {
     final allCities = BeninLocations.cities;
     pickupCityItems.assignAll(allCities);
     dropoffCityItems.assignAll(allCities);
+
+    _autoLocate(); // Détection GPS automatique dès l'ouverture de la page
 
     final dynamic savedArgs = Get.arguments;
     SchedulerBinding.instance.addPostFrameCallback((_) {
@@ -176,21 +178,24 @@ class ConfirmationReservationController extends GetxController {
   void onPickupCitySelected(String city) {
     pickupSelectedCity.value = city;
     pickupCityController.text = city;
-    // Réinitialise le quartier quand la ville change
     pickupSelectedNeighborhood.value = null;
     pickupNeighborhoodController.text = '';
-    // Coordonnées GPS de la ville
-    final coords = BeninLocations.getCityCoords(city);
-    pickupLat.value = coords?.lat;
-    pickupLng.value = coords?.lng;
+    // GPS réel (position actuelle) > coords base de données (centre-ville)
+    if (_gpsPosition == null) {
+      final coords = BeninLocations.getCityCoords(city);
+      pickupLat.value = coords?.lat;
+      pickupLng.value = coords?.lng;
+    }
   }
 
   void onPickupCityTyped() {
     pickupSelectedCity.value = null;
     pickupSelectedNeighborhood.value = null;
     pickupNeighborhoodController.text = '';
-    pickupLat.value = null;
-    pickupLng.value = null;
+    if (_gpsPosition == null) {
+      pickupLat.value = null;
+      pickupLng.value = null;
+    }
   }
 
   void onPickupNeighborhoodSelected(String district) {
@@ -227,33 +232,20 @@ class ConfirmationReservationController extends GetxController {
 
   void onDropoffNeighborhoodTyped() => dropoffSelectedNeighborhood.value = null;
 
-  // ── GPS ───────────────────────────────────────────────────────────────────
+  // ── GPS auto-détection ────────────────────────────────────────────────────
 
-  Future<void> locatePickup() async {
-    isLocatingPickup.value = true;
+  Future<void> _autoLocate() async {
+    isAutoLocating.value = true;
     try {
       final pos = await _getPosition();
       if (pos != null) {
+        _gpsPosition = pos;
+        // GPS réel prend toujours la priorité pour la prise en charge
         pickupLat.value = pos.latitude;
         pickupLng.value = pos.longitude;
-        UIHelper().showSnackBar('MINIZON', 'Position prise en charge obtenue.', 0);
       }
     } finally {
-      isLocatingPickup.value = false;
-    }
-  }
-
-  Future<void> locateDropoff() async {
-    isLocatingDropoff.value = true;
-    try {
-      final pos = await _getPosition();
-      if (pos != null) {
-        dropoffLat.value = pos.latitude;
-        dropoffLng.value = pos.longitude;
-        UIHelper().showSnackBar('MINIZON', 'Position de dépose obtenue.', 0);
-      }
-    } finally {
-      isLocatingDropoff.value = false;
+      isAutoLocating.value = false;
     }
   }
 
@@ -268,12 +260,28 @@ class ConfirmationReservationController extends GetxController {
       return null;
     }
     try {
+      // Essayer la dernière position connue d'abord (instantané)
+      final last = await Geolocator.getLastKnownPosition();
+      if (last != null) return last;
+
+      // Sinon demander une position fraîche (medium = GPS + réseau, fonctionne sur émulateur)
       return await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 10),
+          accuracy: LocationAccuracy.medium,
         ),
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          UIHelper().showSnackBar(
+            'MINIZON',
+            'GPS trop lent. Vérifiez que la localisation est activée.',
+            3,
+          );
+          throw TimeoutException('GPS timeout');
+        },
       );
+    } on TimeoutException {
+      return null;
     } catch (e) {
       logger.e('GPS: $e');
       UIHelper().showSnackBar('MINIZON', 'Impossible d\'obtenir la position GPS.', 2);
@@ -379,10 +387,15 @@ class ConfirmationReservationController extends GetxController {
       return false;
     }
     if (pickupLat.value == null) {
-      UIHelper().showSnackBar(
-          'MINIZON',
-          'Coordonnées GPS non disponibles pour "$pCity". Utilisez le bouton GPS.',
-          3);
+      if (isAutoLocating.value) {
+        UIHelper().showSnackBar(
+            'MINIZON', 'Localisation GPS en cours. Attendez un instant.', 3);
+      } else {
+        UIHelper().showSnackBar(
+            'MINIZON',
+            'Position GPS introuvable. Vérifiez que la localisation est activée.',
+            3);
+      }
       return false;
     }
     if (dCity.isEmpty) {
@@ -396,7 +409,7 @@ class ConfirmationReservationController extends GetxController {
     if (dropoffLat.value == null) {
       UIHelper().showSnackBar(
           'MINIZON',
-          'Coordonnées GPS non disponibles pour "$dCity". Utilisez le bouton GPS.',
+          'Ville de dépose "$dCity" non reconnue. Choisissez une ville de la liste.',
           3);
       return false;
     }
