@@ -1,5 +1,10 @@
+import 'dart:io';
+import 'dart:math' as math;
+
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:image/image.dart' as img;
+import 'package:image_picker/image_picker.dart';
 
 enum SelfieStep { front, left, right }
 
@@ -94,11 +99,68 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
   Future<void> _capture() async {
     if (!_initialized || _capturing || _controller == null) return;
     setState(() => _capturing = true);
+    // Capture screen size before the async gap (layout stays stable)
+    final screenSize = MediaQuery.of(context).size;
     try {
       final photo = await _controller!.takePicture();
-      if (mounted) Navigator.of(context).pop(XFile(photo.path));
+      final cropped = await _cropToHead(photo.path, screenSize);
+      if (mounted) Navigator.of(context).pop(cropped);
     } catch (_) {
       if (mounted) setState(() => _capturing = false);
+    }
+  }
+
+  /// Recadre l'image sur la zone de tête définie par l'ovale de l'overlay.
+  ///
+  /// Utilise la même géométrie que [_CameraOverlayPainter._oval] et le même
+  /// mapping cover-fill que l'écran CNI pour être pixel-exact.
+  Future<XFile> _cropToHead(String imagePath, Size screenSize) async {
+    try {
+      final bytes = await File(imagePath).readAsBytes();
+      final source = img.decodeImage(bytes);
+      if (source == null) return XFile(imagePath);
+
+      final imgW = source.width.toDouble();
+      final imgH = source.height.toDouble();
+      final scrW = screenSize.width;
+      final scrH = screenSize.height;
+
+      // Cover-fill : même formule que id_card_camera_screen
+      final displayScale = math.max(scrW / imgW, scrH / imgH);
+      final offsetX = (imgW - scrW / displayScale) / 2;
+      final offsetY = (imgH - scrH / displayScale) / 2;
+
+      // Géométrie identique à _CameraOverlayPainter._oval
+      final ovalW = scrW * 0.72;
+      final ovalH = ovalW * 1.35;
+      // Marges de 10 % autour de l'ovale pour ne pas couper front/menton
+      const pad = 0.10;
+      final cropRect = Rect.fromCenter(
+        center: Offset(scrW / 2, scrH * 0.42),
+        width: ovalW * (1 + pad * 2),
+        height: ovalH * (1 + pad * 2),
+      );
+
+      // Mapping écran → pixels image
+      final l = (offsetX + cropRect.left / displayScale).clamp(0.0, imgW - 1);
+      final t = (offsetY + cropRect.top / displayScale).clamp(0.0, imgH - 1);
+      final w = (cropRect.width / displayScale).clamp(1.0, imgW - l);
+      final h = (cropRect.height / displayScale).clamp(1.0, imgH - t);
+
+      final cropped = img.copyCrop(
+        source,
+        x: l.round(),
+        y: t.round(),
+        width: w.round().clamp(1, source.width - l.round()),
+        height: h.round().clamp(1, source.height - t.round()),
+      );
+
+      final outPath =
+          '${Directory.systemTemp.path}/selfie_head_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      await File(outPath).writeAsBytes(img.encodeJpg(cropped, quality: 92));
+      return XFile(outPath);
+    } catch (_) {
+      return XFile(imagePath);
     }
   }
 
@@ -260,12 +322,22 @@ class _FullScreenPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    var scale = size.aspectRatio * controller.value.aspectRatio;
-    if (scale < 1) scale = 1 / scale;
-    return Transform.scale(
-      scale: scale,
-      child: Center(child: CameraPreview(controller)),
+    final preview = controller.value.previewSize;
+    final displayW = preview != null
+        ? (preview.height > preview.width ? preview.width : preview.height)
+        : null;
+    final displayH = preview != null
+        ? (preview.height > preview.width ? preview.height : preview.width)
+        : null;
+    return SizedBox.expand(
+      child: FittedBox(
+        fit: BoxFit.cover,
+        child: SizedBox(
+          width: displayW?.toDouble() ?? 1,
+          height: displayH?.toDouble() ?? 1,
+          child: CameraPreview(controller),
+        ),
+      ),
     );
   }
 }

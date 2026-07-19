@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/auth_mode.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
+import 'package:covoiturage_benin_app/app/core/services/auth/auth_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
@@ -39,8 +40,10 @@ class RolesController extends GetxController {
 
     if (_skipAuth) {
       final isDriver = selectedRole.value == RoleType.driver;
-      // Persister le rôle choisi dans UserController avant la complétion de profil
-      UserController.instance.setRole(isDriver ? 'driver' : 'passenger');
+      final roleString = isDriver ? 'driver' : 'passenger';
+      UserController.instance.setRole(roleString);
+      // Synchroniser le rôle côté serveur (le serveur assigne "passenger" par défaut)
+      Get.find<AuthService>().setUserRole(roleString);
       Get.offAllNamed(
         isDriver
             ? AppRoutes.completeProfileDriver

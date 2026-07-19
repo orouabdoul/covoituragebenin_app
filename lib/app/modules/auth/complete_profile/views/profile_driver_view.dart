@@ -459,7 +459,10 @@ class ProfileDriverView extends GetView<ProfileDriverController> {
                         SizedBox(height: responsive.h(20)),
                         AppPrimaryButton(
                           responsive: responsive,
-                          label: AppStrings.profilePrimaryAction,
+                          label: controller.isSubmitting.value
+                              ? 'Envoi en cours...'
+                              : AppStrings.profilePrimaryAction,
+                          enabled: !controller.isSubmitting.value,
                           onTap: controller.continueProfile,
                         ),
                       ],

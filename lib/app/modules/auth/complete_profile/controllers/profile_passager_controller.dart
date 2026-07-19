@@ -1,11 +1,17 @@
+import 'package:dio/dio.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:get/get.dart' hide FormData, MultipartFile;
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/services/face_verification_service.dart';
+import 'package:covoiturage_benin_app/app/core/utils/app_dio.dart';
+import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
+import 'package:covoiturage_benin_app/app/modules/widgets/id_card_camera_screen.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 class ProfilePassagerController extends GetxController {
@@ -46,6 +52,11 @@ class ProfilePassagerController extends GetxController {
   final RxString idCardFrontName = ''.obs;
   final RxString idCardBackName = ''.obs;
   XFile? _idCardFrontFile;
+  XFile? _idCardBackFile;
+  XFile? _avatarFile;
+  XFile? _idCardFaceZoneFile; // recadrage de la zone visage (côté gauche CNI)
+
+  final RxBool isSubmitting = false.obs;
 
   // ID card face detection state (for UI overlay)
   Rect? idCardFaceBox;
@@ -78,6 +89,7 @@ class ProfilePassagerController extends GetxController {
       final result = await FaceVerificationService.verify(
         selfieFront: selfieFront.value!,
         idCardFront: _idCardFrontFile!,
+        idCardFaceZone: _idCardFaceZoneFile,
       );
       verificationStatus.value =
           result.passed ? VerificationStatus.success : VerificationStatus.failure;
@@ -105,8 +117,22 @@ class ProfilePassagerController extends GetxController {
   }
 
   Future<void> pickIdCard({required bool isFront, required ImageSource source}) async {
-    final file = await ImagePicker().pickImage(source: source, imageQuality: 85);
+    XFile? file;
+
+    // Recto + caméra → écran guidé avec cadre carte + recadrage zone visage
+    if (isFront && source == ImageSource.camera) {
+      final result = await Get.to<IdCardCaptureResult>(
+          () => const IdCardCameraScreen());
+      if (result == null) return;
+      file = result.fullCard;
+      _idCardFaceZoneFile = result.faceZone;
+    } else {
+      file = await ImagePicker().pickImage(source: source, imageQuality: 85);
+      if (isFront) _idCardFaceZoneFile = null; // galerie : pas de zone pré-découpée
+    }
+
     if (file == null) return;
+
     if (isFront) {
       _idCardFrontFile = file;
       idCardFrontName.value = file.name;
@@ -114,7 +140,6 @@ class ProfilePassagerController extends GetxController {
       idCardDetectionError = null;
       _resetVerification();
 
-      // Detect face on card for UI overlay (non-blocking)
       isDetectingCardFace = true;
       update();
 
@@ -127,6 +152,7 @@ class ProfilePassagerController extends GetxController {
         if (result.found) _tryAutoVerify();
       });
     } else {
+      _idCardBackFile = file;
       idCardBackName.value = file.name;
       update();
     }
@@ -147,8 +173,134 @@ class ProfilePassagerController extends GetxController {
   }
 
   Future<void> createProfile() async {
-    await UserController.instance.setProfileComplete(true);
-    Get.offAllNamed(AppRoutes.dashboardPassenger);
+    if (firstNameController.text.trim().isEmpty ||
+        lastNameController.text.trim().isEmpty) {
+      UIHelper().showSnackBar('MINIZON', 'Prénom et nom sont requis.', 2);
+      return;
+    }
+
+    final userUuid = UserController.instance.user.value?.uuid;
+    if (userUuid == null || userUuid.isEmpty) {
+      UIHelper().showSnackBar('MINIZON', 'Session expirée. Reconnectez-vous.', 2);
+      return;
+    }
+
+    isSubmitting.value = true;
+    update();
+
+    try {
+      final token = await UserController.instance.getSessionToken();
+      final dio = AppDio.create();
+
+      // Gender: "Homme" → "M", "Femme" → "F"
+      String? genderCode;
+      if (selectedGender.value != null) {
+        genderCode = (selectedGender.value! == 'Homme' || selectedGender.value! == 'M') ? 'M' : 'F';
+      }
+
+      final Map<String, dynamic> fields = {
+        'user_uuid': userUuid,
+        'role_name': 'passenger',
+        'first_name': firstNameController.text.trim(),
+        'last_name': lastNameController.text.trim(),
+      };
+      if (emailController.text.trim().isNotEmpty) {
+        fields['email'] = emailController.text.trim();
+      }
+      final phone = phoneController.text.trim();
+      if (phone.isNotEmpty && phone != '01') fields['phone'] = phone;
+      if (cityController.text.trim().isNotEmpty) fields['city'] = cityController.text.trim();
+      if (neighborhoodController.text.trim().isNotEmpty) fields['neighborhood'] = neighborhoodController.text.trim();
+      if (addressController.text.trim().isNotEmpty) fields['address_details'] = addressController.text.trim();
+      if (genderCode != null) fields['gender'] = genderCode;
+      // emergency_contacts ajoutés en bracket-notation après FormData.fromMap
+
+      final formMap = <String, dynamic>{...fields};
+      if (selfieFront.value != null) {
+        formMap['selfie_front'] = await MultipartFile.fromFile(
+            selfieFront.value!.path, filename: 'selfie_front.jpg');
+      }
+      if (selfieLeft.value != null) {
+        formMap['selfie_left'] = await MultipartFile.fromFile(
+            selfieLeft.value!.path, filename: 'selfie_left.jpg');
+      }
+      if (selfieRight.value != null) {
+        formMap['selfie_right'] = await MultipartFile.fromFile(
+            selfieRight.value!.path, filename: 'selfie_right.jpg');
+      }
+      if (_idCardFrontFile != null) {
+        formMap['id_card_front'] = await MultipartFile.fromFile(
+            _idCardFrontFile!.path, filename: 'id_card_front.jpg');
+      }
+      if (_idCardBackFile != null) {
+        formMap['id_card_back'] = await MultipartFile.fromFile(
+            _idCardBackFile!.path, filename: 'id_card_back.jpg');
+      }
+      if (_avatarFile != null) {
+        formMap['avatar'] = await MultipartFile.fromFile(
+            _avatarFile!.path, filename: 'avatar.jpg');
+      }
+
+      logger.d('createProfile → POST ${AppApi.register}');
+      logger.d('createProfile champs texte: $fields');
+      logger.d('createProfile fichiers: {'
+          'selfie_front: ${selfieFront.value?.path}, '
+          'selfie_left: ${selfieLeft.value?.path}, '
+          'selfie_right: ${selfieRight.value?.path}, '
+          'id_card_front: ${_idCardFrontFile?.path}, '
+          'id_card_back: ${_idCardBackFile?.path}, '
+          'avatar: ${_avatarFile?.path}'
+          '}');
+      logger.d('createProfile token présent: ${token.isNotEmpty}');
+
+      final formData = FormData.fromMap(formMap);
+      for (int i = 0; i < emergencyContacts.length; i++) {
+        formData.fields.add(MapEntry('emergency_contacts[$i][name]', emergencyContacts[i].name));
+        formData.fields.add(MapEntry('emergency_contacts[$i][phone]', emergencyContacts[i].phone));
+        formData.fields.add(MapEntry('emergency_contacts[$i][relationship]', emergencyContacts[i].relationship));
+      }
+
+      final response = await dio.post(
+        AppApi.register,
+        data: formData,
+        options: Options(
+          validateStatus: (_) => true,
+          sendTimeout: const Duration(seconds: 120),
+          receiveTimeout: const Duration(seconds: 60),
+          headers: {'Authorization': 'Bearer $token'},
+        ),
+      );
+
+      logger.d('createProfile réponse [${response.statusCode}]: ${response.data}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        logger.i('createProfile → succès, navigation dashboard passager');
+        // Mettre à jour le token retourné par register
+        final body = response.data?['body'] as Map?;
+        final newToken = body?['token'] as String?;
+        if (newToken != null && newToken.isNotEmpty) {
+          UserController.instance.token.value = newToken;
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('token', newToken);
+        }
+        UserController.instance.setRole('passenger');
+        await UserController.instance.setProfileComplete(true);
+        Get.offAllNamed(AppRoutes.dashboardPassenger);
+      } else {
+        final msg = response.data?['message'] as String? ??
+            response.data?['error'] as String? ??
+            'Erreur lors de la soumission (${response.statusCode}).';
+        logger.w('createProfile → échec: $msg');
+        UIHelper().showSnackBar('MINIZON', msg, 2);
+      }
+    } catch (e, st) {
+      logger.e('createProfile → exception', error: e, stackTrace: st);
+      UIHelper().showSnackBar(
+          'MINIZON', 'Erreur réseau. Vérifiez votre connexion.', 2);
+    } finally {
+      isSubmitting.value = false;
+      update();
+    }
   }
 
   void continueLater() {
@@ -166,6 +318,7 @@ class ProfilePassagerController extends GetxController {
       ],
     );
     if (file == null) return;
+    _avatarFile = file;
     avatarImageName.value = file.name;
     update();
   }

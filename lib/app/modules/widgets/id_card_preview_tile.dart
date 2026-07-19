@@ -222,16 +222,22 @@ class IdCardPreviewTile extends StatelessWidget {
                 ),
               ),
               SizedBox(width: responsive.w(6)),
-              Text('Analyse en cours…',
-                  style: AppTextStyles.profileMeta(responsive)
-                      .copyWith(color: AppColors.textMuted)),
+              Flexible(
+                child: Text('Analyse en cours…',
+                    style: AppTextStyles.profileMeta(responsive)
+                        .copyWith(color: AppColors.textMuted),
+                    overflow: TextOverflow.ellipsis),
+              ),
             ] else if (_faceFound) ...[
               Icon(Icons.check_circle_rounded,
                   size: responsive.text(14), color: AppColors.success),
               SizedBox(width: responsive.w(6)),
-              Text('Visage identifié sur la CNI',
-                  style: AppTextStyles.profileMeta(responsive)
-                      .copyWith(color: AppColors.success, fontWeight: FontWeight.w600)),
+              Flexible(
+                child: Text('Visage identifié sur la CNI',
+                    style: AppTextStyles.profileMeta(responsive)
+                        .copyWith(color: AppColors.success, fontWeight: FontWeight.w600),
+                    overflow: TextOverflow.ellipsis),
+              ),
             ] else if (_faceMissing) ...[
               Icon(Icons.error_outline_rounded,
                   size: responsive.text(14), color: Colors.red.shade600),

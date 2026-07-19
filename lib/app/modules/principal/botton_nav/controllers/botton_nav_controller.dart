@@ -152,11 +152,14 @@ class BottonNavController extends GetxController {
 
   final RxBool isRefreshingStatus = false.obs;
   Timer? _verificationTimer;
+  int _consecutiveFailures = 0;
 
   static const Duration _verificationPollInterval = Duration(seconds: 30);
+  static const int _maxConsecutiveFailures = 4;
 
   void _startVerificationPolling() {
     _verificationTimer?.cancel();
+    _consecutiveFailures = 0;
     _verificationTimer = Timer.periodic(_verificationPollInterval, (_) {
       final uc = UserController.instance;
       if (uc.accountVerified.value || uc.accountBlocked.value) {
@@ -172,13 +175,28 @@ class BottonNavController extends GetxController {
     isRefreshingStatus.value = true;
     final result = await Get.find<AuthService>().me();
     isRefreshingStatus.value = false;
+
     if (!result.isSuccess) {
+      _consecutiveFailures++;
+
+      // 401 = token révoqué côté serveur → déconnexion immédiate
+      if (result.error == AppError.unAuthenticated) {
+        _verificationTimer?.cancel();
+        await logoutAndRedirect();
+        return;
+      }
       // 403 = compte suspendu côté serveur
       if (result.error == AppError.permissionDenied) {
         await UserController.instance.persistBlockedStatus(blocked: true);
       }
+      // Arrêter le polling après trop d'erreurs réseau consécutives
+      if (_consecutiveFailures >= _maxConsecutiveFailures) {
+        _verificationTimer?.cancel();
+      }
       return;
     }
+
+    _consecutiveFailures = 0;
     final auth = result.data!;
     final uc = UserController.instance;
     await uc.setUserAndToken(

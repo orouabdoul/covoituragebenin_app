@@ -1,10 +1,17 @@
+import 'package:dio/dio.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:get/get.dart' hide FormData, MultipartFile;
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/services/face_verification_service.dart';
+import 'package:covoiturage_benin_app/app/core/utils/app_dio.dart';
+import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
+import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
+import 'package:covoiturage_benin_app/app/modules/widgets/id_card_camera_screen.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'profile_passager_controller.dart' show EmergencyContactEntry;
 
@@ -52,6 +59,15 @@ class ProfileDriverController extends GetxController {
   final RxString licenseDocumentName = ''.obs;
   final RxString insuranceDocName = ''.obs;
 
+  // Fichiers réels (pas juste les noms)
+  XFile? _vehiclePhotoFile;
+  XFile? _registrationDocFile;
+  XFile? _licenseDocFile;
+  XFile? _insuranceDocFile;
+  XFile? _idCardBackFile;
+
+  final RxBool isSubmitting = false.obs;
+
   final Rx<XFile?> selfieFront = Rx<XFile?>(null);
   final Rx<XFile?> selfieLeft = Rx<XFile?>(null);
   final Rx<XFile?> selfieRight = Rx<XFile?>(null);
@@ -59,6 +75,7 @@ class ProfileDriverController extends GetxController {
   final RxString idCardFrontName = ''.obs;
   final RxString idCardBackName = ''.obs;
   XFile? _idCardFrontFile;
+  XFile? _idCardFaceZoneFile; // recadrage de la zone visage (côté gauche CNI)
 
   // ID card face detection state (for UI overlay)
   Rect? idCardFaceBox;
@@ -135,6 +152,7 @@ class ProfileDriverController extends GetxController {
       final result = await FaceVerificationService.verify(
         selfieFront: selfieFront.value!,
         idCardFront: _idCardFrontFile!,
+        idCardFaceZone: _idCardFaceZoneFile,
       );
       verificationStatus.value =
           result.passed ? VerificationStatus.success : VerificationStatus.failure;
@@ -186,8 +204,22 @@ class ProfileDriverController extends GetxController {
   }
 
   Future<void> pickIdCard({required bool isFront, required ImageSource source}) async {
-    final file = await ImagePicker().pickImage(source: source, imageQuality: 85);
+    XFile? file;
+
+    // Recto + caméra → écran guidé avec cadre carte + recadrage zone visage
+    if (isFront && source == ImageSource.camera) {
+      final result = await Get.to<IdCardCaptureResult>(
+          () => const IdCardCameraScreen());
+      if (result == null) return;
+      file = result.fullCard;
+      _idCardFaceZoneFile = result.faceZone;
+    } else {
+      file = await ImagePicker().pickImage(source: source, imageQuality: 85);
+      if (isFront) _idCardFaceZoneFile = null;
+    }
+
     if (file == null) return;
+
     if (isFront) {
       _idCardFrontFile = file;
       idCardFrontName.value = file.name;
@@ -195,7 +227,6 @@ class ProfileDriverController extends GetxController {
       idCardDetectionError = null;
       _resetVerification();
 
-      // Detect face on card for UI overlay (non-blocking)
       isDetectingCardFace = true;
       update();
 
@@ -208,6 +239,7 @@ class ProfileDriverController extends GetxController {
         if (result.found) _tryAutoVerify();
       });
     } else {
+      _idCardBackFile = file;
       idCardBackName.value = file.name;
       update();
     }
@@ -228,13 +260,182 @@ class ProfileDriverController extends GetxController {
   }
 
   Future<void> continueProfile() async {
-    await UserController.instance.setProfileComplete(true);
-    Get.offAllNamed(AppRoutes.dashboardDriver);
+    if (firstNameController.text.trim().isEmpty ||
+        lastNameController.text.trim().isEmpty) {
+      UIHelper().showSnackBar('MINIZON', 'Prénom et nom sont requis.', 2);
+      return;
+    }
+
+    final userUuid = UserController.instance.user.value?.uuid;
+    if (userUuid == null || userUuid.isEmpty) {
+      UIHelper().showSnackBar('MINIZON', 'Session expirée. Reconnectez-vous.', 2);
+      return;
+    }
+
+    isSubmitting.value = true;
+    update();
+
+    try {
+      final token = await UserController.instance.getSessionToken();
+      final dio = AppDio.create();
+
+      // Gender: "Homme" → "M", "Femme" → "F"
+      String? genderCode;
+      if (selectedGender.value != null) {
+        genderCode = (selectedGender.value! == 'Homme' || selectedGender.value! == 'M') ? 'M' : 'F';
+      }
+
+      final vehicleType = selectedDriverType.value == DriverType.moto ? 'moto' : 'voiture';
+
+      final Map<String, dynamic> fields = {
+        'user_uuid': userUuid,
+        'role_name': 'driver',
+        'first_name': firstNameController.text.trim(),
+        'last_name': lastNameController.text.trim(),
+      };
+      final phone = phoneController.text.trim();
+      if (phone.isNotEmpty && phone != '01') fields['phone'] = phone;
+      if (cityController.text.trim().isNotEmpty) fields['city'] = cityController.text.trim();
+      if (neighborhoodController.text.trim().isNotEmpty) fields['neighborhood'] = neighborhoodController.text.trim();
+      if (addressController.text.trim().isNotEmpty) fields['address_details'] = addressController.text.trim();
+      if (genderCode != null) fields['gender'] = genderCode;
+      if (licenseNumberController.text.trim().isNotEmpty) {
+        fields['driving_license_number'] = licenseNumberController.text.trim();
+      }
+      if (selectedBrand.value != null) fields['brand'] = selectedBrand.value!;
+      if (selectedModel.value != null) fields['model'] = selectedModel.value!;
+      if (vehicleColorController.text.trim().isNotEmpty) fields['color'] = vehicleColorController.text.trim();
+      if (vehicleSeatsController.text.trim().isNotEmpty) {
+        fields['available_seats'] = vehicleSeatsController.text.trim();
+      }
+      if (plateController.text.trim().isNotEmpty) fields['license_plate'] = plateController.text.trim();
+      fields['vehicle_type'] = vehicleType;
+      // emergency_contacts ajoutés en bracket-notation après FormData.fromMap
+
+      final formMap = <String, dynamic>{...fields};
+      if (selfieFront.value != null) {
+        formMap['selfie_front'] = await MultipartFile.fromFile(
+            selfieFront.value!.path, filename: 'selfie_front.jpg');
+      }
+      if (selfieLeft.value != null) {
+        formMap['selfie_left'] = await MultipartFile.fromFile(
+            selfieLeft.value!.path, filename: 'selfie_left.jpg');
+      }
+      if (selfieRight.value != null) {
+        formMap['selfie_right'] = await MultipartFile.fromFile(
+            selfieRight.value!.path, filename: 'selfie_right.jpg');
+      }
+      if (_idCardFrontFile != null) {
+        formMap['id_card_front'] = await MultipartFile.fromFile(
+            _idCardFrontFile!.path, filename: 'id_card_front.jpg');
+      }
+      if (_idCardBackFile != null) {
+        formMap['id_card_back'] = await MultipartFile.fromFile(
+            _idCardBackFile!.path, filename: 'id_card_back.jpg');
+      }
+      if (_licenseDocFile != null) {
+        final ext = _licenseDocFile!.path.split('.').last.toLowerCase();
+        formMap['driving_license_photo'] = await MultipartFile.fromFile(
+            _licenseDocFile!.path,
+            filename: 'license.$ext',
+            contentType: ext == 'pdf'
+                ? DioMediaType('application', 'pdf')
+                : DioMediaType('image', ext == 'png' ? 'png' : 'jpeg'));
+      }
+      if (_vehiclePhotoFile != null) {
+        formMap['vehicle_photo'] = await MultipartFile.fromFile(
+            _vehiclePhotoFile!.path, filename: 'vehicle_photo.jpg',
+            contentType: DioMediaType('image', 'jpeg'));
+      }
+      if (_registrationDocFile != null) {
+        final ext = _registrationDocFile!.path.split('.').last.toLowerCase();
+        formMap['registration_doc'] = await MultipartFile.fromFile(
+            _registrationDocFile!.path,
+            filename: 'registration.$ext',
+            contentType: ext == 'pdf'
+                ? DioMediaType('application', 'pdf')
+                : DioMediaType('image', ext == 'png' ? 'png' : 'jpeg'));
+      }
+      if (_insuranceDocFile != null) {
+        final ext = _insuranceDocFile!.path.split('.').last.toLowerCase();
+        formMap['insurance_doc'] = await MultipartFile.fromFile(
+            _insuranceDocFile!.path,
+            filename: 'insurance.$ext',
+            contentType: ext == 'pdf'
+                ? DioMediaType('application', 'pdf')
+                : DioMediaType('image', ext == 'png' ? 'png' : 'jpeg'));
+      }
+
+      logger.d('continueProfile → POST ${AppApi.register}');
+      logger.d('continueProfile champs texte: $fields');
+      logger.d('continueProfile fichiers: {'
+          'selfie_front: ${selfieFront.value?.path}, '
+          'selfie_left: ${selfieLeft.value?.path}, '
+          'selfie_right: ${selfieRight.value?.path}, '
+          'id_card_front: ${_idCardFrontFile?.path}, '
+          'id_card_back: ${_idCardBackFile?.path}, '
+          'license_photo: ${_licenseDocFile?.path}, '
+          'vehicle_photo: ${_vehiclePhotoFile?.path}, '
+          'registration_doc: ${_registrationDocFile?.path}, '
+          'insurance_doc: ${_insuranceDocFile?.path}'
+          '}');
+      logger.d('continueProfile token présent: ${token.isNotEmpty}');
+
+      final formData = FormData.fromMap(formMap);
+      for (int i = 0; i < emergencyContacts.length; i++) {
+        formData.fields.add(MapEntry('emergency_contacts[$i][name]', emergencyContacts[i].name));
+        formData.fields.add(MapEntry('emergency_contacts[$i][phone]', emergencyContacts[i].phone));
+        formData.fields.add(MapEntry('emergency_contacts[$i][relationship]', emergencyContacts[i].relationship));
+      }
+
+      final response = await dio.post(
+        AppApi.register,
+        data: formData,
+        options: Options(
+          validateStatus: (_) => true,
+          sendTimeout: const Duration(seconds: 120),
+          receiveTimeout: const Duration(seconds: 60),
+          headers: {'Authorization': 'Bearer $token'},
+        ),
+      );
+
+      logger.d('continueProfile réponse [${response.statusCode}]: ${response.data}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        logger.i('continueProfile → succès, navigation dashboard conducteur');
+        // Mettre à jour le token retourné par register
+        final body = response.data?['body'] as Map?;
+        final newToken = body?['token'] as String?;
+        if (newToken != null && newToken.isNotEmpty) {
+          UserController.instance.token.value = newToken;
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('token', newToken);
+        }
+        UserController.instance.setRole('driver');
+        await UserController.instance.setProfileComplete(true);
+        Get.offAllNamed(AppRoutes.dashboardDriver);
+      } else {
+        final msg = response.data?['message'] as String? ??
+            response.data?['error'] as String? ??
+            'Erreur lors de la soumission (${response.statusCode}).';
+        logger.w('continueProfile → échec: $msg');
+        UIHelper().showSnackBar('MINIZON', msg, 2);
+      }
+    } catch (e, st) {
+      logger.e('continueProfile → exception', error: e, stackTrace: st);
+      UIHelper().showSnackBar(
+          'MINIZON', 'Erreur réseau. Vérifiez votre connexion.', 2);
+    } finally {
+      isSubmitting.value = false;
+      update();
+    }
   }
 
   Future<void> addVehiclePhoto({required ImageSource source}) async {
-    final XFile? file = await ImagePicker().pickImage(source: source, imageQuality: 85);
+    final XFile? file =
+        await ImagePicker().pickImage(source: source, imageQuality: 85);
     if (file == null) return;
+    _vehiclePhotoFile = file;
     vehiclePhotoName.value = file.name;
     update();
   }
@@ -257,8 +458,10 @@ class ProfileDriverController extends GetxController {
     );
     if (file == null) return;
     if (isLicense) {
+      _licenseDocFile = file;
       licenseDocumentName.value = file.name;
     } else {
+      _registrationDocFile = file;
       registrationDocumentName.value = file.name;
     }
     update();
@@ -275,6 +478,7 @@ class ProfileDriverController extends GetxController {
       ],
     );
     if (file == null) return;
+    _insuranceDocFile = file;
     insuranceDocName.value = file.name;
     update();
   }

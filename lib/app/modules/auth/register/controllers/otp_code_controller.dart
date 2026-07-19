@@ -81,20 +81,38 @@ class OtpCodeController extends GetxController {
 
     final auth = result.data!;
     final uc = UserController.instance;
+
+    // Déterminer le rôle : préférer le choix local (plus fiable que le serveur
+    // qui assigne "passenger" par défaut lors de la création de compte).
+    final chosenRole = _role == RoleType.driver ? 'driver' : 'passenger';
+    final effectiveRole = (_mode == AuthMode.register && _role != null)
+        ? chosenRole
+        : auth.user.role;
+
     await uc.setUserAndToken(
       auth.user,
       auth.token,
       isProfileComplete: auth.profileComplete,
     );
-    uc.setRole(auth.user.role);
+    uc.setRole(effectiveRole);
 
-    _navigateAfterAuth(auth.profileComplete, auth.user.role);
+    // Envoyer le rôle au serveur lors d'une inscription (correction du défaut "passenger")
+    if (_mode == AuthMode.register && _role != null) {
+      // Appel non-bloquant : la navigation ne dépend pas du résultat
+      Get.find<AuthService>()
+          .setUserRole(effectiveRole)
+          .then((r) {
+        if (!r.isSuccess) {
+          // Échec ignoré silencieusement — le rôle local est déjà correct
+        }
+      });
+    }
+
+    _navigateAfterAuth(auth.profileComplete, effectiveRole);
   }
 
-  void _navigateAfterAuth(bool profileComplete, String serverRole) {
-    final bool isDriver = serverRole == 'driver' ||
-        serverRole == 'conducteur' ||
-        _role == RoleType.driver;
+  void _navigateAfterAuth(bool profileComplete, String role) {
+    final bool isDriver = role == 'driver' || role == 'conducteur';
 
     if (profileComplete) {
       Get.offAllNamed(
@@ -103,30 +121,19 @@ class OtpCodeController extends GetxController {
       return;
     }
 
-    // Profil incomplet : vérifier si le rôle est déjà connu
-    final bool hasRole = _role != null ||
-        serverRole == 'driver' ||
-        serverRole == 'conducteur' ||
-        serverRole == 'passenger' ||
-        serverRole == 'passager';
-
-    if (!hasRole) {
-      // Nouveau user sans rôle → passer par la sélection de rôle d'abord
-      UIHelper().showSnackBar(
-        'MINIZON',
-        'Bienvenue ! Choisissez votre profil pour finaliser votre inscription.',
-        1,
+    // Profil incomplet → aller directement à l'écran de complétion
+    // sans repasser par /roles (le rôle est déjà connu).
+    if (_role != null) {
+      Get.offAllNamed(
+        isDriver
+            ? AppRoutes.completeProfileDriver
+            : AppRoutes.completeProfilePassenger,
       );
-      Get.offAllNamed(AppRoutes.roles, arguments: {'skipAuth': true});
       return;
     }
 
-    // Rôle connu → aller directement à la complétion de profil
-    Get.offAllNamed(
-      isDriver
-          ? AppRoutes.completeProfileDriver
-          : AppRoutes.completeProfilePassenger,
-    );
+    // Fallback : cas de reconnexion où le rôle est inconnu localement
+    Get.offAllNamed(AppRoutes.roles, arguments: {'skipAuth': true});
   }
 
   Future<void> resendCode() async {

@@ -14,4 +14,6 @@ abstract class AuthService {
   Future<ApiResult<void>> logout();
   /// Retourne les données complètes de l'utilisateur authentifié.
   Future<ApiResult<AuthResult>> me();
+  /// Assigne le rôle de l'utilisateur côté serveur (driver | passenger).
+  Future<ApiResult<void>> setUserRole(String role);
 }

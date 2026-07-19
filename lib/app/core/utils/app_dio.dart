@@ -8,7 +8,7 @@ class AppDio {
     final dio = Dio(BaseOptions(
       baseUrl: AppApi.baseUrl,
       connectTimeout: const Duration(seconds: 20),
-      receiveTimeout: const Duration(seconds: 90),
+      receiveTimeout: const Duration(seconds: 30),
       headers: {'Accept': 'application/json'},
     ));
     dio.interceptors.add(_AccountStatusInterceptor());

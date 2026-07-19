@@ -134,7 +134,10 @@ class ProfilePassagerView extends GetView<ProfilePassagerController> {
                         SizedBox(height: responsive.h(24)),
                         AppPrimaryButton(
                           responsive: responsive,
-                          label: AppStrings.passengerPrimaryAction,
+                          label: controller.isSubmitting.value
+                              ? 'Envoi en cours...'
+                              : AppStrings.passengerPrimaryAction,
+                          enabled: !controller.isSubmitting.value,
                           onTap: controller.createProfile,
                         ),
                         SizedBox(height: responsive.h(12)),

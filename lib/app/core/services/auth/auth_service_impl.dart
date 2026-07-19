@@ -12,11 +12,12 @@ import 'auth_service.dart';
 class AuthServiceImpl implements AuthService {
   final Dio _dio = AppDio.create();
 
-  Future<Options> _authOptions() async {
+  Future<Options> _authOptions({Duration? receiveTimeout}) async {
     final token = await UserController.instance.getSessionToken();
     return Options(
       validateStatus: (_) => true,
       headers: {'Authorization': 'Bearer $token'},
+      receiveTimeout: receiveTimeout,
     );
   }
 
@@ -29,6 +30,7 @@ class AuthServiceImpl implements AuthService {
         options: Options(
           validateStatus: (_) => true,
           headers: {'X-CSRF-TOKEN': ''},
+          receiveTimeout: const Duration(seconds: 45),
         ),
       );
       logger.d('sendOtp [${response.statusCode}] ${response.data}');
@@ -119,9 +121,31 @@ class AuthServiceImpl implements AuthService {
   }
 
   @override
-  Future<ApiResult<AuthResult>> me() async {
+  Future<ApiResult<void>> setUserRole(String role) async {
     try {
       final opts = await _authOptions();
+      final response = await _dio.post(
+        AppApi.roles,
+        data: {'role': role},
+        options: opts,
+      );
+      logger.d('setUserRole [${response.statusCode}] ${response.data}');
+      if (response.statusCode == 200) return ApiResult.success(null);
+      if (response.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      return ApiResult.failure(AppError.unexpected);
+    } on DioException catch (e) {
+      logger.e('setUserRole: $e');
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
+      logger.e('setUserRole: $e');
+      return ApiResult.failure(AppError.unexpected);
+    }
+  }
+
+  @override
+  Future<ApiResult<AuthResult>> me() async {
+    try {
+      final opts = await _authOptions(receiveTimeout: const Duration(seconds: 15));
       final response = await _dio.get(AppApi.me, options: opts);
       logger.d('me [${response.statusCode}] ${response.data}');
       if (response.statusCode == 200 && response.data['success'] == true) {

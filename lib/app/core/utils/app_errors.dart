@@ -25,7 +25,7 @@ enum AppError {
       case AppError.socket:
         return 'Vérifiez votre connexion internet.';
       case AppError.serverTimeout:
-        return 'Le serveur met du temps à répondre. Réessayez dans quelques secondes.';
+        return 'Le serveur ne répond pas. Vérifiez votre réseau et réessayez.';
       case AppError.invalidOtp:
       case AppError.expiredOtp:
         return 'Code OTP incorrect ou expiré.';

@@ -1,10 +1,11 @@
-const String apiBaseUrl = 'https://minizon-api.onrender.com/api';
+const String apiBaseUrl = 'https://minizon-api-iubm.onrender.com/api';
 
 class AppApi {
   static const String baseUrl = apiBaseUrl;
   static const String roles = '/roles';
   static const String sendOtp   = '/auth/send-otp';
   static const String verifyOtp = '/auth/verify-otp';
+  static const String register  = '/auth/register';
   static const String logout    = '/auth/logout';
   static const String me        = '/auth/me';
 
