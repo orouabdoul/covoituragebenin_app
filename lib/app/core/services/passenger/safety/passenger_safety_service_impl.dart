@@ -118,7 +118,11 @@ class PassengerSafetyServiceImpl implements PassengerSafetyService {
       final res = await _dio.get(AppApi.passengerSafetyContacts, options: opts);
       logger.d('fetchContacts [${res.statusCode}]');
       if (res.statusCode == 200 && res.data['success'] == true) {
-        final list = res.data['body']['emergency_contacts'] as List? ?? [];
+        final body = res.data['body'];
+        final raw = body is List
+            ? body
+            : (body['emergency_contacts'] ?? body['contacts'] ?? body['data'] ?? []);
+        final list = raw as List;
         return ApiResult.success(
             list.map((e) => EmergencyContact.fromJson(e as Map<String, dynamic>)).toList());
       }

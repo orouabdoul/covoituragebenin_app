@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart' hide SearchController;
 import 'package:get/get.dart';
 
@@ -37,11 +39,29 @@ class HomeController extends GetxController {
     return 'Bonsoir 👋';
   }
 
+  Timer? _refreshTimer;
+
   // ── Lifecycle ──────────────────────────────────────────────────────────────
   @override
   void onInit() {
     super.onInit();
     _loadDashboard();
+  }
+
+  @override
+  void onClose() {
+    _refreshTimer?.cancel();
+    super.onClose();
+  }
+
+  void _scheduleActiveRefresh() {
+    _refreshTimer?.cancel();
+    if (upcomingTrip?.status == UpcomingTripStatus.inProgress ||
+        upcomingTrip?.status == UpcomingTripStatus.driverArriving) {
+      _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+        _loadDashboard();
+      });
+    }
   }
 
   // ── API ────────────────────────────────────────────────────────────────────
@@ -120,6 +140,7 @@ class HomeController extends GetxController {
         .toList();
 
     dashboardVersion.value++;
+    _scheduleActiveRefresh();
   }
 
   HomeUpcomingTrip _mapUpcomingTrip(PassengerUpcomingTripData d) =>
@@ -128,6 +149,12 @@ class HomeController extends GetxController {
         tripUuid: d.tripUuid,
         origin: d.origin,
         destination: d.destination,
+        originPoint: d.originPoint,
+        destinationPoint: d.destinationPoint,
+        vehiclePlate: d.vehiclePlate,
+        seatsBooked: d.seatsBooked,
+        completedStops: d.completedStops,
+        totalStops: d.totalStops,
         departureTime: _formatTime(d.departureTime),
         departureDate: _formatDate(d.departureTime),
         driverName: d.driverName,
@@ -375,6 +402,8 @@ class HomeUpcomingTrip {
     required this.tripUuid,
     required this.origin,
     required this.destination,
+    this.originPoint = '',
+    this.destinationPoint = '',
     required this.departureTime,
     required this.departureDate,
     required this.driverName,
@@ -382,18 +411,24 @@ class HomeUpcomingTrip {
     this.etaMinutes,
     this.driverRating = 4.8,
     this.driverVehicle = '',
+    this.vehiclePlate = '',
     this.driverInitials = '',
     this.driverLevel = 'Bronze',
     this.driverTrips = 0,
     this.driverLevelProgress = 0.0,
     this.driverBadges = const [],
     this.tripProgress = 0.0,
+    this.seatsBooked = 1,
+    this.completedStops = 0,
+    this.totalStops = 0,
   });
 
   final String bookingUuid;
   final String tripUuid;
   final String origin;
   final String destination;
+  final String originPoint;
+  final String destinationPoint;
   final String departureTime;
   final String departureDate;
   final String driverName;
@@ -401,12 +436,16 @@ class HomeUpcomingTrip {
   final int? etaMinutes;
   final double driverRating;
   final String driverVehicle;
+  final String vehiclePlate;
   final String driverInitials;
   final String driverLevel;
   final int driverTrips;
   final double driverLevelProgress;
   final List<String> driverBadges;
   final double tripProgress;
+  final int seatsBooked;
+  final int completedStops;
+  final int totalStops;
 }
 
 class HomeQuickAction {

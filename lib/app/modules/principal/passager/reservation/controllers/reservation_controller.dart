@@ -216,6 +216,7 @@ class ReservationController extends GetxController {
 			r.isPaid ? 'Remboursement de $formatted en cours.' : 'Réservation annulée.',
 			3,
 		);
+		_fetch();
 	}
 
 	String _formatPrice(int value) {

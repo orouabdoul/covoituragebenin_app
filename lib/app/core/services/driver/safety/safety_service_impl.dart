@@ -25,8 +25,11 @@ class SafetyServiceImpl implements SafetyService {
       final res = await _dio.get(AppApi.driverSafetyContacts, options: opts);
       logger.d('safetyContacts [${res.statusCode}]');
       if (res.statusCode == 200 && res.data['success'] == true) {
-        final list = (res.data['body']['contacts'] as List? ?? [])
-            .cast<Map<String, dynamic>>();
+        final body = res.data['body'];
+        final raw = body is List
+            ? body
+            : (body['emergency_contacts'] ?? body['contacts'] ?? body['data'] ?? []);
+        final list = (raw as List).cast<Map<String, dynamic>>();
         return ApiResult.success(list);
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
@@ -55,8 +58,11 @@ class SafetyServiceImpl implements SafetyService {
       );
       logger.d('addContact [${res.statusCode}]');
       if (res.statusCode == 200 && res.data['success'] == true) {
-        final list = (res.data['body']['contacts'] as List? ?? [])
-            .cast<Map<String, dynamic>>();
+        final body = res.data['body'];
+        final raw = body is List
+            ? body
+            : (body['emergency_contacts'] ?? body['contacts'] ?? body['data'] ?? []);
+        final list = (raw as List).cast<Map<String, dynamic>>();
         return ApiResult.success(list);
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
@@ -78,8 +84,11 @@ class SafetyServiceImpl implements SafetyService {
           await _dio.delete(AppApi.driverSafetyContact(id), options: opts);
       logger.d('removeContact [${res.statusCode}]');
       if (res.statusCode == 200 && res.data['success'] == true) {
-        final list = (res.data['body']['contacts'] as List? ?? [])
-            .cast<Map<String, dynamic>>();
+        final body = res.data['body'];
+        final raw = body is List
+            ? body
+            : (body['emergency_contacts'] ?? body['contacts'] ?? body['data'] ?? []);
+        final list = (raw as List).cast<Map<String, dynamic>>();
         return ApiResult.success(list);
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);

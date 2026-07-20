@@ -888,6 +888,42 @@ class _NextTripCard extends StatelessWidget {
               ),
             ],
           ),
+          if (trip.statusLabel == 'En cours' || trip.tripProgress > 0) ...[
+            SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    trip.totalStops > 0
+                        ? 'Arrêts : ${trip.completedStops}/${trip.totalStops}'
+                        : 'Trajet en cours',
+                    style: AppTextStyles.caption(responsive).copyWith(
+                      color: AppColors.textSecondary,
+                      fontSize: responsive.text(12),
+                    ),
+                  ),
+                ),
+                if (trip.tripProgress > 0)
+                  Text(
+                    '${(trip.tripProgress * 100).toStringAsFixed(0)}%',
+                    style: AppTextStyles.caption(responsive).copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF3B82F6),
+                    ),
+                  ),
+              ],
+            ),
+            SizedBox(height: responsive.adaptive(phone: 6, smallPhone: 5, tablet: 6, desktop: 6)),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(9999),
+              child: LinearProgressIndicator(
+                value: trip.tripProgress.clamp(0.0, 1.0),
+                minHeight: responsive.adaptive(phone: 5, smallPhone: 4, tablet: 5, desktop: 5).toDouble(),
+                backgroundColor: AppColors.surfaceSoft,
+                color: const Color(0xFF3B82F6),
+              ),
+            ),
+          ],
           SizedBox(
             height: responsive.adaptive(
               phone: 16,

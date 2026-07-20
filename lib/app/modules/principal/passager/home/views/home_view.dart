@@ -566,6 +566,33 @@ class _TripTrackingCard extends StatelessWidget {
             ],
           ),
           SizedBox(height: responsive.h(14)),
+          // ── Date départ (trajets à venir) ─────────────────────────────
+          if (!isActive && !isArriving && trip.departureDate.isNotEmpty) ...[
+            Container(
+              padding: EdgeInsets.symmetric(
+                  horizontal: responsive.w(10), vertical: responsive.h(5)),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceMuted,
+                borderRadius: BorderRadius.circular(responsive.radius(8)),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.calendar_today_rounded,
+                      size: responsive.text(11), color: AppColors.textSecondary),
+                  SizedBox(width: responsive.w(5)),
+                  Text('${trip.departureDate} à ${trip.departureTime}',
+                      style: AppTextStyles.caption(responsive).copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
+                        fontSize: responsive.text(12),
+                      )),
+                ],
+              ),
+            ),
+            SizedBox(height: responsive.h(12)),
+          ],
           // ── Route visualization ───────────────────────────────────────
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -576,10 +603,15 @@ class _TripTrackingCard extends StatelessWidget {
                     width: 10, height: 10,
                     decoration: BoxDecoration(color: color, shape: BoxShape.circle),
                   ),
-                  Container(width: 2, height: responsive.h(52), color: AppColors.border),
+                  Container(
+                    width: 2,
+                    height: responsive.h(trip.originPoint != trip.origin ? 78 : 56),
+                    color: AppColors.border,
+                  ),
                   Container(
                     width: 10, height: 10,
-                    decoration: const BoxDecoration(color: Color(0xFFE53935), shape: BoxShape.circle),
+                    decoration: const BoxDecoration(
+                        color: Color(0xFFE53935), shape: BoxShape.circle),
                   ),
                 ],
               ),
@@ -588,30 +620,85 @@ class _TripTrackingCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Départ', style: AppTextStyles.caption(responsive).copyWith(
-                      color: AppColors.textHint, fontSize: responsive.text(11),
-                    )),
+                    Text('Prise en charge',
+                        style: AppTextStyles.caption(responsive).copyWith(
+                          color: AppColors.textHint, fontSize: responsive.text(11),
+                        )),
                     SizedBox(height: responsive.h(2)),
-                    Text(trip.origin, style: AppTextStyles.homeCardTitle(responsive).copyWith(fontWeight: FontWeight.w700)),
-                    SizedBox(height: responsive.h(24)),
-                    Text('Destination', style: AppTextStyles.caption(responsive).copyWith(
-                      color: AppColors.textHint, fontSize: responsive.text(11),
-                    )),
+                    Text(trip.originPoint,
+                        style: AppTextStyles.homeCardTitle(responsive)
+                            .copyWith(fontWeight: FontWeight.w700),
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                    if (trip.originPoint != trip.origin) ...[
+                      SizedBox(height: responsive.h(1)),
+                      Text(trip.origin,
+                          style: AppTextStyles.caption(responsive).copyWith(
+                            color: AppColors.textMuted,
+                            fontSize: responsive.text(11),
+                          ),
+                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ],
+                    SizedBox(
+                        height: responsive.h(
+                            trip.originPoint != trip.origin ? 10 : 22)),
+                    Text('Dépose',
+                        style: AppTextStyles.caption(responsive).copyWith(
+                          color: AppColors.textHint, fontSize: responsive.text(11),
+                        )),
                     SizedBox(height: responsive.h(2)),
-                    Text(trip.destination, style: AppTextStyles.homeCardTitle(responsive).copyWith(fontWeight: FontWeight.w700)),
+                    Text(trip.destinationPoint,
+                        style: AppTextStyles.homeCardTitle(responsive)
+                            .copyWith(fontWeight: FontWeight.w700),
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                    if (trip.destinationPoint != trip.destination) ...[
+                      SizedBox(height: responsive.h(1)),
+                      Text(trip.destination,
+                          style: AppTextStyles.caption(responsive).copyWith(
+                            color: AppColors.textMuted,
+                            fontSize: responsive.text(11),
+                          ),
+                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ],
                   ],
                 ),
               ),
             ],
           ),
-          // ── Trip progress bar (only in-progress) ─────────────────────
-          if (isActive && trip.tripProgress > 0) ...[
+          // ── Chips info complémentaires ────────────────────────────────
+          SizedBox(height: responsive.h(10)),
+          Wrap(
+            spacing: responsive.w(6),
+            runSpacing: responsive.h(4),
+            children: [
+              _TripInfoChip(
+                responsive: responsive,
+                icon: Icons.event_seat_rounded,
+                label: '${trip.seatsBooked} place${trip.seatsBooked > 1 ? 's' : ''}',
+              ),
+              if (trip.vehiclePlate.isNotEmpty)
+                _TripInfoChip(
+                  responsive: responsive,
+                  icon: Icons.directions_car_rounded,
+                  label: trip.vehiclePlate,
+                ),
+              if (isActive && trip.totalStops > 0)
+                _TripInfoChip(
+                  responsive: responsive,
+                  icon: Icons.location_on_rounded,
+                  label: '${trip.completedStops}/${trip.totalStops} arrêts',
+                  color: color,
+                ),
+            ],
+          ),
+          // ── Progression du trajet (en cours ou conducteur en approche) ─
+          if (isActive) ...[
             SizedBox(height: responsive.h(12)),
             Row(
               children: [
                 Expanded(
                   child: Text('Progression du trajet',
-                      style: AppTextStyles.caption(responsive).copyWith(fontSize: responsive.text(12))),
+                      style: AppTextStyles.caption(responsive)
+                          .copyWith(fontSize: responsive.text(12))),
                 ),
                 Text(
                   '${(trip.tripProgress * 100).toStringAsFixed(0)}%',
@@ -625,7 +712,7 @@ class _TripTrackingCard extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(9999),
               child: LinearProgressIndicator(
-                value: trip.tripProgress,
+                value: trip.tripProgress.clamp(0.0, 1.0),
                 minHeight: responsive.h(6),
                 backgroundColor: AppColors.surfaceSoft,
                 color: color,
@@ -969,6 +1056,46 @@ class _PulsingDotState extends State<_PulsingDot> with SingleTickerProviderState
     return ScaleTransition(
       scale: _scale,
       child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
+    );
+  }
+}
+
+class _TripInfoChip extends StatelessWidget {
+  const _TripInfoChip({
+    required this.responsive,
+    required this.icon,
+    required this.label,
+    this.color,
+  });
+  final AppResponsive responsive;
+  final IconData icon;
+  final String label;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = color ?? AppColors.textSecondary;
+    return Container(
+      padding: EdgeInsets.symmetric(
+          horizontal: responsive.w(8), vertical: responsive.h(4)),
+      decoration: BoxDecoration(
+        color: c.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(responsive.radius(8)),
+        border: Border.all(color: c.withValues(alpha: 0.20)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: responsive.text(11), color: c),
+          SizedBox(width: responsive.w(4)),
+          Text(label,
+              style: AppTextStyles.caption(responsive).copyWith(
+                color: c,
+                fontWeight: FontWeight.w600,
+                fontSize: responsive.text(11),
+              )),
+        ],
+      ),
     );
   }
 }

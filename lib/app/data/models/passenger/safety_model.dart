@@ -14,10 +14,10 @@ class EmergencyContact {
   });
 
   factory EmergencyContact.fromJson(Map<String, dynamic> j) => EmergencyContact(
-        id: (j['id'] ?? '').toString(),
+        id: (j['uuid'] ?? j['id'] ?? '').toString(),
         name: (j['name'] ?? '').toString(),
-        phone: (j['phone'] ?? '').toString(),
-        relation: (j['relation'] ?? '').toString(),
+        phone: (j['phone'] ?? j['phone_number'] ?? '').toString(),
+        relation: (j['relation'] ?? j['relationship'] ?? '').toString(),
         initials: (j['initials'] ?? '').toString(),
       );
 }

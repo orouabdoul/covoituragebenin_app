@@ -123,6 +123,9 @@ class DriverTripCard {
     required this.destination,
     required this.passengersLabel,
     required this.avatarUrls,
+    this.tripProgress = 0.0,
+    this.completedStops = 0,
+    this.totalStops = 0,
   });
 
   final String uuid;
@@ -134,6 +137,9 @@ class DriverTripCard {
   final String destination;
   final String passengersLabel;
   final List<String> avatarUrls;
+  final double tripProgress;
+  final int completedStops;
+  final int totalStops;
 
   Color get statusColor => switch (statusLabel) {
     'En attente' => const Color(0xFFF4B400),
@@ -154,6 +160,7 @@ typedef DriverTrip = DriverTripCard;
 // ignore: avoid_implementing_value_types
 class DriverRequest {
   const DriverRequest({
+    required this.id,
     required this.name,
     required this.rating,
     required this.route,
@@ -165,6 +172,7 @@ class DriverRequest {
     required this.avatarUrl,
   });
 
+  final String id;
   final String name;
   final String rating;
   final String route;
@@ -310,7 +318,7 @@ class DriverHomeController extends GetxController {
     avatarUrls: [],
   );
 
-  List<DriverRequest> recentRequests = const [];
+  List<DriverRequest> recentRequests = [];
 
   final List<DriverAction> actions = const [
     DriverAction(
@@ -432,16 +440,23 @@ class DriverHomeController extends GetxController {
     const _visibleStatuses = {'pending', 'confirmed', 'active', 'in_progress', 'started'};
     if (data.nextTrip != null && _visibleStatuses.contains(data.nextTrip!.status)) {
       final t = data.nextTrip!;
+      final depLabel = t.departureNeighborhood.isNotEmpty
+          ? '${t.departureNeighborhood}, ${t.departureCity}'
+          : t.departureCity;
+      final arrLabel = t.arrivalNeighborhood.isNotEmpty
+          ? '${t.arrivalNeighborhood}, ${t.arrivalCity}'
+          : t.arrivalCity;
       nextTrip = DriverTripCard(
         uuid: t.uuid,
         statusLabel: _statusLabel(t.status),
         time: _formatTime(t.departureTime),
         departureLabel: 'Départ',
-        departure: '${t.departureNeighborhood}, ${t.departureCity}',
+        departure: depLabel,
         destinationLabel: 'Destination',
-        destination: '${t.arrivalNeighborhood}, ${t.arrivalCity}',
+        destination: arrLabel,
         passengersLabel: '${t.passengersCount} passager${t.passengersCount > 1 ? 's' : ''} confirmé${t.passengersCount > 1 ? 's' : ''}',
         avatarUrls: t.passengers.map((p) => p.name).toList(),
+        tripProgress: (t.status == 'in_progress' || t.status == 'started') ? 0.5 : 0.0,
       );
     } else {
       nextTrip = const DriverTripCard(
@@ -485,6 +500,7 @@ class DriverHomeController extends GetxController {
     recentRequests = data.recentRequests.where((r) => r.status != 'cancelled' && r.status != 'accepted').map((r) {
       final statusInfo = _requestStatusInfo(r.status);
       return DriverRequest(
+        id: r.uuid,
         name: r.passenger.name,
         rating: '${r.passenger.rating.toStringAsFixed(1)} ★',
         route: '${r.trip.departureCity} → ${r.trip.arrivalCity}',
@@ -692,7 +708,10 @@ class DriverHomeController extends GetxController {
       r.cancelTimer();
       quickRequests.remove(r);
       pendingRequestsCount.value = quickRequests.length;
+      recentRequests.removeWhere((req) => req.id == r.id);
+      dashboardVersion.value++;
       UIHelper().showSnackBar('MINIZON', '✅ ${r.passengerName} accepté(e) !', 0);
+      _loadDashboard();
     } else {
       UIHelper().showSnackBar('MINIZON', 'Erreur lors de l\'acceptation. Réessayez.', 2);
     }
@@ -713,6 +732,7 @@ class DriverHomeController extends GetxController {
       quickRequests.remove(r);
       pendingRequestsCount.value = quickRequests.length;
       UIHelper().showSnackBar('MINIZON', 'Demande de ${r.passengerName} refusée.', 2);
+      _loadDashboard();
     } else {
       UIHelper().showSnackBar('MINIZON', 'Erreur lors du refus. Réessayez.', 2);
     }

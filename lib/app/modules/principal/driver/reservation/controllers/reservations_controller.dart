@@ -67,16 +67,20 @@ class LiveReservationRequest {
         ? '$firstName $lastName'.trim()
         : passenger['phone'] as String? ?? 'Passager';
 
-    final departureCity = trip['departure_city'] as String? ?? '';
-    final arrivalCity = trip['arrival_city'] as String? ?? '';
+    final departureCity = (trip['departure_city'] as String?)?.isNotEmpty == true
+        ? trip['departure_city'] as String
+        : (trip['origin'] as String?) ?? '';
+    final arrivalCity = (trip['arrival_city'] as String?)?.isNotEmpty == true
+        ? trip['arrival_city'] as String
+        : (trip['destination'] as String?) ?? '';
 
     final pickupPoint = _resolvePoint(
-      trip['departure_point'] as String?,
+      trip['departure_point'] as String? ?? trip['origin_point'] as String?,
       trip['departure_neighborhood'] as String?,
       departureCity,
     );
     final dropoffPoint = _resolvePoint(
-      trip['arrival_point'] as String?,
+      trip['arrival_point'] as String? ?? trip['destination_point'] as String?,
       trip['arrival_neighborhood'] as String?,
       arrivalCity,
     );
@@ -263,6 +267,7 @@ class ReservationsController extends GetxController {
     pendingRequests.remove(r);
     acceptedRequests.insert(0, r);
     UIHelper().showSnackBar('MINIZON', '✅ Réservation de ${r.passengerName} acceptée !', 0);
+    _loadBookings();
   }
 
   void onReject(LiveReservationRequest r) => _showRejectDialog(r);
@@ -309,6 +314,7 @@ class ReservationsController extends GetxController {
     pendingRequests.remove(r);
     rejectedRequests.insert(0, r);
     UIHelper().showSnackBar('MINIZON', 'Demande de ${r.passengerName} refusée.', 2);
+    _loadBookings();
   }
 
   void onViewPassenger(LiveReservationRequest r) {

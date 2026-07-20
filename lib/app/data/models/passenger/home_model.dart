@@ -5,6 +5,8 @@ class PassengerUpcomingTripData {
     required this.status,
     required this.origin,
     required this.destination,
+    this.originPoint = '',
+    this.destinationPoint = '',
     this.etaMinutes,
     required this.tripProgress,
     required this.departureTime,
@@ -12,10 +14,14 @@ class PassengerUpcomingTripData {
     required this.driverInitials,
     required this.driverRating,
     required this.driverVehicle,
+    this.vehiclePlate = '',
     required this.driverLevel,
     required this.driverTrips,
     required this.driverLevelProgress,
     required this.driverBadges,
+    this.seatsBooked = 1,
+    this.completedStops = 0,
+    this.totalStops = 0,
   });
 
   final String bookingUuid;
@@ -23,6 +29,8 @@ class PassengerUpcomingTripData {
   final String status;
   final String origin;
   final String destination;
+  final String originPoint;
+  final String destinationPoint;
   final int? etaMinutes;
   final double tripProgress;
   final String departureTime;
@@ -30,34 +38,56 @@ class PassengerUpcomingTripData {
   final String driverInitials;
   final double driverRating;
   final String driverVehicle;
+  final String vehiclePlate;
   final String driverLevel;
   final int driverTrips;
   final double driverLevelProgress;
   final List<String> driverBadges;
+  final int seatsBooked;
+  final int completedStops;
+  final int totalStops;
 
-  factory PassengerUpcomingTripData.fromJson(Map<String, dynamic> json) =>
-      PassengerUpcomingTripData(
-        bookingUuid: (json['booking_uuid'] as String?) ?? '',
-        tripUuid: (json['trip_uuid'] as String?) ?? '',
-        status: (json['status'] as String?) ?? '',
-        origin: (json['origin'] as String?) ?? '',
-        destination: (json['destination'] as String?) ?? '',
-        etaMinutes: (json['eta_minutes'] as num?)?.toInt(),
-        tripProgress: (json['trip_progress'] as num?)?.toDouble() ?? 0.0,
-        departureTime: (json['departure_time'] as String?) ?? '',
-        driverName: (json['driver_name'] as String?) ?? '',
-        driverInitials: (json['driver_initials'] as String?) ?? '',
-        driverRating: (json['driver_rating'] as num?)?.toDouble() ?? 0.0,
-        driverVehicle: (json['driver_vehicle'] as String?) ?? '',
-        driverLevel: (json['driver_level'] as String?) ?? '',
-        driverTrips: (json['driver_trips'] as num?)?.toInt() ?? 0,
-        driverLevelProgress:
-            (json['driver_level_progress'] as num?)?.toDouble() ?? 0.0,
-        driverBadges: (json['driver_badges'] as List?)
-                ?.map((b) => b as String)
-                .toList() ??
-            [],
-      );
+  factory PassengerUpcomingTripData.fromJson(Map<String, dynamic> json) {
+    final origin = (json['origin'] as String?) ?? '';
+    final destination = (json['destination'] as String?) ?? '';
+    return PassengerUpcomingTripData(
+      bookingUuid: (json['booking_uuid'] as String?) ?? '',
+      tripUuid: (json['trip_uuid'] as String?) ?? '',
+      status: (json['status'] as String?) ?? '',
+      origin: origin,
+      destination: destination,
+      originPoint: (json['origin_point'] as String?)?.isNotEmpty == true
+          ? json['origin_point'] as String
+          : (json['pickup_point'] as String?)?.isNotEmpty == true
+              ? json['pickup_point'] as String
+              : origin,
+      destinationPoint:
+          (json['destination_point'] as String?)?.isNotEmpty == true
+              ? json['destination_point'] as String
+              : (json['dropoff_point'] as String?)?.isNotEmpty == true
+                  ? json['dropoff_point'] as String
+                  : destination,
+      etaMinutes: (json['eta_minutes'] as num?)?.toInt(),
+      tripProgress: (json['trip_progress'] as num?)?.toDouble() ?? 0.0,
+      departureTime: (json['departure_time'] as String?) ?? '',
+      driverName: (json['driver_name'] as String?) ?? '',
+      driverInitials: (json['driver_initials'] as String?) ?? '',
+      driverRating: (json['driver_rating'] as num?)?.toDouble() ?? 0.0,
+      driverVehicle: (json['driver_vehicle'] as String?) ?? '',
+      vehiclePlate: (json['vehicle_plate'] as String?) ?? '',
+      driverLevel: (json['driver_level'] as String?) ?? '',
+      driverTrips: (json['driver_trips'] as num?)?.toInt() ?? 0,
+      driverLevelProgress:
+          (json['driver_level_progress'] as num?)?.toDouble() ?? 0.0,
+      driverBadges: (json['driver_badges'] as List?)
+              ?.map((b) => b as String)
+              .toList() ??
+          [],
+      seatsBooked: (json['seats_booked'] as num?)?.toInt() ?? 1,
+      completedStops: (json['completed_stops'] as num?)?.toInt() ?? 0,
+      totalStops: (json['total_stops'] as num?)?.toInt() ?? 0,
+    );
+  }
 }
 
 class PassengerMetricData {
