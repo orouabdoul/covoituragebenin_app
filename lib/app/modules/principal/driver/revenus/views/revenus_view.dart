@@ -683,43 +683,48 @@ class _TransactionCard extends StatelessWidget {
 			child: Row(
 				mainAxisAlignment: MainAxisAlignment.spaceBetween,
 				children: [
-					Row(
-						children: [
-							Container(
-								width: responsive.w(48),
-								height: responsive.w(48),
-								decoration: ShapeDecoration(
-									color: transaction.iconBackground,
-									shape: RoundedRectangleBorder(
-										borderRadius: BorderRadius.circular(responsive.radius(12)),
-										side: const BorderSide(color: AppColors.border),
+					Expanded(
+						child: Row(
+							children: [
+								Container(
+									width: responsive.w(48),
+									height: responsive.w(48),
+									decoration: ShapeDecoration(
+										color: transaction.iconBackground,
+										shape: RoundedRectangleBorder(
+											borderRadius: BorderRadius.circular(responsive.radius(12)),
+											side: const BorderSide(color: AppColors.border),
+										),
+									),
+									child: Icon(transaction.icon, color: AppColors.primary, size: responsive.text(20)),
+								),
+								SizedBox(width: responsive.w(12)),
+								Expanded(
+									child: Column(
+										crossAxisAlignment: CrossAxisAlignment.start,
+										children: [
+											Text(
+												transaction.title,
+												style: AppTextStyles.homeCardTitle(responsive).copyWith(
+													fontSize: responsive.text(14),
+													color: AppColors.textPrimary,
+												),
+											),
+											SizedBox(height: responsive.h(2)),
+											Text(
+												transaction.dateLabel,
+												style: AppTextStyles.caption(responsive).copyWith(
+													color: AppColors.textHint,
+													fontSize: responsive.text(12),
+												),
+											),
+										],
 									),
 								),
-								child: Icon(transaction.icon, color: AppColors.primary, size: responsive.text(20)),
-							),
-							SizedBox(width: responsive.w(12)),
-							Column(
-								crossAxisAlignment: CrossAxisAlignment.start,
-								children: [
-									Text(
-										transaction.title,
-										style: AppTextStyles.homeCardTitle(responsive).copyWith(
-											fontSize: responsive.text(14),
-											color: AppColors.textPrimary,
-										),
-									),
-									SizedBox(height: responsive.h(2)),
-									Text(
-										transaction.dateLabel,
-										style: AppTextStyles.caption(responsive).copyWith(
-											color: AppColors.textHint,
-											fontSize: responsive.text(12),
-										),
-									),
-								],
-							),
-						],
+							],
+						),
 					),
+					SizedBox(width: responsive.w(8)),
 					Column(
 						crossAxisAlignment: CrossAxisAlignment.end,
 						children: [

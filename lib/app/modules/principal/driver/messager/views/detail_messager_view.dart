@@ -58,6 +58,7 @@ class DetailMessagerView extends GetView<DriverDetailMessagerController> {
                           onRetry: controller.refresh);
                     }
                     return ListView.separated(
+                      controller: controller.scrollController,
                       padding: EdgeInsets.fromLTRB(
                         responsive.adaptive(
                             phone: 16,

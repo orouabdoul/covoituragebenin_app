@@ -1,5 +1,7 @@
 import 'package:covoiturage_benin_app/app/core/controller/loading_controller.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
+import 'package:covoiturage_benin_app/app/core/services/push_notification/push_notification_service.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:covoiturage_benin_app/app/core/services/auth/auth_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/auth/auth_service_impl.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/active_trip/active_trip_service.dart';
@@ -47,10 +49,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  await Firebase.initializeApp();
+
   // Pré-initialise SharedPreferences une seule fois au démarrage.
   // Sans ça, chaque premier appel à getInstance() sur MIUI/Xiaomi peut
   // bloquer le main thread plusieurs secondes (disk I/O via platform channel).
   await SharedPreferences.getInstance();
+
+  await PushNotificationService.instance.initialize();
 
   Get.put(LoadingController());
   Get.put(UserController());

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -9,7 +11,7 @@ import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/messenger_model.dart';
 
-class PassengerDetailMessagerController extends GetxController {
+class PassengerDetailMessagerController extends GetxController with WidgetsBindingObserver {
   PassengerMessagingService get _service => Get.find<PassengerMessagingService>();
 
   final TextEditingController messageController = TextEditingController();
@@ -37,6 +39,11 @@ class PassengerDetailMessagerController extends GetxController {
   int? _nextBeforeId;
   String _uuid = '';
   String _bookingUuid = '';
+  int _latestSeenId = 0;
+  Timer? _pollingTimer;
+  Timer? _presenceTimer;
+
+  final ScrollController scrollController = ScrollController();
 
   // Overrides locaux — persistants pendant la vie du controller
   final _deletedIds = <int>{};
@@ -45,6 +52,7 @@ class PassengerDetailMessagerController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    WidgetsBinding.instance.addObserver(this);
     final args = Get.arguments as Map<String, dynamic>?;
     _uuid = args?['uuid'] as String? ?? '';
     _bookingUuid = args?['booking_uuid'] as String? ?? '';
@@ -58,6 +66,19 @@ class PassengerDetailMessagerController extends GetxController {
       _fetchThread();
     } else if (_bookingUuid.isNotEmpty) {
       _startAndFetch();
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+      _pollingTimer?.cancel();
+      _pollingTimer = null;
+    } else if (state == AppLifecycleState.resumed) {
+      if (_uuid.isNotEmpty) {
+        _pollForNewMessages();
+        _startPolling();
+      }
     }
   }
 
@@ -111,6 +132,14 @@ class PassengerDetailMessagerController extends GetxController {
         messages.insertAll(0, _withDateSeparators(overridden));
       } else {
         messages.assignAll(_withDateSeparators(overridden));
+        _updateLatestSeenId(detail.messages);
+        // Logique locale : si l'autre a envoyé un message aujourd'hui → connexion récente
+        final today = DateTime.now().toIso8601String().substring(0, 10);
+        if (detail.messages.any((m) => m.kind == 'incoming' && m.rawDate == today)) {
+          _markOtherUserActive();
+        }
+        _startPolling();
+        _scrollToBottom();
       }
       hasMore.value = detail.hasMore;
       _nextBeforeId = detail.nextBeforeId;
@@ -121,6 +150,79 @@ class PassengerDetailMessagerController extends GetxController {
         UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
       }
     }
+  }
+
+  void _updateLatestSeenId(List<ConversationApiMessage> apiMessages) {
+    for (final m in apiMessages) {
+      if (m.id > _latestSeenId) _latestSeenId = m.id;
+    }
+  }
+
+  void _startPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      _pollForNewMessages();
+    });
+  }
+
+  Future<void> _pollForNewMessages() async {
+    if (_uuid.isEmpty || isSending.value) return;
+    final result = await _service.fetchThread(_uuid);
+    if (!result.isSuccess) return;
+
+    final detail = result.data!;
+    _applyThreadContext(detail.thread);
+
+    final newApiMessages = detail.messages
+        .where((m) => m.id > 0 && m.id > _latestSeenId)
+        .toList();
+
+    // Fallback : si l'autre envoie un message, on le marque actif même si is_online est faux
+    if (newApiMessages.any((m) => m.kind == 'incoming')) {
+      _markOtherUserActive();
+    }
+
+    if (newApiMessages.isEmpty) return;
+
+    _updateLatestSeenId(detail.messages);
+    final newMapped = newApiMessages.map(_toDetailMessage).toList();
+    final overridden = _withLocalOverrides(newMapped);
+
+    final toAdd = <DetailMessage>[];
+    final lastWithDate = messages.lastWhere(
+      (m) => m.kind != DetailMessageKind.dateHeader && m.rawDate.isNotEmpty,
+      orElse: () => const DetailMessage(kind: DetailMessageKind.dateHeader),
+    );
+    String? lastDate = lastWithDate.rawDate.isNotEmpty ? lastWithDate.rawDate : null;
+
+    for (final msg in overridden) {
+      final d = msg.rawDate;
+      if (d.isNotEmpty && d != lastDate) {
+        toAdd.add(DetailMessage(
+          kind: DetailMessageKind.dateHeader,
+          rawDate: d,
+          dateLabel: _formatDate(d),
+        ));
+        lastDate = d;
+      }
+      toAdd.add(msg);
+    }
+
+    messages.addAll(toAdd);
+    _scrollToBottom();
+    _service.markAsRead(_uuid);
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (scrollController.hasClients) {
+        scrollController.animateTo(
+          scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   /// Applique les suppressions et modifications locales après chaque rechargement.
@@ -137,11 +239,26 @@ class PassengerDetailMessagerController extends GetxController {
   void _applyThreadContext(ConversationThreadContext ctx) {
     displayName.value = ctx.otherUser.name;
     displayAvatarUrl.value = ctx.otherUser.avatarUrl;
-    displayIsOnline.value = ctx.otherUser.isOnline;
     displayPhone.value = ctx.otherUser.phone;
     displayTripRoute.value = ctx.trip.route;
     displayTripDepartureLabel.value = ctx.trip.departureTimeLabel;
     displayTripSeats.value = ctx.trip.availableSeats;
+    // Dès que l'API signale que l'autre est en ligne (connexion au chat),
+    // on démarre/réinitialise le timer de présence de 5 min.
+    if (ctx.otherUser.isOnline) {
+      _markOtherUserActive();
+    } else if (!(_presenceTimer?.isActive ?? false)) {
+      displayIsOnline.value = false;
+    }
+  }
+
+  void _markOtherUserActive() {
+    displayIsOnline.value = true;
+    _presenceTimer?.cancel();
+    _presenceTimer = Timer(const Duration(minutes: 5), () {
+      _presenceTimer = null;
+      displayIsOnline.value = false;
+    });
   }
 
   DetailMessage _toDetailMessage(ConversationApiMessage m) {
@@ -279,7 +396,10 @@ class PassengerDetailMessagerController extends GetxController {
       return;
     }
 
-    messages.add(_toDetailMessage(result.data!));
+    final sent = _toDetailMessage(result.data!);
+    messages.add(sent);
+    final newId = result.data!.id;
+    if (newId > _latestSeenId) _latestSeenId = newId;
   }
 
   Future<void> sendMessage() async {
@@ -314,6 +434,7 @@ class PassengerDetailMessagerController extends GetxController {
       time: 'maintenant',
     );
     messages.add(optimistic);
+    _scrollToBottom();
 
     if (_uuid.isEmpty) return;
 
@@ -326,6 +447,8 @@ class PassengerDetailMessagerController extends GetxController {
       if (idx >= 0) {
         messages[idx] = _toDetailMessage(result.data!);
       }
+      final newId = result.data!.id;
+      if (newId > _latestSeenId) _latestSeenId = newId;
     } else {
       messages.remove(optimistic);
       if (result.error != null) {
@@ -665,6 +788,10 @@ class PassengerDetailMessagerController extends GetxController {
 
   @override
   void onClose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _pollingTimer?.cancel();
+    _presenceTimer?.cancel();
+    scrollController.dispose();
     messageController.dispose();
     super.onClose();
   }

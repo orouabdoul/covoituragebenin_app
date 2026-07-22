@@ -65,6 +65,7 @@ class DetailMessagerView extends GetView<PassengerDetailMessagerController> {
                       );
                     }
                     return ListView.separated(
+                      controller: controller.scrollController,
                       padding: EdgeInsets.fromLTRB(
                         responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
                         0,
@@ -268,10 +269,10 @@ class _ConversationHeader extends StatelessWidget {
                                     ),
                                   ),
                                   SizedBox(height: responsive.h(2)),
-                                  if (isOnline)
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (isOnline) ...[
                                         Container(
                                           width: responsive.w(8),
                                           height: responsive.w(8),
@@ -281,14 +282,15 @@ class _ConversationHeader extends StatelessWidget {
                                           ),
                                         ),
                                         SizedBox(width: responsive.w(8)),
-                                        Text(
-                                          'En ligne',
-                                          style: AppTextStyles.caption(responsive).copyWith(
-                                            color: AppColors.textSecondary,
-                                          ),
-                                        ),
                                       ],
-                                    ),
+                                      Text(
+                                        isOnline ? 'En ligne' : 'Hors ligne',
+                                        style: AppTextStyles.caption(responsive).copyWith(
+                                          color: AppColors.textSecondary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ],
                               ),
                             ),

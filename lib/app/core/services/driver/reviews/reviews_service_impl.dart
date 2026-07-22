@@ -30,9 +30,9 @@ class ReviewsServiceImpl implements ReviewsService {
       );
       logger.d('fetchReviews[page=$page] [${res.statusCode}]');
       if (res.statusCode == 200 && res.data['success'] == true) {
-        return ApiResult.success(
-          ReviewsBodyModel.fromJson(res.data['body'] as Map<String, dynamic>),
-        );
+        final raw = res.data['body'];
+        final body = raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
+        return ApiResult.success(ReviewsBodyModel.fromJson(body));
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);

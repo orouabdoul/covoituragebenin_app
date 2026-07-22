@@ -95,11 +95,13 @@ class ReviewsBodyModel {
 
   factory ReviewsBodyModel.fromJson(Map<String, dynamic> j) => ReviewsBodyModel(
         summary: ReviewSummaryModel.fromJson(
-            j['summary'] as Map<String, dynamic>? ?? {}),
-        reviews: (j['reviews'] as List<dynamic>? ?? [])
-            .map((e) => ReviewModel.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        hasMore: j['has_more'] as bool? ?? false,
+            j['summary'] is Map ? Map<String, dynamic>.from(j['summary'] as Map) : {}),
+        reviews: (j['reviews'] as List?)
+                ?.whereType<Map>()
+                .map((e) => ReviewModel.fromJson(Map<String, dynamic>.from(e)))
+                .toList() ??
+            [],
+        hasMore: j['has_more'] == true || j['has_more'] == 1,
         nextPage: (j['next_page'] as num?)?.toInt() ?? 1,
       );
 }

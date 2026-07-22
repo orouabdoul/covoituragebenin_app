@@ -108,7 +108,7 @@ class ConversationUser {
         uuid: j['uuid'] as String? ?? '',
         name: j['name'] as String? ?? '',
         phone: j['phone'] as String? ?? '',
-        isOnline: j['is_online'] as bool? ?? false,
+        isOnline: j['is_online'] == true || j['is_online'] == 1,
         avatarUrl: j['avatar_url'] as String?,
       );
 }

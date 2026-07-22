@@ -74,20 +74,24 @@ class ReviewsView extends StatelessWidget {
                                   smallPhone: 8,
                                   tablet: 12,
                                   desktop: 14)),
-                          ...controller.reviews.map(
-                            (rev) => Padding(
-                              padding: EdgeInsets.only(
-                                  bottom: r.adaptive(
-                                      phone: 10,
-                                      smallPhone: 8,
-                                      tablet: 12,
-                                      desktop: 14)),
-                              child: _ReviewCard(
-                                  r: r,
-                                  review: rev,
-                                  controller: controller),
+                          if (controller.reviews.isEmpty &&
+                              !controller.isLoading.value)
+                            _EmptyState(r: r)
+                          else
+                            ...controller.reviews.map(
+                              (rev) => Padding(
+                                padding: EdgeInsets.only(
+                                    bottom: r.adaptive(
+                                        phone: 10,
+                                        smallPhone: 8,
+                                        tablet: 12,
+                                        desktop: 14)),
+                                child: _ReviewCard(
+                                    r: r,
+                                    review: rev,
+                                    controller: controller),
+                              ),
                             ),
-                          ),
                           if (controller.hasMore.value)
                             _LoadMoreButton(r: r, controller: controller),
                           SizedBox(
@@ -448,6 +452,37 @@ class _LoadMoreButton extends StatelessWidget {
               onPressed: controller.loadMore,
               icon: Icons.expand_more_rounded,
             )),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.r});
+  final AppResponsive r;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(
+          vertical: r.adaptive(phone: 48, smallPhone: 40, tablet: 56, desktop: 64)),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.star_outline_rounded,
+              size: r.adaptive(phone: 56, smallPhone: 48, tablet: 64, desktop: 72),
+              color: AppColors.textGhost),
+          SizedBox(height: r.adaptive(phone: 16, smallPhone: 12, tablet: 18, desktop: 20)),
+          Text('Aucun avis pour le moment',
+              style: AppTextStyles.bodySmall(r)
+                  .copyWith(color: AppColors.textMuted, fontWeight: FontWeight.w600),
+              textAlign: TextAlign.center),
+          SizedBox(height: r.adaptive(phone: 8, smallPhone: 6, tablet: 10, desktop: 12)),
+          Text('Les notes de vos passagers apparaîtront ici\naprès chaque trajet.',
+              style: AppTextStyles.labelSmall(r)
+                  .copyWith(color: AppColors.textHint),
+              textAlign: TextAlign.center),
+        ],
+      ),
     );
   }
 }
