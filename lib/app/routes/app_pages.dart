@@ -93,6 +93,8 @@ import '../modules/principal/driver/trip_detail/bindings/trip_detail_binding.dar
 import '../modules/principal/driver/trip_detail/views/trip_detail_view.dart';
 import '../modules/principal/driver/active_trip/bindings/active_trip_binding.dart';
 import '../modules/principal/driver/active_trip/views/active_trip_view.dart';
+import '../modules/principal/driver/running_trip/bindings/running_trip_binding.dart';
+import '../modules/principal/driver/running_trip/views/running_trip_view.dart';
 import '../modules/principal/driver/end_trip/bindings/end_trip_binding.dart';
 import '../modules/principal/driver/end_trip/views/end_trip_view.dart';
 import '../modules/principal/driver/withdraw/bindings/withdraw_binding.dart';
@@ -338,6 +340,11 @@ class AppPages {
       name: AppRoutes.driverActiveTrip,
       page: () => const ActiveTripView(),
       binding: ActiveTripBinding(),
+    ),
+    _page(
+      name: AppRoutes.driverRunningTrip,
+      page: () => const RunningTripView(),
+      binding: RunningTripBinding(),
     ),
     _page(
       name: AppRoutes.driverEndTrip,

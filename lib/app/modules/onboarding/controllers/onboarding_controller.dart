@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/auth_mode.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
@@ -10,6 +9,9 @@ class OnboardingController extends GetxController {
 	final RxInt currentPage = 0.obs;
 
 	static const int pagesCount = 4;
+
+	// Garde contre les doubles-taps
+	bool _isStarting = false;
 
 	bool get isFirstPage => currentPage.value == 0;
 
@@ -45,13 +47,14 @@ class OnboardingController extends GetxController {
 		pageController.jumpToPage(pagesCount - 1);
 	}
 
+	/// Pure navigation — aucun I/O disk ici.
+	/// Le flag has_seen_onboarding est écrit par SplashController AVANT de
+	/// naviguer vers l'onboarding, ce qui évite tout appel platform channel
+	/// depuis un gestionnaire de tap (source des ANR de 26 s sur MIUI).
 	Future<void> start() async {
-		final prefs = await SharedPreferences.getInstance();
-		await prefs.setBool('has_seen_onboarding', true);
-		Get.toNamed(
-			AppRoutes.register,
-			arguments: {'mode': AuthMode.login},
-		);
+		if (_isStarting) return;
+		_isStarting = true;
+		Get.toNamed(AppRoutes.register, arguments: {'mode': AuthMode.login});
 	}
 
 	@override

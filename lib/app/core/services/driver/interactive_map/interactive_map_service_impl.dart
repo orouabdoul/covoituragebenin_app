@@ -31,6 +31,7 @@ class InteractiveMapServiceImpl implements InteractiveMapService {
         );
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('fetchMapData: $e');
@@ -79,6 +80,7 @@ class InteractiveMapServiceImpl implements InteractiveMapService {
         );
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 405) return ApiResult.failure(AppError.endpointNotAvailable);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('recalculate: $e');

@@ -60,6 +60,7 @@ class TrajetView extends StatelessWidget {
 															_TripCard(
 																responsive: responsive,
 																trip: controller.visibleTrips[index],
+																onCardTap: () => controller.onCardTap(controller.visibleTrips[index]),
 																onPrimaryAction: () => controller.onPrimaryAction(controller.visibleTrips[index]),
 																onPassengers: () => controller.onPassengers(controller.visibleTrips[index]),
 																onSecondaryAction: (label) => controller.onSecondaryAction(
@@ -269,6 +270,7 @@ class _TripCard extends StatelessWidget {
 	const _TripCard({
 		required this.responsive,
 		required this.trip,
+		required this.onCardTap,
 		required this.onPrimaryAction,
 		required this.onPassengers,
 		required this.onSecondaryAction,
@@ -276,19 +278,22 @@ class _TripCard extends StatelessWidget {
 
 	final AppResponsive responsive;
 	final TrajetCardData trip;
+	final VoidCallback onCardTap;
 	final VoidCallback onPrimaryAction;
 	final VoidCallback onPassengers;
 	final ValueChanged<String> onSecondaryAction;
 
 	@override
 	Widget build(BuildContext context) {
-		return Container(
-			width: double.infinity,
-			padding: EdgeInsets.all(responsive.adaptive(phone: 16, smallPhone: 14, tablet: 16, desktop: 16)),
-			decoration: ShapeDecoration(
-				color: AppColors.white,
-				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: Color(0xFFF3F4F6)),
+		return GestureDetector(
+			onTap: onCardTap,
+			child: Container(
+				width: double.infinity,
+				padding: EdgeInsets.all(responsive.adaptive(phone: 16, smallPhone: 14, tablet: 16, desktop: 16)),
+				decoration: ShapeDecoration(
+					color: AppColors.white,
+					shape: RoundedRectangleBorder(
+						side: const BorderSide(color: Color(0xFFF3F4F6)),
 					borderRadius: BorderRadius.circular(responsive.radius(24)),
 				),
 				shadows: const [
@@ -456,6 +461,7 @@ class _TripCard extends StatelessWidget {
 					),
 				],
 			),
+		),
 		);
 	}
 }

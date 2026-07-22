@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/services/driver/active_trip/active_trip_service.dart';
@@ -5,6 +6,7 @@ import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/pre_departure_model.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/trip_model.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/driver/trajet/controllers/trajet_controller.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 class ActiveTripController extends GetxController {
@@ -57,8 +59,33 @@ class ActiveTripController extends GetxController {
     if (current == null) return;
 
     if (!current.allGreen) {
-      UIHelper().showSnackBar('MINIZON', 'Vérifiez tous les éléments avant de partir.', 2);
-      return;
+      // Des éléments ne sont pas encore validés — demander confirmation
+      final confirmed = await Get.dialog<bool>(
+        AlertDialog(
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20)),
+          title: const Text('Démarrer quand même ?',
+              style: TextStyle(fontWeight: FontWeight.w700)),
+          content: const Text(
+              'Certains éléments de la vérification ne sont pas encore validés. '
+              'Voulez-vous démarrer le trajet quand même ?'),
+          actions: [
+            TextButton(
+              onPressed: () => Get.back(result: false),
+              child: const Text('Annuler',
+                  style: TextStyle(color: Colors.grey)),
+            ),
+            TextButton(
+              onPressed: () => Get.back(result: true),
+              child: const Text('Démarrer',
+                  style: TextStyle(
+                      color: Color(0xFF00A86B),
+                      fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
     }
 
     isStarting.value = true;
@@ -66,7 +93,16 @@ class ActiveTripController extends GetxController {
     isStarting.value = false;
 
     if (result.isSuccess) {
-      Get.toNamed(AppRoutes.driverInteractiveMap, arguments: {'uuid': _uuid});
+      // Forcer le rechargement de la liste de trajets
+      if (Get.isRegistered<TrajetController>()) {
+        Get.find<TrajetController>().selectFilter(TrajetFilterType.active);
+      }
+      final preDep = _data.value;
+      Get.toNamed(AppRoutes.driverRunningTrip, arguments: {
+        'uuid': _uuid,
+        'tripSummary': preDep?.trip,
+        'stops': preDep?.stops ?? [],
+      });
     } else {
       UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
     }

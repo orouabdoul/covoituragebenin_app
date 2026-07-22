@@ -66,7 +66,7 @@ class QuickRequest {
   void cancelTimer() => _timer?.cancel();
 }
 
-// ── Legacy models (kept for view compatibility) ─────────────────────────────
+// ── Models ──────────────────────────────────────────────────────────────────
 
 class DriverSummary {
   const DriverSummary({
@@ -150,8 +150,7 @@ class DriverTripCard {
     _            => const Color(0xFF00A86B),
   };
 
-  Color get statusBg => Color.fromRGBO(
-    statusColor.red, statusColor.green, statusColor.blue, 0.12);
+  Color get statusBg => statusColor.withValues(alpha: 0.12);
 }
 
 /// Alias pour compatibilité avec home_view.dart qui référence DriverTrip.
@@ -249,7 +248,7 @@ class DriverHomeController extends GetxController {
   DashboardService get _service => Get.find<DashboardService>();
   NotificationsService get _notifService => Get.find<NotificationsService>();
 
-  // ── Reactive state ───────────────────────────────────────────────────────
+  // ── État réactif ─────────────────────────────────────────────────────────
   final RxBool isOnline = true.obs;
   final RxBool isLoadingDashboard = false.obs;
   final RxBool hasLoadError = false.obs;
@@ -258,11 +257,11 @@ class DriverHomeController extends GetxController {
   final RxInt dashboardVersion = 0.obs;
   final RxString availabilityMode = 'normal'.obs;
 
-  // ── Quick requests with countdown ────────────────────────────────────────
+  // ── Demandes rapides avec compte à rebours ───────────────────────────────
   final RxList<QuickRequest> quickRequests = <QuickRequest>[].obs;
 
-  // ── Mutable data (populated from API, fallback to defaults) ──────────────
-  DriverSummary summary = const DriverSummary(
+  // ── Données du tableau de bord (réactives) ───────────────────────────────
+  final summary = Rx<DriverSummary>(const DriverSummary(
     todayLabel: 'Revenus d\'aujourd\'hui',
     todayValue: '—',
     weekLabel: 'Semaine',
@@ -273,52 +272,42 @@ class DriverHomeController extends GetxController {
     pendingValue: '—',
     commissionLabel: 'Commission MINIZON',
     commissionValue: '—',
-  );
+  ));
 
-  List<DriverMetric> metrics = const [
-    DriverMetric(
+  final metrics = <DriverMetric>[
+    const DriverMetric(
       title: 'Trajets effectués',
       value: '—',
       icon: Icons.route_rounded,
       color: Color(0x1900A86B),
       iconColor: Color(0xFF00A86B),
     ),
-    DriverMetric(
+    const DriverMetric(
       title: 'Passagers transportés',
       value: '—',
       icon: Icons.groups_rounded,
       color: Color(0x19F4B400),
       iconColor: Color(0xFFF4B400),
     ),
-    DriverMetric(
+    const DriverMetric(
       title: 'Note moyenne',
       value: '—',
       icon: Icons.star_rounded,
       color: Color(0x1922C55E),
       iconColor: Color(0xFF22C55E),
     ),
-    DriverMetric(
+    const DriverMetric(
       title: 'Taux acceptation',
       value: '—',
       icon: Icons.verified_rounded,
       color: Color(0x193B82F6),
       iconColor: Color(0xFF3B82F6),
     ),
-  ];
+  ].obs;
 
-  // kept as DriverTripCard to not clash with models/trip_model.dart TripModel
-  DriverTripCard nextTrip = const DriverTripCard(
-    statusLabel: '—',
-    time: '—',
-    departureLabel: 'Départ',
-    departure: '—',
-    destinationLabel: 'Destination',
-    destination: '—',
-    passengersLabel: '—',
-    avatarUrls: [],
-  );
+  final nextTrip = Rx<DriverTripCard?>(null);
 
-  List<DriverRequest> recentRequests = [];
+  final recentRequests = <DriverRequest>[].obs;
 
   final List<DriverAction> actions = const [
     DriverAction(
@@ -365,26 +354,26 @@ class DriverHomeController extends GetxController {
     ),
   ];
 
-  DriverWallet wallet = const DriverWallet(
+  final wallet = Rx<DriverWallet>(const DriverWallet(
     balance: '—',
     blockedAmount: '—',
     methods: ['MTN Money', 'Moov Money'],
-  );
+  ));
 
-  DriverLevel level = const DriverLevel(
+  final level = Rx<DriverLevel>(const DriverLevel(
     currentLevel: '—',
     progressLabel: 'Progrès',
     progressValue: '0%',
     progressFraction: 0.0,
     badges: [],
-  );
+  ));
 
   final RxList<DriverNotificationModel> notifications =
       <DriverNotificationModel>[].obs;
   final RxInt unreadNotifCount = 0.obs;
 
 
-  // ── Lifecycle ────────────────────────────────────────────────────────────
+  // ── Cycle de vie ─────────────────────────────────────────────────────────
 
   @override
   void onInit() {
@@ -406,6 +395,7 @@ class DriverHomeController extends GetxController {
     }
   }
 
+  @override
   Future<void> refresh() => Future.wait([_loadDashboard(), _loadNotifications()]);
 
   Future<void> _loadNotifications() async {
@@ -419,10 +409,12 @@ class DriverHomeController extends GetxController {
   }
 
   void _applyDashboard(DashboardModel data) {
+    final isFirstLoad = dashboardVersion.value == 0;
+
     isOnline.value = data.isOnline;
     availabilityMode.value = data.availabilityMode;
 
-    summary = DriverSummary(
+    summary.value = DriverSummary(
       todayLabel: 'Revenus d\'aujourd\'hui',
       todayValue: data.summary.todayEarnings.toCurrency,
       weekLabel: 'Semaine',
@@ -435,10 +427,10 @@ class DriverHomeController extends GetxController {
       commissionValue: data.summary.totalCommission.toCurrency,
     );
 
-    metrics = data.metrics.map(_metricFromApi).toList();
+    metrics.assignAll(data.metrics.map(_metricFromApi));
 
-    const _visibleStatuses = {'pending', 'confirmed', 'active', 'in_progress', 'started'};
-    if (data.nextTrip != null && _visibleStatuses.contains(data.nextTrip!.status)) {
+    const visibleStatuses = {'pending', 'confirmed', 'active', 'in_progress', 'started'};
+    if (data.nextTrip != null && visibleStatuses.contains(data.nextTrip!.status)) {
       final t = data.nextTrip!;
       final depLabel = t.departureNeighborhood.isNotEmpty
           ? '${t.departureNeighborhood}, ${t.departureCity}'
@@ -446,7 +438,7 @@ class DriverHomeController extends GetxController {
       final arrLabel = t.arrivalNeighborhood.isNotEmpty
           ? '${t.arrivalNeighborhood}, ${t.arrivalCity}'
           : t.arrivalCity;
-      nextTrip = DriverTripCard(
+      nextTrip.value = DriverTripCard(
         uuid: t.uuid,
         statusLabel: _statusLabel(t.status),
         time: _formatTime(t.departureTime),
@@ -459,23 +451,14 @@ class DriverHomeController extends GetxController {
         tripProgress: (t.status == 'in_progress' || t.status == 'started') ? 0.5 : 0.0,
       );
     } else {
-      nextTrip = const DriverTripCard(
-        statusLabel: '',
-        time: '',
-        departureLabel: '',
-        departure: '',
-        destinationLabel: '',
-        destination: '',
-        passengersLabel: '',
-        avatarUrls: [],
-      );
+      nextTrip.value = null;
     }
 
     for (final r in quickRequests) {
       r.cancelTimer();
     }
     final newQuick = data.quickRequests.map((r) {
-      final q = QuickRequest(
+      return QuickRequest(
         id: r.uuid,
         passengerName: r.passenger.name,
         passengerInitial: r.passenger.initials.isNotEmpty
@@ -489,7 +472,6 @@ class DriverHomeController extends GetxController {
         seats: r.seatsBooked,
         expiresInSeconds: _expirySeconds(r.createdAt),
       );
-      return q;
     }).toList();
     quickRequests.assignAll(newQuick);
     for (final r in quickRequests) {
@@ -497,29 +479,33 @@ class DriverHomeController extends GetxController {
     }
     pendingRequestsCount.value = quickRequests.length;
 
-    recentRequests = data.recentRequests.where((r) => r.status != 'cancelled' && r.status != 'accepted').map((r) {
-      final statusInfo = _requestStatusInfo(r.status);
-      return DriverRequest(
-        id: r.uuid,
-        name: r.passenger.name,
-        rating: '${r.passenger.rating.toStringAsFixed(1)} ★',
-        route: '${r.trip.departureCity} → ${r.trip.arrivalCity}',
-        timeAgo: _timeAgo(r.createdAt),
-        seats: '${r.seatsBooked} place${r.seatsBooked > 1 ? 's' : ''} demandée${r.seatsBooked > 1 ? 's' : ''}',
-        status: statusInfo.$1,
-        statusColor: statusInfo.$2,
-        statusBackground: statusInfo.$3,
-        avatarUrl: r.passenger.name,
-      );
-    }).toList();
+    recentRequests.assignAll(
+      data.recentRequests
+          .where((r) => r.status != 'cancelled' && r.status != 'accepted')
+          .map((r) {
+        final statusInfo = _requestStatusInfo(r.status);
+        return DriverRequest(
+          id: r.uuid,
+          name: r.passenger.name,
+          rating: '${r.passenger.rating.toStringAsFixed(1)} ★',
+          route: '${r.trip.departureCity} → ${r.trip.arrivalCity}',
+          timeAgo: _timeAgo(r.createdAt),
+          seats: '${r.seatsBooked} place${r.seatsBooked > 1 ? 's' : ''} demandée${r.seatsBooked > 1 ? 's' : ''}',
+          status: statusInfo.$1,
+          statusColor: statusInfo.$2,
+          statusBackground: statusInfo.$3,
+          avatarUrl: r.passenger.name,
+        );
+      }),
+    );
 
-    wallet = DriverWallet(
+    wallet.value = DriverWallet(
       balance: data.wallet.availableBalance.toCurrency,
       blockedAmount: data.wallet.blockedAmount.toCurrency,
       methods: const ['MTN Money', 'Moov Money'],
     );
 
-    level = DriverLevel(
+    level.value = DriverLevel(
       currentLevel: data.level.currentLevel,
       progressLabel: 'Progrès vers ${data.level.nextLevel} (${data.level.tripsToNext} trajets)',
       progressValue: '${(data.level.progress * 100).toStringAsFixed(0)}%',
@@ -528,6 +514,24 @@ class DriverHomeController extends GetxController {
     );
 
     dashboardVersion.value++;
+
+    // Mise en disponibilité automatique à la première connexion
+    if (isFirstLoad && !data.isOnline) {
+      _autoSetOnline();
+    }
+  }
+
+  Future<void> _autoSetOnline() async {
+    isOnline.value = true;
+    final result = await _service.updateAvailability(
+      isOnline: true,
+      mode: availabilityMode.value,
+    );
+    if (result.isSuccess) {
+      availabilityMode.value = result.data!.mode;
+    } else {
+      logger.w('Auto-availability failed: ${result.error}');
+    }
   }
 
   void _onRequestExpired(QuickRequest r) {
@@ -709,7 +713,6 @@ class DriverHomeController extends GetxController {
       quickRequests.remove(r);
       pendingRequestsCount.value = quickRequests.length;
       recentRequests.removeWhere((req) => req.id == r.id);
-      dashboardVersion.value++;
       UIHelper().showSnackBar('MINIZON', '✅ ${r.passengerName} accepté(e) !', 0);
       _loadDashboard();
     } else {
@@ -747,10 +750,11 @@ class DriverHomeController extends GetxController {
       UIHelper().showSnackBar('MINIZON', message, 1);
 
   void onSeeDetails() {
-    final uuid = nextTrip.uuid;
+    final uuid = nextTrip.value?.uuid ?? '';
     if (uuid.isEmpty) return;
     Get.toNamed(AppRoutes.driverTripDetail, arguments: {'uuid': uuid});
   }
+
   void onContact() {
     const phone = '+229 97 XX XX XX';
     Get.dialog(

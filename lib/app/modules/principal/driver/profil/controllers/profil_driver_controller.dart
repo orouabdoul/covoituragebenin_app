@@ -1138,7 +1138,7 @@ class _PrivacySheet extends StatelessWidget {
             onChanged: (v) => controller.shareLocation.value = v,
             title: const Text('Partage de localisation', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
             subtitle: const Text('Autoriser l\'app à partager votre position', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
-            activeColor: AppColors.primary,
+            activeThumbColor: AppColors.primary,
           )),
           const Divider(height: 1, color: AppColors.border),
           Obx(() => SwitchListTile(
@@ -1147,7 +1147,7 @@ class _PrivacySheet extends StatelessWidget {
             onChanged: (v) => controller.shareActivity.value = v,
             title: const Text('Partage d\'activité', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
             subtitle: const Text('Partager vos trajets avec les passagers', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
-            activeColor: AppColors.primary,
+            activeThumbColor: AppColors.primary,
           )),
           const SizedBox(height: 20),
           GestureDetector(

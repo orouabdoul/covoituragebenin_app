@@ -30,6 +30,7 @@ class PaymentHistoryController extends GetxController {
     _fetch(f);
   }
 
+  @override
   Future<void> refresh() => _fetch(selectedFilter.value);
 
   Future<void> _fetch(HistoryFilter f) async {
@@ -171,7 +172,7 @@ class _TransactionDetailSheet extends StatelessWidget {
             valueWidget: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: transaction.statusColor.withOpacity(0.12),
+                color: transaction.statusColor.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(transaction.statusLabel,

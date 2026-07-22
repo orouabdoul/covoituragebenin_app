@@ -6,7 +6,6 @@ import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/booking/booking_service.dart';
-import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
@@ -400,33 +399,90 @@ class ReservationsController extends GetxController {
               ),
             ),
             const SizedBox(height: 16),
-            GestureDetector(
-              onTap: () { Get.back(); onCallPassenger(r); },
-              child: Container(
-                width: double.infinity, height: 50,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(14),
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () { Get.back(); onChatPassenger(r); },
+                    child: Container(
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceAccent,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: AppColors.primary.withValues(alpha: 0.30)),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.chat_bubble_outline_rounded, color: AppColors.primary, size: 18),
+                          SizedBox(width: 8),
+                          Text('Chatter',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primary,
+                                fontSize: 15,
+                              )),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.call_rounded, color: Colors.white, size: 18),
-                    SizedBox(width: 8),
-                    Text('Appeler le passager',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          fontSize: 15,
-                        )),
-                  ],
+                const SizedBox(width: 10),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () { Get.back(); onCallPassenger(r); },
+                    child: Container(
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.call_rounded, color: Colors.white, size: 18),
+                          SizedBox(width: 8),
+                          Text('Appeler',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                                fontSize: 15,
+                              )),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
           ],
         ),
         ),
       ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
+  }
+
+  void onChatPassenger(LiveReservationRequest r) {
+    if (Get.isBottomSheetOpen ?? false) Get.back();
+    Get.toNamed(
+      AppRoutes.driverMessageDetail,
+      arguments: {
+        'uuid': r.id,
+        'name': r.passengerName,
+        'initial': r.passengerInitial,
+      },
+    );
+  }
+
+  void onContactPassenger(LiveReservationRequest r) {
+    _showContactSheet(r);
+  }
+
+  void _showContactSheet(LiveReservationRequest r) {
+    Get.bottomSheet(
+      _ContactSheet(request: r, controller: this),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
     );
@@ -507,6 +563,193 @@ class ReservationsController extends GetxController {
       r.cancelTimer();
     }
     super.onClose();
+  }
+}
+
+// ── Contact Sheet ─────────────────────────────────────────────────────────────
+
+class _ContactSheet extends StatelessWidget {
+  const _ContactSheet({required this.request, required this.controller});
+  final LiveReservationRequest request;
+  final ReservationsController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Center(
+            child: Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(9999),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Container(
+                width: 52, height: 52,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(request.passengerInitial,
+                      style: const TextStyle(
+                        fontSize: 22, fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                      )),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(request.passengerName,
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w700)),
+                        if (request.isVerified) ...[
+                          const SizedBox(width: 6),
+                          const Icon(Icons.verified_rounded,
+                              color: AppColors.primary, size: 16),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text('Contacter le passager',
+                        style: const TextStyle(
+                            fontSize: 13, color: AppColors.textMuted)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _ContactOption(
+            icon: Icons.chat_bubble_outline_rounded,
+            iconBg: AppColors.surfaceAccent,
+            iconColor: AppColors.primary,
+            title: 'Envoyer un message',
+            subtitle: 'Discuter via la messagerie MINIZON',
+            onTap: () {
+              Get.back();
+              controller.onChatPassenger(request);
+            },
+          ),
+          const SizedBox(height: 12),
+          _ContactOption(
+            icon: Icons.call_rounded,
+            iconBg: const Color(0xFFDCFCE7),
+            iconColor: const Color(0xFF16A34A),
+            title: 'Appeler le passager',
+            subtitle: request.phone != null
+                ? 'Numéro masqué pour votre sécurité'
+                : 'Numéro non disponible',
+            onTap: () {
+              Get.back();
+              controller.onCallPassenger(request);
+            },
+          ),
+          const SizedBox(height: 20),
+          GestureDetector(
+            onTap: Get.back,
+            child: Container(
+              width: double.infinity, height: 46,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceSoft,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: const Center(
+                child: Text('Annuler',
+                    style: TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    )),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ContactOption extends StatelessWidget {
+  const _ContactOption({
+    required this.icon,
+    required this.iconBg,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+  final IconData icon;
+  final Color iconBg;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48, height: 48,
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: iconColor, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: const TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary)),
+                    const SizedBox(height: 2),
+                    Text(subtitle,
+                        style: const TextStyle(
+                            fontSize: 12, color: AppColors.textMuted)),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded,
+                  color: AppColors.textGhost, size: 20),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

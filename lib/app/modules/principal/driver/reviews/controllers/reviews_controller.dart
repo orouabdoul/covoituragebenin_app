@@ -26,6 +26,7 @@ class ReviewsController extends GetxController {
     _fetch(page: 1, replace: true);
   }
 
+  @override
   Future<void> refresh() => _fetch(page: 1, replace: true);
 
   Future<void> loadMore() async {

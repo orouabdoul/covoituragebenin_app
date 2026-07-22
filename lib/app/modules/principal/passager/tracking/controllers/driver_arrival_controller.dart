@@ -108,11 +108,17 @@ class DriverArrivalController extends GetxController {
     mapInitialCenter = LatLng((minLat + maxLat) / 2, (minLng + maxLng) / 2);
 
     final span = (maxLat - minLat) + (maxLng - minLng);
-    if (span < 0.4)       mapInitialZoom = 12.0;
-    else if (span < 1.0)  mapInitialZoom = 11.0;
+    if (span < 0.4) {
+      mapInitialZoom = 12.0;
+    // ignore: curly_braces_in_flow_control_structures
+    } else if (span < 1.0)  mapInitialZoom = 11.0;
+    // ignore: curly_braces_in_flow_control_structures
     else if (span < 2.5)  mapInitialZoom = 10.0;
+    // ignore: curly_braces_in_flow_control_structures
     else if (span < 5.0)  mapInitialZoom = 9.0;
+    // ignore: curly_braces_in_flow_control_structures
     else if (span < 10.0) mapInitialZoom = 8.0;
+    // ignore: curly_braces_in_flow_control_structures
     else                  mapInitialZoom = 7.0;
   }
 

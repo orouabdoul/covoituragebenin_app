@@ -128,7 +128,7 @@ class _Header extends StatelessWidget {
 }
 
 class _NotifBadge extends StatelessWidget {
-  const _NotifBadge({required this.r, required this.count, required this.onTap});
+  const _NotifBadge({required this.r, required this.count, required this.onTap}); 
   final AppResponsive r;
   final int count;
   final VoidCallback onTap;
@@ -428,10 +428,59 @@ class _ReservationCard extends StatelessWidget {
                     ),
                   ],
 
-                  // ── Status badge (non-pending) ────────────────────────
+                  // ── Status badge + contact (non-pending) ─────────────
                   if (!isPending) ...[
                     SizedBox(height: r.h(12)),
-                    _StatusBadge(r: r, status: request.status),
+                    if (request.status == ReservationStatus.accepted) ...[
+                      Row(
+                        children: [
+                          _StatusBadge(r: r, status: request.status),
+                          const Spacer(),
+                          _IconBtn(
+                            r: r,
+                            icon: Icons.chat_bubble_outline_rounded,
+                            bgColor: AppColors.surfaceAccent,
+                            iconColor: AppColors.primary,
+                            onTap: () => controller.onContactPassenger(request),
+                          ),
+                          SizedBox(width: r.w(8)),
+                          _IconBtn(
+                            r: r,
+                            icon: Icons.phone_rounded,
+                            bgColor: const Color(0xFFDCFCE7),
+                            iconColor: const Color(0xFF16A34A),
+                            onTap: () => controller.onCallPassenger(request),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: r.h(10)),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _ActionBtn(
+                              r: r,
+                              label: 'Message',
+                              bgColor: AppColors.surfaceAccent,
+                              textColor: AppColors.primary,
+                              borderColor: AppColors.primary.withValues(alpha: 0.30),
+                              onTap: () => controller.onChatPassenger(request),
+                            ),
+                          ),
+                          SizedBox(width: r.w(8)),
+                          Expanded(
+                            child: _ActionBtn(
+                              r: r,
+                              label: 'Appeler',
+                              bgColor: const Color(0xFFDCFCE7),
+                              textColor: const Color(0xFF16A34A),
+                              borderColor: const Color(0xFF16A34A).withValues(alpha: 0.30),
+                              onTap: () => controller.onCallPassenger(request),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ] else
+                      _StatusBadge(r: r, status: request.status),
                   ],
                 ],
               ),

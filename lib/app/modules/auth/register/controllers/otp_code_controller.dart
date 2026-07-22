@@ -5,7 +5,6 @@ import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/auth_mode.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/services/auth/auth_service.dart';
-import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/modules/auth/roles/controllers/roles_controller.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';

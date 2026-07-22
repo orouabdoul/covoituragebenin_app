@@ -43,6 +43,7 @@ abstract class AppRoutes {
   static const driverMessageDetail = '/driver-message-detail';
   static const driverTripDetail = '/driver-trip-detail';
   static const driverActiveTrip = '/driver-active-trip';
+  static const driverRunningTrip = '/driver-running-trip';
   static const driverEndTrip = '/driver-end-trip';
   static const driverWithdraw = '/driver-withdraw';
   static const driverPaymentHistory = '/driver-payment-history';

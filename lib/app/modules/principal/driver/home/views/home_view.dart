@@ -43,139 +43,194 @@ class DriverHomeView extends StatelessWidget {
         }
 
         return SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: responsive.maxContentWidth),
-            child: RefreshIndicator(
-              onRefresh: controller.refresh,
-              color: AppColors.primary,
-              child: ListView(
-              padding: EdgeInsets.fromLTRB(
-                  responsive.adaptive(label: 'pad', phone: 16, smallPhone: 14, tablet: 20, desktop: 24),
-                  responsive.adaptive(label: 'pad', phone: 12, smallPhone: 10, tablet: 16, desktop: 20),
-                  responsive.adaptive(label: 'pad', phone: 16, smallPhone: 14, tablet: 20, desktop: 24),
-                  responsive.adaptive(label: 'pad', phone: 24, smallPhone: 20, tablet: 28, desktop: 32),
-                ),
-              children: [
-                _HeroSection(responsive: responsive, controller: controller),
-                SizedBox(height: responsive.adaptive(label: 'gap', phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
-                _AvailabilitySection(responsive: responsive, controller: controller),
-                SizedBox(height: responsive.adaptive(label: 'gap', phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: responsive.maxContentWidth),
+              child: RefreshIndicator(
+                onRefresh: controller.refresh,
+                color: AppColors.primary,
+                child: ListView(
+                  padding: EdgeInsets.fromLTRB(
+                    responsive.adaptive(label: 'pad', phone: 16, smallPhone: 14, tablet: 20, desktop: 24),
+                    responsive.adaptive(label: 'pad', phone: 12, smallPhone: 10, tablet: 16, desktop: 20),
+                    responsive.adaptive(label: 'pad', phone: 16, smallPhone: 14, tablet: 20, desktop: 24),
+                    responsive.adaptive(label: 'pad', phone: 24, smallPhone: 20, tablet: 28, desktop: 32),
+                  ),
+                  children: [
+                    // ── Hero (revenus du jour) ────────────────────────────
+                    Obx(() => _HeroSection(
+                      responsive: responsive,
+                      summary: controller.summary.value,
+                    )),
 
-                // ── Demandes urgentes avec countdown ──────────────────────────
-                Obx(() {
-                  final requests = controller.quickRequests;
-                  if (requests.isEmpty) return const SizedBox.shrink();
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _SectionHeader(
-                        responsive: responsive,
-                        title: 'Demandes en attente',
-                        badge: '${requests.length} nouvelle${requests.length > 1 ? 's' : ''}',
-                        onAction: controller.onSeeAllRequests,
-                        actionLabel: 'Voir tout',
-                      ),
-                      SizedBox(height: responsive.h(10)),
-                      ...requests.map((r) => Padding(
-                        padding: EdgeInsets.only(bottom: responsive.h(10)),
-                        child: _QuickRequestCard(
-                          responsive: responsive,
-                          request: r,
-                          onAccept: () => controller.onQuickAccept(r),
-                          onReject: () => controller.onQuickReject(r),
+                    SizedBox(height: responsive.adaptive(label: 'gap', phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
+                    _AvailabilitySection(responsive: responsive, controller: controller),
+                    SizedBox(height: responsive.adaptive(label: 'gap', phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
+
+                    // ── Demandes urgentes avec countdown ──────────────────
+                    Obx(() {
+                      final requests = controller.quickRequests;
+                      if (requests.isEmpty) return const SizedBox.shrink();
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _SectionHeader(
+                            responsive: responsive,
+                            title: 'Demandes en attente',
+                            badge: '${requests.length} nouvelle${requests.length > 1 ? 's' : ''}',
+                            onAction: controller.onSeeAllRequests,
+                            actionLabel: 'Voir tout',
+                          ),
+                          SizedBox(height: responsive.h(10)),
+                          ...requests.map((r) => Padding(
+                            padding: EdgeInsets.only(bottom: responsive.h(10)),
+                            child: _QuickRequestCard(
+                              responsive: responsive,
+                              request: r,
+                              onAccept: () => controller.onQuickAccept(r),
+                              onReject: () => controller.onQuickReject(r),
+                            ),
+                          )),
+                          SizedBox(height: responsive.h(6)),
+                        ],
+                      );
+                    }),
+
+                    // ── Statistiques de performance ───────────────────────
+                    _SectionTitle(responsive: responsive, title: AppStrings.dashboardPerformance),
+                    SizedBox(height: responsive.adaptive(label: 'gap', phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+                    Obx(() => Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.all(responsive.adaptive(label: 'pad', phone: 16, smallPhone: 14, tablet: 16, desktop: 16)),
+                      decoration: ShapeDecoration(
+                        color: AppColors.white,
+                        shape: RoundedRectangleBorder(
+                          side: const BorderSide(color: AppColors.border),
+                          borderRadius: BorderRadius.circular(responsive.radius(22)),
                         ),
-                      )),
-                      SizedBox(height: responsive.h(6)),
-                    ],
-                  );
-                }),
+                        shadows: const [
+                          BoxShadow(color: AppColors.shadowSoft, blurRadius: 2, offset: Offset(0, 1)),
+                        ],
+                      ),
+                      child: _MetricGrid(
+                        responsive: responsive,
+                        metrics: controller.metrics.toList(),
+                      ),
+                    )),
 
-                _SectionTitle(responsive: responsive, title: AppStrings.dashboardPerformance),
-                SizedBox(height: responsive.adaptive(label: 'gap', phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+                    SizedBox(height: responsive.adaptive(label: 'gap', phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
 
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.all(responsive.adaptive(label: 'pad', phone: 16, smallPhone: 14, tablet: 16, desktop: 16)),
-                  decoration: ShapeDecoration(
-                    color: AppColors.white,
-                    shape: RoundedRectangleBorder(
-                      side: const BorderSide(color: AppColors.border),
-                      borderRadius: BorderRadius.circular(responsive.radius(22)),
+                    // ── Prochain trajet ───────────────────────────────────
+                    Obx(() {
+                      final trip = controller.nextTrip.value;
+                      if (trip == null || trip.uuid.isEmpty) return const SizedBox.shrink();
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _SectionTitle(responsive: responsive, title: AppStrings.dashboardNextTrip),
+                          SizedBox(height: responsive.adaptive(label: 'gap', phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+                          _NextTripCard(
+                            responsive: responsive,
+                            trip: trip,
+                            onSeeDetails: controller.onSeeDetails,
+                            onContact: controller.onContact,
+                          ),
+                          SizedBox(height: responsive.adaptive(label: 'gap', phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
+                        ],
+                      );
+                    }),
+
+                    // ── Demandes récentes ─────────────────────────────────
+                    Obx(() {
+                      final requests = controller.recentRequests.toList();
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _SectionHeader(
+                            responsive: responsive,
+                            title: AppStrings.dashboardRecentRequests,
+                            badge: requests.isEmpty
+                                ? ''
+                                : '${requests.length} nouvelle${requests.length > 1 ? 's' : ''}',
+                          ),
+                          SizedBox(height: responsive.adaptive(label: 'gap', phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+                          _RequestList(
+                            responsive: responsive,
+                            requests: requests,
+                            controller: controller,
+                          ),
+                        ],
+                      );
+                    }),
+
+                    SizedBox(height: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
+
+                    // ── Actions rapides ───────────────────────────────────
+                    _SectionTitle(responsive: responsive, title: AppStrings.dashboardQuickActions),
+                    SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.all(responsive.adaptive(label: 'pad', phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
+                      decoration: ShapeDecoration(
+                        color: AppColors.white,
+                        shape: RoundedRectangleBorder(
+                          side: const BorderSide(color: AppColors.border),
+                          borderRadius: BorderRadius.circular(responsive.radius(16)),
+                        ),
+                      ),
+                      child: _ActionGrid(
+                        responsive: responsive,
+                        actions: controller.actions,
+                        onAction: controller.onQuickAction,
+                      ),
                     ),
-                    shadows: const [
-                      BoxShadow(color: AppColors.shadowSoft, blurRadius: 2, offset: Offset(0, 1)),
-                    ],
-                  ),
-                  child: _MetricGrid(responsive: responsive, metrics: controller.metrics),
+
+                    SizedBox(height: responsive.adaptive(label: 'gap', phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
+
+                    // ── Portefeuille ──────────────────────────────────────
+                    _SectionTitle(responsive: responsive, title: AppStrings.dashboardWalletTitle),
+                    SizedBox(height: responsive.adaptive(label: 'gap', phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+                    Obx(() => _WalletSection(
+                      responsive: responsive,
+                      wallet: controller.wallet.value,
+                      selectedMethod: controller.selectedWalletMethod.value,
+                      onSelectMethod: controller.selectWalletMethod,
+                    )),
+
+                    SizedBox(height: responsive.adaptive(label: 'gap', phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
+
+                    // ── Niveau du conducteur ──────────────────────────────
+                    Obx(() => _LevelSection(
+                      responsive: responsive,
+                      level: controller.level.value,
+                    )),
+                    SizedBox(height: responsive.adaptive(label: 'gap', phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
+
+                    // ── Notifications ─────────────────────────────────────
+                    _SectionTitle(responsive: responsive, title: 'Notifications'),
+                    SizedBox(height: responsive.adaptive(label: 'gap', phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+                    Obx(() => _NotificationList(
+                      responsive: responsive,
+                      items: controller.notifications.toList(),
+                    )),
+                  ],
                 ),
-
-                SizedBox(height: responsive.adaptive(label: 'gap', phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
-
-                if (controller.nextTrip.uuid.isNotEmpty) ...[
-                  _SectionTitle(responsive: responsive, title: AppStrings.dashboardNextTrip),
-                  SizedBox(height: responsive.adaptive(label: 'gap', phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                  _NextTripCard(responsive: responsive, trip: controller.nextTrip, onSeeDetails: controller.onSeeDetails, onContact: controller.onContact),
-                  SizedBox(height: responsive.adaptive(label: 'gap', phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
-                ],
-
-                _SectionHeader(
-                  responsive: responsive,
-                  title: AppStrings.dashboardRecentRequests,
-                  badge: controller.recentRequests.isEmpty
-                      ? ''
-                      : '${controller.recentRequests.length} nouvelle${controller.recentRequests.length > 1 ? 's' : ''}',
-                ),
-                SizedBox(height: responsive.adaptive(label: 'gap', phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                _RequestList(responsive: responsive, controller: controller),
-
-                SizedBox(height: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
-
-                _SectionTitle(responsive: responsive, title: AppStrings.dashboardQuickActions),
-                SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.all(responsive.adaptive(label: 'pad', phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
-                  decoration: ShapeDecoration(
-                    color: AppColors.white,
-                    shape: RoundedRectangleBorder(
-                      side: const BorderSide(color: AppColors.border),
-                      borderRadius: BorderRadius.circular(responsive.radius(16)),
-                    ),
-                  ),
-                  child: _ActionGrid(responsive: responsive, actions: controller.actions, onAction: controller.onQuickAction),
-                ),
-
-                SizedBox(height: responsive.adaptive(label: 'gap', phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
-
-                _SectionTitle(responsive: responsive, title: AppStrings.dashboardWalletTitle),
-                SizedBox(height: responsive.adaptive(label: 'gap', phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                _WalletSection(responsive: responsive, controller: controller),
-
-                SizedBox(height: responsive.adaptive(label: 'gap', phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
-
-                _LevelSection(responsive: responsive, level: controller.level),
-                SizedBox(height: responsive.adaptive(label: 'gap', phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
-
-                _SectionTitle(responsive: responsive, title: 'Notifications'),
-                SizedBox(height: responsive.adaptive(label: 'gap', phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                Obx(() => _NotificationList(responsive: responsive, items: controller.notifications.toList())),
-              ],
-            ),
+              ),
             ),
           ),
-        ),
         );
       }),
     );
   }
 }
 
+// ── Hero Section ─────────────────────────────────────────────────────────────
+
 class _HeroSection extends StatelessWidget {
-  const _HeroSection({required this.responsive, required this.controller});
+  const _HeroSection({required this.responsive, required this.summary});
 
   final AppResponsive responsive;
-  final DriverHomeController controller;
+  final DriverSummary summary;
 
   @override
   Widget build(BuildContext context) {
@@ -215,9 +270,9 @@ class _HeroSection extends StatelessWidget {
               ),
             ),
             child: Text(
-              controller.summary.todayLabel,
+              summary.todayLabel,
               style: TextStyle(
-                color: AppColors.white.withValues(alpha:  0.80),
+                color: AppColors.white.withValues(alpha: 0.80),
                 fontSize: responsive.text(14),
                 fontFamily: 'Inter',
                 fontWeight: FontWeight.w500,
@@ -226,16 +281,9 @@ class _HeroSection extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox(
-            height: responsive.adaptive(
-              phone: 8,
-              smallPhone: 6,
-              tablet: 8,
-              desktop: 8,
-            ),
-          ),
+          SizedBox(height: responsive.adaptive(phone: 8, smallPhone: 6, tablet: 8, desktop: 8)),
           Text(
-            controller.summary.todayValue,
+            summary.todayValue,
             style: TextStyle(
               color: AppColors.white,
               fontSize: responsive.text(36),
@@ -245,82 +293,42 @@ class _HeroSection extends StatelessWidget {
               letterSpacing: -0.50,
             ),
           ),
-          SizedBox(
-            height: responsive.adaptive(
-              phone: 16,
-              smallPhone: 14,
-              tablet: 18,
-              desktop: 18,
-            ),
-          ),
-           SizedBox(
-            height: responsive.adaptive(
-              phone: 16,
-              smallPhone: 14,
-              tablet: 18,
-            ),
-          ),
+          SizedBox(height: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 18, desktop: 18)),
           Row(
             children: [
               Expanded(
                 child: _TinyStatCard(
                   responsive: responsive,
-                  label: controller.summary.weekLabel,
-                  value: controller.summary.weekValue,
+                  label: summary.weekLabel,
+                  value: summary.weekValue,
                 ),
               ),
-              SizedBox(
-                width: responsive.adaptive(
-                  phone: 10,
-                  smallPhone: 8,
-                  tablet: 12,
-                  desktop: 12,
-                ),
-              ),
+              SizedBox(width: responsive.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 12)),
               Expanded(
                 child: _TinyStatCard(
                   responsive: responsive,
-                  label: controller.summary.monthLabel,
-                  value: controller.summary.monthValue,
+                  label: summary.monthLabel,
+                  value: summary.monthValue,
                 ),
               ),
-              SizedBox(
-                width: responsive.adaptive(
-                  phone: 10,
-                  smallPhone: 8,
-                  tablet: 12,
-                  desktop: 12,
-                ),
-              ),
+              SizedBox(width: responsive.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 12)),
               Expanded(
                 child: _TinyStatCard(
                   responsive: responsive,
-                  label: controller.summary.pendingLabel,
-                  value: controller.summary.pendingValue,
+                  label: summary.pendingLabel,
+                  value: summary.pendingValue,
                 ),
               ),
             ],
           ),
-          SizedBox(
-            height: responsive.adaptive(
-              phone: 16,
-              smallPhone: 14,
-              tablet: 18,
-              desktop: 18,
-            ),
-          ),
+          SizedBox(height: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 18, desktop: 18)),
           Container(
             width: double.infinity,
             padding: EdgeInsets.all(
-              responsive.adaptive(
-                phone: 16,
-                smallPhone: 14,
-                tablet: 16,
-                desktop: 16,
-              ),
+              responsive.adaptive(phone: 16, smallPhone: 14, tablet: 16, desktop: 16),
             ),
             decoration: ShapeDecoration(
-              color: AppColors.white.withValues(alpha:  0.10),
+              color: AppColors.white.withValues(alpha: 0.10),
               shape: RoundedRectangleBorder(
                 side: const BorderSide(color: AppColors.border),
                 borderRadius: BorderRadius.circular(responsive.radius(16)),
@@ -333,7 +341,7 @@ class _HeroSection extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        controller.summary.commissionLabel,
+                        summary.commissionLabel,
                         style: TextStyle(
                           color: AppColors.white.withValues(alpha: 0.70),
                           fontSize: responsive.text(12),
@@ -345,7 +353,7 @@ class _HeroSection extends StatelessWidget {
                       ),
                       SizedBox(height: responsive.h(4)),
                       Text(
-                        controller.summary.commissionValue,
+                        summary.commissionValue,
                         style: TextStyle(
                           color: AppColors.white,
                           fontSize: responsive.text(18),
@@ -362,11 +370,9 @@ class _HeroSection extends StatelessWidget {
                   width: responsive.w(24),
                   height: responsive.w(24),
                   decoration: ShapeDecoration(
-                    color: AppColors.white.withValues(alpha:  0.10),
+                    color: AppColors.white.withValues(alpha: 0.10),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        responsive.radius(12),
-                      ),
+                      borderRadius: BorderRadius.circular(responsive.radius(12)),
                     ),
                   ),
                   child: Icon(
@@ -398,17 +404,12 @@ class _TinyStatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: responsive.adaptive(
-        phone: 72,
-        smallPhone: 70,
-        tablet: 72,
-        desktop: 74,
-      ),
+      height: responsive.adaptive(phone: 72, smallPhone: 70, tablet: 72, desktop: 74),
       padding: EdgeInsets.all(
         responsive.adaptive(phone: 10, smallPhone: 10, tablet: 10, desktop: 10),
       ),
       decoration: ShapeDecoration(
-        color: AppColors.white.withValues(alpha:  0.10),
+        color: AppColors.white.withValues(alpha: 0.10),
         shape: RoundedRectangleBorder(
           side: const BorderSide(color: AppColors.border),
           borderRadius: BorderRadius.circular(responsive.radius(16)),
@@ -448,6 +449,8 @@ class _TinyStatCard extends StatelessWidget {
     );
   }
 }
+
+// ── Availability Section ──────────────────────────────────────────────────────
 
 class _AvailabilitySection extends StatelessWidget {
   const _AvailabilitySection({
@@ -506,18 +509,8 @@ class _AvailabilitySection extends StatelessWidget {
                   onTap: controller.toggleAvailability,
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 220),
-                    width: responsive.adaptive(
-                      phone: 64,
-                      smallPhone: 60,
-                      tablet: 66,
-                      desktop: 66,
-                    ),
-                    height: responsive.adaptive(
-                      phone: 36,
-                      smallPhone: 34,
-                      tablet: 36,
-                      desktop: 36,
-                    ),
+                    width: responsive.adaptive(phone: 64, smallPhone: 60, tablet: 66, desktop: 66),
+                    height: responsive.adaptive(phone: 36, smallPhone: 34, tablet: 36, desktop: 36),
                     padding: EdgeInsets.all(responsive.w(4)),
                     decoration: ShapeDecoration(
                       color: controller.isOnline.value
@@ -534,18 +527,8 @@ class _AvailabilitySection extends StatelessWidget {
                           ? Alignment.centerRight
                           : Alignment.centerLeft,
                       child: Container(
-                        width: responsive.adaptive(
-                          phone: 28,
-                          smallPhone: 26,
-                          tablet: 28,
-                          desktop: 28,
-                        ),
-                        height: responsive.adaptive(
-                          phone: 28,
-                          smallPhone: 26,
-                          tablet: 28,
-                          desktop: 28,
-                        ),
+                        width: responsive.adaptive(phone: 28, smallPhone: 26, tablet: 28, desktop: 28),
+                        height: responsive.adaptive(phone: 28, smallPhone: 26, tablet: 28, desktop: 28),
                         decoration: ShapeDecoration(
                           color: AppColors.white,
                           shape: RoundedRectangleBorder(
@@ -572,14 +555,7 @@ class _AvailabilitySection extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(
-            height: responsive.adaptive(
-              phone: 16,
-              smallPhone: 14,
-              tablet: 16,
-              desktop: 16,
-            ),
-          ),
+          SizedBox(height: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 16, desktop: 16)),
           Row(
             children: [
               Expanded(
@@ -587,36 +563,19 @@ class _AvailabilitySection extends StatelessWidget {
                   responsive: responsive,
                   label: 'Pause',
                   onTap: () => controller.onQuickAction('Pause activée'),
-                  height: responsive.adaptive(
-                    phone: 48,
-                    smallPhone: 44,
-                    tablet: 48,
-                    desktop: 48,
-                  ),
+                  height: responsive.adaptive(phone: 48, smallPhone: 44, tablet: 48, desktop: 48),
                   backgroundColor: AppColors.surfaceSoft,
                   textColor: AppColors.textPrimary,
                   borderColor: AppColors.border,
                 ),
               ),
-              SizedBox(
-                width: responsive.adaptive(
-                  phone: 12,
-                  smallPhone: 10,
-                  tablet: 12,
-                  desktop: 12,
-                ),
-              ),
+              SizedBox(width: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
               Expanded(
                 child: AppChipButton(
                   responsive: responsive,
                   label: 'Mode nuit',
                   onTap: () => controller.onQuickAction('Mode nuit activé'),
-                  height: responsive.adaptive(
-                    phone: 48,
-                    smallPhone: 44,
-                    tablet: 48,
-                    desktop: 48,
-                  ),
+                  height: responsive.adaptive(phone: 48, smallPhone: 44, tablet: 48, desktop: 48),
                   backgroundColor: AppColors.surfaceSoft,
                   textColor: AppColors.textPrimary,
                   borderColor: AppColors.border,
@@ -629,6 +588,8 @@ class _AvailabilitySection extends StatelessWidget {
     );
   }
 }
+
+// ── Metric Grid ───────────────────────────────────────────────────────────────
 
 class _MetricGrid extends StatelessWidget {
   const _MetricGrid({required this.responsive, required this.metrics});
@@ -697,26 +658,12 @@ class _MetricCard extends StatelessWidget {
               size: responsive.text(24),
             ),
           ),
-          SizedBox(
-            height: responsive.adaptive(
-              phone: 12,
-              smallPhone: 10,
-              tablet: 12,
-              desktop: 12,
-            ),
-          ),
+          SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
           Text(metric.value, style: AppTextStyles.rolesCardTitle(responsive)),
           SizedBox(height: responsive.h(2)),
           Text(metric.title, style: AppTextStyles.caption(responsive)),
           if (metric.progress != null) ...[
-            SizedBox(
-              height: responsive.adaptive(
-                phone: 8,
-                smallPhone: 6,
-                tablet: 8,
-                desktop: 8,
-              ),
-            ),
+            SizedBox(height: responsive.adaptive(phone: 8, smallPhone: 6, tablet: 8, desktop: 8)),
             ClipRRect(
               borderRadius: BorderRadius.circular(9999),
               child: LinearProgressIndicator(
@@ -732,6 +679,8 @@ class _MetricCard extends StatelessWidget {
     );
   }
 }
+
+// ── Next Trip Card ────────────────────────────────────────────────────────────
 
 class _NextTripCard extends StatelessWidget {
   const _NextTripCard({
@@ -760,52 +709,39 @@ class _NextTripCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(responsive.radius(22)),
         ),
         shadows: const [
-          BoxShadow(
-            color: AppColors.shadowSoft,
-            blurRadius: 2,
-            offset: Offset(0, 1),
-          ),
+          BoxShadow(color: AppColors.shadowSoft, blurRadius: 2, offset: Offset(0, 1)),
         ],
       ),
       child: Column(
         children: [
           Row(
             children: [
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: responsive.w(12),
-                    vertical: responsive.h(6),
-                  ),
-                  decoration: ShapeDecoration(
-                    color: trip.statusBg,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        responsive.radius(9999),
-                      ),
-                      side: const BorderSide(color: AppColors.border),
-                    ),
-                  ),
-                  child: Text(
-                    trip.statusLabel,
-                    style: AppTextStyles.registerLabel(responsive).copyWith(
-                      color: trip.statusColor,
-                      fontSize: responsive.text(12),
-                      fontWeight: FontWeight.w700,
-                    ),
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: responsive.w(12),
+                  vertical: responsive.h(6),
+                ),
+                decoration: ShapeDecoration(
+                  color: trip.statusBg,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(responsive.radius(9999)),
+                    side: const BorderSide(color: AppColors.border),
                   ),
                 ),
+                child: Text(
+                  trip.statusLabel,
+                  style: AppTextStyles.registerLabel(responsive).copyWith(
+                    color: trip.statusColor,
+                    fontSize: responsive.text(12),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
               const Spacer(),
               Text(trip.time, style: AppTextStyles.subtitle(responsive)),
             ],
           ),
-          SizedBox(
-            height: responsive.adaptive(
-              phone: 16,
-              smallPhone: 14,
-              tablet: 16,
-              desktop: 16,
-            ),
-          ),
+          SizedBox(height: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 16, desktop: 16)),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -820,14 +756,7 @@ class _NextTripCard extends StatelessWidget {
                   _RouteDot(color: const Color(0xFFE53935)),
                 ],
               ),
-              SizedBox(
-                width: responsive.adaptive(
-                  phone: 12,
-                  smallPhone: 10,
-                  tablet: 12,
-                  desktop: 12,
-                ),
-              ),
+              SizedBox(width: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -837,14 +766,7 @@ class _NextTripCard extends StatelessWidget {
                       value: trip.departure,
                       responsive: responsive,
                     ),
-                    SizedBox(
-                      height: responsive.adaptive(
-                        phone: 24,
-                        smallPhone: 20,
-                        tablet: 24,
-                        desktop: 24,
-                      ),
-                    ),
+                    SizedBox(height: responsive.adaptive(phone: 24, smallPhone: 20, tablet: 24, desktop: 24)),
                     _TripField(
                       label: trip.destinationLabel,
                       value: trip.destination,
@@ -855,25 +777,11 @@ class _NextTripCard extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(
-            height: responsive.adaptive(
-              phone: 16,
-              smallPhone: 14,
-              tablet: 16,
-              desktop: 16,
-            ),
-          ),
+          SizedBox(height: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 16, desktop: 16)),
           Row(
             children: [
               _AvatarStack(avatarUrls: trip.avatarUrls, responsive: responsive),
-              SizedBox(
-                width: responsive.adaptive(
-                  phone: 12,
-                  smallPhone: 10,
-                  tablet: 12,
-                  desktop: 12,
-                ),
-              ),
+              SizedBox(width: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
               Expanded(
                 child: Text.rich(
                   TextSpan(
@@ -924,14 +832,7 @@ class _NextTripCard extends StatelessWidget {
               ),
             ),
           ],
-          SizedBox(
-            height: responsive.adaptive(
-              phone: 16,
-              smallPhone: 14,
-              tablet: 16,
-              desktop: 16,
-            ),
-          ),
+          SizedBox(height: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 16, desktop: 16)),
           Row(
             children: [
               Expanded(
@@ -943,14 +844,7 @@ class _NextTripCard extends StatelessWidget {
                   onTap: onSeeDetails,
                 ),
               ),
-              SizedBox(
-                width: responsive.adaptive(
-                  phone: 12,
-                  smallPhone: 10,
-                  tablet: 12,
-                  desktop: 12,
-                ),
-              ),
+              SizedBox(width: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
               Expanded(
                 child: _InlineActionButton(
                   responsive: responsive,
@@ -1082,20 +976,11 @@ class _LocalAvatar extends StatelessWidget {
 
   String _initialsFor(String value) {
     final String trimmed = value.trim();
-    if (trimmed.isEmpty) {
-      return '?';
-    }
-
-    if (trimmed.contains('https://') || trimmed.contains('http://')) {
-      return 'D';
-    }
-
+    if (trimmed.isEmpty) return '?';
+    if (trimmed.contains('https://') || trimmed.contains('http://')) return 'D';
     final List<String> parts = trimmed.split(RegExp(r'\s+'));
     final String first = parts.first.isNotEmpty ? parts.first.substring(0, 1) : '?';
-    if (parts.length == 1) {
-      return first.toUpperCase();
-    }
-
+    if (parts.length == 1) return first.toUpperCase();
     final String last = parts.last.isNotEmpty ? parts.last.substring(0, 1) : '?';
     return (first + last).toUpperCase();
   }
@@ -1124,12 +1009,7 @@ class _InlineActionButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(responsive.radius(12)),
         child: Container(
-          height: responsive.adaptive(
-            phone: 44,
-            smallPhone: 40,
-            tablet: 44,
-            desktop: 44,
-          ),
+          height: responsive.adaptive(phone: 44, smallPhone: 40, tablet: 44, desktop: 44),
           decoration: ShapeDecoration(
             color: backgroundColor,
             shape: RoundedRectangleBorder(
@@ -1154,6 +1034,8 @@ class _InlineActionButton extends StatelessWidget {
     );
   }
 }
+
+// ── Dashboard Error ───────────────────────────────────────────────────────────
 
 class _DashboardError extends StatelessWidget {
   const _DashboardError({required this.responsive, required this.onRetry});
@@ -1201,6 +1083,8 @@ class _DashboardError extends StatelessWidget {
     );
   }
 }
+
+// ── Section helpers ───────────────────────────────────────────────────────────
 
 class _SectionTitle extends StatelessWidget {
   const _SectionTitle({required this.responsive, required this.title});
@@ -1281,7 +1165,7 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-// ── Quick Request Card with live countdown ────────────────────────────────
+// ── Quick Request Card ────────────────────────────────────────────────────────
 
 class _QuickRequestCard extends StatelessWidget {
   const _QuickRequestCard({
@@ -1322,7 +1206,6 @@ class _QuickRequestCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Avatar
             Container(
               width: responsive.w(44),
               height: responsive.w(44),
@@ -1343,7 +1226,6 @@ class _QuickRequestCard extends StatelessWidget {
               ),
             ),
             SizedBox(width: responsive.w(10)),
-            // Info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1357,7 +1239,6 @@ class _QuickRequestCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      // Countdown badge
                       Container(
                         padding: EdgeInsets.symmetric(
                             horizontal: responsive.w(6), vertical: responsive.h(2)),
@@ -1422,7 +1303,6 @@ class _QuickRequestCard extends StatelessWidget {
               ),
             ),
             SizedBox(width: responsive.w(8)),
-            // Actions
             Obx(() {
               final processing = request.isProcessing.value;
               return Column(
@@ -1515,42 +1395,33 @@ class _MiniButton extends StatelessWidget {
   }
 }
 
+// ── Request List ──────────────────────────────────────────────────────────────
+
 class _RequestList extends StatelessWidget {
-  const _RequestList({required this.responsive, required this.controller});
+  const _RequestList({
+    required this.responsive,
+    required this.requests,
+    required this.controller,
+  });
 
   final AppResponsive responsive;
+  final List<DriverRequest> requests;
   final DriverHomeController controller;
 
   @override
   Widget build(BuildContext context) {
+    if (requests.isEmpty) return const SizedBox.shrink();
     return Column(
       children: [
-        for (
-          var index = 0;
-          index < controller.recentRequests.length;
-          index++
-        ) ...[
+        for (var index = 0; index < requests.length; index++) ...[
           _RequestCard(
             responsive: responsive,
-            request: controller.recentRequests[index],
-            onAccept: () => controller.onRequestAction(
-              'Accepter',
-              controller.recentRequests[index],
-            ),
-            onReject: () => controller.onRequestAction(
-              'Refuser',
-              controller.recentRequests[index],
-            ),
+            request: requests[index],
+            onAccept: () => controller.onRequestAction('Accepter', requests[index]),
+            onReject: () => controller.onRequestAction('Refuser', requests[index]),
           ),
-          if (index != controller.recentRequests.length - 1)
-            SizedBox(
-              height: responsive.adaptive(
-                phone: 12,
-                smallPhone: 10,
-                tablet: 12,
-                desktop: 12,
-              ),
-            ),
+          if (index != requests.length - 1)
+            SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
         ],
       ],
     );
@@ -1584,11 +1455,7 @@ class _RequestCard extends StatelessWidget {
           side: const BorderSide(width: 2, color: Color(0x3300A86B)),
         ),
         shadows: const [
-          BoxShadow(
-            color: AppColors.shadowSoft,
-            blurRadius: 2,
-            offset: Offset(0, 1),
-          ),
+          BoxShadow(color: AppColors.shadowSoft, blurRadius: 2, offset: Offset(0, 1)),
         ],
       ),
       child: Column(
@@ -1598,32 +1465,16 @@ class _RequestCard extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(9999),
-                child: _LocalAvatar(
-                  size: responsive.w(48),
-                  label: request.name,
-                ),
+                child: _LocalAvatar(size: responsive.w(48), label: request.name),
               ),
-              SizedBox(
-                width: responsive.adaptive(
-                  phone: 12,
-                  smallPhone: 10,
-                  tablet: 12,
-                  desktop: 12,
-                ),
-              ),
+              SizedBox(width: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      request.name,
-                      style: AppTextStyles.homeCardTitle(responsive),
-                    ),
+                    Text(request.name, style: AppTextStyles.homeCardTitle(responsive)),
                     SizedBox(height: responsive.h(2)),
-                    Text(
-                      request.rating,
-                      style: AppTextStyles.homeCardBody(responsive),
-                    ),
+                    Text(request.rating, style: AppTextStyles.homeCardBody(responsive)),
                   ],
                 ),
               ),
@@ -1652,23 +1503,11 @@ class _RequestCard extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(
-            height: responsive.adaptive(
-              phone: 12,
-              smallPhone: 10,
-              tablet: 12,
-              desktop: 12,
-            ),
-          ),
+          SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
           Container(
             width: double.infinity,
             padding: EdgeInsets.all(
-              responsive.adaptive(
-                phone: 12,
-                smallPhone: 10,
-                tablet: 12,
-                desktop: 12,
-              ),
+              responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12),
             ),
             decoration: ShapeDecoration(
               color: AppColors.surfaceSoft,
@@ -1698,49 +1537,32 @@ class _RequestCard extends StatelessWidget {
                   ],
                 ),
                 SizedBox(height: responsive.h(6)),
-                Text(
-                  request.seats,
-                  style: AppTextStyles.homeCardTitle(responsive),
-                ),
+                Text(request.seats, style: AppTextStyles.homeCardTitle(responsive)),
               ],
             ),
           ),
-          SizedBox(
-            height: responsive.adaptive(
-              phone: 12,
-              smallPhone: 10,
-              tablet: 12,
-              desktop: 12,
-            ),
-          ),
+          SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
           Row(
             children: [
-                Expanded(
-                  child: _InlineActionButton(
-                    responsive: responsive,
-                    label: AppStrings.accept,
-                    backgroundColor: AppColors.primary,
-                    textColor: AppColors.white,
-                    onTap: onAccept,
-                  ),
+              Expanded(
+                child: _InlineActionButton(
+                  responsive: responsive,
+                  label: AppStrings.accept,
+                  backgroundColor: AppColors.primary,
+                  textColor: AppColors.white,
+                  onTap: onAccept,
                 ),
-                SizedBox(
-                  width: responsive.adaptive(
-                    phone: 8,
-                    smallPhone: 8,
-                    tablet: 8,
-                    desktop: 8,
-                  ),
+              ),
+              SizedBox(width: responsive.adaptive(phone: 8, smallPhone: 8, tablet: 8, desktop: 8)),
+              Expanded(
+                child: _InlineActionButton(
+                  responsive: responsive,
+                  label: AppStrings.reject,
+                  backgroundColor: AppColors.surfaceSoft,
+                  textColor: AppColors.textPrimary,
+                  onTap: onReject,
                 ),
-                Expanded(
-                  child: _InlineActionButton(
-                    responsive: responsive,
-                    label: AppStrings.reject,
-                    backgroundColor: AppColors.surfaceSoft,
-                    textColor: AppColors.textPrimary,
-                    onTap: onReject,
-                  ),
-                ),
+              ),
             ],
           ),
         ],
@@ -1748,6 +1570,8 @@ class _RequestCard extends StatelessWidget {
     );
   }
 }
+
+// ── Action Grid ───────────────────────────────────────────────────────────────
 
 class _ActionGrid extends StatelessWidget {
   const _ActionGrid({
@@ -1800,19 +1624,9 @@ class _ActionCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(responsive.radius(16)),
         child: Container(
-          height: responsive.adaptive(
-            phone: 104,
-            smallPhone: 100,
-            tablet: 108,
-            desktop: 112,
-          ),
+          height: responsive.adaptive(phone: 104, smallPhone: 100, tablet: 108, desktop: 112),
           padding: EdgeInsets.all(
-            responsive.adaptive(
-              phone: 16,
-              smallPhone: 14,
-              tablet: 16,
-              desktop: 16,
-            ),
+            responsive.adaptive(phone: 16, smallPhone: 14, tablet: 16, desktop: 16),
           ),
           decoration: ShapeDecoration(
             color: AppColors.white,
@@ -1821,11 +1635,7 @@ class _ActionCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(responsive.radius(16)),
             ),
             shadows: const [
-              BoxShadow(
-                color: AppColors.shadowSoft,
-                blurRadius: 2,
-                offset: Offset(0, 1),
-              ),
+              BoxShadow(color: AppColors.shadowSoft, blurRadius: 2, offset: Offset(0, 1)),
             ],
           ),
           child: Row(
@@ -1846,14 +1656,7 @@ class _ActionCard extends StatelessWidget {
                   size: responsive.text(22),
                 ),
               ),
-              SizedBox(
-                width: responsive.adaptive(
-                  phone: 10,
-                  smallPhone: 8,
-                  tablet: 10,
-                  desktop: 10,
-                ),
-              ),
+              SizedBox(width: responsive.adaptive(phone: 10, smallPhone: 8, tablet: 10, desktop: 10)),
               Expanded(
                 child: Text(
                   action.label,
@@ -1876,11 +1679,20 @@ class _ActionCard extends StatelessWidget {
   }
 }
 
+// ── Wallet Section ────────────────────────────────────────────────────────────
+
 class _WalletSection extends StatelessWidget {
-  const _WalletSection({required this.responsive, required this.controller});
+  const _WalletSection({
+    required this.responsive,
+    required this.wallet,
+    required this.selectedMethod,
+    required this.onSelectMethod,
+  });
 
   final AppResponsive responsive;
-  final DriverHomeController controller;
+  final DriverWallet wallet;
+  final int selectedMethod;
+  final ValueChanged<int> onSelectMethod;
 
   @override
   Widget build(BuildContext context) {
@@ -1896,16 +1708,8 @@ class _WalletSection extends StatelessWidget {
           borderRadius: BorderRadius.circular(responsive.radius(22)),
         ),
         shadows: const [
-          BoxShadow(
-            color: Color(0x19000000),
-            blurRadius: 15,
-            offset: Offset(0, 10),
-          ),
-          BoxShadow(
-            color: Color(0x19000000),
-            blurRadius: 6,
-            offset: Offset(0, 4),
-          ),
+          BoxShadow(color: Color(0x19000000), blurRadius: 15, offset: Offset(0, 10)),
+          BoxShadow(color: Color(0x19000000), blurRadius: 6, offset: Offset(0, 4)),
         ],
       ),
       child: Column(
@@ -1919,13 +1723,12 @@ class _WalletSection extends StatelessWidget {
                   children: [
                     Text(
                       AppStrings.walletAvailable,
-                      style: AppTextStyles.caption(
-                        responsive,
-                      ).copyWith(color: AppColors.white.withValues(alpha: 0.70)),
+                      style: AppTextStyles.caption(responsive)
+                          .copyWith(color: AppColors.white.withValues(alpha: 0.70)),
                     ),
                     SizedBox(height: responsive.h(4)),
                     Text(
-                      controller.wallet.balance,
+                      wallet.balance,
                       style: TextStyle(
                         color: AppColors.white,
                         fontSize: responsive.text(30),
@@ -1955,23 +1758,11 @@ class _WalletSection extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(
-            height: responsive.adaptive(
-              phone: 16,
-              smallPhone: 14,
-              tablet: 16,
-              desktop: 16,
-            ),
-          ),
+          SizedBox(height: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 16, desktop: 16)),
           Container(
             width: double.infinity,
             padding: EdgeInsets.all(
-              responsive.adaptive(
-                phone: 12,
-                smallPhone: 10,
-                tablet: 12,
-                desktop: 12,
-              ),
+              responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12),
             ),
             decoration: ShapeDecoration(
               color: AppColors.white.withValues(alpha: 0.10),
@@ -1985,13 +1776,12 @@ class _WalletSection extends StatelessWidget {
               children: [
                 Text(
                   AppStrings.blockedEarnings,
-                  style: AppTextStyles.caption(
-                    responsive,
-                  ).copyWith(color: AppColors.white.withValues(alpha: 0.70)),
+                  style: AppTextStyles.caption(responsive)
+                      .copyWith(color: AppColors.white.withValues(alpha: 0.70)),
                 ),
                 SizedBox(height: responsive.h(4)),
                 Text(
-                  controller.wallet.blockedAmount,
+                  wallet.blockedAmount,
                   style: TextStyle(
                     color: AppColors.white,
                     fontSize: responsive.text(18),
@@ -2004,61 +1794,37 @@ class _WalletSection extends StatelessWidget {
               ],
             ),
           ),
-          SizedBox(
-            height: responsive.adaptive(
-              phone: 16,
-              smallPhone: 14,
-              tablet: 16,
-              desktop: 16,
-            ),
-          ),
-          Obx(
-            () => Row(
-              children: [
-                for (
-                  var index = 0;
-                  index < controller.wallet.methods.length;
-                  index++
-                ) ...[
-                  Expanded(
-                    child: AppChipButton(
-                      responsive: responsive,
-                      label: controller.wallet.methods[index],
-                      onTap: () => controller.selectWalletMethod(index),
-                      height: responsive.adaptive(
-                        phone: 44,
-                        smallPhone: 40,
-                        tablet: 44,
-                        desktop: 44,
-                      ),
-                      backgroundColor:
-                          controller.selectedWalletMethod.value == index
-                          ? AppColors.accent
-                          : AppColors.white.withValues(alpha: 0.20),
-                        textColor: controller.selectedWalletMethod.value == index
-                          ? AppColors.textPrimary
-                          : AppColors.white,
-                      borderColor: Colors.transparent,
-                    ),
+          SizedBox(height: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 16, desktop: 16)),
+          Row(
+            children: [
+              for (var index = 0; index < wallet.methods.length; index++) ...[
+                Expanded(
+                  child: AppChipButton(
+                    responsive: responsive,
+                    label: wallet.methods[index],
+                    onTap: () => onSelectMethod(index),
+                    height: responsive.adaptive(phone: 44, smallPhone: 40, tablet: 44, desktop: 44),
+                    backgroundColor: selectedMethod == index
+                        ? AppColors.accent
+                        : AppColors.white.withValues(alpha: 0.20),
+                    textColor: selectedMethod == index
+                        ? AppColors.textPrimary
+                        : AppColors.white,
+                    borderColor: Colors.transparent,
                   ),
-                  if (index != controller.wallet.methods.length - 1)
-                    SizedBox(
-                      width: responsive.adaptive(
-                        phone: 12,
-                        smallPhone: 10,
-                        tablet: 12,
-                        desktop: 12,
-                      ),
-                    ),
-                ],
+                ),
+                if (index != wallet.methods.length - 1)
+                  SizedBox(width: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
               ],
-            ),
+            ],
           ),
         ],
       ),
     );
   }
 }
+
+// ── Level Section ─────────────────────────────────────────────────────────────
 
 class _LevelSection extends StatelessWidget {
   const _LevelSection({required this.responsive, required this.level});
@@ -2080,11 +1846,7 @@ class _LevelSection extends StatelessWidget {
           borderRadius: BorderRadius.circular(responsive.radius(22)),
         ),
         shadows: const [
-          BoxShadow(
-            color: AppColors.shadowSoft,
-            blurRadius: 2,
-            offset: Offset(0, 1),
-          ),
+          BoxShadow(color: AppColors.shadowSoft, blurRadius: 2, offset: Offset(0, 1)),
         ],
       ),
       child: Column(
@@ -2096,10 +1858,7 @@ class _LevelSection extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Niveau actuel',
-                      style: AppTextStyles.caption(responsive),
-                    ),
+                    Text('Niveau actuel', style: AppTextStyles.caption(responsive)),
                     SizedBox(height: responsive.h(4)),
                     Text(
                       level.currentLevel,
@@ -2136,36 +1895,16 @@ class _LevelSection extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(
-            height: responsive.adaptive(
-              phone: 16,
-              smallPhone: 14,
-              tablet: 16,
-              desktop: 16,
-            ),
-          ),
+          SizedBox(height: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 16, desktop: 16)),
           Row(
             children: [
               Expanded(
-                child: Text(
-                  level.progressLabel,
-                  style: AppTextStyles.homeCardBody(responsive),
-                ),
+                child: Text(level.progressLabel, style: AppTextStyles.homeCardBody(responsive)),
               ),
-              Text(
-                level.progressValue,
-                style: AppTextStyles.homeCardTitle(responsive),
-              ),
+              Text(level.progressValue, style: AppTextStyles.homeCardTitle(responsive)),
             ],
           ),
-          SizedBox(
-            height: responsive.adaptive(
-              phone: 8,
-              smallPhone: 6,
-              tablet: 8,
-              desktop: 8,
-            ),
-          ),
+          SizedBox(height: responsive.adaptive(phone: 8, smallPhone: 6, tablet: 8, desktop: 8)),
           ClipRRect(
             borderRadius: BorderRadius.circular(9999),
             child: LinearProgressIndicator(
@@ -2175,27 +1914,10 @@ class _LevelSection extends StatelessWidget {
               color: AppColors.primary,
             ),
           ),
-          SizedBox(
-            height: responsive.adaptive(
-              phone: 16,
-              smallPhone: 14,
-              tablet: 16,
-              desktop: 16,
-            ),
-          ),
+          SizedBox(height: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 16, desktop: 16)),
           Wrap(
-            spacing: responsive.adaptive(
-              phone: 8,
-              smallPhone: 8,
-              tablet: 8,
-              desktop: 8,
-            ),
-            runSpacing: responsive.adaptive(
-              phone: 8,
-              smallPhone: 8,
-              tablet: 8,
-              desktop: 8,
-            ),
+            spacing: responsive.adaptive(phone: 8, smallPhone: 8, tablet: 8, desktop: 8),
+            runSpacing: responsive.adaptive(phone: 8, smallPhone: 8, tablet: 8, desktop: 8),
             children: [
               for (final badge in level.badges)
                 _BadgeCard(responsive: responsive, badge: badge),
@@ -2216,20 +1938,10 @@ class _BadgeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: responsive.adaptive(
-        phone: 93,
-        smallPhone: 88,
-        tablet: 100,
-        desktop: 104,
-      ),
+      width: responsive.adaptive(phone: 93, smallPhone: 88, tablet: 100, desktop: 104),
       child: Container(
         padding: EdgeInsets.all(
-          responsive.adaptive(
-            phone: 12,
-            smallPhone: 10,
-            tablet: 12,
-            desktop: 12,
-          ),
+          responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12),
         ),
         decoration: ShapeDecoration(
           color: AppColors.surfaceSoft,
@@ -2249,11 +1961,7 @@ class _BadgeCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(responsive.radius(12)),
                 ),
               ),
-              child: Icon(
-                badge.icon,
-                color: badge.iconColor,
-                size: responsive.text(20),
-              ),
+              child: Icon(badge.icon, color: badge.iconColor, size: responsive.text(20)),
             ),
             SizedBox(height: responsive.h(8)),
             Text(
@@ -2274,6 +1982,8 @@ class _BadgeCard extends StatelessWidget {
     );
   }
 }
+
+// ── Notification List ─────────────────────────────────────────────────────────
 
 class _NotificationList extends StatelessWidget {
   const _NotificationList({required this.responsive, required this.items});
@@ -2360,7 +2070,8 @@ class _NotificationCard extends StatelessWidget {
                 SizedBox(height: responsive.h(4)),
                 Text(
                   item.time,
-                  style: AppTextStyles.homeCardBody(responsive).copyWith(color: AppColors.textGhost),
+                  style: AppTextStyles.homeCardBody(responsive)
+                      .copyWith(color: AppColors.textGhost),
                 ),
               ],
             ),

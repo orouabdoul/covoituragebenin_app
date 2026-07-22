@@ -191,7 +191,7 @@ class _ReadinessHero extends StatelessWidget {
           Text(
             '${data.trip.origin} → ${data.trip.destination}',
             style: AppTextStyles.bodySmall(r).copyWith(
-              color: Colors.white.withOpacity(0.85),
+              color: Colors.white.withValues(alpha: 0.85),
             ),
             textAlign: TextAlign.center,
           ),
@@ -216,7 +216,9 @@ class _ReadinessHero extends StatelessWidget {
               _HeroStat(
                 r: r,
                 icon: Icons.straighten_rounded,
-                value: '${data.trip.distanceKm}km',
+                value: data.trip.distanceKm > 0
+                    ? '${data.trip.distanceKm.toStringAsFixed(1)}km'
+                    : '–',
                 label: 'Distance',
               ),
             ],
@@ -240,12 +242,12 @@ class _HeroStat extends StatelessWidget {
       children: [
         Icon(icon,
             size: r.adaptive(phone: 18, smallPhone: 16, tablet: 20, desktop: 22),
-            color: Colors.white.withOpacity(0.85)),
+            color: Colors.white.withValues(alpha: 0.85)),
         SizedBox(height: r.adaptive(phone: 4, smallPhone: 3, tablet: 5, desktop: 6)),
         Text(value,
             style: AppTextStyles.bodyMedium(r).copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
         Text(label,
-            style: AppTextStyles.labelSmall(r).copyWith(color: Colors.white.withOpacity(0.75))),
+            style: AppTextStyles.labelSmall(r).copyWith(color: Colors.white.withValues(alpha: 0.75))),
       ],
     );
   }
@@ -322,16 +324,26 @@ class _TripSummaryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceAccent,
         borderRadius: BorderRadius.circular(r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _SummaryItem(r: r, icon: Icons.people_rounded, value: '${trip.passengersCount}', label: 'Passagers'),
           _Divider(r: r),
-          _SummaryItem(r: r, icon: Icons.route_rounded, value: '${trip.distanceKm}km', label: 'Trajet'),
+          _SummaryItem(
+            r: r,
+            icon: Icons.route_rounded,
+            value: trip.distanceKm > 0 ? '${trip.distanceKm.toStringAsFixed(1)}km' : '–',
+            label: 'Trajet',
+          ),
           _Divider(r: r),
-          _SummaryItem(r: r, icon: Icons.timer_outlined, value: trip.durationLabel, label: 'Durée'),
+          _SummaryItem(
+            r: r,
+            icon: Icons.timer_outlined,
+            value: trip.durationLabel.isNotEmpty ? trip.durationLabel : '–',
+            label: 'Durée',
+          ),
         ],
       ),
     );
@@ -370,7 +382,7 @@ class _Divider extends StatelessWidget {
     return Container(
       width: 1,
       height: r.adaptive(phone: 40, smallPhone: 36, tablet: 44, desktop: 48),
-      color: AppColors.primary.withOpacity(0.2),
+      color: AppColors.primary.withValues(alpha: 0.2),
     );
   }
 }
@@ -449,7 +461,7 @@ class _StopRow extends StatelessWidget {
               width: r.adaptive(phone: 32, smallPhone: 28, tablet: 36, desktop: 40),
               height: r.adaptive(phone: 32, smallPhone: 28, tablet: 36, desktop: 40),
               decoration: BoxDecoration(
-                color: stopColor.withOpacity(0.12),
+                color: stopColor.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: Center(
@@ -487,7 +499,7 @@ class _StopRow extends StatelessWidget {
                         vertical: r.adaptive(phone: 2, smallPhone: 1, tablet: 3, desktop: 4),
                       ),
                       decoration: BoxDecoration(
-                        color: stopColor.withOpacity(0.12),
+                        color: stopColor.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(
                             r.adaptive(phone: 4, smallPhone: 3, tablet: 5, desktop: 6)),
                       ),

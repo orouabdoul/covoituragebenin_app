@@ -300,7 +300,7 @@ class _TransactionRow extends StatelessWidget {
                     vertical: r.adaptive(phone: 2, smallPhone: 1, tablet: 3, desktop: 4),
                   ),
                   decoration: BoxDecoration(
-                    color: t.statusColor.withOpacity(0.1),
+                    color: t.statusColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(r.adaptive(phone: 4, smallPhone: 3, tablet: 5, desktop: 6)),
                   ),
                   child: Text(

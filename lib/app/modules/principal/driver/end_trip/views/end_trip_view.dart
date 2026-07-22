@@ -375,7 +375,7 @@ class _PaymentTimerCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0x0CF4B400),
         borderRadius: BorderRadius.circular(r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-        border: Border.all(color: AppColors.accent.withOpacity(0.3)),
+        border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [

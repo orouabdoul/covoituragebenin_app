@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:get/get.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
@@ -9,7 +10,257 @@ import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 
 import '../controllers/interactive_map_controller.dart';
 
-// ── Top-level helper ──────────────────────────────────────────────────────────
+// ── Root view ─────────────────────────────────────────────────────────────────
+
+class InteractiveMapView extends StatefulWidget {
+  const InteractiveMapView({super.key});
+
+  @override
+  State<InteractiveMapView> createState() => _InteractiveMapViewState();
+}
+
+class _InteractiveMapViewState extends State<InteractiveMapView> {
+  final MapController _mapController = MapController();
+  late final InteractiveMapController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = Get.find<InteractiveMapController>();
+
+    // Quand le controller signale un mouvement de caméra (départ chargé ou arrêt suivant)
+    ever(_ctrl.mapMoveTo, (LatLng? pos) {
+      if (pos == null || !mounted) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _mapController.move(pos, _ctrl.mapMoveZoom.value);
+        }
+      });
+    });
+
+    // Fit-all quand les données arrivent
+    ever(_ctrl.fitAllRequest, (_) {
+      if (!mounted) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _fitAllPoints();
+      });
+    });
+  }
+
+  void _fitAllPoints() {
+    final allPts = [
+      _ctrl.driverPosition.value,
+      ..._ctrl.stops.map((s) => s.latlng),
+    ];
+    if (allPts.length < 2) {
+      if (allPts.isNotEmpty) {
+        _mapController.move(allPts.first, 14.0);
+      }
+      return;
+    }
+    final bounds = LatLngBounds.fromPoints(allPts);
+    _mapController.fitCamera(
+      CameraFit.bounds(
+        bounds: bounds,
+        padding: const EdgeInsets.fromLTRB(48, 120, 48, 320),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _mapController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final r = AppResponsive(context);
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFE8EFF8),
+      body: Obx(() {
+        final loading = _ctrl.isLoading.value;
+        final hasError = _ctrl.hasError.value;
+
+        return Stack(
+          children: [
+            // ── Carte OpenStreetMap ──────────────────────────────────
+            FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(
+                // Position initiale → Cotonou ; sera mise à jour dès GPS/API
+                initialCenter: _ctrl.driverPosition.value,
+                initialZoom: 13.0,
+                minZoom: 8.0,
+                maxZoom: 18.0,
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate:
+                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.covoiturage.benin',
+                  // Garde les tuiles en mémoire pour éviter les re-téléchargements
+                  maxNativeZoom: 18,
+                  keepBuffer: 4,
+                ),
+
+                // Itinéraire — affiché seulement si ≥ 2 points (évite le crash)
+                Obx(() {
+                  final pts = _ctrl.routePolyline;
+                  if (pts.length < 2) return const SizedBox.shrink();
+                  return PolylineLayer(
+                    polylines: [
+                      Polyline(
+                        points: pts,
+                        color: AppColors.primary,
+                        strokeWidth: 5.0,
+                        borderColor: Colors.white.withValues(alpha: 0.85),
+                        borderStrokeWidth: 2.5,
+                      ),
+                    ],
+                  );
+                }),
+
+                // Marqueurs
+                Obx(() => MarkerLayer(
+                      markers: [
+                        // Position conducteur
+                        Marker(
+                          point: _ctrl.driverPosition.value,
+                          width: 52,
+                          height: 52,
+                          child: _DriverPositionMarker(controller: _ctrl),
+                        ),
+                        // Arrêts
+                        for (var i = 0; i < _ctrl.stops.length; i++)
+                          Marker(
+                            point: _ctrl.stops[i].latlng,
+                            width: 50,
+                            height: 64,
+                            alignment: Alignment.bottomCenter,
+                            child: GestureDetector(
+                              onTap: () => _showStopDetail(
+                                context,
+                                _ctrl.stops[i],
+                                _ctrl,
+                                r,
+                              ),
+                              child: _StopPin(
+                                stop: _ctrl.stops[i],
+                                index: i + 1,
+                                controller: _ctrl,
+                              ),
+                            ),
+                          ),
+                      ],
+                    )),
+              ],
+            ),
+
+            // ── Top bar ──────────────────────────────────────────────
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: _TopBar(responsive: r, controller: _ctrl),
+            ),
+
+            // ── Bannière optimisation ─────────────────────────────────
+            Obx(() => _ctrl.showOptimizationBanner.value
+                ? Positioned(
+                    top: r.h(110),
+                    left: r.w(16),
+                    right: r.w(16),
+                    child: _OptimizationBanner(responsive: r),
+                  )
+                : const SizedBox.shrink()),
+
+            // ── Overlay chargement ────────────────────────────────────
+            if (loading)
+              Positioned(
+                top: r.h(110),
+                left: r.w(16),
+                right: r.w(16),
+                child: _LoadingBanner(responsive: r),
+              ),
+
+            // ── Overlay erreur ────────────────────────────────────────
+            if (hasError && !loading)
+              Obx(() => Positioned(
+                top: r.h(110),
+                left: r.w(16),
+                right: r.w(16),
+                child: _ErrorBanner(
+                  responsive: r,
+                  message: _ctrl.errorMessage.value,
+                  canRetry: _ctrl.canRetry.value,
+                  onRetry: _ctrl.refresh,
+                ),
+              )),
+
+            // ── Bannière mode hors-ligne (données locales) ────────────
+            Obx(() => (_ctrl.isFallbackMode.value && !loading && !hasError)
+                ? Positioned(
+                    top: r.h(110),
+                    left: r.w(16),
+                    right: r.w(16),
+                    child: _FallbackBanner(
+                      responsive: r,
+                      message: _ctrl.fallbackMessage.value,
+                      onRetry: _ctrl.refresh,
+                    ),
+                  )
+                : const SizedBox.shrink()),
+
+            // ── Panel des arrêts (draggable) ──────────────────────────
+            DraggableScrollableSheet(
+              initialChildSize: 0.33,
+              minChildSize: 0.14,
+              maxChildSize: 0.92,
+              builder: (_, scrollCtrl) => _StopsPanel(
+                responsive: r,
+                controller: _ctrl,
+                scrollController: scrollCtrl,
+              ),
+            ),
+
+            // ── FABs droite ───────────────────────────────────────────
+            Positioned(
+              bottom: r.h(310),
+              right: r.w(16),
+              child: Column(
+                children: [
+                  // Recalculer l'itinéraire
+                  _RecalculateFab(responsive: r, controller: _ctrl),
+                  SizedBox(height: r.h(10)),
+                  // Centrer sur le conducteur
+                  _CenterDriverFab(responsive: r, controller: _ctrl),
+                  SizedBox(height: r.h(10)),
+                  // Fit tous les arrêts
+                  _FitAllFab(
+                    responsive: r,
+                    onTap: _fitAllPoints,
+                  ),
+                ],
+              ),
+            ),
+
+            // ── Bouton Google Maps (bas gauche) ───────────────────────
+            Positioned(
+              bottom: r.h(310),
+              left: r.w(16),
+              child: _GoogleMapsFab(responsive: r, controller: _ctrl),
+            ),
+          ],
+        );
+      }),
+    );
+  }
+}
+
+// ── Stop detail bottom sheet ──────────────────────────────────────────────────
 
 void _showStopDetail(
   BuildContext context,
@@ -17,13 +268,15 @@ void _showStopDetail(
   InteractiveMapController ctrl,
   AppResponsive r,
 ) {
+  // Sécurité : ne pas afficher si le widget n'est plus monté
+  if (!context.mounted) return;
+
   Get.bottomSheet(
     Container(
-      padding: EdgeInsets.all(r.w(20)),
+      padding: EdgeInsets.fromLTRB(r.w(20), r.h(16), r.w(20), r.h(32)),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(r.radius(20))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(r.radius(20))),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -40,6 +293,8 @@ void _showStopDetail(
             ),
           ),
           SizedBox(height: r.h(16)),
+
+          // En-tête passager
           Row(
             children: [
               Container(
@@ -77,9 +332,7 @@ void _showStopDetail(
               ),
               Container(
                 padding: EdgeInsets.symmetric(
-                  horizontal: r.w(8),
-                  vertical: r.h(4),
-                ),
+                    horizontal: r.w(8), vertical: r.h(4)),
                 decoration: BoxDecoration(
                   color: ctrl
                       .stopStatusColor(stop.status)
@@ -97,26 +350,98 @@ void _showStopDetail(
             ],
           ),
           SizedBox(height: r.h(14)),
+
+          // Adresse + ETA
           Row(
             children: [
               Icon(Icons.pin_drop_rounded,
                   size: r.text(14), color: AppColors.textHint),
               SizedBox(width: r.w(6)),
               Expanded(
-                child: Text(stop.address,
-                    style: AppTextStyles.caption(r)),
+                child: Text(stop.address, style: AppTextStyles.caption(r)),
               ),
-              Text(
-                stop.eta,
-                style: AppTextStyles.caption(r).copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w700,
+              if (stop.eta.isNotEmpty)
+                Text(
+                  stop.eta,
+                  style: AppTextStyles.caption(r).copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
             ],
           ),
+
+          SizedBox(height: r.h(16)),
+
+          // Boutons de contact (appel + SMS) — affichés seulement si numéro disponible
+          if (stop.phone != null && stop.phone!.isNotEmpty) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      final uri = Uri(scheme: 'tel', path: stop.phone);
+                      if (await canLaunchUrl(uri)) launchUrl(uri);
+                    },
+                    icon: const Icon(Icons.phone_rounded, size: 18),
+                    label: const Text('Appeler'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF16A34A),
+                      side: const BorderSide(color: Color(0xFF16A34A)),
+                      padding: EdgeInsets.symmetric(vertical: r.h(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(r.radius(12)),
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(width: r.w(10)),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      final uri = Uri(scheme: 'sms', path: stop.phone);
+                      if (await canLaunchUrl(uri)) launchUrl(uri);
+                    },
+                    icon: const Icon(Icons.message_rounded, size: 18),
+                    label: const Text('Message'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      side: BorderSide(color: AppColors.primary),
+                      padding: EdgeInsets.symmetric(vertical: r.h(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(r.radius(12)),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: r.h(10)),
+          ],
+
+          // Bouton Google Maps
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                Get.back();
+                ctrl.openStopInGoogleMaps(stop);
+              },
+              icon: const Icon(Icons.map_outlined, size: 18),
+              label: const Text('Ouvrir dans Google Maps'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF1A73E8),
+                side: const BorderSide(color: Color(0xFF1A73E8)),
+                padding: EdgeInsets.symmetric(vertical: r.h(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(r.radius(12)),
+                ),
+              ),
+            ),
+          ),
+
           if (stop.status != StopStatus.done) ...[
-            SizedBox(height: r.h(16)),
+            SizedBox(height: r.h(10)),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -141,147 +466,9 @@ void _showStopDetail(
         ],
       ),
     ),
+    isScrollControlled: true,
+    enableDrag: true,
   );
-}
-
-// ── Root view ─────────────────────────────────────────────────────────────────
-
-class InteractiveMapView extends StatefulWidget {
-  const InteractiveMapView({super.key});
-
-  @override
-  State<InteractiveMapView> createState() => _InteractiveMapViewState();
-}
-
-class _InteractiveMapViewState extends State<InteractiveMapView> {
-  final MapController _mapController = MapController();
-  late final InteractiveMapController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = Get.find<InteractiveMapController>();
-    ever(_ctrl.currentStopIndex, (_) {
-      final stop = _ctrl.nextStop;
-      if (stop != null && mounted) {
-        _mapController.move(stop.latlng, 14.0);
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _mapController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final r = AppResponsive(context);
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFE8EFF8),
-      body: Stack(
-        children: [
-          // ── Real OpenStreetMap ─────────────────────────────────────
-          FlutterMap(
-            mapController: _mapController,
-            options: const MapOptions(
-              initialCenter: LatLng(6.3780, 2.4900),
-              initialZoom: 11.0,
-              minZoom: 8.0,
-              maxZoom: 18.0,
-            ),
-            children: [
-              TileLayer(
-                urlTemplate:
-                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.covoiturage.benin',
-              ),
-              // Route polyline
-              Obx(() => PolylineLayer(
-                polylines: [
-                  Polyline(
-                    points: _ctrl.routePolyline,
-                    color: AppColors.primary,
-                    strokeWidth: 5.0,
-                    borderColor: Colors.white.withValues(alpha: 0.85),
-                    borderStrokeWidth: 2.5,
-                  ),
-                ],
-              )),
-              // Markers
-              Obx(() => MarkerLayer(
-                markers: [
-                  // Driver position
-                  Marker(
-                    point: _ctrl.driverPosition.value,
-                    width: 52,
-                    height: 52,
-                    child: _DriverPositionMarker(controller: _ctrl),
-                  ),
-                  // Stop markers
-                  for (var i = 0; i < _ctrl.stops.length; i++)
-                    Marker(
-                      point: _ctrl.stops[i].latlng,
-                      width: 50,
-                      height: 64,
-                      alignment: Alignment.bottomCenter,
-                      child: GestureDetector(
-                        onTap: () =>
-                            _showStopDetail(context, _ctrl.stops[i], _ctrl, r),
-                        child: _StopPin(
-                          stop: _ctrl.stops[i],
-                          index: i + 1,
-                          controller: _ctrl,
-                        ),
-                      ),
-                    ),
-                ],
-              )),
-            ],
-          ),
-
-          // ── Top bar ─────────────────────────────────────────────────
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: _TopBar(responsive: r, controller: _ctrl),
-          ),
-
-          // ── Optimization banner ─────────────────────────────────────
-          Obx(() => _ctrl.showOptimizationBanner.value
-              ? Positioned(
-                  top: r.h(110),
-                  left: r.w(16),
-                  right: r.w(16),
-                  child: _OptimizationBanner(responsive: r),
-                )
-              : const SizedBox.shrink()),
-
-          // ── Stops panel ─────────────────────────────────────────────
-          DraggableScrollableSheet(
-            initialChildSize: 0.33,
-            minChildSize: 0.14,
-            maxChildSize: 0.92,
-            builder: (_, scrollCtrl) => _StopsPanel(
-              responsive: r,
-              controller: _ctrl,
-              scrollController: scrollCtrl,
-            ),
-          ),
-
-          // ── Recalculate FAB ─────────────────────────────────────────
-          Positioned(
-            bottom: r.h(310),
-            right: r.w(16),
-            child: _RecalculateFab(responsive: r, controller: _ctrl),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 // ── Driver position marker ────────────────────────────────────────────────────
@@ -300,7 +487,6 @@ class _DriverPositionMarker extends StatelessWidget {
         return Stack(
           alignment: Alignment.center,
           children: [
-            // Outer pulse ring
             Container(
               width: 52 * (0.7 + pulse * 0.3),
               height: 52 * (0.7 + pulse * 0.3),
@@ -309,7 +495,6 @@ class _DriverPositionMarker extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
             ),
-            // Inner dot
             Container(
               width: 22,
               height: 22,
@@ -333,7 +518,7 @@ class _DriverPositionMarker extends StatelessWidget {
   }
 }
 
-// ── Stop pin marker (inside flutter_map Marker) ───────────────────────────────
+// ── Stop pin ──────────────────────────────────────────────────────────────────
 
 class _StopPin extends StatelessWidget {
   const _StopPin({
@@ -354,7 +539,6 @@ class _StopPin extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Bubble
         Container(
           width: 36,
           height: 36,
@@ -383,13 +567,11 @@ class _StopPin extends StatelessWidget {
                   ),
           ),
         ),
-        // Stem
         Container(
           width: 2.5,
           height: 10,
           color: isDone ? const Color(0xFFE5E7EB) : color,
         ),
-        // Tip dot
         Container(
           width: 6,
           height: 6,
@@ -461,8 +643,18 @@ class _TopBar extends StatelessWidget {
                       final done = controller.stops
                           .where((s) => s.status == StopStatus.done)
                           .length;
+                      final total = controller.stops.length;
+                      if (controller.isLocating.value) {
+                        return Text(
+                          'Localisation GPS…',
+                          style: AppTextStyles.caption(responsive)
+                              .copyWith(color: AppColors.primary),
+                        );
+                      }
                       return Text(
-                        '$done/${controller.stops.length} arrêts complétés',
+                        total == 0
+                            ? 'Chargement du trajet…'
+                            : '$done/$total arrêts complétés',
                         style: AppTextStyles.caption(responsive)
                             .copyWith(color: AppColors.textHint),
                       );
@@ -486,7 +678,6 @@ class _TopBar extends StatelessWidget {
             ],
           ),
           SizedBox(height: responsive.h(8)),
-          // Progress bar
           Obx(() {
             final done = controller.stops
                 .where((s) => s.status == StopStatus.done)
@@ -498,8 +689,8 @@ class _TopBar extends StatelessWidget {
                 value: total == 0 ? 0 : done / total,
                 minHeight: responsive.h(4),
                 backgroundColor: AppColors.border,
-                valueColor: const AlwaysStoppedAnimation<Color>(
-                    AppColors.primary),
+                valueColor:
+                    const AlwaysStoppedAnimation<Color>(AppColors.primary),
               ),
             );
           }),
@@ -524,6 +715,7 @@ class _StatChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (label == '–' || label.isEmpty) return const SizedBox.shrink();
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: responsive.w(8),
@@ -552,20 +744,17 @@ class _StatChip extends StatelessWidget {
   }
 }
 
-// ── Optimization banner ───────────────────────────────────────────────────────
+// ── Banners ───────────────────────────────────────────────────────────────────
 
 class _OptimizationBanner extends StatelessWidget {
   const _OptimizationBanner({required this.responsive});
-
   final AppResponsive responsive;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: responsive.w(14),
-        vertical: responsive.h(10),
-      ),
+          horizontal: responsive.w(14), vertical: responsive.h(10)),
       decoration: BoxDecoration(
         color: AppColors.primary,
         borderRadius: BorderRadius.circular(responsive.radius(12)),
@@ -579,15 +768,153 @@ class _OptimizationBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.auto_fix_high_rounded,
-              color: Colors.white, size: 18),
+          const Icon(Icons.auto_fix_high_rounded, color: Colors.white, size: 18),
           SizedBox(width: responsive.w(8)),
           Expanded(
             child: Text(
               'Itinéraire recalculé — trajet optimisé avec succès',
+              style: AppTextStyles.caption(responsive)
+                  .copyWith(color: Colors.white, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LoadingBanner extends StatelessWidget {
+  const _LoadingBanner({required this.responsive});
+  final AppResponsive responsive;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+          horizontal: responsive.w(14), vertical: responsive.h(10)),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(responsive.radius(12)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.10),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: AppColors.primary,
+            ),
+          ),
+          SizedBox(width: responsive.w(10)),
+          Text(
+            'Chargement du trajet…',
+            style: AppTextStyles.caption(responsive)
+                .copyWith(fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ErrorBanner extends StatelessWidget {
+  const _ErrorBanner({
+    required this.responsive,
+    required this.onRetry,
+    required this.message,
+    required this.canRetry,
+  });
+  final AppResponsive responsive;
+  final VoidCallback onRetry;
+  final String message;
+  final bool canRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+          horizontal: responsive.w(14), vertical: responsive.h(10)),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF2F2),
+        borderRadius: BorderRadius.circular(responsive.radius(12)),
+        border: Border.all(color: const Color(0xFFFECACA)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.warning_rounded,
+              color: Color(0xFFE53935), size: 18),
+          SizedBox(width: responsive.w(8)),
+          Expanded(
+            child: Text(
+              message,
+              style: AppTextStyles.caption(responsive)
+                  .copyWith(color: const Color(0xFFE53935)),
+            ),
+          ),
+          if (canRetry) ...[
+            SizedBox(width: responsive.w(8)),
+            GestureDetector(
+              onTap: onRetry,
+              child: Text(
+                'Réessayer',
+                style: AppTextStyles.caption(responsive).copyWith(
+                  color: const Color(0xFFE53935),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ── Fallback mode banner ──────────────────────────────────────────────────────
+
+class _FallbackBanner extends StatelessWidget {
+  const _FallbackBanner({required this.responsive, required this.message, required this.onRetry});
+  final AppResponsive responsive;
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+          horizontal: responsive.w(14), vertical: responsive.h(10)),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBEB),
+        borderRadius: BorderRadius.circular(responsive.radius(12)),
+        border: Border.all(color: const Color(0xFFFDE68A)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline_rounded,
+              color: Color(0xFFD97706), size: 18),
+          SizedBox(width: responsive.w(8)),
+          Expanded(
+            child: Text(
+              message,
+              style: AppTextStyles.caption(responsive)
+                  .copyWith(color: const Color(0xFFD97706)),
+            ),
+          ),
+          GestureDetector(
+            onTap: onRetry,
+            child: Text(
+              'Actualiser',
               style: AppTextStyles.caption(responsive).copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
+                color: const Color(0xFFD97706),
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
@@ -615,8 +942,8 @@ class _StopsPanel extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.vertical(
-            top: Radius.circular(responsive.radius(24))),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(responsive.radius(24))),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.10),
@@ -645,8 +972,7 @@ class _StopsPanel extends StatelessWidget {
                 ),
                 SizedBox(height: responsive.h(16)),
                 Padding(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: responsive.w(16)),
+                  padding: EdgeInsets.symmetric(horizontal: responsive.w(16)),
                   child: Row(
                     children: [
                       Expanded(
@@ -657,13 +983,13 @@ class _StopsPanel extends StatelessWidget {
                                 style: AppTextStyles.h6(responsive)),
                             Obx(() {
                               final approaching = controller.stops
-                                  .where((s) =>
-                                      s.status == StopStatus.approaching)
+                                  .where(
+                                      (s) => s.status == StopStatus.approaching)
                                   .length;
                               return Text(
                                 approaching > 0
                                     ? '$approaching arrêt(s) en approche'
-                                    : 'Glissez vers le haut pour voir tous les arrêts',
+                                    : 'Glissez pour voir tous les arrêts',
                                 style: AppTextStyles.caption(responsive)
                                     .copyWith(
                                   color: approaching > 0
@@ -688,18 +1014,34 @@ class _StopsPanel extends StatelessWidget {
               ],
             ),
           ),
-          Obx(() => SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (_, i) => _StopListTile(
-                    responsive: responsive,
-                    stop: controller.stops[i],
-                    index: i + 1,
-                    controller: controller,
-                    isLast: i == controller.stops.length - 1,
+          Obx(() {
+            if (controller.stops.isEmpty) {
+              return SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                      horizontal: responsive.w(16), vertical: responsive.h(24)),
+                  child: Center(
+                    child: Text(
+                      'Aucun arrêt chargé',
+                      style: AppTextStyles.caption(responsive),
+                    ),
                   ),
-                  childCount: controller.stops.length,
                 ),
-              )),
+              );
+            }
+            return SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (_, i) => _StopListTile(
+                  responsive: responsive,
+                  stop: controller.stops[i],
+                  index: i + 1,
+                  controller: controller,
+                  isLast: i == controller.stops.length - 1,
+                ),
+                childCount: controller.stops.length,
+              ),
+            );
+          }),
           SliverToBoxAdapter(child: SizedBox(height: responsive.h(32))),
         ],
       ),
@@ -743,17 +1085,14 @@ class _StopListTile extends StatelessWidget {
             color: isDone
                 ? AppColors.surfaceMuted
                 : color.withValues(alpha: 0.06),
-            borderRadius:
-                BorderRadius.circular(responsive.radius(14)),
+            borderRadius: BorderRadius.circular(responsive.radius(14)),
             border: Border.all(
-              color: isDone
-                  ? AppColors.border
-                  : color.withValues(alpha: 0.35),
+              color:
+                  isDone ? AppColors.border : color.withValues(alpha: 0.35),
             ),
           ),
           child: Row(
             children: [
-              // Index badge
               Container(
                 width: responsive.w(36),
                 height: responsive.w(36),
@@ -764,8 +1103,7 @@ class _StopListTile extends StatelessWidget {
                 child: Center(
                   child: isDone
                       ? Icon(Icons.check_rounded,
-                          color: Colors.white,
-                          size: responsive.text(16))
+                          color: Colors.white, size: responsive.text(16))
                       : Text(
                           '$index',
                           style: TextStyle(
@@ -776,18 +1114,7 @@ class _StopListTile extends StatelessWidget {
                         ),
                 ),
               ),
-              // Connector
-              if (!isLast)
-                Padding(
-                  padding: EdgeInsets.only(left: responsive.w(16)),
-                  child: Container(
-                    width: 2,
-                    height: responsive.h(40),
-                    color: AppColors.border,
-                  ),
-                ),
               SizedBox(width: responsive.w(12)),
-              // Info
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -797,8 +1124,7 @@ class _StopListTile extends StatelessWidget {
                         Expanded(
                           child: Text(
                             stop.passengerName,
-                            style: AppTextStyles.subtitle(responsive)
-                                .copyWith(
+                            style: AppTextStyles.subtitle(responsive).copyWith(
                               fontWeight: FontWeight.w700,
                               color: isDone
                                   ? AppColors.textGhost
@@ -819,10 +1145,8 @@ class _StopListTile extends StatelessWidget {
                           ),
                           child: Text(
                             controller.stopStatusLabel(stop.status),
-                            style: AppTextStyles.caption(responsive)
-                                .copyWith(
-                              color: controller
-                                  .stopStatusColor(stop.status),
+                            style: AppTextStyles.caption(responsive).copyWith(
+                              color: controller.stopStatusColor(stop.status),
                               fontWeight: FontWeight.w600,
                               fontSize: responsive.text(10),
                             ),
@@ -844,8 +1168,7 @@ class _StopListTile extends StatelessWidget {
                         Expanded(
                           child: Text(
                             stop.address,
-                            style: AppTextStyles.caption(responsive)
-                                .copyWith(
+                            style: AppTextStyles.caption(responsive).copyWith(
                               color: isDone
                                   ? AppColors.textGhost
                                   : AppColors.textHint,
@@ -853,12 +1176,11 @@ class _StopListTile extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        if (!isDone) ...[
+                        if (!isDone && stop.eta.isNotEmpty) ...[
                           SizedBox(width: responsive.w(8)),
                           Text(
                             stop.eta,
-                            style: AppTextStyles.caption(responsive)
-                                .copyWith(
+                            style: AppTextStyles.caption(responsive).copyWith(
                               color: color,
                               fontWeight: FontWeight.w700,
                             ),
@@ -892,8 +1214,7 @@ class _StopListTile extends StatelessWidget {
               ),
               if (!isDone)
                 Icon(Icons.chevron_right_rounded,
-                    color: AppColors.textGhost,
-                    size: responsive.text(20)),
+                    color: AppColors.textGhost, size: responsive.text(20)),
             ],
           ),
         ),
@@ -902,50 +1223,166 @@ class _StopListTile extends StatelessWidget {
   }
 }
 
-// ── Recalculate FAB ───────────────────────────────────────────────────────────
+// ── FAB widgets ───────────────────────────────────────────────────────────────
 
 class _RecalculateFab extends StatelessWidget {
-  const _RecalculateFab(
-      {required this.responsive, required this.controller});
-
+  const _RecalculateFab({required this.responsive, required this.controller});
   final AppResponsive responsive;
   final InteractiveMapController controller;
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() => GestureDetector(
-          onTap: controller.recalculateRoute,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
-            width: responsive.w(52),
-            height: responsive.w(52),
-            decoration: BoxDecoration(
-              color: controller.isRecalculating.value
-                  ? AppColors.textGhost
-                  : AppColors.primary,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.40),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: controller.isRecalculating.value
-                ? const Center(
-                    child: SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        color: Colors.white,
+    return Obx(() => Tooltip(
+          message: 'Recalculer l\'itinéraire',
+          child: GestureDetector(
+            onTap: controller.recalculateRoute,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              width: responsive.w(48),
+              height: responsive.w(48),
+              decoration: BoxDecoration(
+                color: controller.isRecalculating.value
+                    ? AppColors.textGhost
+                    : AppColors.primary,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.40),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: controller.isRecalculating.value
+                  ? const Center(
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
-                  )
-                : Icon(Icons.my_location_rounded,
-                    color: Colors.white, size: responsive.text(22)),
+                    )
+                  : Icon(Icons.route_rounded,
+                      color: Colors.white, size: responsive.text(20)),
+            ),
           ),
         ));
+  }
+}
+
+class _CenterDriverFab extends StatelessWidget {
+  const _CenterDriverFab({required this.responsive, required this.controller});
+  final AppResponsive responsive;
+  final InteractiveMapController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'Centrer sur ma position',
+      child: GestureDetector(
+        onTap: controller.centerOnDriver,
+        child: Container(
+          width: responsive.w(48),
+          height: responsive.w(48),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            shape: BoxShape.circle,
+            border: Border.all(color: AppColors.border),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.12),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Icon(Icons.my_location_rounded,
+              color: AppColors.primary, size: responsive.text(20)),
+        ),
+      ),
+    );
+  }
+}
+
+class _FitAllFab extends StatelessWidget {
+  const _FitAllFab({required this.responsive, required this.onTap});
+  final AppResponsive responsive;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'Voir tous les arrêts',
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: responsive.w(48),
+          height: responsive.w(48),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            shape: BoxShape.circle,
+            border: Border.all(color: AppColors.border),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.12),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Icon(Icons.fit_screen_rounded,
+              color: AppColors.textSecondary, size: responsive.text(20)),
+        ),
+      ),
+    );
+  }
+}
+
+class _GoogleMapsFab extends StatelessWidget {
+  const _GoogleMapsFab({required this.responsive, required this.controller});
+  final AppResponsive responsive;
+  final InteractiveMapController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'Naviguer avec Google Maps',
+      child: GestureDetector(
+        onTap: controller.openNextStopInGoogleMaps,
+        child: Container(
+          height: responsive.w(48),
+          padding: EdgeInsets.symmetric(horizontal: responsive.w(14)),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A73E8),
+            borderRadius: BorderRadius.circular(responsive.radius(24)),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF1A73E8).withValues(alpha: 0.40),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.map_rounded, color: Colors.white, size: 18),
+              SizedBox(width: responsive.w(6)),
+              Text(
+                'Google Maps',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: responsive.text(13),
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

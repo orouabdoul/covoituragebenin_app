@@ -117,10 +117,6 @@ class WaitingApprovalController extends GetxController {
     });
   }
 
-  void _onTimeout() {
-    _cancelTimers();
-    status.value = WaitingStatus.timeout;
-  }
 
   void cancelRequest() {
     _cancelTimers();

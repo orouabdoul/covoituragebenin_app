@@ -29,6 +29,7 @@ class DriverNotificationsController extends GetxController {
     _fetch(f);
   }
 
+  @override
   Future<void> refresh() => _fetch(selectedFilter.value);
 
   Future<void> _fetch(NotifFilterType f) async {

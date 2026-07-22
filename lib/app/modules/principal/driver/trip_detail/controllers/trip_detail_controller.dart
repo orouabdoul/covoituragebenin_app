@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/services/driver/trip_detail/trip_detail_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/trips/trips_service.dart';
-import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
@@ -144,7 +143,10 @@ class TripDetailController extends GetxController {
   }
 
   void onViewMap() {
-    Get.toNamed(AppRoutes.driverInteractiveMap, arguments: {'trip': trip});
+    Get.toNamed(AppRoutes.driverInteractiveMap, arguments: {
+      'uuid': _tripUuid,
+      'trip': trip,
+    });
   }
 
   void onEditTrip() {

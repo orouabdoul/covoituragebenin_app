@@ -42,9 +42,15 @@ import 'package:covoiturage_benin_app/app/routes/app_pages.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Pré-initialise SharedPreferences une seule fois au démarrage.
+  // Sans ça, chaque premier appel à getInstance() sur MIUI/Xiaomi peut
+  // bloquer le main thread plusieurs secondes (disk I/O via platform channel).
+  await SharedPreferences.getInstance();
 
   Get.put(LoadingController());
   Get.put(UserController());

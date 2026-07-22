@@ -47,6 +47,10 @@ class SplashController extends GetxController {
 		final hasSeenOnboarding = prefs.getBool('has_seen_onboarding') ?? false;
 
 		if (!hasSeenOnboarding) {
+			// Marquer comme vu ICI pendant le splash (prefs déjà chargé, aucun blocage).
+			// Ne jamais écrire dans SharedPreferences depuis un tap — cela bloque le
+			// thread UI natif sur MIUI/Xiaomi (~26 s) même avec .then().
+			prefs.setBool('has_seen_onboarding', true);
 			Get.offAllNamed(AppRoutes.onboarding);
 			return;
 		}

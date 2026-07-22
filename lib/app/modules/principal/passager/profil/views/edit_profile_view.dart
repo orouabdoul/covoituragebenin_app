@@ -195,7 +195,7 @@ class _AvatarSection extends StatelessWidget {
 													: Image.network(
 															'https://placehold.co/96x96.png',
 															fit: BoxFit.cover,
-															errorBuilder: (_, _e, _s) => const Icon(
+															errorBuilder: (_, e, s) => const Icon(
 																Icons.person_rounded,
 																color: AppColors.textHint,
 																size: 48,

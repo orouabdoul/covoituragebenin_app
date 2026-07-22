@@ -55,7 +55,7 @@ class _SkeletonLoaderState extends State<SkeletonLoader>
 
     return AnimatedBuilder(
       animation: _animation,
-      builder: (_, __) => Container(
+      builder: (_, _) => Container(
         width: widget.width,
         height: widget.height,
         decoration: BoxDecoration(

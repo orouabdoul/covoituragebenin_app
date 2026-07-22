@@ -120,7 +120,7 @@ class EndTripController extends GetxController {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           decoration: BoxDecoration(
-                            color: isSelected ? c.$3.withOpacity(0.12) : AppColors.surface,
+                            color: isSelected ? c.$3.withValues(alpha: 0.12) : AppColors.surface,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: isSelected ? c.$3 : AppColors.border,

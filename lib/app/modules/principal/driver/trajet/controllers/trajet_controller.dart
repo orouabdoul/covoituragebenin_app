@@ -7,6 +7,7 @@ import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/trips/trips_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
+import 'package:covoiturage_benin_app/app/data/models/driver/trip_model.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/trips_model.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
@@ -184,30 +185,70 @@ class TrajetController extends GetxController {
 
   void selectFilter(TrajetFilterType filter) {
     selectedFilter.value = filter;
-    // Load from API if not cached yet (list is empty)
-    if (_tripsByFilter[filter]?.isEmpty ?? true) {
-      _loadTrips(filter);
-    }
+    _loadTrips(filter);
   }
+
+  void forceRefreshActive() => _loadTrips(TrajetFilterType.active);
 
   void onCreateTrip() => Get.toNamed(AppRoutes.driverAddTrip);
 
   void onPrimaryAction(TrajetCardData trip) {
     switch (trip.primaryActionCode) {
       case 'start':
+        // Pré-départ : checklist avant de démarrer
+        Get.toNamed(AppRoutes.driverActiveTrip,
+            arguments: {'trip': _toTripModel(trip)});
       case 'navigate':
-        Get.toNamed(AppRoutes.driverInteractiveMap,
-            arguments: {'trip': trip});
+        // Trajet déjà actif : aller directement à "Trajet en cours"
+        Get.toNamed(AppRoutes.driverRunningTrip,
+            arguments: {'uuid': trip.uuid});
       default:
         if (selectedFilter.value == TrajetFilterType.active) {
-          Get.toNamed(AppRoutes.driverInteractiveMap,
-              arguments: {'trip': trip});
+          Get.toNamed(AppRoutes.driverRunningTrip,
+              arguments: {'uuid': trip.uuid});
         } else {
           UIHelper().showSnackBar(
               'MINIZON', '${trip.passengerActionLabel} — ${trip.routeLabel}', 1);
         }
     }
   }
+
+  /// Tap sur le corps de la card → carte interactive
+  void onCardTap(TrajetCardData trip) {
+    Get.toNamed(AppRoutes.driverInteractiveMap,
+        arguments: {'uuid': trip.uuid, 'trip': _toTripModel(trip)});
+  }
+
+  /// Construit un TripModel minimal depuis TrajetCardData pour le fallback carte.
+  TripModel _toTripModel(TrajetCardData t) => TripModel(
+        id: t.uuid,
+        origin: t.origin,
+        destination: t.destination,
+        departureTime: t.departureTime,
+        totalSeats: 4,
+        status: TripStatus.active,
+        passengers: t.passengers
+            .asMap()
+            .entries
+            .map((e) => TripPassengerModel(
+                  id: 'p${e.key}',
+                  name: e.value,
+                  avatarInitial: e.value.isNotEmpty
+                      ? e.value[0].toUpperCase()
+                      : '?',
+                  rating: 0,
+                  tripsCount: 0,
+                  seatsBooked: 1,
+                  amount: 0,
+                  paymentStatus: PassengerPaymentStatus.pending,
+                  isVerified: false,
+                ))
+            .toList(),
+        pricePerSeat: 0,
+        distanceKm: 0,
+        durationMin: 0,
+        publishedAgo: t.publishedAgo,
+      );
 
   Future<void> onPassengers(TrajetCardData trip) async {
     if (trip.uuid.isEmpty) return;

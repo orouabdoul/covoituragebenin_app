@@ -18,6 +18,7 @@ class MapStopData {
     required this.address,
     required this.eta,
     required this.latlng,
+    this.phone,
   });
 
   final String id; // also used as bookingUuid for stop-done endpoint
@@ -27,6 +28,7 @@ class MapStopData {
   final String address;
   final String eta;
   final LatLngData latlng;
+  final String? phone;
 
   factory MapStopData.fromJson(Map<String, dynamic> j) => MapStopData(
         id: j['id'] as String? ?? '',
@@ -36,6 +38,7 @@ class MapStopData {
         address: j['address'] as String? ?? '',
         eta: j['eta'] as String? ?? '',
         latlng: LatLngData.fromJson(j['latlng'] as Map<String, dynamic>? ?? {}),
+        phone: j['passenger_phone'] as String?,
       );
 }
 

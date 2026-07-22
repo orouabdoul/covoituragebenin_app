@@ -236,7 +236,7 @@ class _NotifCard extends StatelessWidget {
           color: notif.isRead ? AppColors.white : AppColors.surfaceAccent,
           borderRadius: BorderRadius.circular(r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
           border: Border.all(
-            color: notif.isRead ? AppColors.border : AppColors.primary.withOpacity(0.2),
+            color: notif.isRead ? AppColors.border : AppColors.primary.withValues(alpha: 0.2),
           ),
         ),
         child: Row(

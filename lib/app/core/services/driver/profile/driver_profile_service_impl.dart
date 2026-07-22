@@ -93,9 +93,9 @@ class DriverProfileServiceImpl implements DriverProfileService {
         data: {
           'auto_availability': autoAvailability,
           'notifications_enabled': notificationsEnabled,
-          if (language != null) 'language': language,
-          if (shareLocation != null) 'share_location': shareLocation,
-          if (shareActivity != null) 'share_activity': shareActivity,
+          'language': ?language,
+          'share_location': ?shareLocation,
+          'share_activity': ?shareActivity,
         },
         options: opts,
       );

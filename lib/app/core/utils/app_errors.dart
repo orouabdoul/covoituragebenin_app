@@ -35,6 +35,8 @@ enum AppError {
         return 'Numéro de téléphone invalide.';
       case AppError.phoneAlreadyInUse:
         return 'Ce numéro est déjà utilisé.';
+      case AppError.permissionDenied:
+        return 'Accès refusé — démarrez votre trajet pour accéder à la navigation.';
       case AppError.unAuthenticated:
         return 'Session expirée. Reconnectez-vous.';
       case AppError.endpointNotAvailable:
