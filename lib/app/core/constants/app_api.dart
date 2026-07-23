@@ -8,6 +8,7 @@ class AppApi {
   static const String register  = '/auth/register';
   static const String logout    = '/auth/logout';
   static const String me        = '/auth/me';
+  static const String fcmToken  = '/auth/fcm-token';
 
   // Bookings — conducteur
   static const String driverBookings = '/driver/bookings';

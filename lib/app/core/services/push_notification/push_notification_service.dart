@@ -1,11 +1,15 @@
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
 
+import '../../constants/app_api.dart';
+import '../../controller/user_controller.dart';
+import '../../utils/app_dio.dart';
 import '../../utils/logger.dart';
 import '../../../routes/app_routes.dart';
 
@@ -13,7 +17,7 @@ import '../../../routes/app_routes.dart';
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  _PushNotificationService._showLocalNotificationStatic(message);
+  PushNotificationService._showLocalNotificationStatic(message);
 }
 
 class PushNotificationService {
@@ -192,39 +196,152 @@ class PushNotificationService {
   }
 
   void _navigate(Map<String, dynamic> data) {
-    final type = data['type'] as String? ?? '';
+    final type        = data['type'] as String? ?? '';
+    final role        = data['role'] as String? ?? '';
+    final tripUuid    = data['trip_uuid']         as String?;
+    final bookingUuid = data['booking_uuid']       as String?;
+    final convUuid    = data['conversation_uuid']  as String?;
+
     switch (type) {
+
+      // ── Réservations ────────────────────────────────────────────────────────
       case 'reservation_new':
+        // Passager a réservé → conducteur voit ses réservations
+        Get.toNamed(AppRoutes.driverReservations);
+
       case 'reservation_accepted':
+        // Conducteur a accepté → passager attend l'approbation ou suit le statut
+        Get.toNamed(
+          AppRoutes.passengerWaitingApproval,
+          arguments: bookingUuid != null ? {'booking_uuid': bookingUuid} : null,
+        );
+
       case 'reservation_rejected':
-        final role = data['role'] as String? ?? '';
+        // Conducteur a rejeté → passager voit ses réservations
+        Get.toNamed(AppRoutes.passengerReservations);
+
+      case 'booking_cancelled':
+        // Passager a annulé → conducteur voit ses réservations
+        Get.toNamed(AppRoutes.driverReservations);
+
+      case 'trip_cancelled':
+        // Conducteur a annulé le trajet → passager voit ses réservations
+        Get.toNamed(AppRoutes.passengerReservations);
+
+      // ── Trajet en cours ─────────────────────────────────────────────────────
+      case 'trip_started':
+        // Conducteur démarre → passager va sur le suivi en direct
+        Get.toNamed(
+          AppRoutes.passengerLiveTracking,
+          arguments: {
+            if (tripUuid    != null) 'tripUuid':    tripUuid,
+            if (bookingUuid != null) 'bookingUuid': bookingUuid,
+          },
+        );
+
+      case 'trip_proximity':
+        // Conducteur à 1 km → passager va sur l'écran d'arrivée du conducteur
+        Get.toNamed(
+          AppRoutes.passengerDriverArrival,
+          arguments: {
+            if (tripUuid    != null) 'tripUuid':    tripUuid,
+            if (bookingUuid != null) 'bookingUuid': bookingUuid,
+          },
+        );
+
+      case 'trip_ended':
+        // Trajet terminé → passager confirme la fin du trajet
+        Get.toNamed(
+          AppRoutes.passengerTripConfirmation,
+          arguments: {
+            if (tripUuid    != null) 'tripUuid':    tripUuid,
+            if (bookingUuid != null) 'bookingUuid': bookingUuid,
+          },
+        );
+
+      case 'trip_reminder':
+        // Rappel avant départ → conducteur voit son trajet actif
         if (role == 'driver') {
-          Get.toNamed(AppRoutes.driverReservations);
+          Get.toNamed(AppRoutes.driverActiveTrip);
         } else {
           Get.toNamed(AppRoutes.passengerReservations);
         }
-      case 'trip_started':
-      case 'trip_proximity':
-        Get.toNamed(AppRoutes.passengerLiveTracking);
+
+      // ── Messagerie ──────────────────────────────────────────────────────────
       case 'message_new':
-        final role = data['role'] as String? ?? '';
-        final conversationUuid = data['conversation_uuid'] as String?;
         if (role == 'driver') {
-          Get.toNamed(AppRoutes.driverMessages);
+          if (convUuid != null) {
+            Get.toNamed(
+              AppRoutes.driverMessageDetail,
+              arguments: {'uuid': convUuid},
+            );
+          } else {
+            Get.toNamed(AppRoutes.driverMessages);
+          }
         } else {
-          if (conversationUuid != null) {
+          if (convUuid != null) {
             Get.toNamed(
               AppRoutes.passengerMessageDetail,
-              arguments: {'uuid': conversationUuid},
+              arguments: {'uuid': convUuid},
             );
           } else {
             Get.toNamed(AppRoutes.passengerMessages);
           }
         }
+
+      // ── Paiements ───────────────────────────────────────────────────────────
+      case 'payment_success':
+        if (role == 'driver') {
+          Get.toNamed(AppRoutes.driverPaymentHistory);
+        } else {
+          Get.toNamed(AppRoutes.passengerReservations);
+        }
+
+      case 'withdrawal_approved':
+      case 'withdrawal_rejected':
+        Get.toNamed(AppRoutes.driverWithdraw);
+
+      // ── Remboursements ──────────────────────────────────────────────────────
+      case 'refund_approved':
+      case 'refund_rejected':
+        Get.toNamed(AppRoutes.passengerRefundHistory);
+
+      // ── Avis ────────────────────────────────────────────────────────────────
+      case 'review_new':
+        // Passager a laissé un avis → conducteur voit ses avis
+        Get.toNamed(AppRoutes.driverReviews);
+
+      case 'review_reply':
+        // Conducteur a répondu → passager voit ses avis
+        Get.toNamed(AppRoutes.passengerMyReviews);
+
+      // ── Compte ──────────────────────────────────────────────────────────────
+      case 'account_verified':
+        if (role == 'driver') {
+          Get.toNamed(AppRoutes.dashboardDriver);
+        } else {
+          Get.toNamed(AppRoutes.dashboardPassenger);
+        }
+
+      case 'account_blocked':
+        // Pas de navigation — l'app redirigera vers login au prochain lancement
+        break;
+
+      // ── Sécurité ────────────────────────────────────────────────────────────
+      case 'sos_triggered':
+        if (role == 'driver') {
+          Get.toNamed(AppRoutes.driverSafetyCenter);
+        } else {
+          Get.toNamed(AppRoutes.passengerSafetyCenter);
+        }
+
+      // ── Notifications générales ─────────────────────────────────────────────
       case 'driver_notifications':
         Get.toNamed(AppRoutes.driverNotifications);
+
       case 'passenger_notifications':
         Get.toNamed(AppRoutes.passengerNotifications);
+
       default:
         break;
     }
@@ -241,9 +358,36 @@ class PushNotificationService {
     }
   }
 
+  /// Envoie le token FCM au backend Laravel.
+  /// À appeler après chaque connexion réussie.
+  Future<void> registerFcmToken() async {
+    try {
+      final token = await _fcm.getToken();
+      if (token == null) return;
+      final sessionToken = await UserController.instance.getSessionToken();
+      if (sessionToken.isEmpty) return;
+      final dio = AppDio.create();
+      await dio.post(
+        AppApi.fcmToken,
+        data: {'fcm_token': token},
+        options: Options(
+          validateStatus: (_) => true,
+          headers: {'Authorization': 'Bearer $sessionToken'},
+        ),
+      );
+      logger.d('FCM token enregistré: $token');
+    } catch (e) {
+      logger.e('registerFcmToken: $e');
+    }
+  }
+
   void _logToken() {
     _fcm.getToken().then((t) => logger.d('FCM Token: $t'));
-    _fcm.onTokenRefresh.listen((t) => logger.d('FCM Token refreshed: $t'));
+    // Re-enregistre automatiquement si le token est renouvelé par Firebase
+    _fcm.onTokenRefresh.listen((t) {
+      logger.d('FCM Token refreshed: $t');
+      registerFcmToken();
+    });
   }
 
   // ── Helpers payload ───────────────────────────────────────────────────────

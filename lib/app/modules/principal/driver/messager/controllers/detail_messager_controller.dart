@@ -65,11 +65,9 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
-      // App en arrière-plan : on arrête le polling
       _pollingTimer?.cancel();
       _pollingTimer = null;
     } else if (state == AppLifecycleState.resumed) {
-      // App revenue au premier plan : on reprend le polling immédiatement
       if (_uuid.isNotEmpty) {
         _pollForNewMessages();
         _startPolling();
@@ -154,7 +152,7 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
         .where((m) => m.id > 0 && m.id > _latestSeenId)
         .toList();
 
-    // Fallback : si l'autre envoie un message, on le marque actif même si is_online est faux
+    // Fallback : si l'autre envoie un message et que Firebase n'est pas configuré
     if (newApiMessages.any((m) => m.kind == 'incoming')) {
       _markOtherUserActive();
     }
@@ -208,8 +206,7 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
     displayPhone.value = ctx.otherUser.phone;
     displayTripRoute.value = ctx.trip.route;
     displayTripDepartureLabel.value = ctx.trip.departureTimeLabel;
-    // Dès que l'API signale que l'autre est en ligne (connexion au chat),
-    // on démarre/réinitialise le timer de présence de 5 min.
+    // API is_online comme signal supplémentaire (si le backend l'implémente)
     if (ctx.otherUser.isOnline) {
       _markOtherUserActive();
     } else if (!(_presenceTimer?.isActive ?? false)) {
@@ -315,10 +312,8 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
       if (idx >= messages.length) return;
 
       final msg = messages[idx];
-      // Tracking local persistant pour réapplication après rechargement
       if (msg.messageId > 0) _localEdits[msg.messageId] = text;
       messages[idx] = msg.copyWith(message: text, isEdited: true);
-      // Fire-and-forget API si UUID disponible
       if (msg.messageUuid.isNotEmpty) {
         _service.editMessage(msg.messageUuid, text);
       }
@@ -543,10 +538,8 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
                           Get.back();
                           if (index >= messages.length) return;
                           final m = messages[index];
-                          // Tracking local persistant pour réapplication après rechargement
                           if (m.messageId > 0) _deletedIds.add(m.messageId);
                           messages.removeAt(index);
-                          // Fire-and-forget API si UUID disponible
                           if (m.messageUuid.isNotEmpty) {
                             _service.deleteMessage(m.messageUuid);
                           }
@@ -845,8 +838,8 @@ class DetailMessage {
   final String time;
   final String rawDate;
   final String dateLabel;
-  final int messageId;    // ID entier pour tracking local (delete/edit)
-  final String messageUuid; // UUID pour delete/edit via API
+  final int messageId;
+  final String messageUuid;
   final bool isEdited;
   final String title;
   final String subtitle;

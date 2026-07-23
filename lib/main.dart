@@ -1,6 +1,5 @@
 import 'package:covoiturage_benin_app/app/core/controller/loading_controller.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
-import 'package:covoiturage_benin_app/app/core/services/presence/presence_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/push_notification/push_notification_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:covoiturage_benin_app/app/core/services/auth/auth_service.dart';
@@ -51,7 +50,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp();
-  PresenceService.instance.markReady();
 
   // Pré-initialise SharedPreferences une seule fois au démarrage.
   // Sans ça, chaque premier appel à getInstance() sur MIUI/Xiaomi peut

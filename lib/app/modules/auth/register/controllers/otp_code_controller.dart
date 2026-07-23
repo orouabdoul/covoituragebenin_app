@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/auth_mode.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/services/auth/auth_service.dart';
+import 'package:covoiturage_benin_app/app/core/services/push_notification/push_notification_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/modules/auth/roles/controllers/roles_controller.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
@@ -94,6 +95,9 @@ class OtpCodeController extends GetxController {
       isProfileComplete: auth.profileComplete,
     );
     uc.setRole(effectiveRole);
+
+    // Enregistre le token FCM pour les notifications push (fire-and-forget)
+    PushNotificationService.instance.registerFcmToken();
 
     // Envoyer le rôle au serveur lors d'une inscription (correction du défaut "passenger")
     if (_mode == AuthMode.register && _role != null) {
