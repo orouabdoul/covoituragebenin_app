@@ -240,6 +240,7 @@ class _HeroCard extends StatelessWidget {
               Container(
                 width: responsive.w(96),
                 height: responsive.w(96),
+                clipBehavior: Clip.antiAlias,
                 decoration: ShapeDecoration(
                   color: AppColors.white.withValues(alpha: 0.20),
                   shape: RoundedRectangleBorder(
@@ -247,11 +248,21 @@ class _HeroCard extends StatelessWidget {
                     side: const BorderSide(width: 4, color: AppColors.white),
                   ),
                 ),
-                child: Icon(
-                  Icons.person_rounded,
-                  color: AppColors.white,
-                  size: responsive.text(48),
-                ),
+                child: controller.heroAvatarUrl.isNotEmpty
+                    ? Image.network(
+                        controller.heroAvatarUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Icon(
+                          Icons.person_rounded,
+                          color: AppColors.white,
+                          size: responsive.text(48),
+                        ),
+                      )
+                    : Icon(
+                        Icons.person_rounded,
+                        color: AppColors.white,
+                        size: responsive.text(48),
+                      ),
               ),
               Positioned(
                 right: -4,
@@ -322,7 +333,9 @@ class _HeroCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: _HeroMetric(
-                    value: controller.heroRating.toStringAsFixed(1),
+                    value: controller.heroRating > 0
+                        ? controller.heroRating.toStringAsFixed(1)
+                        : '—',
                     label: AppStrings.driverProfileSummaryRatingLabel,
                   ),
                 ),
@@ -817,17 +830,28 @@ class _VehicleCard extends StatelessWidget {
             Container(
               width: responsive.w(74),
               height: responsive.w(74),
+              clipBehavior: Clip.antiAlias,
               decoration: ShapeDecoration(
                 color: AppColors.surfaceSoft,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(responsive.radius(12)),
                 ),
               ),
-              child: Icon(
-                Icons.directions_car_rounded,
-                color: AppColors.textHint,
-                size: responsive.text(30),
-              ),
+              child: vehicle.photoUrl != null
+                  ? Image.network(
+                      vehicle.photoUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Icon(
+                        Icons.directions_car_rounded,
+                        color: AppColors.textHint,
+                        size: responsive.text(30),
+                      ),
+                    )
+                  : Icon(
+                      Icons.directions_car_rounded,
+                      color: AppColors.textHint,
+                      size: responsive.text(30),
+                    ),
             ),
             SizedBox(width: responsive.w(12)),
             Expanded(

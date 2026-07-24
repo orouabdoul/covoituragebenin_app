@@ -107,16 +107,14 @@ class _TopBar extends StatelessWidget {
             ),
           ),
           SizedBox(width: responsive.w(12)),
-          Obx(() => AppCircularButton(
-            responsive: responsive,
-            icon: controller.isEditMode.value
-                ? Icons.delete_outline_rounded
-                : Icons.save_outlined,
-            onTap: controller.isEditMode.value
-                ? controller.onDeleteVehicle
-                : controller.onSaveAsDraft,
-            size: responsive.w(40),
-          )),
+          Obx(() => controller.isEditMode.value
+              ? AppCircularButton(
+                  responsive: responsive,
+                  icon: Icons.delete_outline_rounded,
+                  onTap: controller.onDeleteVehicle,
+                  size: responsive.w(40),
+                )
+              : SizedBox(width: responsive.w(40))),
         ],
       ),
     );
@@ -343,14 +341,6 @@ class _VehicleInfoForm extends StatelessWidget {
                 isMoto: controller.selectedVehicleType.value == VehicleType.motorcycle,
                 onIncrement: controller.incrementSeats,
                 onDecrement: controller.decrementSeats,
-              )),
-          SizedBox(height: responsive.h(16)),
-
-          // ── Carburant ────────────────────────────────────────────────────
-          Obx(() => _FuelSelector(
-                responsive: responsive,
-                selected: controller.selectedFuel.value,
-                onSelect: controller.selectFuel,
               )),
         ],
       ),
@@ -1024,84 +1014,6 @@ class _CounterBtn extends StatelessWidget {
   }
 }
 
-// ─── Fuel selector ────────────────────────────────────────────────────────────
-
-class _FuelSelector extends StatelessWidget {
-  const _FuelSelector({
-    required this.responsive,
-    required this.selected,
-    required this.onSelect,
-  });
-
-  final AppResponsive responsive;
-  final String? selected;
-  final void Function(String) onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          AppStrings.driverVehicleFuel,
-          style: AppTextStyles.profileSectionLabel(responsive).copyWith(
-            color: AppColors.textSecondary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        SizedBox(height: responsive.h(10)),
-        Wrap(
-          spacing: responsive.w(8),
-          runSpacing: responsive.h(8),
-          children: AddVehicleController.fuelOptions.map((fuel) {
-            final isSelected = selected == fuel;
-            return GestureDetector(
-              onTap: () => onSelect(fuel),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                padding: EdgeInsets.symmetric(
-                  horizontal: responsive.w(14),
-                  vertical: responsive.h(8),
-                ),
-                decoration: ShapeDecoration(
-                  color: isSelected ? AppColors.primary : const Color(0xFFF9FAFB),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(responsive.radius(12)),
-                    side: BorderSide(
-                      color: isSelected ? AppColors.primary : AppColors.border,
-                      width: isSelected ? 2 : 1,
-                    ),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (isSelected) ...[
-                      Icon(Icons.check_circle_rounded,
-                          size: responsive.text(14), color: AppColors.white),
-                      SizedBox(width: responsive.w(5)),
-                    ],
-                    Text(
-                      fuel,
-                      style: AppTextStyles.caption(responsive).copyWith(
-                        color: isSelected
-                            ? AppColors.white
-                            : AppColors.textSecondary,
-                        fontWeight:
-                            isSelected ? FontWeight.w600 : FontWeight.w400,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
-}
-
 // ─── Generic form field ───────────────────────────────────────────────────────
 
 class _FormField extends StatelessWidget {
@@ -1170,13 +1082,6 @@ class _PhotoUploadSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final photoSlots = [
-      ('Vue avant', Icons.camera_alt_rounded),
-      ('Vue arrière', Icons.camera_alt_rounded),
-      ('Intérieur', Icons.camera_alt_rounded),
-      ('Plaque', Icons.image_rounded),
-    ];
-
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(responsive.adaptive(phone: 24, smallPhone: 20, tablet: 24, desktop: 24)),
@@ -1201,90 +1106,52 @@ class _PhotoUploadSection extends StatelessWidget {
             style: AppTextStyles.caption(responsive)
                 .copyWith(color: AppColors.textMuted),
           ),
-          SizedBox(height: responsive.h(24)),
+          SizedBox(height: responsive.h(20)),
           Obx(() {
-            controller.photoCount.value;
-            return Wrap(
-              spacing: responsive.w(12),
-              runSpacing: responsive.h(12),
-              children: photoSlots
-                  .map((slot) => _PhotoUploadSlot(
-                        responsive: responsive,
-                        label: slot.$1,
-                        icon: slot.$2,
-                        hasPhoto: controller.hasVehiclePhoto(slot.$1),
-                        onTap: () {
-                          _showImageSourcePicker(context, responsive).then((src) {
-                            if (src != null) controller.pickVehiclePhoto(slot.$1, src);
-                          });
-                        },
-                      ))
-                  .toList(growable: false),
+            final hasPhoto = controller.hasVehiclePhoto;
+            controller.filesVersion.value;
+            return GestureDetector(
+              onTap: () {
+                _showImageSourcePicker(context, responsive).then((src) {
+                  if (src != null) controller.pickVehiclePhoto(src);
+                });
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                height: responsive.w(120),
+                decoration: ShapeDecoration(
+                  color: hasPhoto ? AppColors.successLight : const Color(0xFFF9FAFB),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(responsive.radius(16)),
+                    side: BorderSide(
+                      width: 2,
+                      color: hasPhoto ? AppColors.success : const Color(0xFFD1D5DB),
+                      style: hasPhoto ? BorderStyle.solid : BorderStyle.solid,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      hasPhoto ? Icons.check_circle_rounded : Icons.add_a_photo_rounded,
+                      size: responsive.text(28),
+                      color: hasPhoto ? AppColors.success : AppColors.textMuted,
+                    ),
+                    SizedBox(width: responsive.w(12)),
+                    Text(
+                      hasPhoto ? 'Photo ajoutée ✓' : 'Ajouter une photo du véhicule',
+                      style: AppTextStyles.profileSectionLabel(responsive).copyWith(
+                        color: hasPhoto ? AppColors.success : AppColors.textMuted,
+                        fontWeight: hasPhoto ? FontWeight.w600 : FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             );
           }),
         ],
-      ),
-    );
-  }
-}
-
-class _PhotoUploadSlot extends StatelessWidget {
-  const _PhotoUploadSlot({
-    required this.responsive,
-    required this.label,
-    required this.icon,
-    required this.onTap,
-    this.hasPhoto = false,
-  });
-
-  final AppResponsive responsive;
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-  final bool hasPhoto;
-
-  @override
-  Widget build(BuildContext context) {
-    final slotSize = responsive.w(142);
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(responsive.radius(16)),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          width: slotSize,
-          height: slotSize,
-          decoration: ShapeDecoration(
-            color: hasPhoto ? AppColors.successLight : const Color(0xFFF9FAFB),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(responsive.radius(16)),
-              side: BorderSide(
-                width: hasPhoto ? 2 : 2,
-                color: hasPhoto ? AppColors.success : const Color(0xFFD1D5DB),
-              ),
-            ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                hasPhoto ? Icons.check_circle_rounded : icon,
-                size: responsive.text(24),
-                color: hasPhoto ? AppColors.success : AppColors.textMuted,
-              ),
-              SizedBox(height: responsive.h(8)),
-              Text(
-                hasPhoto ? 'Ajouté ✓' : label,
-                textAlign: TextAlign.center,
-                style: AppTextStyles.caption(responsive).copyWith(
-                  color: hasPhoto ? AppColors.success : AppColors.textMuted,
-                  fontWeight: hasPhoto ? FontWeight.w600 : FontWeight.w400,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -1296,14 +1163,22 @@ class _DocumentsSection extends StatelessWidget {
   final AppResponsive responsive;
   final AddVehicleController controller;
 
+  static const _docIcons = <String, IconData>{
+    'registration_doc':      Icons.description_rounded,
+    'insurance_doc':         Icons.shield_rounded,
+    'tvm_doc':               Icons.receipt_long_rounded,
+    'technical_control_doc': Icons.build_circle_outlined,
+  };
+
+  static const _docColors = <String, Color>{
+    'registration_doc':      Color(0x192563EB),
+    'insurance_doc':         Color(0x1900A86B),
+    'tvm_doc':               Color(0x19F4B400),
+    'technical_control_doc': Color(0x19E53935),
+  };
+
   @override
   Widget build(BuildContext context) {
-    final documents = [
-      (label: 'Carte grise', icon: Icons.description_rounded, color: const Color(0x192563EB)),
-      (label: 'Assurance', icon: Icons.shield_rounded, color: const Color(0x1900A86B)),
-      (label: 'Permis de conduire', icon: Icons.badge_rounded, color: const Color(0x19F4B400)),
-    ];
-
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(responsive.adaptive(phone: 24, smallPhone: 20, tablet: 24, desktop: 24)),
@@ -1329,20 +1204,45 @@ class _DocumentsSection extends StatelessWidget {
                 .copyWith(color: AppColors.textMuted),
           ),
           SizedBox(height: responsive.h(24)),
-          ...documents.map(
-            (doc) => Column(
-              children: [
-                _DocumentRow(
-                  responsive: responsive,
-                  label: doc.label,
-                  icon: doc.icon,
-                  badgeColor: doc.color,
-                  onTap: () => controller.onAddDocument(doc.label),
-                ),
-                if (doc != documents.last) SizedBox(height: responsive.h(16)),
-              ],
-            ),
-          ),
+          Obx(() {
+            controller.filesVersion.value;
+            return Column(
+              children: AddVehicleController.docSlots.asMap().entries.map((entry) {
+                final i = entry.key;
+                final slot = entry.value;
+                final hasFile = controller.hasDoc(slot.apiKey);
+                return Column(
+                  children: [
+                    _DocumentRow(
+                      responsive: responsive,
+                      label: slot.label,
+                      isRequired: slot.required,
+                      icon: _docIcons[slot.apiKey] ?? Icons.attach_file_rounded,
+                      badgeColor: _docColors[slot.apiKey] ?? const Color(0x19000000),
+                      hasFile: hasFile,
+                      onTap: () {
+                        _showDocSourcePicker(context, responsive).then((src) {
+                          if (src == null) return;
+                          if (src == _DocSource.file) {
+                            controller.pickDocFromFiles(slot.apiKey);
+                          } else {
+                            controller.pickDoc(
+                              slot.apiKey,
+                              src == _DocSource.camera
+                                  ? ImageSource.camera
+                                  : ImageSource.gallery,
+                            );
+                          }
+                        });
+                      },
+                    ),
+                    if (i < AddVehicleController.docSlots.length - 1)
+                      SizedBox(height: responsive.h(16)),
+                  ],
+                );
+              }).toList(),
+            );
+          }),
         ],
       ),
     );
@@ -1353,25 +1253,33 @@ class _DocumentRow extends StatelessWidget {
   const _DocumentRow({
     required this.responsive,
     required this.label,
+    required this.isRequired,
     required this.icon,
     required this.badgeColor,
+    required this.hasFile,
     required this.onTap,
   });
 
   final AppResponsive responsive;
   final String label;
+  final bool isRequired;
   final IconData icon;
   final Color badgeColor;
+  final bool hasFile;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
       padding: EdgeInsets.all(responsive.w(16)),
       decoration: ShapeDecoration(
+        color: hasFile ? AppColors.successLight : Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(responsive.radius(16)),
-          side: const BorderSide(color: AppColors.border),
+          side: BorderSide(
+            color: hasFile ? AppColors.success : AppColors.border,
+          ),
         ),
       ),
       child: Row(
@@ -1380,26 +1288,48 @@ class _DocumentRow extends StatelessWidget {
             width: responsive.w(48),
             height: responsive.w(48),
             decoration: ShapeDecoration(
-              color: badgeColor,
+              color: hasFile ? AppColors.success.withValues(alpha: 0.15) : badgeColor,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(responsive.radius(12)),
               ),
             ),
-            child: Icon(icon, color: AppColors.textSecondary, size: responsive.text(20)),
+            child: Icon(
+              hasFile ? Icons.check_rounded : icon,
+              color: hasFile ? AppColors.success : AppColors.textSecondary,
+              size: responsive.text(20),
+            ),
           ),
           SizedBox(width: responsive.w(16)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  label,
-                  style: AppTextStyles.profileSectionLabel(responsive)
-                      .copyWith(fontWeight: FontWeight.w600),
+                Row(
+                  children: [
+                    Text(
+                      label,
+                      style: AppTextStyles.profileSectionLabel(responsive)
+                          .copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    if (isRequired) ...[
+                      SizedBox(width: responsive.w(4)),
+                      Text(
+                        '*',
+                        style: AppTextStyles.caption(responsive)
+                            .copyWith(color: const Color(0xFFE53935)),
+                      ),
+                    ],
+                  ],
                 ),
                 SizedBox(height: responsive.h(4)),
-                Text('Document obligatoire',
-                    style: AppTextStyles.caption(responsive)),
+                Text(
+                  hasFile
+                      ? 'Fichier ajouté ✓'
+                      : (isRequired ? 'Document obligatoire' : 'Document optionnel'),
+                  style: AppTextStyles.caption(responsive).copyWith(
+                    color: hasFile ? AppColors.success : AppColors.textMuted,
+                  ),
+                ),
               ],
             ),
           ),
@@ -1415,13 +1345,13 @@ class _DocumentRow extends StatelessWidget {
                   vertical: responsive.h(8),
                 ),
                 decoration: ShapeDecoration(
-                  color: AppColors.primary,
+                  color: hasFile ? AppColors.success : AppColors.primary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(responsive.radius(12)),
                   ),
                 ),
                 child: Text(
-                  'Ajouter',
+                  hasFile ? 'Modifier' : 'Ajouter',
                   style: AppTextStyles.profileSectionLabel(responsive).copyWith(
                     color: AppColors.white,
                     fontWeight: FontWeight.w600,
@@ -1547,6 +1477,77 @@ class _RegisterButton extends StatelessWidget {
           height: responsive.adaptive(phone: 56, smallPhone: 52, tablet: 56, desktop: 56),
           borderRadius: responsive.radius(16),
         ));
+  }
+}
+
+// ─── Document source picker (camera / gallery / file) ────────────────────────
+
+enum _DocSource { camera, gallery, file }
+
+Future<_DocSource?> _showDocSourcePicker(
+    BuildContext context, AppResponsive responsive) {
+  return showModalBottomSheet<_DocSource>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (_) => _DocSourceSheet(responsive: responsive),
+  );
+}
+
+class _DocSourceSheet extends StatelessWidget {
+  const _DocSourceSheet({required this.responsive});
+  final AppResponsive responsive;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+          responsive.w(16), responsive.h(12), responsive.w(16), responsive.h(32)),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.vertical(
+            top: Radius.circular(responsive.radius(24))),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: responsive.w(40),
+            height: responsive.h(4),
+            margin: EdgeInsets.only(bottom: responsive.h(20)),
+            decoration: BoxDecoration(
+              color: AppColors.border,
+              borderRadius: BorderRadius.circular(9999),
+            ),
+          ),
+          Text('Ajouter un document',
+              style: AppTextStyles.profileSectionTitle(responsive)),
+          SizedBox(height: responsive.h(16)),
+          _ImageSourceTile(
+            responsive: responsive,
+            icon: Icons.camera_alt_rounded,
+            label: 'Prendre une photo',
+            subtitle: 'Utiliser l\'appareil photo',
+            onTap: () => Navigator.of(context).pop(_DocSource.camera),
+          ),
+          SizedBox(height: responsive.h(12)),
+          _ImageSourceTile(
+            responsive: responsive,
+            icon: Icons.photo_library_rounded,
+            label: 'Galerie',
+            subtitle: 'Choisir depuis les photos',
+            onTap: () => Navigator.of(context).pop(_DocSource.gallery),
+          ),
+          SizedBox(height: responsive.h(12)),
+          _ImageSourceTile(
+            responsive: responsive,
+            icon: Icons.picture_as_pdf_rounded,
+            label: 'Fichier (PDF)',
+            subtitle: 'Choisir un PDF depuis l\'appareil',
+            onTap: () => Navigator.of(context).pop(_DocSource.file),
+          ),
+        ],
+      ),
+    );
   }
 }
 

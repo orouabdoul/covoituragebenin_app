@@ -44,6 +44,8 @@ class WithdrawView extends StatelessWidget {
                       SizedBox(height: r.adaptive(phone: 20, smallPhone: 16, tablet: 24, desktop: 28)),
                       _MethodsSection(r: r, controller: controller),
                       SizedBox(height: r.adaptive(phone: 20, smallPhone: 16, tablet: 24, desktop: 28)),
+                      _PhoneSection(r: r, controller: controller),
+                      SizedBox(height: r.adaptive(phone: 20, smallPhone: 16, tablet: 24, desktop: 28)),
                       _DelayInfo(r: r, controller: controller),
                       SizedBox(height: r.adaptive(phone: 24, smallPhone: 20, tablet: 28, desktop: 32)),
                       Obx(() => AppPrimaryButton(
@@ -145,6 +147,7 @@ class _BalanceCard extends StatelessWidget {
                 ),
               )
             : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'Solde disponible',
@@ -153,7 +156,7 @@ class _BalanceCard extends StatelessWidget {
                   ),
                   SizedBox(height: r.adaptive(phone: 8, smallPhone: 6, tablet: 10, desktop: 12)),
                   Text(
-                    '${controller.availableBalance.value.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]} ')} FCFA',
+                    '${_fmtFcfa(controller.availableBalance.value)} FCFA',
                     style: AppTextStyles.h3(r).copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w800,
@@ -161,9 +164,38 @@ class _BalanceCard extends StatelessWidget {
                   ),
                   SizedBox(height: r.adaptive(phone: 4, smallPhone: 3, tablet: 5, desktop: 6)),
                   Text(
-                    'Disponible immédiatement',
+                    controller.availableBalance.value > 0
+                        ? 'Disponible immédiatement'
+                        : 'Aucun solde disponible',
                     style: AppTextStyles.labelSmall(r)
                         .copyWith(color: Colors.white.withValues(alpha: 0.75)),
+                  ),
+                  SizedBox(height: r.adaptive(phone: 16, smallPhone: 12, tablet: 18, desktop: 20)),
+                  Divider(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    height: 1,
+                  ),
+                  SizedBox(height: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
+                  Row(
+                    children: [
+                      _WalletStat(
+                        r: r,
+                        label: 'En attente',
+                        value: controller.pendingAmount.value,
+                      ),
+                      _WalletStatDivider(),
+                      _WalletStat(
+                        r: r,
+                        label: 'Total gagné',
+                        value: controller.totalRevenue.value,
+                      ),
+                      _WalletStatDivider(),
+                      _WalletStat(
+                        r: r,
+                        label: 'Retiré',
+                        value: controller.totalWithdrawn.value,
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -477,3 +509,135 @@ class _DelayInfo extends StatelessWidget {
         ));
   }
 }
+
+// ── Phone section ─────────────────────────────────────────────────────────────
+
+class _PhoneSection extends StatelessWidget {
+  const _PhoneSection({required this.r, required this.controller});
+  final AppResponsive r;
+  final WithdrawController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Numéro de réception',
+          style: AppTextStyles.homeCardTitle(r).copyWith(color: AppColors.textPrimary),
+        ),
+        SizedBox(height: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(
+                r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            children: [
+              Padding(
+                padding: EdgeInsets.only(
+                  left: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18),
+                ),
+                child: Icon(
+                  Icons.phone_android_rounded,
+                  size: r.adaptive(phone: 18, smallPhone: 16, tablet: 20, desktop: 22),
+                  color: AppColors.textMuted,
+                ),
+              ),
+              Expanded(
+                child: TextField(
+                  controller: controller.phoneController,
+                  keyboardType: TextInputType.phone,
+                  style: AppTextStyles.bodyMedium(r).copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: '+229 ·· ·· ·· ··',
+                    hintStyle: AppTextStyles.bodyMedium(r).copyWith(
+                      color: AppColors.textGhost,
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14),
+                      vertical: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18),
+                    ),
+                  ),
+                  onChanged: (_) => controller.phoneErrorMessage.value = '',
+                ),
+              ),
+            ],
+          ),
+        ),
+        Obx(() {
+          if (controller.phoneErrorMessage.value.isEmpty) return const SizedBox.shrink();
+          return Padding(
+            padding: EdgeInsets.only(
+                top: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8)),
+            child: Text(
+              controller.phoneErrorMessage.value,
+              style: AppTextStyles.labelSmall(r)
+                  .copyWith(color: const Color(0xFFE53935)),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+}
+
+// ── Wallet stat widgets ───────────────────────────────────────────────────────
+
+class _WalletStat extends StatelessWidget {
+  const _WalletStat({required this.r, required this.label, required this.value});
+  final AppResponsive r;
+  final String label;
+  final double value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            '${_fmtFcfa(value)} FCFA',
+            style: AppTextStyles.labelSmall(r).copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: AppTextStyles.labelSmall(r).copyWith(
+              color: Colors.white.withValues(alpha: 0.65),
+              fontSize: 10,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WalletStatDivider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 28,
+      color: Colors.white.withValues(alpha: 0.2),
+      margin: const EdgeInsets.symmetric(horizontal: 8),
+    );
+  }
+}
+
+// ── Formatter ─────────────────────────────────────────────────────────────────
+
+String _fmtFcfa(double v) => v
+    .toStringAsFixed(0)
+    .replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]} ');

@@ -57,9 +57,28 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
     if (preloaded != null) {
       displayName.value = preloaded.name;
       displayAvatarUrl.value = preloaded.avatarUrl;
-      displayTripRoute.value = preloaded.statusLabel;
+      // MessengerThreadModel has no route field — displayTripRoute stays empty until API loads
     }
-    _fetchThread();
+    final bookingUuid = args?['bookingUuid'] as String?;
+    if (_uuid.isEmpty && bookingUuid != null) {
+      _startAndFetch(bookingUuid);
+    } else {
+      _fetchThread();
+    }
+  }
+
+  Future<void> _startAndFetch(String bookingUuid) async {
+    isLoading.value = true;
+    hasError.value = false;
+    final result = await _service.startConversation(bookingUuid);
+    if (!result.isSuccess) {
+      isLoading.value = false;
+      hasError.value = true;
+      UIHelper().showSnackBar('MINIZON', 'Impossible d\'ouvrir la conversation.', 2);
+      return;
+    }
+    _uuid = result.data!;
+    await _fetchThread();
   }
 
   @override
@@ -420,6 +439,7 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
       time: 'maintenant',
     );
     messages.add(optimistic);
+    _scrollToBottom();
 
     isSending.value = true;
     final result = await _service.sendAttachment(_uuid, file.path);
@@ -429,6 +449,7 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
 
     if (result.isSuccess) {
       messages.add(_toDetailMessage(result.data!));
+      _scrollToBottom();
       final newId = result.data!.id;
       if (newId > _latestSeenId) _latestSeenId = newId;
     } else if (result.error != null) {

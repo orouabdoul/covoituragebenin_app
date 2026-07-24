@@ -1,8 +1,9 @@
+import 'package:dio/dio.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:get/get.dart' hide FormData, MultipartFile;
 import 'package:image_picker/image_picker.dart';
 
-import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/vehicles/vehicles_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
@@ -16,6 +17,14 @@ class VehicleColorOption {
   const VehicleColorOption({required this.label, required this.color});
 }
 
+// Maps a doc key to the file picked by the user
+class DocSlot {
+  final String label;
+  final String apiKey;
+  final bool required;
+  DocSlot({required this.label, required this.apiKey, required this.required});
+}
+
 class AddVehicleController extends GetxController {
   VehiclesService get _service => Get.find<VehiclesService>();
 
@@ -26,10 +35,24 @@ class AddVehicleController extends GetxController {
   final selectedBrand       = RxnString();
   final selectedModel       = RxnString();
   final selectedColor       = RxnString();
-  final selectedFuel        = RxnString();
   final seatsCount          = RxInt(4);
   final isSubmitting        = false.obs;
   final isEditMode          = false.obs;
+
+  // ── File state ────────────────────────────────────────────────────────────
+  XFile? _vehiclePhoto;
+  final Map<String, XFile> _docFiles = {};
+  final filesVersion = 0.obs; // rebuild trigger
+
+  static final List<DocSlot> docSlots = [
+    DocSlot(label: 'Carte grise',        apiKey: 'registration_doc',      required: true),
+    DocSlot(label: 'Assurance',           apiKey: 'insurance_doc',          required: true),
+    DocSlot(label: 'TVM',                 apiKey: 'tvm_doc',                required: false),
+    DocSlot(label: 'Visite technique',    apiKey: 'technical_control_doc',  required: false),
+  ];
+
+  bool get hasVehiclePhoto => _vehiclePhoto != null;
+  bool hasDoc(String apiKey) => _docFiles.containsKey(apiKey);
 
   String? _editingUuid;
 
@@ -45,7 +68,8 @@ class AddVehicleController extends GetxController {
     _editingUuid = v.uuid;
     isEditMode.value = true;
 
-    final type = v.vehicleType == 'motorcycle'
+    // Use slug to determine type
+    final type = v.vehicleTypeSlug == 'moto'
         ? VehicleType.motorcycle
         : VehicleType.car;
     selectedVehicleType.value = type;
@@ -59,10 +83,6 @@ class AddVehicleController extends GetxController {
       selectedColor.value = v.color;
     }
 
-    if (v.fuelType != null && fuelOptions.contains(v.fuelType)) {
-      selectedFuel.value = v.fuelType;
-    }
-
     final minSeats = type == VehicleType.motorcycle ? 1 : 2;
     final maxSeats = type == VehicleType.motorcycle ? 2 : 9;
     seatsCount.value = v.availableSeats.clamp(minSeats, maxSeats);
@@ -71,21 +91,36 @@ class AddVehicleController extends GetxController {
     if (v.year > 0) yearController.text = '${v.year}';
   }
 
-  // ── Vehicle photos ──────────────────────────────────────────────────────────
+  // ── File picking ──────────────────────────────────────────────────────────
 
-  final _vehiclePhotos = <String, XFile>{};
-  final photoCount     = 0.obs;
-
-  bool hasVehiclePhoto(String slot) => _vehiclePhotos.containsKey(slot);
-
-  Future<void> pickVehiclePhoto(String slot, ImageSource source) async {
+  Future<void> pickVehiclePhoto(ImageSource source) async {
     final file = await ImagePicker().pickImage(source: source, imageQuality: 80);
     if (file == null) return;
-    _vehiclePhotos[slot] = file;
-    photoCount.value = _vehiclePhotos.length;
+    _vehiclePhoto = file;
+    filesVersion.value++;
   }
 
-  // ── Brand / model data ──────────────────────────────────────────────────────
+  Future<void> pickDoc(String apiKey, ImageSource source) async {
+    final file = await ImagePicker().pickImage(source: source, imageQuality: 85);
+    if (file == null) return;
+    _docFiles[apiKey] = file;
+    filesVersion.value++;
+  }
+
+  Future<void> pickDocFromFiles(String apiKey) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+      withData: false,
+    );
+    if (result == null || result.files.isEmpty) return;
+    final pFile = result.files.first;
+    if (pFile.path == null) return;
+    _docFiles[apiKey] = XFile(pFile.path!, name: pFile.name);
+    filesVersion.value++;
+  }
+
+  // ── Brand / model data ────────────────────────────────────────────────────
 
   static const Map<String, List<String>> carBrandModels = {
     'Toyota':     ['Corolla', 'Camry', 'RAV4', 'Hilux', 'Land Cruiser', 'Yaris', 'Avensis', 'Fortuner', 'Prado'],
@@ -128,15 +163,7 @@ class AddVehicleController extends GetxController {
     return map[brand] ?? [];
   }
 
-  // ── Options ─────────────────────────────────────────────────────────────────
-
-  static const List<String> fuelOptions = [
-    'Essence',
-    'Diesel',
-    'Hybride',
-    'Électrique',
-    'GPL',
-  ];
+  // ── Options ───────────────────────────────────────────────────────────────
 
   static const List<VehicleColorOption> colorOptions = [
     VehicleColorOption(label: 'Blanc',  color: Color(0xFFFFFFFF)),
@@ -151,7 +178,7 @@ class AddVehicleController extends GetxController {
     VehicleColorOption(label: 'Marron', color: Color(0xFF92400E)),
   ];
 
-  // ── Selections ───────────────────────────────────────────────────────────────
+  // ── Selections ────────────────────────────────────────────────────────────
 
   void selectVehicleType(VehicleType type) {
     if (selectedVehicleType.value == type) return;
@@ -172,7 +199,6 @@ class AddVehicleController extends GetxController {
 
   void selectModel(String model)  => selectedModel.value = model;
   void selectColor(String color)  => selectedColor.value = color;
-  void selectFuel(String fuel)    => selectedFuel.value  = fuel;
 
   void incrementSeats() {
     final max = selectedVehicleType.value == VehicleType.motorcycle ? 2 : 9;
@@ -184,19 +210,11 @@ class AddVehicleController extends GetxController {
     if (seatsCount.value > min) seatsCount.value--;
   }
 
-  // ── Navigation ───────────────────────────────────────────────────────────────
+  // ── Navigation ────────────────────────────────────────────────────────────
 
   void onBack() => Get.back();
 
-  void onSaveAsDraft() {
-    UIHelper().showSnackBar(AppStrings.appName, AppStrings.driverVehicleSaveDraft, 0);
-  }
-
-  void onAddDocument(String documentType) {
-    UIHelper().showSnackBar(AppStrings.appName, 'Ajouter document: $documentType', 1);
-  }
-
-  // ── Register / Update ────────────────────────────────────────────────────────
+  // ── Register / Update ─────────────────────────────────────────────────────
 
   Future<void> onRegisterVehicle() async {
     if (isSubmitting.value) return;
@@ -229,28 +247,71 @@ class AddVehicleController extends GetxController {
       return;
     }
 
-    final typeId = selectedVehicleType.value == VehicleType.motorcycle ? 2 : 1;
-    final payload = <String, dynamic>{
-      'vehicle_type_id': typeId,
+    // Required files for creation only
+    if (!isEditMode.value) {
+      if (_vehiclePhoto == null) {
+        UIHelper().showSnackBar('MINIZON', 'Ajoutez une photo du véhicule.', 2);
+        return;
+      }
+      if (!hasDoc('registration_doc')) {
+        UIHelper().showSnackBar('MINIZON', 'Ajoutez la carte grise.', 2);
+        return;
+      }
+      if (!hasDoc('insurance_doc')) {
+        UIHelper().showSnackBar('MINIZON', 'Ajoutez l\'attestation d\'assurance.', 2);
+        return;
+      }
+    }
+
+    // vehicle_type slug: "voiture" for car, "moto" for motorcycle
+    final vehicleTypeSlug = selectedVehicleType.value == VehicleType.motorcycle
+        ? 'moto'
+        : 'voiture';
+
+    // Build FormData
+    final fields = <String, dynamic>{
+      'vehicle_type':    vehicleTypeSlug,
       'brand':           brand,
       'model':           model,
       'color':           color,
       'year':            year,
       'license_plate':   plate,
       'available_seats': seatsCount.value,
-      if (selectedFuel.value != null) 'fuel_type': selectedFuel.value,
     };
+
+    final formMap = <String, dynamic>{
+      for (final e in fields.entries) e.key: e.value.toString(),
+    };
+
+    if (_vehiclePhoto != null) {
+      formMap['vehicle_photo'] = await MultipartFile.fromFile(
+        _vehiclePhoto!.path,
+        filename: _vehiclePhoto!.name,
+      );
+    }
+
+    for (final slot in docSlots) {
+      final file = _docFiles[slot.apiKey];
+      if (file != null) {
+        formMap[slot.apiKey] = await MultipartFile.fromFile(
+          file.path,
+          filename: file.name,
+        );
+      }
+    }
+
+    final formData = FormData.fromMap(formMap);
 
     isSubmitting.value = true;
     bool success;
     AppError? apiError;
 
     if (isEditMode.value && _editingUuid != null) {
-      final r = await _service.updateVehicle(_editingUuid!, payload);
+      final r = await _service.updateVehicle(_editingUuid!, formData);
       success = r.isSuccess;
       apiError = r.error;
     } else {
-      final r = await _service.createVehicle(payload);
+      final r = await _service.createVehicle(formData);
       success = r.isSuccess;
       apiError = r.error;
     }
@@ -273,7 +334,7 @@ class AddVehicleController extends GetxController {
     }
   }
 
-  // ── Delete ───────────────────────────────────────────────────────────────────
+  // ── Delete ────────────────────────────────────────────────────────────────
 
   void onDeleteVehicle() {
     if (!isEditMode.value || _editingUuid == null) return;

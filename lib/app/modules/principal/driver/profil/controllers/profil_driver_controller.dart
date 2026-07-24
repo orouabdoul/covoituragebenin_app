@@ -9,6 +9,7 @@ import 'package:covoiturage_benin_app/app/core/services/driver/safety/safety_ser
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/profile_model.dart';
+import 'package:covoiturage_benin_app/app/data/models/driver/vehicle_model.dart';
 import 'package:covoiturage_benin_app/app/data/models/passenger/safety_model.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
@@ -34,6 +35,7 @@ class DriverProfileController extends GetxController {
   double heroRating = 4.8;
   int heroTrips = 0;
   int heroTenureMonths = 0;
+  String heroAvatarUrl = '';
 
   // ── Performance data ─────────────────────────────────────────────────────
   String perfCurrentLevel = AppStrings.driverProfileCurrentLevelValue;
@@ -136,6 +138,7 @@ class DriverProfileController extends GetxController {
   ];
 
   List<DriverVehicleItem> vehicles = const [];
+  List<ProfileVehicleData> _rawVehicles = [];
 
   List<DriverDocumentItem> documents = const [
     DriverDocumentItem(
@@ -185,22 +188,12 @@ class DriverProfileController extends GetxController {
 
   Future<void> _loadProfile() async {
     isLoading.value = true;
-    final results = await Future.wait([
-      _service.fetchProfile(),
-      _safetyService.fetchContacts(),
-    ]);
+    final profileResult = await _service.fetchProfile();
     isLoading.value = false;
-    final profileResult   = results[0];
-    final contactsResult  = results[1];
     if (profileResult.isSuccess) {
       _applyProfile(profileResult.data as ProfileModel);
     } else {
       logger.w('profile load failed: ${profileResult.error}');
-    }
-    if (contactsResult.isSuccess) {
-      final maps = contactsResult.data as List<Map<String, dynamic>>;
-      emergencyContacts.assignAll(
-          maps.map((m) => EmergencyContact.fromJson(m)).toList());
     }
   }
 
@@ -213,6 +206,14 @@ class DriverProfileController extends GetxController {
     heroRating = data.hero.rating;
     heroTrips = data.hero.tripsCount;
     heroTenureMonths = data.hero.tenureMonths;
+    heroAvatarUrl = data.hero.avatarUrl ?? '';
+
+    // Emergency contacts (embedded in profile response)
+    emergencyContacts.assignAll(
+      data.emergencyContacts
+          .map((m) => EmergencyContact.fromJson(m))
+          .toList(),
+    );
 
     // Performance
     perfCurrentLevel = data.performance.currentLevel;
@@ -284,13 +285,16 @@ class DriverProfileController extends GetxController {
     ];
 
     // Vehicles
+    _rawVehicles = data.vehicles;
     vehicles = data.vehicles
         .map((v) => DriverVehicleItem(
+              uuid: v.uuid,
               title: '${v.brand} ${v.model}'.trim(),
               subtitle:
                   '${v.color}${v.year > 0 ? ' · ${v.year}' : ''} · ${v.availableSeats} places',
               plate: v.licensePlate,
               active: v.isActive,
+              photoUrl: v.vehiclePhotoUrl.isNotEmpty ? v.vehiclePhotoUrl : null,
             ))
         .toList();
 
@@ -512,134 +516,52 @@ class DriverProfileController extends GetxController {
     );
   }
 
-  void onAddVehicle() {
-    Get.dialog(
-      AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(children: [
-          Icon(Icons.directions_car_rounded, color: AppColors.primary, size: 22),
-          SizedBox(width: 10),
-          Text('Ajouter un véhicule', style: TextStyle(fontSize: 16)),
-        ]),
-        content: const Text(
-          'Pour ajouter un nouveau véhicule, rendez-vous dans la section Publier un trajet et sélectionnez votre type de véhicule.',
-        ),
-        actions: [TextButton(onPressed: Get.back, child: const Text('Fermer'))],
-      ),
-    );
+  Future<void> onAddVehicle() async {
+    await Get.toNamed(AppRoutes.driverAddVehicle);
+    _loadProfile();
   }
 
-  void onVehicleTap(DriverVehicleItem item) {
-    Get.dialog(
-      AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: item.active
-                  ? AppColors.primary.withValues(alpha: 0.12)
-                  : AppColors.surface,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(Icons.directions_car_rounded,
-                color: item.active ? AppColors.primary : AppColors.textMuted,
-                size: 20),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-              child: Text(item.title,
-                  style: const TextStyle(fontSize: 15))),
-        ]),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(item.subtitle,
-                style: const TextStyle(color: AppColors.textMuted)),
-            const SizedBox(height: 8),
-            Text(item.plate,
-                style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
-                    fontSize: 15)),
-            const SizedBox(height: 6),
-            if (!item.active)
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: const Color(0x33F4B400),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Text('En attente de validation',
-                    style: TextStyle(
-                        color: Color(0xFFF4B400),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600)),
-              ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: Get.back, child: const Text('Fermer')),
-          if (!item.active)
-            TextButton(
-              onPressed: () {
-                Get.back();
-                UIHelper().showSnackBar(
-                    AppStrings.appName, 'Document de validation soumis.', 0);
-              },
-              child: const Text('Activer',
-                  style: TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w700)),
-            ),
-        ],
-      ),
+  Future<void> onVehicleTap(DriverVehicleItem item) async {
+    final raw = _rawVehicles.firstWhereOrNull((v) => v.uuid == item.uuid);
+    if (raw == null) return;
+    await Get.toNamed(
+      AppRoutes.driverAddVehicle,
+      arguments: {'vehicle': _toVehicleData(raw)},
     );
+    _loadProfile();
   }
 
-  void onDocumentTap(DriverDocumentItem item) {
-    Get.dialog(
-      AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(children: [
-          Icon(item.icon, color: AppColors.primary, size: 22),
-          const SizedBox(width: 10),
-          Expanded(
-              child: Text(item.title,
-                  style: const TextStyle(fontSize: 15))),
-        ]),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(item.subtitle,
-                style: const TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
-            const Text(
-                'Pour renouveler ce document, téléchargez la nouvelle version.'),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: Get.back, child: const Text('Fermer')),
-          TextButton(
-            onPressed: () {
-              Get.back();
-              UIHelper().showSnackBar(
-                  AppStrings.appName, 'Document soumis pour validation.', 0);
-            },
-            child: const Text('Renouveler',
-                style: TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w700)),
-          ),
-        ],
-      ),
+  VehicleData _toVehicleData(ProfileVehicleData v) => VehicleData(
+        id: 0,
+        uuid: v.uuid,
+        brand: v.brand,
+        model: v.model,
+        color: v.color,
+        year: v.year,
+        licensePlate: v.licensePlate,
+        availableSeats: v.availableSeats,
+        vehicleType: v.vehicleType,
+        vehicleTypeSlug: v.vehicleTypeSlug,
+        verificationStatus: v.verificationStatus,
+        isApproved: v.isActive,
+        fullName: '${v.brand} ${v.model}'.trim(),
+        vehiclePhotoUrl:
+            v.vehiclePhotoUrl.isNotEmpty ? v.vehiclePhotoUrl : null,
+      );
+
+  Future<void> onDocumentTap(DriverDocumentItem item) async {
+    if (_rawVehicles.isEmpty) {
+      UIHelper().showSnackBar(
+          AppStrings.appName,
+          'Ajoutez d\'abord un véhicule pour gérer les documents.',
+          2);
+      return;
+    }
+    await Get.toNamed(
+      AppRoutes.driverAddVehicle,
+      arguments: {'vehicle': _toVehicleData(_rawVehicles.first)},
     );
+    _loadProfile();
   }
 
   void onSettingTap(DriverSettingItem item) {
@@ -785,9 +707,12 @@ class DriverProfileController extends GetxController {
       UIHelper().showSnackBar(AppStrings.appName, result.error!.message, 2);
       return;
     }
-    final maps = result.data as List<Map<String, dynamic>>;
-    emergencyContacts.assignAll(
-        maps.map((m) => EmergencyContact.fromJson(m)).toList());
+    final rawList = result.data;
+    if (rawList != null) {
+      emergencyContacts.assignAll(
+        rawList.map((m) => EmergencyContact.fromJson(m)).toList(),
+      );
+    }
     Get.back();
   }
 
@@ -797,9 +722,12 @@ class DriverProfileController extends GetxController {
       UIHelper().showSnackBar(AppStrings.appName, result.error!.message, 2);
       return;
     }
-    final maps = result.data as List<Map<String, dynamic>>;
-    emergencyContacts.assignAll(
-        maps.map((m) => EmergencyContact.fromJson(m)).toList());
+    final rawList = result.data;
+    if (rawList != null) {
+      emergencyContacts.assignAll(
+        rawList.map((m) => EmergencyContact.fromJson(m)).toList(),
+      );
+    }
   }
 
   void onNotifications() => Get.toNamed(AppRoutes.driverNotifications);
@@ -1027,16 +955,20 @@ class DriverPersonalInfoItem {
 
 class DriverVehicleItem {
   const DriverVehicleItem({
+    required this.uuid,
     required this.title,
     required this.subtitle,
     required this.plate,
     required this.active,
+    this.photoUrl,
   });
 
+  final String uuid;
   final String title;
   final String subtitle;
   final String plate;
   final bool active;
+  final String? photoUrl;
 }
 
 class DriverDocumentItem {

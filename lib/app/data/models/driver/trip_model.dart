@@ -102,14 +102,7 @@ class TripModel {
     };
   }
 
-  Color get statusTextColor {
-    return switch (status) {
-      TripStatus.active => const Color(0xFFFFFFFF),
-      TripStatus.pending => const Color(0xFFF4B400),
-      TripStatus.completed => const Color(0xFF2563EB),
-      TripStatus.canceled => const Color(0xFFE53935),
-    };
-  }
+  Color get statusTextColor => const Color(0xFFFFFFFF);
 
   String get statusLabel {
     return switch (status) {

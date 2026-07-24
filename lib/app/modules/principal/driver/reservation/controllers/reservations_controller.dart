@@ -56,36 +56,26 @@ class LiveReservationRequest {
   Timer? _timer;
 
   factory LiveReservationRequest.fromJson(Map<String, dynamic> json) {
-    final trip = json['trip'] as Map<String, dynamic>? ?? {};
-    final passenger = json['passenger'] as Map<String, dynamic>? ?? {};
-    final profile = passenger['profile'] as Map<String, dynamic>? ?? {};
+    // API returns a flat object — no nested trip/passenger objects
+    final rawName = (json['passenger_name'] as String?)?.trim() ?? '';
+    final name = rawName.isNotEmpty ? rawName : 'Passager';
 
-    final firstName = profile['first_name'] as String? ?? '';
-    final lastName = profile['last_name'] as String? ?? '';
-    final name = '$firstName $lastName'.trim().isNotEmpty
-        ? '$firstName $lastName'.trim()
-        : passenger['phone'] as String? ?? 'Passager';
-
-    final departureCity = (trip['departure_city'] as String?)?.isNotEmpty == true
-        ? trip['departure_city'] as String
-        : (trip['origin'] as String?) ?? '';
-    final arrivalCity = (trip['arrival_city'] as String?)?.isNotEmpty == true
-        ? trip['arrival_city'] as String
-        : (trip['destination'] as String?) ?? '';
+    final origin      = (json['origin']      as String?) ?? '';
+    final destination = (json['destination'] as String?) ?? '';
 
     final pickupPoint = _resolvePoint(
-      trip['departure_point'] as String? ?? trip['origin_point'] as String?,
-      trip['departure_neighborhood'] as String?,
-      departureCity,
+      json['pickup_address']      as String?,
+      json['pickup_neighborhood'] as String?,
+      (json['pickup_city']        as String?) ?? origin,
     );
     final dropoffPoint = _resolvePoint(
-      trip['arrival_point'] as String? ?? trip['destination_point'] as String?,
-      trip['arrival_neighborhood'] as String?,
-      arrivalCity,
+      json['dropoff_address']      as String?,
+      json['dropoff_neighborhood'] as String?,
+      (json['dropoff_city']        as String?) ?? destination,
     );
 
-    final seats = (json['seats_booked'] as num?)?.toInt() ?? 1;
-    final pricePerSeat = (trip['price_per_seat'] as num?)?.toDouble() ?? 0.0;
+    final seats           = (json['seats_booked']    as num?)?.toInt()    ?? 1;
+    final calculatedPrice = (json['calculated_price'] as num?)?.toDouble() ?? 0.0;
 
     // 15-minute window from creation time
     const windowSec = 15 * 60;
@@ -101,21 +91,21 @@ class LiveReservationRequest {
     }
 
     return LiveReservationRequest(
-      id: json['uuid'] as String? ?? json['id'].toString(),
-      passengerName: name,
+      id:               json['uuid'] as String? ?? json['id'].toString(),
+      passengerName:    name,
       passengerInitial: name[0].toUpperCase(),
-      rating: (passenger['average_rating'] as num?)?.toDouble() ?? 0.0,
-      tripsCount: (passenger['trips_count'] as num?)?.toInt() ?? 0,
-      isVerified: passenger['is_verified'] as bool? ?? false,
-      routeLabel: '$departureCity → $arrivalCity',
-      pickupPoint: pickupPoint,
-      dropoffPoint: dropoffPoint,
-      seats: seats,
-      amount: pricePerSeat * seats,
+      rating:           (json['passenger_rating']      as num?)?.toDouble() ?? 0.0,
+      tripsCount:       (json['passenger_trips_count'] as num?)?.toInt()    ?? 0,
+      isVerified:       json['passenger_is_verified']  as bool?             ?? false,
+      routeLabel:       '$origin → $destination',
+      pickupPoint:      pickupPoint,
+      dropoffPoint:     dropoffPoint,
+      seats:            seats,
+      amount:           calculatedPrice,
       paymentConfirmed: json['payment_status'] == 'escrow_locked',
       expiresInSeconds: expiresIn,
-      status: _parseStatus(json['status'] as String? ?? 'pending'),
-      phone: passenger['phone'] as String?,
+      status:           _parseStatus(json['status'] as String? ?? 'pending'),
+      phone:            json['passenger_phone'] as String?,
     );
   }
 
@@ -195,6 +185,9 @@ class ReservationsController extends GetxController {
   final RxList<LiveReservationRequest> acceptedRequests = <LiveReservationRequest>[].obs;
   final RxList<LiveReservationRequest> rejectedRequests = <LiveReservationRequest>[].obs;
 
+  // Prevents double-tap on accept/reject during an in-flight API call
+  final _processingIds = <String>{};
+
   int get pendingCount  => pendingRequests.length;
   int get acceptedCount => acceptedRequests.length;
   int get rejectedCount => rejectedRequests.length;
@@ -206,6 +199,10 @@ class ReservationsController extends GetxController {
   }
 
   Future<void> _loadBookings() async {
+    // Cancel stale timers from a previous load before replacing the list
+    for (final r in pendingRequests) {
+      r.cancelTimer();
+    }
     isLoading.value = true;
     final result = await _service.fetchDriverBookings();
     isLoading.value = false;
@@ -253,8 +250,12 @@ class ReservationsController extends GetxController {
   }
 
   Future<void> onAccept(LiveReservationRequest r) async {
+    if (_processingIds.contains(r.id)) return;
+    _processingIds.add(r.id);
     r.cancelTimer();
+
     final result = await _service.acceptBooking(r.id);
+    _processingIds.remove(r.id);
 
     if (!result.isSuccess) {
       UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
@@ -266,7 +267,6 @@ class ReservationsController extends GetxController {
     pendingRequests.remove(r);
     acceptedRequests.insert(0, r);
     UIHelper().showSnackBar('MINIZON', '✅ Réservation de ${r.passengerName} acceptée !', 0);
-    _loadBookings();
   }
 
   void onReject(LiveReservationRequest r) => _showRejectDialog(r);
@@ -300,8 +300,12 @@ class ReservationsController extends GetxController {
   }
 
   Future<void> _confirmReject(LiveReservationRequest r) async {
+    if (_processingIds.contains(r.id)) return;
+    _processingIds.add(r.id);
     r.cancelTimer();
+
     final result = await _service.rejectBooking(r.id);
+    _processingIds.remove(r.id);
 
     if (!result.isSuccess) {
       UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
@@ -313,7 +317,6 @@ class ReservationsController extends GetxController {
     pendingRequests.remove(r);
     rejectedRequests.insert(0, r);
     UIHelper().showSnackBar('MINIZON', 'Demande de ${r.passengerName} refusée.', 2);
-    _loadBookings();
   }
 
   void onViewPassenger(LiveReservationRequest r) {
@@ -469,7 +472,7 @@ class ReservationsController extends GetxController {
     Get.toNamed(
       AppRoutes.driverMessageDetail,
       arguments: {
-        'uuid': r.id,
+        'bookingUuid': r.id,   // conversation UUID resolved by detail controller via startConversation
         'name': r.passengerName,
         'initial': r.passengerInitial,
       },

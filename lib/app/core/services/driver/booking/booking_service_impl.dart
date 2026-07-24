@@ -26,7 +26,7 @@ class BookingServiceImpl implements BookingService {
       logger.d('driverBookings [${response.statusCode}]');
       if (response.statusCode == 200 && response.data['success'] == true) {
         final raw = response.data['body'];
-        final rawList = raw is List ? raw : (raw is Map ? (raw['data'] ?? raw['bookings'] ?? raw['items'] ?? []) : []);
+        final rawList = raw is List ? raw : (raw is Map ? (raw['bookings'] ?? raw['data'] ?? raw['items'] ?? []) : []);
         final list = (rawList as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
         return ApiResult.success(list);
       }
@@ -47,10 +47,8 @@ class BookingServiceImpl implements BookingService {
       final opts = await _authOptions();
       final response = await _dio.post(AppApi.bookingAccept(uuid), data: {}, options: opts);
       logger.d('acceptBooking [$uuid] [${response.statusCode}] body=${response.data}');
-      if (response.statusCode == 200 && response.data['success'] == true) return ApiResult.success(null);
       if (response.statusCode == 200) return ApiResult.success(null);
       if (response.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
-      if (response.statusCode == 422) return ApiResult.failure(AppError.validationError);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('acceptBooking: $e');
@@ -67,10 +65,8 @@ class BookingServiceImpl implements BookingService {
       final opts = await _authOptions();
       final response = await _dio.post(AppApi.bookingReject(uuid), data: {}, options: opts);
       logger.d('rejectBooking [$uuid] [${response.statusCode}] body=${response.data}');
-      if (response.statusCode == 200 && response.data['success'] == true) return ApiResult.success(null);
       if (response.statusCode == 200) return ApiResult.success(null);
       if (response.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
-      if (response.statusCode == 422) return ApiResult.failure(AppError.validationError);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('rejectBooking: $e');

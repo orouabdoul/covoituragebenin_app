@@ -33,62 +33,70 @@ class BottonNavHeader extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(
-            child: Row(
-            children: [
-              CircleAvatar(
-                radius: responsive.w(22),
-                backgroundColor: AppColors.white,
-                child: ClipOval(
-                  child: Image.network(
-                    'https://placehold.co/44x44.png',
-                    width: responsive.w(44),
-                    height: responsive.w(44),
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Icon(
-                      Icons.person_outline_rounded,
-                      size: responsive.text(22),
-                      color: AppColors.textGhost,
+            child: Obx(() {
+              controller.currentIndex.value;
+              String displayName = '';
+              String displayCity = '';
+              String avatarUrl = '';
+              if (controller.role == BottonNavRole.driver &&
+                  Get.isRegistered<DriverProfileController>()) {
+                final prof = Get.find<DriverProfileController>();
+                prof.profileVersion.value;
+                displayName = prof.heroName;
+                displayCity = prof.heroLocation;
+                avatarUrl = prof.heroAvatarUrl;
+              }
+              return Row(
+                children: [
+                  CircleAvatar(
+                    radius: responsive.w(22),
+                    backgroundColor: AppColors.surfaceSoft,
+                    child: ClipOval(
+                      child: avatarUrl.isNotEmpty
+                          ? Image.network(
+                              avatarUrl,
+                              width: responsive.w(44),
+                              height: responsive.w(44),
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Icon(
+                                Icons.person_outline_rounded,
+                                size: responsive.text(22),
+                                color: AppColors.textGhost,
+                              ),
+                            )
+                          : Icon(
+                              Icons.person_outline_rounded,
+                              size: responsive.text(22),
+                              color: AppColors.textGhost,
+                            ),
                     ),
                   ),
-                ),
-              ),
-              SizedBox(width: responsive.w(12)),
-              Flexible(
-                child: Obx(() {
-                controller.currentIndex.value; // always subscribe
-                String displayName = '';
-                String displayCity = '';
-                if (controller.role == BottonNavRole.driver &&
-                    Get.isRegistered<DriverProfileController>()) {
-                  final prof = Get.find<DriverProfileController>();
-                  prof.profileVersion.value;
-                  displayName = prof.heroName;
-                  displayCity = prof.heroLocation;
-                }
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      displayName.isNotEmpty ? 'Bonjour $displayName 👋' : 'Bonjour 👋',
-                      style: AppTextStyles.h6(responsive),
-                    ),
-                    if (displayCity.isNotEmpty) ...[
-                      SizedBox(height: responsive.h(4)),
-                      Row(
-                        children: [
-                          Icon(Icons.location_on_outlined, size: responsive.text(14), color: AppColors.textHint),
-                          SizedBox(width: responsive.w(4)),
-                          Text(displayCity, style: AppTextStyles.caption(responsive)),
+                  SizedBox(width: responsive.w(12)),
+                  Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          displayName.isNotEmpty ? 'Bonjour $displayName 👋' : 'Bonjour 👋',
+                          style: AppTextStyles.h6(responsive),
+                        ),
+                        if (displayCity.isNotEmpty) ...[
+                          SizedBox(height: responsive.h(4)),
+                          Row(
+                            children: [
+                              Icon(Icons.location_on_outlined, size: responsive.text(14), color: AppColors.textHint),
+                              SizedBox(width: responsive.w(4)),
+                              Text(displayCity, style: AppTextStyles.caption(responsive)),
+                            ],
+                          ),
                         ],
-                      ),
-                    ],
-                  ],
-                );
-              }),
-              ),
-            ],
-            ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            }),
           ),
 
           // Right actions

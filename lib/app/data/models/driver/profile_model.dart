@@ -9,6 +9,7 @@ class ProfileHeroData {
     required this.rating,
     required this.tripsCount,
     required this.tenureMonths,
+    this.avatarUrl,
   });
 
   final String fullName;
@@ -20,18 +21,25 @@ class ProfileHeroData {
   final double rating;
   final int tripsCount;
   final int tenureMonths;
+  final String? avatarUrl;
 
-  factory ProfileHeroData.fromJson(Map<String, dynamic> json) => ProfileHeroData(
-        fullName: (json['full_name'] as String?) ?? '',
-        phone: (json['phone'] as String?) ?? '',
-        badge: (json['badge'] as String?) ?? '',
-        level: (json['level'] as String?) ?? '',
-        levelNumber: (json['level_number'] as num?)?.toInt() ?? 1,
-        location: (json['location'] as String?) ?? '',
-        rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
-        tripsCount: (json['trips_count'] as num?)?.toInt() ?? 0,
-        tenureMonths: (json['tenure_months'] as num?)?.toInt() ?? 0,
-      );
+  factory ProfileHeroData.fromJson(Map<String, dynamic> json) {
+    final rawAvatar = (json['avatar_url'] as String?)?.trim() ??
+        (json['selfie_url'] as String?)?.trim() ??
+        (json['photo_url'] as String?)?.trim();
+    return ProfileHeroData(
+      fullName: (json['full_name'] as String?) ?? '',
+      phone: (json['phone'] as String?) ?? '',
+      badge: (json['badge'] as String?) ?? '',
+      level: (json['level'] as String?) ?? '',
+      levelNumber: (json['level_number'] as num?)?.toInt() ?? 1,
+      location: (json['location'] as String?) ?? '',
+      rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
+      tripsCount: (json['trips_count'] as num?)?.toInt() ?? 0,
+      tenureMonths: (json['tenure_months'] as num?)?.toInt() ?? 0,
+      avatarUrl: (rawAvatar?.isNotEmpty == true) ? rawAvatar : null,
+    );
+  }
 }
 
 class ProfileVerificationItemData {
@@ -129,6 +137,7 @@ class ProfileVehicleData {
     required this.verificationStatus,
     required this.isActive,
     required this.vehicleType,
+    required this.vehicleTypeSlug,
     required this.vehiclePhotoUrl,
   });
 
@@ -142,6 +151,7 @@ class ProfileVehicleData {
   final String verificationStatus;
   final bool isActive;
   final String vehicleType;
+  final String vehicleTypeSlug;
   final String vehiclePhotoUrl;
 
   factory ProfileVehicleData.fromJson(Map<String, dynamic> json) =>
@@ -156,6 +166,7 @@ class ProfileVehicleData {
         verificationStatus: (json['verification_status'] as String?) ?? '',
         isActive: (json['is_active'] as bool?) ?? false,
         vehicleType: (json['vehicle_type'] as String?) ?? '',
+        vehicleTypeSlug: (json['vehicle_type_slug'] as String?) ?? '',
         vehiclePhotoUrl: (json['vehicle_photo_url'] as String?) ?? '',
       );
 }
@@ -242,6 +253,7 @@ class ProfileModel {
     required this.documents,
     required this.performance,
     required this.preferences,
+    required this.emergencyContacts,
   });
 
   final ProfileHeroData hero;
@@ -252,6 +264,7 @@ class ProfileModel {
   final List<ProfileDocumentData> documents;
   final ProfilePerformanceData performance;
   final ProfilePreferencesData preferences;
+  final List<Map<String, dynamic>> emergencyContacts;
 
   factory ProfileModel.fromJson(Map<String, dynamic> json) => ProfileModel(
         hero: ProfileHeroData.fromJson(
@@ -282,5 +295,9 @@ class ProfileModel {
             (json['performance'] as Map<String, dynamic>?) ?? {}),
         preferences: ProfilePreferencesData.fromJson(
             (json['preferences'] as Map<String, dynamic>?) ?? {}),
+        emergencyContacts: (json['emergency_contacts'] as List?)
+                ?.whereType<Map<String, dynamic>>()
+                .toList() ??
+            [],
       );
 }

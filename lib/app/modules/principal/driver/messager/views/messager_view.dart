@@ -64,14 +64,15 @@ class MessagerView extends StatelessWidget {
                           responsive: responsive,
                           onRetry: controller.refresh);
                     }
-                    if (controller.threads.isEmpty) {
+                    final threads = controller.filteredThreads;
+                    if (threads.isEmpty) {
                       return _EmptyState(responsive: responsive);
                     }
                     return Column(
-                      children: List.generate(controller.threads.length, (index) {
+                      children: List.generate(threads.length, (index) {
                         return Padding(
                           padding: EdgeInsets.only(
-                              bottom: index != controller.threads.length - 1
+                              bottom: index != threads.length - 1
                                   ? responsive.adaptive(
                                       phone: 12,
                                       smallPhone: 10,
@@ -80,9 +81,8 @@ class MessagerView extends StatelessWidget {
                                   : 0),
                           child: _ThreadCard(
                             responsive: responsive,
-                            thread: controller.threads[index],
-                            onTap: () =>
-                                controller.openThread(controller.threads[index]),
+                            thread: threads[index],
+                            onTap: () => controller.openThread(threads[index]),
                           ),
                         );
                       }),

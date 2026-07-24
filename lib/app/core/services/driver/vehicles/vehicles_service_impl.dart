@@ -49,19 +49,19 @@ class VehiclesServiceImpl implements VehiclesService {
   }
 
   @override
-  Future<ApiResult<Map<String, dynamic>>> createVehicle(
-      Map<String, dynamic> data) async {
+  Future<ApiResult<void>> createVehicle(FormData formData) async {
     try {
       final opts = await _authOptions();
       final res = await _dio.post(
         AppApi.driverVehicles,
-        data: data,
-        options: opts,
+        data: formData,
+        options: opts.copyWith(
+          contentType: 'multipart/form-data',
+        ),
       );
       logger.d('createVehicle [${res.statusCode}]');
-      if (res.statusCode == 200 && res.data['success'] == true) {
-        return ApiResult.success(
-            res.data['body']['vehicle'] as Map<String, dynamic>);
+      if (res.statusCode == 201 || res.statusCode == 200) {
+        return ApiResult.success(null);
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       if (res.statusCode == 422) {
@@ -79,14 +79,15 @@ class VehiclesServiceImpl implements VehiclesService {
   }
 
   @override
-  Future<ApiResult<void>> updateVehicle(
-      String uuid, Map<String, dynamic> data) async {
+  Future<ApiResult<void>> updateVehicle(String uuid, FormData formData) async {
     try {
       final opts = await _authOptions();
       final res = await _dio.put(
         AppApi.driverVehicle(uuid),
-        data: data,
-        options: opts,
+        data: formData,
+        options: opts.copyWith(
+          contentType: 'multipart/form-data',
+        ),
       );
       logger.d('updateVehicle [$uuid] [${res.statusCode}]');
       if (res.statusCode == 200) return ApiResult.success(null);
@@ -120,6 +121,7 @@ class VehiclesServiceImpl implements VehiclesService {
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       if (res.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
       if (res.statusCode == 404) return ApiResult.failure(AppError.userNotFound);
+      if (res.statusCode == 422) return ApiResult.failure(AppError.tripNotFound);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('deleteVehicle: $e');
@@ -142,5 +144,4 @@ class VehiclesServiceImpl implements VehiclesService {
       return 'Données invalides.';
     }
   }
-
 }

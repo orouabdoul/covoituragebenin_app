@@ -909,7 +909,8 @@ class _Composer extends StatelessWidget {
                   ),
                   style: AppTextStyles.caption(responsive)
                       .copyWith(color: Colors.black),
-                  maxLines: 1,
+                  minLines: 1,
+                  maxLines: 4,
                   scrollPhysics: const BouncingScrollPhysics(),
                 ),
               ),

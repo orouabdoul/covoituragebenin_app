@@ -10,13 +10,21 @@ import 'package:covoiturage_benin_app/app/data/models/driver/wallet_model.dart';
 class WithdrawController extends GetxController {
   WithdrawService get _service => Get.find<WithdrawService>();
 
-  final RxDouble availableBalance  = 0.0.obs;
-  final RxBool   isLoadingWallet   = true.obs;
+  // ── Wallet state ──────────────────────────────────────────────────────────
+  final RxDouble availableBalance = 0.0.obs;
+  final RxDouble pendingAmount    = 0.0.obs;
+  final RxDouble totalRevenue     = 0.0.obs;
+  final RxDouble totalWithdrawn   = 0.0.obs;
+  final RxBool   isLoadingWallet  = true.obs;
+
+  // ── Form state ────────────────────────────────────────────────────────────
   final RxBool   isProcessing      = false.obs;
   final RxString errorMessage      = ''.obs;
+  final RxString phoneErrorMessage = ''.obs;
   final RxString selectedMethodId  = 'mtn'.obs;
 
   final TextEditingController amountController = TextEditingController();
+  final TextEditingController phoneController  = TextEditingController();
 
   final List<double> quickAmounts = const [25000, 50000, 100000];
 
@@ -24,8 +32,8 @@ class WithdrawController extends GetxController {
     const WithdrawMethodModel(
       id: 'mtn',
       title: 'MTN Mobile Money',
-      subtitle: '+229 97 ·· ·· 45',
-      phoneNumber: '+22997000045',
+      subtitle: 'MoMo · Bénin',
+      phoneNumber: '',
       icon: Icons.phone_android_rounded,
       iconBackground: Color(0x33F4B400),
       isDefault: true,
@@ -33,24 +41,24 @@ class WithdrawController extends GetxController {
     const WithdrawMethodModel(
       id: 'moov',
       title: 'Moov Money',
-      subtitle: '+229 96 ·· ·· 12',
-      phoneNumber: '+22996000012',
+      subtitle: 'Flooz · Bénin',
+      phoneNumber: '',
       icon: Icons.phone_android_rounded,
       iconBackground: Color(0x196366F1),
     ),
     const WithdrawMethodModel(
       id: 'celtiis',
       title: 'Celtiis Cash',
-      subtitle: '+229 95 ·· ·· 78',
-      phoneNumber: '+22995000078',
+      subtitle: 'Cash · Bénin',
+      phoneNumber: '',
       icon: Icons.phone_android_rounded,
       iconBackground: Color(0x33E31E24),
     ),
     const WithdrawMethodModel(
       id: 'bank',
-      title: 'Compte Bancaire',
-      subtitle: 'UBA ****4582',
-      phoneNumber: '4582',
+      title: 'Virement bancaire',
+      subtitle: 'UBA, Ecobank…',
+      phoneNumber: '',
       icon: Icons.account_balance_outlined,
       iconBackground: Color(0x1900A86B),
     ),
@@ -70,43 +78,16 @@ class WithdrawController extends GetxController {
     isLoadingWallet.value = false;
     if (result.isSuccess) {
       final body = result.data!;
-      availableBalance.value = (body['available_balance'] as num).toDouble();
-      final rawMethods = body['payment_methods'] as List<dynamic>?;
-      if (rawMethods != null && rawMethods.isNotEmpty) {
-        methods.assignAll(rawMethods.map(_methodFromJson).toList());
-      }
+      availableBalance.value = (body['available_balance'] as num?)?.toDouble() ?? 0.0;
+      pendingAmount.value    = (body['pending_amount']    as num?)?.toDouble() ?? 0.0;
+      totalRevenue.value     = (body['total_revenue']     as num?)?.toDouble() ?? 0.0;
+      totalWithdrawn.value   = (body['total_withdrawn']   as num?)?.toDouble() ?? 0.0;
     } else {
-      UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+      UIHelper().showSnackBar('Portefeuille', result.error!.message, 2);
     }
   }
 
-  static const _providerIcons = <String, IconData>{
-    'mtn':     Icons.phone_android_rounded,
-    'moov':    Icons.phone_android_rounded,
-    'celtiis': Icons.phone_android_rounded,
-    'bank':    Icons.account_balance_outlined,
-  };
-
-  static const _providerBg = <String, Color>{
-    'mtn':     Color(0x33F4B400),
-    'moov':    Color(0x196366F1),
-    'celtiis': Color(0x33E31E24),
-    'bank':    Color(0x1900A86B),
-  };
-
-  WithdrawMethodModel _methodFromJson(dynamic raw) {
-    final j = raw as Map<String, dynamic>;
-    final provider = (j['provider'] as String? ?? 'bank').toLowerCase();
-    return WithdrawMethodModel(
-      id: j['id'] as String? ?? provider,
-      title: j['title'] as String? ?? provider,
-      subtitle: j['subtitle'] as String? ?? j['phone_number'] as String? ?? '',
-      phoneNumber: j['phone_number'] as String? ?? '',
-      icon: _providerIcons[provider] ?? Icons.phone_android_rounded,
-      iconBackground: _providerBg[provider] ?? const Color(0x1900A86B),
-      isDefault: j['is_default'] as bool? ?? false,
-    );
-  }
+  Future<void> refreshWallet() => _loadWallet();
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -114,9 +95,6 @@ class WithdrawController extends GetxController {
     final text = amountController.text.replaceAll(' ', '').replaceAll(',', '');
     return double.tryParse(text) ?? 0;
   }
-
-  String get selectedMethodLabel =>
-      methods.firstWhere((m) => m.id == selectedMethodId.value).title;
 
   String get delayLabel {
     if (selectedMethodId.value == 'bank') return 'Délai : 24–48 heures';
@@ -137,7 +115,10 @@ class WithdrawController extends GetxController {
 
   // ── Method selection ─────────────────────────────────────────────────────────
 
-  void selectMethod(String id) => selectedMethodId.value = id;
+  void selectMethod(String id) {
+    selectedMethodId.value = id;
+    phoneErrorMessage.value = '';
+  }
 
   void onAddMethod() {
     final phoneCtrl    = TextEditingController();
@@ -310,6 +291,7 @@ class WithdrawController extends GetxController {
   Future<void> onWithdraw() async {
     if (isProcessing.value) return;
 
+    // Validate amount
     final amount = enteredAmount;
     if (amount < 1000) {
       errorMessage.value = 'Le montant minimum est de 1 000 FCFA.';
@@ -321,22 +303,31 @@ class WithdrawController extends GetxController {
     }
     errorMessage.value = '';
 
+    // Validate phone
+    final phone = phoneController.text.trim();
+    if (phone.isEmpty) {
+      phoneErrorMessage.value = 'Entrez votre numéro de téléphone.';
+      return;
+    }
+    phoneErrorMessage.value = '';
+
     final method = methods.firstWhere((m) => m.id == selectedMethodId.value);
 
     isProcessing.value = true;
     final result = await _service.withdraw(
       amount: amount.toInt(),
       provider: method.id.split('_').first,
-      phoneNumber: method.phoneNumber,
+      phoneNumber: phone,
     );
     isProcessing.value = false;
 
     if (result.isSuccess) {
       availableBalance.value -= amount;
       amountController.clear();
+      phoneController.clear();
       UIHelper().showSnackBar(
-        'MINIZON',
-        '${amount.toStringAsFixed(0)} FCFA envoyés vers ${method.title}',
+        'Retrait envoyé',
+        '${amount.toStringAsFixed(0)} FCFA vers ${method.title}',
         0,
       );
       Get.back();
@@ -351,6 +342,7 @@ class WithdrawController extends GetxController {
   @override
   void onClose() {
     amountController.dispose();
+    phoneController.dispose();
     super.onClose();
   }
 }

@@ -18,6 +18,16 @@ class MessagerController extends GetxController {
   final RxList<MessengerThreadModel> threads = <MessengerThreadModel>[].obs;
   final RxInt totalUnread = 0.obs;
   final RxString _activeFilterKey = 'all'.obs;
+  final RxString searchQuery = ''.obs;
+
+  List<MessengerThreadModel> get filteredThreads {
+    final q = searchQuery.value.trim().toLowerCase();
+    if (q.isEmpty) return threads;
+    return threads.where((t) =>
+      t.name.toLowerCase().contains(q) ||
+      t.preview.toLowerCase().contains(q)
+    ).toList();
+  }
 
   int get selectedFilterIndex {
     final idx = filters.indexWhere((f) => f.key == _activeFilterKey.value);
@@ -27,6 +37,7 @@ class MessagerController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    searchController.addListener(() => searchQuery.value = searchController.text);
     _fetch('all');
   }
 
