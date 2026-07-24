@@ -3,18 +3,14 @@ import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/trips/trips_service.dart';
-import 'package:covoiturage_benin_app/app/core/services/driver/vehicles/vehicles_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/api_result.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/benin_locations_data.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/vehicle_model.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 
-enum TripLuggageOption { smallBag, stops, smoking, music, airConditioning }
-
 class AddTrajetController extends GetxController {
   TripsService get _tripsService => Get.find<TripsService>();
-  VehiclesService get _vehiclesService => Get.find<VehiclesService>();
 
   String? _editUuid;
   bool get isEditMode => _editUuid != null;
@@ -23,13 +19,54 @@ class AddTrajetController extends GetxController {
   final RxList<VehicleData> availableVehicles = <VehicleData>[].obs;
   final Rx<VehicleData?> selectedVehicle = Rx<VehicleData?>(null);
   final RxBool isLoadingVehicles = false.obs;
+  bool hasApprovedVehicle = true;
 
-  // ── Seats, price, options ─────────────────────────────────────────────────
+  // ── Seats, price ──────────────────────────────────────────────────────────
   final RxInt availableSeats = 4.obs;
   final RxDouble pricePerSeat = 5000.0.obs;
-  final RxSet<TripLuggageOption> selectedOptions = <TripLuggageOption>{}.obs;
+  final RxSet<String> selectedOptions = <String>{}.obs;
   final RxBool isPublishing = false.obs;
   final RxBool isLoadingEdit = false.obs;
+
+  // ── Price suggestion from API ─────────────────────────────────────────────
+  int priceDefault = 5000;
+  int priceMin = 500;
+  int priceMax = 50000;
+
+  // ── Booking mode & cancellation policy ────────────────────────────────────
+  final RxString selectedBookingMode = 'instant'.obs;
+  final RxString selectedCancellationPolicy = 'flexible'.obs;
+  final RxList<BookingModeOption> bookingModes = <BookingModeOption>[
+    const BookingModeOption(
+      mode: 'instant',
+      title: 'Réservation instantanée',
+      description: 'Les passagers sont acceptés automatiquement dès la réservation.',
+      icon: 'bolt',
+    ),
+    const BookingModeOption(
+      mode: 'approval',
+      title: 'Sur approbation',
+      description: 'Chaque demande de réservation vous est soumise pour validation.',
+      icon: 'how_to_reg',
+    ),
+  ].obs;
+  final RxList<CancellationPolicyOption> cancellationPolicies = <CancellationPolicyOption>[
+    const CancellationPolicyOption(
+      policy: 'flexible',
+      title: 'Flexible',
+      description: 'Remboursement complet jusqu\'à 1h avant le départ.',
+    ),
+    const CancellationPolicyOption(
+      policy: 'moderate',
+      title: 'Modérée',
+      description: '50 % remboursé si annulé au moins 24h avant le départ.',
+    ),
+    const CancellationPolicyOption(
+      policy: 'strict',
+      title: 'Stricte',
+      description: 'Aucun remboursement après confirmation de la réservation.',
+    ),
+  ].obs;
 
   // ── Text controllers ──────────────────────────────────────────────────────
   final TextEditingController departureCityController = TextEditingController();
@@ -52,6 +89,7 @@ class AddTrajetController extends GetxController {
   }
 
   // ── Villes & quartiers ────────────────────────────────────────────────────
+  final RxList<String> _apiCities = <String>[].obs;
   final RxnString selectedDepartureCity = RxnString();
   final RxnString selectedDepartureDistrict = RxnString();
   final RxnString selectedDestinationCity = RxnString();
@@ -60,11 +98,13 @@ class AddTrajetController extends GetxController {
   static Map<String, List<String>> get beninCitiesWithDistricts =>
       BeninLocations.citiesWithDistricts;
 
-  List<String> get beninCities => BeninLocations.cities;
+  List<String> get beninCities {
+    final api = _apiCities.toList();
+    return api.isNotEmpty ? api : BeninLocations.cities;
+  }
 
   List<String> getDistricts(String? city) => BeninLocations.getDistricts(city);
 
-  // Appelé quand l'utilisateur SÉLECTIONNE dans la liste
   void onDepartureCityChanged(String? city) {
     selectedDepartureCity.value = city;
     selectedDepartureDistrict.value = null;
@@ -89,7 +129,6 @@ class AddTrajetController extends GetxController {
     destinationDistrictController.text = district ?? '';
   }
 
-  // Appelé quand l'utilisateur TAPE (invalide la sélection précédente)
   void onDepartureCityTyped() {
     selectedDepartureCity.value = null;
     selectedDepartureDistrict.value = null;
@@ -102,34 +141,19 @@ class AddTrajetController extends GetxController {
     destinationDistrictController.text = '';
   }
 
-  void onDepartureDistrictTyped() {
-    selectedDepartureDistrict.value = null;
-  }
+  void onDepartureDistrictTyped() => selectedDepartureDistrict.value = null;
+  void onDestinationDistrictTyped() => selectedDestinationDistrict.value = null;
 
-  void onDestinationDistrictTyped() {
-    selectedDestinationDistrict.value = null;
-  }
-
-  final List<String> departureSuggestions = const ['Cotonou', 'Porto-Novo', 'Parakou'];
-  final List<String> destinationSuggestions = const ['Parakou', 'Abomey', 'Bohicon'];
-
-  final List<TripFieldGroup> fieldGroups = const [
-    TripFieldGroup(title: 'Départ', subtitle: "D'où partez-vous ?", icon: Icons.trip_origin_rounded),
-    TripFieldGroup(title: 'Destination', subtitle: 'Où allez-vous ?', icon: Icons.flag_rounded),
-    TripFieldGroup(title: 'Date et Heure', subtitle: 'Quand partez-vous ?', icon: Icons.schedule_rounded),
-    TripFieldGroup(title: 'Votre véhicule', subtitle: 'Sélectionnez votre véhicule', icon: Icons.directions_car_rounded),
-    TripFieldGroup(title: 'Places disponibles', subtitle: 'Combien de passagers ?', icon: Icons.airline_seat_recline_normal_rounded),
-    TripFieldGroup(title: 'Prix par place', subtitle: 'Fixez votre tarif', icon: Icons.payments_rounded),
-    TripFieldGroup(title: 'Description', subtitle: 'Optionnel', icon: Icons.notes_rounded),
-    TripFieldGroup(title: 'Préférences', subtitle: 'Configurez votre trajet', icon: Icons.tune_rounded),
-  ];
-
+  // ── Preferences (static — driven by API trip-form icons) ──────────────────
   final List<TripPreferenceData> preferences = const [
-    TripPreferenceData(option: TripLuggageOption.smallBag, title: 'Bagages autorisés', subtitle: 'Petits sacs acceptés', icon: Icons.work_outline_rounded),
-    TripPreferenceData(option: TripLuggageOption.stops, title: 'Arrêts possibles', subtitle: 'Flexibilité trajet', icon: Icons.alt_route_rounded),
-    TripPreferenceData(option: TripLuggageOption.smoking, title: 'Non-fumeur', subtitle: 'Trajet sans tabac', icon: Icons.smoke_free_rounded),
-    TripPreferenceData(option: TripLuggageOption.music, title: 'Musique', subtitle: 'Ambiance musicale', icon: Icons.music_note_rounded),
-    TripPreferenceData(option: TripLuggageOption.airConditioning, title: 'Climatisation', subtitle: 'Confort climatique', icon: Icons.ac_unit_rounded),
+    TripPreferenceData(option: 'no_smoking', title: 'Non-fumeur', subtitle: 'Cigarettes interdites dans le véhicule', icon: Icons.smoke_free_rounded),
+    TripPreferenceData(option: 'music', title: 'Musique', subtitle: 'Musique autorisée en trajet', icon: Icons.music_note_rounded),
+    TripPreferenceData(option: 'ac', title: 'Climatisé', subtitle: 'Climatisation disponible', icon: Icons.ac_unit_rounded),
+    TripPreferenceData(option: 'chat', title: 'Discussion', subtitle: 'Ambiance conviviale et bavarde', icon: Icons.chat_bubble_outline_rounded),
+    TripPreferenceData(option: 'no_luggage', title: 'Bagages limités', subtitle: 'Bagages légers uniquement', icon: Icons.luggage_rounded),
+    TripPreferenceData(option: 'female_only', title: 'Femmes seulement', subtitle: 'Réservé aux passagères', icon: Icons.female_rounded),
+    TripPreferenceData(option: 'pets', title: 'Animaux acceptés', subtitle: 'Les animaux de compagnie sont bienvenus', icon: Icons.pets_rounded),
+    TripPreferenceData(option: 'quiet', title: 'Silence', subtitle: 'Trajet calme, pas de téléphone', icon: Icons.volume_off_rounded),
   ];
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -139,33 +163,86 @@ class AddTrajetController extends GetxController {
     super.onInit();
     final args = Get.arguments as Map<String, dynamic>?;
     _editUuid = args?['uuid'] as String?;
-    selectedOptions.addAll(const {
-      TripLuggageOption.smallBag,
-      TripLuggageOption.smoking,
-      TripLuggageOption.music,
-    });
+    selectedOptions.addAll(const {'no_smoking', 'music'});
     priceController.addListener(_onPriceChanged);
     if (isEditMode) {
-      _loadVehiclesAndEdit();
+      _loadFormAndEdit();
     } else {
-      _loadVehicles();
+      _loadTripForm();
     }
   }
 
-  Future<void> _loadVehicles() async {
+  Future<void> _loadTripForm() async {
     isLoadingVehicles.value = true;
-    final result = await _vehiclesService.listVehicles();
+    final result = await _tripsService.fetchTripForm();
     isLoadingVehicles.value = false;
-    if (result.isSuccess && result.data != null) {
-      availableVehicles.assignAll(result.data!);
-      if (availableVehicles.length == 1) {
-        selectedVehicle.value = availableVehicles.first;
+    if (!result.isSuccess) {
+      UIHelper().showSnackBar(AppStrings.appName, result.displayMessage, 2);
+      return;
+    }
+    _applyFormData(result.data!);
+  }
+
+  void _applyFormData(Map<String, dynamic> body) {
+    hasApprovedVehicle = (body['has_approved_vehicle'] as bool?) ?? true;
+
+    // Vehicles (approved only)
+    final rawVehicles = body['vehicles'] as List<dynamic>? ?? [];
+    availableVehicles.assignAll(
+      rawVehicles
+          .map((v) => VehicleData.fromJson(v as Map<String, dynamic>))
+          .toList(),
+    );
+    if (availableVehicles.length == 1) {
+      selectedVehicle.value = availableVehicles.first;
+    }
+
+    // Cities from API
+    final rawCities = body['cities'] as List<dynamic>? ?? [];
+    _apiCities.assignAll(rawCities.whereType<String>().toList());
+
+    // Booking modes from API
+    final rawModes = body['booking_modes'] as List<dynamic>? ?? [];
+    if (rawModes.isNotEmpty) {
+      bookingModes.assignAll(rawModes.map((m) {
+        final mm = m as Map<String, dynamic>;
+        return BookingModeOption(
+          mode: mm['mode'] as String? ?? '',
+          title: mm['title'] as String? ?? '',
+          description: mm['description'] as String? ?? '',
+          icon: mm['icon'] as String? ?? '',
+        );
+      }).toList());
+    }
+
+    // Cancellation policies from API
+    final rawPolicies = body['cancellation_policies'] as List<dynamic>? ?? [];
+    if (rawPolicies.isNotEmpty) {
+      cancellationPolicies.assignAll(rawPolicies.map((p) {
+        final pp = p as Map<String, dynamic>;
+        return CancellationPolicyOption(
+          policy: pp['policy'] as String? ?? '',
+          title: pp['title'] as String? ?? '',
+          description: pp['description'] as String? ?? '',
+        );
+      }).toList());
+    }
+
+    // Price suggestion from API
+    final priceSuggestion = body['price_suggestion'] as Map<String, dynamic>?;
+    if (priceSuggestion != null) {
+      priceDefault = (priceSuggestion['default'] as num?)?.toInt() ?? 5000;
+      priceMin = (priceSuggestion['min'] as num?)?.toInt() ?? 500;
+      priceMax = (priceSuggestion['max'] as num?)?.toInt() ?? 50000;
+      if (!isEditMode) {
+        pricePerSeat.value = priceDefault.toDouble();
+        priceController.text = priceDefault.toString();
       }
     }
   }
 
-  Future<void> _loadVehiclesAndEdit() async {
-    await _loadVehicles();
+  Future<void> _loadFormAndEdit() async {
+    await _loadTripForm();
     await _loadForEdit();
   }
 
@@ -174,7 +251,7 @@ class AddTrajetController extends GetxController {
     final result = await _tripsService.fetchTripRaw(_editUuid!);
     isLoadingEdit.value = false;
     if (!result.isSuccess) {
-      UIHelper().showSnackBar(AppStrings.appName, result.error!.message, 2);
+      UIHelper().showSnackBar(AppStrings.appName, result.displayMessage, 2);
       return;
     }
     _prefillFromJson(result.data!);
@@ -183,7 +260,7 @@ class AddTrajetController extends GetxController {
   void _prefillFromJson(Map<String, dynamic> j) {
     final depCity = j['departure_city'] as String? ?? '';
     departureCityController.text = depCity;
-    if (depCity.isNotEmpty && beninCitiesWithDistricts.containsKey(depCity)) {
+    if (depCity.isNotEmpty) {
       selectedDepartureCity.value = depCity;
     }
 
@@ -195,51 +272,65 @@ class AddTrajetController extends GetxController {
 
     final destCity = ((j['arrival_city'] ?? j['destination_city']) as String?) ?? '';
     destinationCityController.text = destCity;
-    if (destCity.isNotEmpty && beninCitiesWithDistricts.containsKey(destCity)) {
+    if (destCity.isNotEmpty) {
       selectedDestinationCity.value = destCity;
     }
 
     final destDistrict = ((j['arrival_neighborhood'] ?? j['destination_district']) as String?) ?? '';
     destinationDistrictController.text = destDistrict;
     if (destDistrict.isNotEmpty) selectedDestinationDistrict.value = destDistrict;
+
     destinationPointController.text =
         ((j['arrival_point'] ?? j['destination_point']) as String?) ?? '';
-    // Accept both DD/MM/YYYY and YYYY-MM-DD
-    final rawDate = j['departure_date'] as String? ?? '';
-    dateController.text = rawDate.contains('-') ? _fromIsoDate(rawDate) : rawDate;
-    timeController.text = j['departure_time'] as String? ?? '';
+
+    // Handles both ISO datetime ("2026-07-24T07:00:00Z") and separate date/time fields
+    final rawDepTime = j['departure_time'] as String? ?? '';
+    final rawDepDate = j['departure_date'] as String? ?? '';
+    if (rawDepDate.isEmpty && rawDepTime.contains('T')) {
+      final dt = DateTime.tryParse(rawDepTime)?.toLocal();
+      if (dt != null) {
+        dateController.text =
+            '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+        timeController.text =
+            '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+      }
+    } else {
+      dateController.text = rawDepDate.contains('-') ? _fromIsoDate(rawDepDate) : rawDepDate;
+      timeController.text = rawDepTime.length >= 5 ? rawDepTime.substring(0, 5) : rawDepTime;
+    }
+
     availableSeats.value =
         ((j['total_seats'] ?? j['available_seats']) as num?)?.toInt() ?? 4;
-    final price = (j['price_per_seat'] as num?)?.toDouble() ?? 5000;
+    final price = (j['price_per_seat'] as num?)?.toDouble() ?? priceDefault.toDouble();
     pricePerSeat.value = price;
     priceController.text = price.toInt().toString();
+
     descriptionController.text = j['description'] as String? ?? '';
-    // Match vehicle by uuid if returned by API
-    final vehicleUuid = j['vehicle_uuid'] as String?;
-    if (vehicleUuid != null && vehicleUuid.isNotEmpty) {
-      final match = availableVehicles.firstWhereOrNull((v) => v.uuid == vehicleUuid);
+
+    // Booking mode & cancellation policy from trip data
+    final bm = j['booking_mode'] as String?;
+    if (bm != null && bm.isNotEmpty) selectedBookingMode.value = bm;
+    final cp = j['cancellation_policy'] as String?;
+    if (cp != null && cp.isNotEmpty) selectedCancellationPolicy.value = cp;
+
+    // Match vehicle: try by integer id first, then by uuid
+    final vehicleId = (j['vehicle_id'] as num?)?.toInt();
+    if (vehicleId != null) {
+      final match = availableVehicles.firstWhereOrNull((v) => v.id == vehicleId);
       if (match != null) selectedVehicle.value = match;
+    } else {
+      final vehicleUuid = j['vehicle_uuid'] as String?;
+      if (vehicleUuid != null && vehicleUuid.isNotEmpty) {
+        final match = availableVehicles.firstWhereOrNull((v) => v.uuid == vehicleUuid);
+        if (match != null) selectedVehicle.value = match;
+      }
     }
-    // Preferences: list of strings (new) or map of booleans (old)
+
+    // Preferences: list of API option strings
     final rawPrefs = j['preferences'];
     if (rawPrefs is List) {
       selectedOptions.clear();
-      for (final p in rawPrefs) {
-        switch (p as String?) {
-          case 'allows_bags': selectedOptions.add(TripLuggageOption.smallBag); break;
-          case 'allows_stops': selectedOptions.add(TripLuggageOption.stops); break;
-          case 'no_smoking': selectedOptions.add(TripLuggageOption.smoking); break;
-          case 'music': selectedOptions.add(TripLuggageOption.music); break;
-          case 'air_conditioning': selectedOptions.add(TripLuggageOption.airConditioning); break;
-        }
-      }
-    } else if (rawPrefs is Map) {
-      selectedOptions.clear();
-      if (rawPrefs['allows_bags'] == true) selectedOptions.add(TripLuggageOption.smallBag);
-      if (rawPrefs['allows_stops'] == true) selectedOptions.add(TripLuggageOption.stops);
-      if (rawPrefs['no_smoking'] == true) selectedOptions.add(TripLuggageOption.smoking);
-      if (rawPrefs['music'] == true) selectedOptions.add(TripLuggageOption.music);
-      if (rawPrefs['air_conditioning'] == true) selectedOptions.add(TripLuggageOption.airConditioning);
+      selectedOptions.addAll(rawPrefs.whereType<String>());
     }
   }
 
@@ -293,7 +384,7 @@ class AddTrajetController extends GetxController {
     priceController.text = value.toInt().toString();
   }
 
-  void toggleOption(TripLuggageOption option) {
+  void toggleOption(String option) {
     if (selectedOptions.contains(option)) {
       selectedOptions.remove(option);
     } else {
@@ -301,15 +392,16 @@ class AddTrajetController extends GetxController {
     }
   }
 
-  // Seules valeurs acceptées par le backend : no_smoking, music
-  List<String> _buildPreferencesList() => [
-    if (selectedOptions.contains(TripLuggageOption.smoking)) 'no_smoking',
-    if (selectedOptions.contains(TripLuggageOption.music)) 'music',
-  ];
+  List<String> _buildPreferencesList() => selectedOptions.toList();
 
   Future<void> publishTrip() async {
     if (isPublishing.value) return;
 
+    if (!hasApprovedVehicle && !isEditMode) {
+      UIHelper().showSnackBar(AppStrings.appName,
+          'Vous n\'avez pas de véhicule approuvé. Ajoutez-en un dans votre profil.', 2);
+      return;
+    }
     if (selectedDepartureCity.value == null) {
       UIHelper().showSnackBar(AppStrings.appName, 'Veuillez sélectionner la ville de départ.', 2);
       return;
@@ -326,8 +418,6 @@ class AddTrajetController extends GetxController {
       UIHelper().showSnackBar(AppStrings.appName, 'Veuillez sélectionner le quartier de destination.', 2);
       return;
     }
-    final depCity = selectedDepartureCity.value!;
-    final destCity = selectedDestinationCity.value!;
     if (dateController.text.isEmpty) {
       UIHelper().showSnackBar(AppStrings.appName, 'Veuillez sélectionner une date de départ.', 2);
       return;
@@ -340,23 +430,34 @@ class AddTrajetController extends GetxController {
       UIHelper().showSnackBar(AppStrings.appName, 'Veuillez sélectionner un véhicule.', 2);
       return;
     }
+    final price = pricePerSeat.value.toInt();
+    if (price < priceMin) {
+      UIHelper().showSnackBar(AppStrings.appName, 'Le prix minimum est de $priceMin FCFA.', 2);
+      return;
+    }
+    if (price > priceMax) {
+      UIHelper().showSnackBar(AppStrings.appName, 'Le prix maximum est de $priceMax FCFA.', 2);
+      return;
+    }
 
     isPublishing.value = true;
 
     final payload = {
       'vehicle_id': selectedVehicle.value!.id,
-      'departure_city': depCity,
+      'departure_city': selectedDepartureCity.value!,
       'departure_neighborhood': departureDistrictController.text.trim(),
       'departure_point': departurePointController.text.trim(),
-      'arrival_city': destCity,
+      'arrival_city': selectedDestinationCity.value!,
       'arrival_neighborhood': destinationDistrictController.text.trim(),
       'arrival_point': destinationPointController.text.trim(),
-      'departure_date': dateController.text, // déjà en DD/MM/YYYY depuis le picker
+      'departure_date': dateController.text,
       'departure_time': timeController.text,
       'total_seats': availableSeats.value,
-      'price_per_seat': pricePerSeat.value.toInt(),
-      'booking_mode': 'instant',
+      'price_per_seat': price,
+      'booking_mode': selectedBookingMode.value,
       'max_per_booking': 2,
+      'cancellation_policy': selectedCancellationPolicy.value,
+      'is_recurring': false,
       'description': descriptionController.text.trim(),
       'preferences': _buildPreferencesList(),
       'is_published': true,
@@ -383,7 +484,7 @@ class AddTrajetController extends GetxController {
         BottonNavController.goToTab(1);
       }
     } else {
-      UIHelper().showSnackBar(AppStrings.appName, result.error!.message, 2);
+      UIHelper().showSnackBar(AppStrings.appName, result.displayMessage, 2);
     }
   }
 
@@ -408,17 +509,39 @@ class AddTrajetController extends GetxController {
 
 // ── Data classes ─────────────────────────────────────────────────────────────
 
-class TripFieldGroup {
-  const TripFieldGroup({required this.title, required this.subtitle, required this.icon});
+class TripPreferenceData {
+  const TripPreferenceData({
+    required this.option,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+  });
+  final String option;
   final String title;
   final String subtitle;
   final IconData icon;
 }
 
-class TripPreferenceData {
-  const TripPreferenceData({required this.option, required this.title, required this.subtitle, required this.icon});
-  final TripLuggageOption option;
+class BookingModeOption {
+  const BookingModeOption({
+    required this.mode,
+    required this.title,
+    required this.description,
+    required this.icon,
+  });
+  final String mode;
   final String title;
-  final String subtitle;
-  final IconData icon;
+  final String description;
+  final String icon;
+}
+
+class CancellationPolicyOption {
+  const CancellationPolicyOption({
+    required this.policy,
+    required this.title,
+    required this.description,
+  });
+  final String policy;
+  final String title;
+  final String description;
 }

@@ -1417,8 +1417,8 @@ class _RequestList extends StatelessWidget {
           _RequestCard(
             responsive: responsive,
             request: requests[index],
-            onAccept: () => controller.onRequestAction('Accepter', requests[index]),
-            onReject: () => controller.onRequestAction('Refuser', requests[index]),
+            onAccept: () => controller.onRecentAccept(requests[index]),
+            onReject: () => controller.onRecentReject(requests[index]),
           ),
           if (index != requests.length - 1)
             SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),

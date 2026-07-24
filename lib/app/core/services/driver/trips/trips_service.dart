@@ -6,6 +6,7 @@ abstract class TripsService {
     String status = 'all',
     int page = 1,
   });
+  Future<ApiResult<Map<String, dynamic>>> fetchTripForm();
   Future<ApiResult<TripPassengersModel>> fetchTripPassengers(String uuid);
   Future<ApiResult<void>> cancelTrip(String uuid);
   Future<ApiResult<void>> publishTrip(Map<String, dynamic> data);

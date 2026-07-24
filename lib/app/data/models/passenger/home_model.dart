@@ -136,6 +136,8 @@ class PassengerRideData {
     required this.seatsLeft,
     required this.driverName,
     required this.driverVehicle,
+    this.status = '',
+    this.departureTimeRaw = '',
   });
 
   final String uuid;
@@ -147,6 +149,8 @@ class PassengerRideData {
   final String seatsLeft;
   final String driverName;
   final String driverVehicle;
+  final String status;
+  final String departureTimeRaw;
 
   factory PassengerRideData.fromJson(Map<String, dynamic> json) =>
       PassengerRideData(
@@ -159,6 +163,13 @@ class PassengerRideData {
         seatsLeft: (json['seats_left'] as String?) ?? '',
         driverName: (json['driver_name'] as String?) ?? '',
         driverVehicle: (json['driver_vehicle'] as String?) ?? '',
+        status: (json['status'] as String?) ?? '',
+        // Tente plusieurs noms de champ possibles pour la date de départ
+        departureTimeRaw: (json['departure_time'] as String?) ??
+            (json['departure_at'] as String?) ??
+            (json['scheduled_at'] as String?) ??
+            (json['departs_at'] as String?) ??
+            '',
       );
 }
 

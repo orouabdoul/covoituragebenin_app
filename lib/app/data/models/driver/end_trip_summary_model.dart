@@ -42,7 +42,7 @@ class EndTripSummaryModel {
 
   final String tripRoute;
   final String realDuration;
-  final double distanceKm;
+  final double? distanceKm;
   final int passengersCount;
   final double grossRevenue;
   final double commission;
@@ -58,13 +58,13 @@ class EndTripSummaryModel {
       EndTripSummaryModel(
         tripRoute: j['trip_route'] as String? ?? '',
         realDuration: j['real_duration'] as String? ?? '',
-        distanceKm: (j['distance_km'] as num?)?.toDouble() ?? 0.0,
-        passengersCount: j['passengers_count'] as int? ?? 0,
+        distanceKm: (j['distance_km'] as num?)?.toDouble(),
+        passengersCount: (j['passengers_count'] as num?)?.toInt() ?? 0,
         grossRevenue: (j['gross_revenue'] as num?)?.toDouble() ?? 0.0,
         commission: (j['commission'] as num?)?.toDouble() ?? 0.0,
-        commissionRate: j['commission_rate'] as int? ?? 0,
+        commissionRate: (j['commission_rate'] as num?)?.toInt() ?? 0,
         netRevenue: (j['net_revenue'] as num?)?.toDouble() ?? 0.0,
-        confirmedCount: j['confirmed_count'] as int? ?? 0,
+        confirmedCount: (j['confirmed_count'] as num?)?.toInt() ?? 0,
         allConfirmed: j['all_confirmed'] as bool? ?? false,
         availableDate: j['available_date'] as String? ?? '',
         confirmations: (j['confirmations'] as List<dynamic>? ?? [])

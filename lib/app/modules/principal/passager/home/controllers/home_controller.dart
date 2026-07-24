@@ -81,12 +81,30 @@ class HomeController extends GetxController {
   @override
   Future<void> refresh() => _loadDashboard();
 
+  // Statuts qui indiquent qu'un trajet ou une réservation est définitivement terminé
+  static const _terminalStatuses = {
+    'completed', 'ended', 'expired', 'cancelled', 'canceled',
+    'finished', 'rejected', 'refunded',
+  };
+
   void _applyDashboard(PassengerHomeDashboard data) {
     _apiGreeting = data.greeting;
 
-    upcomingTrip = data.upcomingTrip != null
-        ? _mapUpcomingTrip(data.upcomingTrip!)
-        : null;
+    // ── LOG : upcomingTrip ─────────────────────────────────────────────────
+    if (data.upcomingTrip != null) {
+      final t = data.upcomingTrip!;
+      logger.d('═══ [HOME] upcomingTrip reçu ═══');
+      logger.d('  bookingUuid    : ${t.bookingUuid}');
+      logger.d('  tripUuid       : ${t.tripUuid}');
+      logger.d('  status         : "${t.status}"');
+      logger.d('  departureTime  : "${t.departureTime}"');
+      logger.d('  origin → dest  : ${t.origin} → ${t.destination}');
+    } else {
+      logger.d('[HOME] upcomingTrip = null (API n\'en a pas envoyé)');
+    }
+
+    upcomingTrip = _resolveUpcomingTrip(data.upcomingTrip);
+    logger.d('[HOME] upcomingTrip AFFICHÉ : ${upcomingTrip != null}');
 
     heroMetrics = data.heroMetrics
         .map((m) => HomeMetric(label: m.label, value: m.value))
@@ -96,7 +114,20 @@ class HomeController extends GetxController {
         .map((r) => HomePopularRoute(from: r.departureCity, to: r.arrivalCity))
         .toList();
 
+    // ── LOG : availableRides ───────────────────────────────────────────────
+    logger.d('═══ [HOME] availableRides reçus (${data.availableRides.length}) ═══');
+    for (var i = 0; i < data.availableRides.length; i++) {
+      final r = data.availableRides[i];
+      final bookable = _isRideBookable(r);
+      logger.d('  ride[$i] uuid=${r.uuid.substring(0, 8)}… '
+          'status="${r.status}" '
+          'departureTimeRaw="${r.departureTimeRaw}" '
+          'schedule="${r.schedule}" '
+          '→ AFFICHÉ=$bookable');
+    }
+
     availableRides = data.availableRides
+        .where(_isRideBookable)
         .map((r) => HomeRide(
               uuid: r.uuid,
               from: r.from,
@@ -108,6 +139,7 @@ class HomeController extends GetxController {
               seatsLeft: r.seatsLeft,
             ))
         .toList();
+    logger.d('[HOME] availableRides AFFICHÉS : ${availableRides.length}');
 
     recommendedDrivers = data.recommendedDrivers
         .map((d) => HomeDriver(
@@ -129,6 +161,14 @@ class HomeController extends GetxController {
             ))
         .toList();
 
+    // ── LOG : recentActivities ─────────────────────────────────────────────
+    logger.d('═══ [HOME] recentActivities (${data.recentActivities.length}) ═══');
+    for (var i = 0; i < data.recentActivities.length; i++) {
+      final a = data.recentActivities[i];
+      logger.d('  activity[$i] route="${a.route}" '
+          'status="${a.status}" time="${a.time}"');
+    }
+
     recentActivities = data.recentActivities
         .map((a) => HomeActivity(
               bookingUuid: a.bookingUuid,
@@ -141,6 +181,55 @@ class HomeController extends GetxController {
 
     dashboardVersion.value++;
     _scheduleActiveRefresh();
+  }
+
+  // ── Filtres de visibilité ──────────────────────────────────────────────────
+
+  HomeUpcomingTrip? _resolveUpcomingTrip(PassengerUpcomingTripData? d) {
+    if (d == null) return null;
+
+    // Statut terminal → masquer immédiatement
+    if (_terminalStatuses.contains(d.status)) return null;
+
+    // Trajet actif ou conducteur en approche → toujours afficher
+    final isLive =
+        d.status == 'in_progress' || d.status == 'driver_arriving';
+    if (isLive) return _mapUpcomingTrip(d);
+
+    // Pour tout autre statut, vérifier la date de départ
+    if (d.departureTime.isNotEmpty) {
+      try {
+        final dt = DateTime.parse(d.departureTime).toLocal();
+        // Masquer si le départ était il y a plus de 2 heures
+        if (dt.isBefore(DateTime.now().subtract(const Duration(hours: 2)))) {
+          logger.d('upcomingTrip masqué : départ passé ($dt) status=${d.status}');
+          return null;
+        }
+      } catch (_) {}
+    }
+
+    return _mapUpcomingTrip(d);
+  }
+
+  bool _isRideBookable(PassengerRideData r) {
+    // Statut explicitement terminal → exclure
+    if (_terminalStatuses.contains(r.status)) return false;
+
+    // Statut explicitement non-réservable (trajet en cours) → exclure
+    if (r.status == 'in_progress' || r.status == 'ongoing') return false;
+
+    // Filtrer par date si disponible
+    if (r.departureTimeRaw.isNotEmpty) {
+      try {
+        final dt = DateTime.parse(r.departureTimeRaw).toLocal();
+        // Exclure si le départ est passé (tolérance 15 min)
+        return dt.isAfter(
+            DateTime.now().subtract(const Duration(minutes: 15)));
+      } catch (_) {}
+    }
+
+    // Pas de date : garder si le statut n'est pas explicitement mauvais
+    return true;
   }
 
   HomeUpcomingTrip _mapUpcomingTrip(PassengerUpcomingTripData d) =>

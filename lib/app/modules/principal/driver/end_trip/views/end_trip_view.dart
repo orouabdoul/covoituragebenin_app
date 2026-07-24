@@ -194,7 +194,7 @@ class _TripSummaryCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _SummaryItem2(r: r, icon: Icons.route_rounded, value: '${data.distanceKm}km', label: 'Distance'),
+              _SummaryItem2(r: r, icon: Icons.route_rounded, value: data.distanceKm != null ? '${data.distanceKm!.toStringAsFixed(1)}km' : '—', label: 'Distance'),
               _SummaryItem2(r: r, icon: Icons.timer_rounded, value: data.realDuration, label: 'Durée'),
               _SummaryItem2(r: r, icon: Icons.people_rounded, value: '${data.passengersCount}', label: 'Passagers'),
             ],

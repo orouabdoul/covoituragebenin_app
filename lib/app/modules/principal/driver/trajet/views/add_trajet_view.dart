@@ -143,6 +143,28 @@ class AddTrajetView extends GetView<AddTrajetController> {
                     controller: controller,
                   ),
                 ),
+                SizedBox(height: responsive.h(20)),
+                _SectionCard(
+                  responsive: responsive,
+                  title: 'Mode de réservation',
+                  subtitle: 'Comment accepter les passagers ?',
+                  icon: Icons.how_to_reg_rounded,
+                  child: _BookingModeSelector(
+                    responsive: responsive,
+                    controller: controller,
+                  ),
+                ),
+                SizedBox(height: responsive.h(20)),
+                _SectionCard(
+                  responsive: responsive,
+                  title: "Politique d'annulation",
+                  subtitle: 'Conditions de remboursement',
+                  icon: Icons.policy_rounded,
+                  child: _CancellationPolicySelector(
+                    responsive: responsive,
+                    controller: controller,
+                  ),
+                ),
                 SizedBox(height: responsive.h(24)),
                 Obx(() => AppPrimaryButton(
                   responsive: responsive,
@@ -1099,19 +1121,27 @@ class _PricingCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Suggested price hint
-        Row(
-          children: [
-            Icon(Icons.lightbulb_outline_rounded,
-                size: responsive.text(14), color: AppColors.primary),
-            SizedBox(width: responsive.w(6)),
-            Text(
-              'Prix suggéré: 5 000 FCFA',
-              style: AppTextStyles.profileSectionLabel(responsive)
-                  .copyWith(color: AppColors.primary),
-            ),
-          ],
-        ),
+        // Suggested price hint — inside Obx so it reacts when API loads
+        Obx(() {
+          // Reading pricePerSeat triggers rebuild when _applyFormData runs
+          controller.pricePerSeat.value;
+          return Row(
+            children: [
+              Icon(Icons.lightbulb_outline_rounded,
+                  size: responsive.text(14), color: AppColors.primary),
+              SizedBox(width: responsive.w(6)),
+              Flexible(
+                child: Text(
+                  'Suggéré : ${_formatAmount(controller.priceDefault)} FCFA'
+                  '  •  min ${_formatAmount(controller.priceMin)}'
+                  '  •  max ${_formatAmount(controller.priceMax)}',
+                  style: AppTextStyles.profileSectionLabel(responsive)
+                      .copyWith(color: AppColors.primary),
+                ),
+              ),
+            ],
+          );
+        }),
         SizedBox(height: responsive.h(12)),
 
         // Editable price field
@@ -1288,5 +1318,165 @@ class _PreferencesGrid extends StatelessWidget {
         }).toList(growable: false),
       ),
     );
+  }
+}
+
+// ── Booking mode selector ─────────────────────────────────────────────────────
+
+class _BookingModeSelector extends StatelessWidget {
+  const _BookingModeSelector({required this.responsive, required this.controller});
+  final AppResponsive responsive;
+  final AddTrajetController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final selected = controller.selectedBookingMode.value;
+      return Column(
+        children: controller.bookingModes.map((mode) {
+          final isSelected = selected == mode.mode;
+          final icon = mode.mode == 'instant'
+              ? Icons.bolt_rounded
+              : Icons.how_to_reg_rounded;
+          return Padding(
+            padding: EdgeInsets.only(bottom: responsive.h(10)),
+            child: GestureDetector(
+              onTap: () => controller.selectedBookingMode.value = mode.mode,
+              child: Container(
+                padding: EdgeInsets.all(responsive.w(14)),
+                decoration: ShapeDecoration(
+                  color: isSelected ? const Color(0x0C00A86B) : AppColors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(responsive.radius(16)),
+                    side: BorderSide(
+                      color: isSelected ? AppColors.primary : AppColors.border,
+                      width: isSelected ? 2 : 1,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: responsive.w(40),
+                      height: responsive.w(40),
+                      decoration: ShapeDecoration(
+                        color: AppColors.surfaceAccentStrong,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Icon(icon,
+                          color: AppColors.primary, size: responsive.text(18)),
+                    ),
+                    SizedBox(width: responsive.w(12)),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            mode.title,
+                            style: AppTextStyles.profileSectionLabel(responsive)
+                                .copyWith(fontWeight: FontWeight.w600),
+                          ),
+                          Text(mode.description,
+                              style: AppTextStyles.caption(responsive)),
+                        ],
+                      ),
+                    ),
+                    if (isSelected)
+                      Icon(Icons.check_circle_rounded,
+                          color: AppColors.primary, size: responsive.text(22))
+                    else
+                      Icon(Icons.radio_button_unchecked_rounded,
+                          color: AppColors.border, size: responsive.text(22)),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }).toList(growable: false),
+      );
+    });
+  }
+}
+
+// ── Cancellation policy selector ──────────────────────────────────────────────
+
+class _CancellationPolicySelector extends StatelessWidget {
+  const _CancellationPolicySelector({required this.responsive, required this.controller});
+  final AppResponsive responsive;
+  final AddTrajetController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final selected = controller.selectedCancellationPolicy.value;
+      return Column(
+        children: controller.cancellationPolicies.map((policy) {
+          final isSelected = selected == policy.policy;
+          final color = switch (policy.policy) {
+            'flexible' => AppColors.success,
+            'moderate' => const Color(0xFFF4B400),
+            _ => const Color(0xFFE53935),
+          };
+          return Padding(
+            padding: EdgeInsets.only(bottom: responsive.h(10)),
+            child: GestureDetector(
+              onTap: () =>
+                  controller.selectedCancellationPolicy.value = policy.policy,
+              child: Container(
+                padding: EdgeInsets.all(responsive.w(14)),
+                decoration: ShapeDecoration(
+                  color: isSelected ? color.withValues(alpha: 0.06) : AppColors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(responsive.radius(16)),
+                    side: BorderSide(
+                      color: isSelected ? color : AppColors.border,
+                      width: isSelected ? 2 : 1,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: responsive.w(10),
+                      height: responsive.w(10),
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    SizedBox(width: responsive.w(12)),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            policy.title,
+                            style: AppTextStyles.profileSectionLabel(responsive)
+                                .copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: isSelected ? color : AppColors.textPrimary,
+                            ),
+                          ),
+                          Text(policy.description,
+                              style: AppTextStyles.caption(responsive)),
+                        ],
+                      ),
+                    ),
+                    if (isSelected)
+                      Icon(Icons.check_circle_rounded,
+                          color: color, size: responsive.text(22))
+                    else
+                      Icon(Icons.radio_button_unchecked_rounded,
+                          color: AppColors.border, size: responsive.text(22)),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }).toList(growable: false),
+      );
+    });
   }
 }

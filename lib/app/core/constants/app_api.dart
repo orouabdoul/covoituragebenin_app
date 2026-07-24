@@ -64,6 +64,7 @@ class AppApi {
 
   // Trajets — conducteur
   static const String driverTrips = '/driver/trips';
+  static const String driverTripForm = '/driver/trip-form';
   static const String driverTripPublish = '/driver/trip-publish';
   static String driverTripPassengers(String uuid) => '/driver/trips/$uuid/passengers';
   static String driverTripCancel(String uuid) => '/driver/trips/$uuid/cancel';

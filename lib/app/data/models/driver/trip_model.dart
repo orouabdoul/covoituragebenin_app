@@ -47,6 +47,7 @@ class TripModel {
     this.apiTotalRevenue,
     this.apiCommission,
     this.apiNetRevenue,
+    this.apiCommissionRate,
   });
 
   final String id;
@@ -64,13 +65,24 @@ class TripModel {
   final double? apiTotalRevenue;
   final double? apiCommission;
   final double? apiNetRevenue;
+  final int? apiCommissionRate;
 
   int get bookedSeats => passengers.fold(0, (sum, p) => sum + p.seatsBooked);
   int get availableSeats => totalSeats - bookedSeats;
-  double get totalRevenue => apiTotalRevenue ?? passengers.fold(0.0, (sum, p) => sum + p.amount);
-  double get commission => apiCommission ?? totalRevenue * 0.10;
-  double get netRevenue => apiNetRevenue ?? totalRevenue - commission;
-  bool get allPaid => passengers.every((p) => p.paymentStatus == PassengerPaymentStatus.paid);
+  int get commissionRate =>
+      apiCommissionRate != null && apiCommissionRate! > 0 ? apiCommissionRate! : 10;
+  double get totalRevenue =>
+      apiTotalRevenue ?? passengers.fold(0.0, (sum, p) => sum + p.amount);
+  double get commission {
+    if (apiCommission != null && apiCommission! > 0) return apiCommission!;
+    return totalRevenue * (commissionRate / 100);
+  }
+  double get netRevenue {
+    if (apiNetRevenue != null && apiNetRevenue! > 0) return apiNetRevenue!;
+    return totalRevenue - commission;
+  }
+  bool get allPaid =>
+      passengers.every((p) => p.paymentStatus == PassengerPaymentStatus.paid);
 
   Color get statusColor {
     return switch (status) {

@@ -11,17 +11,18 @@ import 'package:covoiturage_benin_app/app/data/models/driver/trip_model.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/trips_model.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
-enum TrajetFilterType { active, pending, completed, canceled }
+enum TrajetFilterType { all, active, pending, completed, canceled }
 
 class TrajetController extends GetxController {
   TripsService get _service => Get.find<TripsService>();
 
-  final Rx<TrajetFilterType> selectedFilter = TrajetFilterType.active.obs;
+  final Rx<TrajetFilterType> selectedFilter = TrajetFilterType.all.obs;
   final RxBool isLoading = false.obs;
   final RxInt _tripsVersion = 0.obs;
 
   // ── Filter counts (updated from API filter_counts) ────────────────────────
   var _filterCounts = const {
+    TrajetFilterType.all: 0,
     TrajetFilterType.active: 0,
     TrajetFilterType.pending: 0,
     TrajetFilterType.completed: 0,
@@ -30,6 +31,7 @@ class TrajetController extends GetxController {
 
   // ── Trips cache per filter ────────────────────────────────────────────────
   final Map<TrajetFilterType, List<TrajetCardData>> _tripsByFilter = {
+    TrajetFilterType.all: [],
     TrajetFilterType.active: [],
     TrajetFilterType.pending: [],
     TrajetFilterType.completed: [],
@@ -41,6 +43,11 @@ class TrajetController extends GetxController {
   List<TrajetFilterSummary> get filters {
     final _ = _tripsVersion.value;
     return [
+      TrajetFilterSummary(
+        type: TrajetFilterType.all,
+        label: 'Tous',
+        count: '${_filterCounts[TrajetFilterType.all] ?? 0}',
+      ),
       TrajetFilterSummary(
         type: TrajetFilterType.active,
         label: AppStrings.trajetActiveFilter,
@@ -91,18 +98,22 @@ class TrajetController extends GetxController {
   }
 
   void _applyTripsData(TripsModel data, TrajetFilterType filter) {
-    // Update filter counts from API
+    final totalCount = data.filterCounts.all > 0
+        ? data.filterCounts.all
+        : data.filterCounts.pending +
+            data.filterCounts.active +
+            data.filterCounts.completed +
+            data.filterCounts.cancelled;
+
     _filterCounts = {
+      TrajetFilterType.all: totalCount,
       TrajetFilterType.active: data.filterCounts.active,
       TrajetFilterType.pending: data.filterCounts.pending,
       TrajetFilterType.completed: data.filterCounts.completed,
       TrajetFilterType.canceled: data.filterCounts.cancelled,
     };
 
-    // Map API trips to UI model
-    _tripsByFilter[filter] =
-        data.trips.map(_tripItemToCard).toList();
-
+    _tripsByFilter[filter] = data.trips.map(_tripItemToCard).toList();
     _tripsVersion.value++;
   }
 
@@ -113,6 +124,7 @@ class TrajetController extends GetxController {
 
     return TrajetCardData(
       uuid: t.uuid,
+      status: t.status,
       statusLabel: t.statusLabel.isNotEmpty ? t.statusLabel : _defaultStatusLabel(t.status),
       statusBackground: statusStyle.$1,
       statusColor: statusStyle.$2,
@@ -146,6 +158,7 @@ class TrajetController extends GetxController {
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   String _filterStatus(TrajetFilterType filter) => switch (filter) {
+        TrajetFilterType.all => 'all',
         TrajetFilterType.active => 'active',
         TrajetFilterType.pending => 'pending',
         TrajetFilterType.completed => 'completed',
@@ -195,28 +208,46 @@ class TrajetController extends GetxController {
   void onPrimaryAction(TrajetCardData trip) {
     switch (trip.primaryActionCode) {
       case 'start':
-        // Pré-départ : checklist avant de démarrer
         Get.toNamed(AppRoutes.driverActiveTrip,
             arguments: {'trip': _toTripModel(trip)});
       case 'navigate':
-        // Trajet déjà actif : aller directement à "Trajet en cours"
         Get.toNamed(AppRoutes.driverRunningTrip,
             arguments: {'uuid': trip.uuid});
+      case 'view':
+        Get.toNamed(AppRoutes.driverTripDetail,
+            arguments: {'uuid': trip.uuid});
+      case 'none':
+        break; // Bouton désactivé — rien à faire
       default:
-        if (selectedFilter.value == TrajetFilterType.active) {
-          Get.toNamed(AppRoutes.driverRunningTrip,
-              arguments: {'uuid': trip.uuid});
-        } else {
-          UIHelper().showSnackBar(
-              'MINIZON', '${trip.passengerActionLabel} — ${trip.routeLabel}', 1);
+        switch (trip.status) {
+          case 'active' || 'in_progress':
+            Get.toNamed(AppRoutes.driverRunningTrip,
+                arguments: {'uuid': trip.uuid});
+          case 'completed' || 'cancelled':
+            Get.toNamed(AppRoutes.driverTripDetail,
+                arguments: {'uuid': trip.uuid});
+          default:
+            break;
         }
     }
   }
 
-  /// Tap sur le corps de la card → carte interactive
+  /// Tap sur le corps de la card
   void onCardTap(TrajetCardData trip) {
-    Get.toNamed(AppRoutes.driverInteractiveMap,
-        arguments: {'uuid': trip.uuid, 'trip': _toTripModel(trip)});
+    switch (trip.status) {
+      case 'active' || 'in_progress':
+        // Trajet actif → carte interactive en temps réel
+        Get.toNamed(AppRoutes.driverInteractiveMap,
+            arguments: {'uuid': trip.uuid, 'trip': _toTripModel(trip)});
+      case 'pending':
+        // Trajet à venir → pré-départ
+        Get.toNamed(AppRoutes.driverActiveTrip,
+            arguments: {'trip': _toTripModel(trip)});
+      default:
+        // Terminé ou annulé → détail
+        Get.toNamed(AppRoutes.driverTripDetail,
+            arguments: {'uuid': trip.uuid});
+    }
   }
 
   /// Construit un TripModel minimal depuis TrajetCardData pour le fallback carte.
@@ -607,6 +638,7 @@ class TrajetFilterSummary {
 class TrajetCardData {
   const TrajetCardData({
     required this.uuid,
+    required this.status,
     required this.statusLabel,
     required this.statusBackground,
     required this.statusColor,
@@ -631,6 +663,7 @@ class TrajetCardData {
   });
 
   final String uuid;
+  final String status;
   final String statusLabel;
   final Color statusBackground;
   final Color statusColor;

@@ -29,6 +29,9 @@ class TripDetailView extends StatelessWidget {
         if (controller.isLoading.value) {
           return const Center(child: CircularProgressIndicator());
         }
+        final trip = controller.trip;
+        final isActionable = trip.status == TripStatus.pending ||
+            trip.status == TripStatus.active;
         return SafeArea(
           child: Center(
             child: ConstrainedBox(
@@ -43,21 +46,26 @@ class TripDetailView extends StatelessWidget {
                       ),
                       children: [
                         SizedBox(height: r.adaptive(phone: 16, smallPhone: 12, tablet: 20, desktop: 24)),
-                        _StatusCard(r: r, trip: controller.trip),
+                        _StatusCard(r: r, trip: trip),
                         SizedBox(height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                        _RouteCard(r: r, trip: controller.trip),
+                        _RouteCard(r: r, trip: trip),
                         SizedBox(height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
                         _PassengersCard(r: r, controller: controller),
                         SizedBox(height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                        _FinancesCard(r: r, trip: controller.trip),
+                        _FinancesCard(r: r, trip: trip),
                         SizedBox(height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                        _StatsRow(r: r, trip: controller.trip),
+                        _StatsRow(r: r, trip: trip),
                         SizedBox(height: r.adaptive(phone: 20, smallPhone: 18, tablet: 24, desktop: 28)),
-                        _MapButton(r: r, controller: controller),
-                        SizedBox(height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                        _StartButton(r: r, controller: controller),
-                        SizedBox(height: r.adaptive(phone: 8, smallPhone: 6, tablet: 10, desktop: 12)),
-                        _CancelButton(r: r, controller: controller),
+                        if (isActionable) ...[
+                          _MapButton(r: r, controller: controller),
+                          SizedBox(height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+                        ],
+                        if (controller.canStart) ...[
+                          _StartButton(r: r, controller: controller),
+                          SizedBox(height: r.adaptive(phone: 8, smallPhone: 6, tablet: 10, desktop: 12)),
+                        ],
+                        if (controller.canCancel)
+                          _CancelButton(r: r, controller: controller),
                         SizedBox(height: r.adaptive(phone: 24, smallPhone: 20, tablet: 28, desktop: 32)),
                       ],
                     ),
@@ -115,37 +123,38 @@ class _Header extends StatelessWidget {
               ),
             ),
           ),
-          GestureDetector(
-            onTap: controller.onEditTrip,
-            child: Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16),
-                vertical: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8),
-              ),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceAccent,
-                borderRadius: BorderRadius.circular(r.adaptive(phone: 20, smallPhone: 18, tablet: 24, desktop: 28)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.edit_rounded,
-                    size: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18),
-                    color: AppColors.primary,
-                  ),
-                  SizedBox(width: r.adaptive(phone: 4, smallPhone: 3, tablet: 5, desktop: 6)),
-                  Text(
-                    'Modifier',
-                    style: AppTextStyles.labelSmall(r).copyWith(
+          if (controller.canEdit)
+            GestureDetector(
+              onTap: controller.onEditTrip,
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16),
+                  vertical: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8),
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceAccent,
+                  borderRadius: BorderRadius.circular(r.adaptive(phone: 20, smallPhone: 18, tablet: 24, desktop: 28)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.edit_rounded,
+                      size: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18),
                       color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
                     ),
-                  ),
-                ],
+                    SizedBox(width: r.adaptive(phone: 4, smallPhone: 3, tablet: 5, desktop: 6)),
+                    Text(
+                      'Modifier',
+                      style: AppTextStyles.labelSmall(r).copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -589,7 +598,13 @@ class _FinancesCard extends StatelessWidget {
           SizedBox(height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
           _FinRow(r: r, label: 'Montant total', value: '${trip.totalRevenue.toStringAsFixed(0)} FCFA', isTotal: false),
           SizedBox(height: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8)),
-          _FinRow(r: r, label: 'Commission MINIZON (10%)', value: '-${trip.commission.toStringAsFixed(0)} FCFA', isTotal: false, valueColor: const Color(0xFFE53935)),
+          _FinRow(
+            r: r,
+            label: 'Commission MINIZON (${trip.commissionRate}%)',
+            value: '-${trip.commission.toStringAsFixed(0)} FCFA',
+            isTotal: false,
+            valueColor: const Color(0xFFE53935),
+          ),
           Divider(height: r.adaptive(phone: 20, smallPhone: 16, tablet: 24, desktop: 28), color: AppColors.border),
           _FinRow(r: r, label: 'Vos revenus nets', value: '${trip.netRevenue.toStringAsFixed(0)} FCFA', isTotal: true),
         ],

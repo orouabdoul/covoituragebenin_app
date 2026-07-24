@@ -49,6 +49,30 @@ class TripsServiceImpl implements TripsService {
   }
 
   @override
+  Future<ApiResult<Map<String, dynamic>>> fetchTripForm() async {
+    try {
+      final opts = await _authOptions();
+      final response = await _dio.get(AppApi.driverTripForm, options: opts);
+      logger.d('fetchTripForm [${response.statusCode}]');
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return ApiResult.success(response.data['body'] as Map<String, dynamic>);
+      }
+      if (response.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (response.statusCode == 403) {
+        final msg = response.data['message'] as String?;
+        return ApiResult.failure(AppError.permissionDenied, message: msg);
+      }
+      return ApiResult.failure(AppError.unexpected);
+    } on DioException catch (e) {
+      logger.e('fetchTripForm: $e');
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
+      logger.e('fetchTripForm: $e');
+      return ApiResult.failure(AppError.unexpected);
+    }
+  }
+
+  @override
   Future<ApiResult<TripPassengersModel>> fetchTripPassengers(String uuid) async {
     try {
       final opts = await _authOptions();
@@ -111,8 +135,14 @@ class TripsServiceImpl implements TripsService {
         return ApiResult.success(null);
       }
       if (response.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
-      if (response.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
-      if (response.statusCode == 422) return ApiResult.failure(AppError.tripDataInvalid);
+      if (response.statusCode == 403) {
+        final msg = response.data['message'] as String?;
+        return ApiResult.failure(AppError.permissionDenied, message: msg);
+      }
+      if (response.statusCode == 422) {
+        final msg = response.data['message'] as String?;
+        return ApiResult.failure(AppError.tripDataInvalid, message: msg);
+      }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('publishTrip: $e');
@@ -152,8 +182,14 @@ class TripsServiceImpl implements TripsService {
       logger.d('updateTrip [$uuid] [${response.statusCode}]');
       if (response.statusCode == 200) return ApiResult.success(null);
       if (response.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
-      if (response.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
-      if (response.statusCode == 422) return ApiResult.failure(AppError.validationError);
+      if (response.statusCode == 403) {
+        final msg = response.data['message'] as String?;
+        return ApiResult.failure(AppError.permissionDenied, message: msg);
+      }
+      if (response.statusCode == 422) {
+        final msg = response.data['message'] as String?;
+        return ApiResult.failure(AppError.validationError, message: msg);
+      }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('updateTrip: $e');

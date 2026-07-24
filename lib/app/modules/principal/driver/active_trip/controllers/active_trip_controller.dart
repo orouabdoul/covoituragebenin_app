@@ -26,7 +26,7 @@ class ActiveTripController extends GetxController {
     super.onInit();
     final args = Get.arguments as Map<String, dynamic>?;
     final trip = args?['trip'] as TripModel?;
-    _uuid = trip?.id ?? '';
+    _uuid = trip?.id ?? (args?['uuid'] as String? ?? '');
     _fetchPreDeparture();
   }
 
@@ -49,7 +49,7 @@ class ActiveTripController extends GetxController {
     } else {
       hasError.value = true;
       if (result.error != AppError.socket) {
-        UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+        UIHelper().showSnackBar('MINIZON', result.displayMessage, 2);
       }
     }
   }
@@ -104,7 +104,7 @@ class ActiveTripController extends GetxController {
         'stops': preDep?.stops ?? [],
       });
     } else {
-      UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+      UIHelper().showSnackBar('MINIZON', result.displayMessage, 2);
     }
   }
 }

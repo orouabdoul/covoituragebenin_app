@@ -429,9 +429,26 @@ class DriverHomeController extends GetxController {
 
     metrics.assignAll(data.metrics.map(_metricFromApi));
 
-    const visibleStatuses = {'pending', 'confirmed', 'active', 'in_progress', 'started'};
-    if (data.nextTrip != null && visibleStatuses.contains(data.nextTrip!.status)) {
+    // ── LOG nextTrip ──────────────────────────────────────────────────────
+    if (data.nextTrip != null) {
       final t = data.nextTrip!;
+      logger.d('═══ [DRIVER HOME] nextTrip reçu ═══');
+      logger.d('  uuid          : ${t.uuid}');
+      logger.d('  status        : "${t.status}"');
+      logger.d('  departureTime : "${t.departureTime}"');
+      logger.d('  route         : ${t.departureCity} → ${t.arrivalCity}');
+    } else {
+      logger.d('[DRIVER HOME] nextTrip = null');
+    }
+
+    const visibleStatuses = {'pending', 'confirmed', 'active', 'in_progress', 'started'};
+    final rawTrip = data.nextTrip;
+    final tripVisible = rawTrip != null &&
+        visibleStatuses.contains(rawTrip.status) &&
+        _isTripVisible(rawTrip.status, rawTrip.departureTime);
+
+    if (tripVisible) {
+      final t = rawTrip;
       final depLabel = t.departureNeighborhood.isNotEmpty
           ? '${t.departureNeighborhood}, ${t.departureCity}'
           : t.departureCity;
@@ -451,13 +468,31 @@ class DriverHomeController extends GetxController {
         tripProgress: (t.status == 'in_progress' || t.status == 'started') ? 0.5 : 0.0,
       );
     } else {
+      if (rawTrip != null) {
+        logger.d('[DRIVER HOME] nextTrip MASQUÉ : status="${rawTrip.status}" départ="${rawTrip.departureTime}"');
+      }
       nextTrip.value = null;
+    }
+
+    // ── LOG quickRequests ─────────────────────────────────────────────────
+    logger.d('═══ [DRIVER HOME] quickRequests reçus (${data.quickRequests.length}) ═══');
+    for (var i = 0; i < data.quickRequests.length; i++) {
+      final r = data.quickRequests[i];
+      final secs = _expirySeconds(r.createdAt);
+      logger.d('  quick[$i] uuid=${r.uuid.substring(0, 8)}… '
+          'status="${r.status}" createdAt="${r.createdAt}" '
+          'remainingSecs=$secs tripDep="${r.trip.departureTime}"');
     }
 
     for (final r in quickRequests) {
       r.cancelTimer();
     }
-    final newQuick = data.quickRequests.map((r) {
+    // Afficher toutes les quick_requests que le backend renvoie (status=pending)
+    // Le backend décide lesquelles sont actives — on ne filtre que les trajets passés
+    final newQuick = data.quickRequests
+        .where((r) => _isTripVisible('pending', r.trip.departureTime))
+        .map((r) {
+      final secs = _expirySeconds(r.createdAt);
       return QuickRequest(
         id: r.uuid,
         passengerName: r.passenger.name,
@@ -470,7 +505,9 @@ class DriverHomeController extends GetxController {
         routeLabel: '${r.trip.departureCity} → ${r.trip.arrivalCity}',
         amount: 0,
         seats: r.seatsBooked,
-        expiresInSeconds: _expirySeconds(r.createdAt),
+        // Si la demande est ancienne (>15min), le countdown démarre à 0
+        // mais la carte reste visible jusqu'à action du conducteur
+        expiresInSeconds: secs,
       );
     }).toList();
     quickRequests.assignAll(newQuick);
@@ -478,10 +515,23 @@ class DriverHomeController extends GetxController {
       r.startTimer(() => _onRequestExpired(r));
     }
     pendingRequestsCount.value = quickRequests.length;
+    logger.d('[DRIVER HOME] quickRequests AFFICHÉS : ${quickRequests.length}');
 
+    // ── LOG recentRequests ────────────────────────────────────────────────
+    logger.d('═══ [DRIVER HOME] recentRequests reçus (${data.recentRequests.length}) ═══');
+    for (var i = 0; i < data.recentRequests.length; i++) {
+      final r = data.recentRequests[i];
+      logger.d('  recent[$i] status="${r.status}" '
+          'createdAt="${r.createdAt}" tripDep="${r.trip.departureTime}" '
+          'passenger="${r.passenger.name}"');
+    }
+
+    const hiddenStatuses = {'cancelled', 'accepted', 'rejected', 'expired'};
     recentRequests.assignAll(
       data.recentRequests
-          .where((r) => r.status != 'cancelled' && r.status != 'accepted')
+          .where((r) =>
+              !hiddenStatuses.contains(r.status) &&
+              _isTripVisible('pending', r.trip.departureTime))
           .map((r) {
         final statusInfo = _requestStatusInfo(r.status);
         return DriverRequest(
@@ -498,6 +548,7 @@ class DriverHomeController extends GetxController {
         );
       }),
     );
+    logger.d('[DRIVER HOME] recentRequests AFFICHÉS : ${recentRequests.length}');
 
     wallet.value = DriverWallet(
       balance: data.wallet.availableBalance.toCurrency,
@@ -550,6 +601,24 @@ class DriverHomeController extends GetxController {
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
+
+  /// Retourne true si le trajet doit rester visible.
+  /// Les trajets actifs (in_progress/started) sont toujours visibles.
+  /// Les autres sont masqués si leur date de départ est passée depuis plus de 2h.
+  static bool _isTripVisible(String status, String departureTimeIso) {
+    // Trajet en cours → toujours afficher
+    if (status == 'in_progress' || status == 'started') return true;
+
+    if (departureTimeIso.isEmpty) return true; // pas de date → laisser passer
+    try {
+      final dt = DateTime.parse(departureTimeIso).toLocal();
+      final cutoff = DateTime.now().subtract(const Duration(hours: 2));
+      if (dt.isBefore(cutoff)) {
+        return false; // départ passé depuis plus de 2h
+      }
+    } catch (_) {}
+    return true;
+  }
 
   String _shortAmount(int amount) {
     if (amount >= 1000000) {
@@ -797,6 +866,36 @@ class DriverHomeController extends GetxController {
         ],
       ),
     );
+  }
+
+  Future<void> onRecentAccept(DriverRequest request) async {
+    if (request.id.isEmpty) {
+      UIHelper().showSnackBar('MINIZON', 'Identifiant manquant.', 2);
+      return;
+    }
+    final result = await Get.find<BookingService>().acceptBooking(request.id);
+    if (result.isSuccess) {
+      recentRequests.removeWhere((r) => r.id == request.id);
+      UIHelper().showSnackBar('MINIZON', '✅ ${request.name} accepté(e) !', 0);
+      _loadDashboard();
+    } else {
+      UIHelper().showSnackBar('MINIZON', 'Erreur lors de l\'acceptation.', 2);
+    }
+  }
+
+  Future<void> onRecentReject(DriverRequest request) async {
+    if (request.id.isEmpty) {
+      UIHelper().showSnackBar('MINIZON', 'Identifiant manquant.', 2);
+      return;
+    }
+    final result = await Get.find<BookingService>().rejectBooking(request.id);
+    if (result.isSuccess) {
+      recentRequests.removeWhere((r) => r.id == request.id);
+      UIHelper().showSnackBar('MINIZON', '${request.name} refusé(e).', 1);
+      _loadDashboard();
+    } else {
+      UIHelper().showSnackBar('MINIZON', 'Erreur lors du refus.', 2);
+    }
   }
 
   void onRequestAction(String action, DriverRequest request) =>

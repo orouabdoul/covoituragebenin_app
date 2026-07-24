@@ -31,6 +31,11 @@ class ActiveTripServiceImpl implements ActiveTripService {
         );
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 403) {
+        final msg = res.data['message'] as String?;
+        return ApiResult.failure(AppError.permissionDenied, message: msg);
+      }
+      if (res.statusCode == 404) return ApiResult.failure(AppError.tripNotFound);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('preDeparture: $e');
@@ -51,6 +56,11 @@ class ActiveTripServiceImpl implements ActiveTripService {
         return ApiResult.success(null);
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 403) {
+        final msg = res.data['message'] as String?;
+        return ApiResult.failure(AppError.permissionDenied, message: msg);
+      }
+      if (res.statusCode == 404) return ApiResult.failure(AppError.tripNotFound);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('startTrip: $e');
@@ -60,5 +70,4 @@ class ActiveTripServiceImpl implements ActiveTripService {
       return ApiResult.failure(AppError.unexpected);
     }
   }
-
 }

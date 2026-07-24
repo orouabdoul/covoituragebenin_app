@@ -32,12 +32,11 @@ class TripDetailController extends GetxController {
     publishedAgo: '',
   );
 
+  bool canStart = false;
   bool canEdit = false;
   bool canCancel = false;
 
   List<ChecklistItem> checklist = const [];
-
-  bool get canStart => trip.allPaid;
 
   @override
   void onInit() {
@@ -58,7 +57,7 @@ class TripDetailController extends GetxController {
     if (result.isSuccess) {
       _applyTripDetail(result.data!);
     } else {
-      UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+      UIHelper().showSnackBar('MINIZON', result.displayMessage, 2);
     }
   }
 
@@ -80,7 +79,9 @@ class TripDetailController extends GetxController {
       apiTotalRevenue: data.finances.totalRevenue.toDouble(),
       apiCommission: data.finances.commission.toDouble(),
       apiNetRevenue: data.finances.netRevenue.toDouble(),
+      apiCommissionRate: data.finances.commissionRate,
     );
+    canStart = data.actions.canStart;
     canEdit = data.actions.canEdit;
     canCancel = data.actions.canCancel;
     checklist = _buildChecklist(data);
@@ -259,7 +260,7 @@ class TripDetailController extends GetxController {
       UIHelper().showSnackBar('MINIZON', 'Trajet mis à jour avec succès.', 0);
       _loadTripDetail();
     } else {
-      UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+      UIHelper().showSnackBar('MINIZON', result.displayMessage, 2);
     }
   }
 
@@ -301,7 +302,7 @@ class TripDetailController extends GetxController {
       UIHelper().showSnackBar('MINIZON', 'Trajet annulé avec succès.', 0);
       Get.back();
     } else {
-      UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+      UIHelper().showSnackBar('MINIZON', result.displayMessage, 2);
     }
   }
 

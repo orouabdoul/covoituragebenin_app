@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
 
@@ -13,80 +12,153 @@ import '../../utils/app_dio.dart';
 import '../../utils/logger.dart';
 import '../../../routes/app_routes.dart';
 
-// Gestionnaire de messages en arrière-plan (doit être top-level)
+const _channelId   = 'covoiturage_benin_high';
+const _channelName = 'Covoiturage Bénin';
+const _channelDesc = 'Réservations, trajets et messages importants';
+
+// ── Handler background (isolate séparé) ───────────────────────────────────────
+// Appelé quand l'app est en arrière-plan ou fermée et reçoit un message FCM.
+// Doit être top-level et annoté @pragma.
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  PushNotificationService._showLocalNotificationStatic(message);
+
+  final notification = message.notification;
+  final title = notification?.title
+      ?? message.data['title'] as String?
+      ?? 'Covoiturage Bénin';
+  final body = notification?.body
+      ?? message.data['body'] as String?
+      ?? '';
+  if (body.isEmpty && title == 'Covoiturage Bénin') return;
+
+  // Dans un isolate background, on crée un plugin local frais.
+  final plugin = FlutterLocalNotificationsPlugin();
+
+  if (Platform.isAndroid) {
+    // Créer le canal (idempotent : sans effet si déjà existant)
+    await plugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(const AndroidNotificationChannel(
+          _channelId,
+          _channelName,
+          description: _channelDesc,
+          importance: Importance.max,
+          playSound: true,
+          enableVibration: true,
+          enableLights: true,
+        ));
+  }
+
+  await plugin.initialize(
+    const InitializationSettings(
+      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      iOS: DarwinInitializationSettings(),
+    ),
+  );
+
+  await plugin.show(
+    message.hashCode,
+    title,
+    body,
+    const NotificationDetails(
+      android: AndroidNotificationDetails(
+        _channelId,
+        _channelName,
+        channelDescription: _channelDesc,
+        importance: Importance.max,
+        priority: Priority.high,
+        playSound: true,
+        enableVibration: true,
+        icon: '@mipmap/ic_launcher',
+      ),
+      iOS: DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      ),
+    ),
+  );
 }
+
+// ── Service principal ─────────────────────────────────────────────────────────
 
 class PushNotificationService {
   PushNotificationService._();
   static final PushNotificationService instance = PushNotificationService._();
 
-  final _fcm = FirebaseMessaging.instance;
+  final _fcm               = FirebaseMessaging.instance;
   final _localNotifications = FlutterLocalNotificationsPlugin();
 
-  static const _channelId = 'covoiturage_benin_high';
-  static const _channelName = 'Covoiturage Bénin';
-  static const _channelDesc = 'Réservations, trajets et messages importants';
-
-  // Canal static pour le handler background
-  static final _staticLocalNotifications = FlutterLocalNotificationsPlugin();
-  static bool _staticInitialized = false;
-
   Future<void> initialize() async {
+    // 1. Canal Android haute priorité avec son
     await _createAndroidChannel();
+
+    // 2. Plugin local (foreground + tap)
     await _initLocalNotifications();
+
+    // 3. Permission (Android 13+ / iOS)
     await _requestPermission();
+
+    // 4. iOS : afficher les notifications même quand l'app est au premier plan
+    await _fcm.setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    // 5. Listeners
     _listenForeground();
     _listenOnTap();
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+    // 6. Log token + refresh
     _logToken();
   }
 
-  // ── Canal Android haute importance avec son ────────────────────────────────
+  // ── Canal Android ────────────────────────────────────────────────────────────
 
   Future<void> _createAndroidChannel() async {
     if (!Platform.isAndroid) return;
-    const channel = AndroidNotificationChannel(
-      _channelId,
-      _channelName,
-      description: _channelDesc,
-      importance: Importance.max,
-      playSound: true,
-      enableVibration: true,
-      enableLights: true,
-    );
     await _localNotifications
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(channel);
+        ?.createNotificationChannel(const AndroidNotificationChannel(
+          _channelId,
+          _channelName,
+          description: _channelDesc,
+          importance: Importance.max,
+          playSound: true,
+          enableVibration: true,
+          enableLights: true,
+        ));
   }
 
-  // ── Initialisation du plugin local ────────────────────────────────────────
+  // ── Initialisation plugin local ──────────────────────────────────────────────
 
   Future<void> _initLocalNotifications() async {
-    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const ios = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
     await _localNotifications.initialize(
-      const InitializationSettings(android: android, iOS: ios),
+      const InitializationSettings(
+        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        iOS: DarwinInitializationSettings(
+          requestAlertPermission: true,
+          requestBadgePermission: true,
+          requestSoundPermission: true,
+        ),
+      ),
       onDidReceiveNotificationResponse: _onNotificationTap,
     );
-    // Initialise la version static pour le background handler
-    if (!_staticInitialized) {
-      await _staticLocalNotifications.initialize(
-        const InitializationSettings(android: android, iOS: ios),
-      );
-      _staticInitialized = true;
+    // Demande explicite de la permission Android 13+ via flutter_local_notifications
+    if (Platform.isAndroid) {
+      await _localNotifications
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.requestNotificationsPermission();
     }
   }
 
-  // ── Permission (Android 13+) ───────────────────────────────────────────────
+  // ── Permission ───────────────────────────────────────────────────────────────
 
   Future<void> _requestPermission() async {
     final settings = await _fcm.requestPermission(
@@ -98,20 +170,24 @@ class PushNotificationService {
     logger.d('FCM permission: ${settings.authorizationStatus}');
   }
 
-  // ── Écoute messages premier plan ──────────────────────────────────────────
+  // ── Foreground ───────────────────────────────────────────────────────────────
+  // Sur Android, Firebase n'affiche PAS la notification automatiquement
+  // quand l'app est au premier plan → on la montre via flutter_local_notifications.
 
   void _listenForeground() {
     FirebaseMessaging.onMessage.listen((message) {
-      logger.d('FCM foreground: ${message.notification?.title}');
-      showLocalNotification(message);
+      logger.d('FCM foreground: type=${message.data['type']} title=${message.notification?.title}');
+      _showLocalNotification(message);
     });
   }
 
-  // ── Écoute tap sur notification (app en arrière-plan, pas fermée) ─────────
+  // ── Tap sur notification ─────────────────────────────────────────────────────
 
   void _listenOnTap() {
+    // App en arrière-plan → tap sur notification FCM système
     FirebaseMessaging.onMessageOpenedApp.listen(_navigateFromMessage);
-    // App fermée → notification tap
+
+    // App fermée → tap sur notification → app s'ouvre
     _fcm.getInitialMessage().then((message) {
       if (message != null) {
         Future.delayed(const Duration(milliseconds: 800), () {
@@ -121,47 +197,23 @@ class PushNotificationService {
     });
   }
 
-  // ── Affichage notification locale ─────────────────────────────────────────
+  // ── Affichage local (foreground) ─────────────────────────────────────────────
 
-  void showLocalNotification(RemoteMessage message) {
+  void _showLocalNotification(RemoteMessage message) {
+    // Supporte les messages avec ET sans champ notification (data-only)
     final notification = message.notification;
-    if (notification == null) return;
+    final title = notification?.title
+        ?? message.data['title'] as String?
+        ?? 'Covoiturage Bénin';
+    final body = notification?.body
+        ?? message.data['body'] as String?
+        ?? '';
+    if (body.isEmpty && title == 'Covoiturage Bénin') return;
 
     _localNotifications.show(
       message.hashCode,
-      notification.title,
-      notification.body,
-      NotificationDetails(
-        android: AndroidNotificationDetails(
-          _channelId,
-          _channelName,
-          channelDescription: _channelDesc,
-          importance: Importance.max,
-          priority: Priority.high,
-          playSound: true,
-          enableVibration: true,
-          icon: '@mipmap/ic_launcher',
-        ),
-        iOS: const DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-        ),
-      ),
-      payload: _buildPayload(message.data),
-    );
-  }
-
-  // Version statique pour le background handler
-  static void _showLocalNotificationStatic(RemoteMessage message) {
-    if (!_staticInitialized) return;
-    final notification = message.notification;
-    if (notification == null) return;
-
-    _staticLocalNotifications.show(
-      message.hashCode,
-      notification.title,
-      notification.body,
+      title,
+      body,
       const NotificationDetails(
         android: AndroidNotificationDetails(
           _channelId,
@@ -179,16 +231,16 @@ class PushNotificationService {
           presentSound: true,
         ),
       ),
+      payload: _buildPayload(message.data),
     );
   }
 
-  // ── Navigation depuis tap notification ────────────────────────────────────
+  // ── Navigation ───────────────────────────────────────────────────────────────
 
   void _onNotificationTap(NotificationResponse response) {
     final payload = response.payload;
     if (payload == null) return;
-    final data = _parsePayload(payload);
-    _navigate(data);
+    _navigate(_parsePayload(payload));
   }
 
   void _navigateFromMessage(RemoteMessage message) {
@@ -198,39 +250,38 @@ class PushNotificationService {
   void _navigate(Map<String, dynamic> data) {
     final type        = data['type'] as String? ?? '';
     final role        = data['role'] as String? ?? '';
-    final tripUuid    = data['trip_uuid']         as String?;
-    final bookingUuid = data['booking_uuid']       as String?;
-    final convUuid    = data['conversation_uuid']  as String?;
+    final tripUuid    = data['trip_uuid']        as String?;
+    final bookingUuid = data['booking_uuid']      as String?;
+    final convUuid    = data['conversation_uuid'] as String?;
 
     switch (type) {
 
-      // ── Réservations ────────────────────────────────────────────────────────
+      // ── Nouveau trajet publié ────────────────────────────────────────────────
+      // Le conducteur vient de publier un trajet → les passagers voient la recherche
+      case 'trip_published':
+        Get.toNamed(AppRoutes.passengerHome);
+
+      // ── Réservations ─────────────────────────────────────────────────────────
       case 'reservation_new':
-        // Passager a réservé → conducteur voit ses réservations
         Get.toNamed(AppRoutes.driverReservations);
 
       case 'reservation_accepted':
-        // Conducteur a accepté → passager attend l'approbation ou suit le statut
         Get.toNamed(
           AppRoutes.passengerWaitingApproval,
           arguments: bookingUuid != null ? {'booking_uuid': bookingUuid} : null,
         );
 
       case 'reservation_rejected':
-        // Conducteur a rejeté → passager voit ses réservations
         Get.toNamed(AppRoutes.passengerReservations);
 
       case 'booking_cancelled':
-        // Passager a annulé → conducteur voit ses réservations
         Get.toNamed(AppRoutes.driverReservations);
 
       case 'trip_cancelled':
-        // Conducteur a annulé le trajet → passager voit ses réservations
         Get.toNamed(AppRoutes.passengerReservations);
 
-      // ── Trajet en cours ─────────────────────────────────────────────────────
+      // ── Trajet en cours ──────────────────────────────────────────────────────
       case 'trip_started':
-        // Conducteur démarre → passager va sur le suivi en direct
         Get.toNamed(
           AppRoutes.passengerLiveTracking,
           arguments: {
@@ -240,7 +291,6 @@ class PushNotificationService {
         );
 
       case 'trip_proximity':
-        // Conducteur à 1 km → passager va sur l'écran d'arrivée du conducteur
         Get.toNamed(
           AppRoutes.passengerDriverArrival,
           arguments: {
@@ -250,7 +300,6 @@ class PushNotificationService {
         );
 
       case 'trip_ended':
-        // Trajet terminé → passager confirme la fin du trajet
         Get.toNamed(
           AppRoutes.passengerTripConfirmation,
           arguments: {
@@ -260,36 +309,27 @@ class PushNotificationService {
         );
 
       case 'trip_reminder':
-        // Rappel avant départ → conducteur voit son trajet actif
         if (role == 'driver') {
           Get.toNamed(AppRoutes.driverActiveTrip);
         } else {
           Get.toNamed(AppRoutes.passengerReservations);
         }
 
-      // ── Messagerie ──────────────────────────────────────────────────────────
+      // ── Messagerie ───────────────────────────────────────────────────────────
       case 'message_new':
         if (role == 'driver') {
-          if (convUuid != null) {
-            Get.toNamed(
-              AppRoutes.driverMessageDetail,
-              arguments: {'uuid': convUuid},
-            );
-          } else {
-            Get.toNamed(AppRoutes.driverMessages);
-          }
+          Get.toNamed(
+            convUuid != null ? AppRoutes.driverMessageDetail : AppRoutes.driverMessages,
+            arguments: convUuid != null ? {'uuid': convUuid} : null,
+          );
         } else {
-          if (convUuid != null) {
-            Get.toNamed(
-              AppRoutes.passengerMessageDetail,
-              arguments: {'uuid': convUuid},
-            );
-          } else {
-            Get.toNamed(AppRoutes.passengerMessages);
-          }
+          Get.toNamed(
+            convUuid != null ? AppRoutes.passengerMessageDetail : AppRoutes.passengerMessages,
+            arguments: convUuid != null ? {'uuid': convUuid} : null,
+          );
         }
 
-      // ── Paiements ───────────────────────────────────────────────────────────
+      // ── Paiements ────────────────────────────────────────────────────────────
       case 'payment_success':
         if (role == 'driver') {
           Get.toNamed(AppRoutes.driverPaymentHistory);
@@ -301,41 +341,34 @@ class PushNotificationService {
       case 'withdrawal_rejected':
         Get.toNamed(AppRoutes.driverWithdraw);
 
-      // ── Remboursements ──────────────────────────────────────────────────────
+      // ── Remboursements ───────────────────────────────────────────────────────
       case 'refund_approved':
       case 'refund_rejected':
         Get.toNamed(AppRoutes.passengerRefundHistory);
 
-      // ── Avis ────────────────────────────────────────────────────────────────
+      // ── Avis ─────────────────────────────────────────────────────────────────
       case 'review_new':
-        // Passager a laissé un avis → conducteur voit ses avis
         Get.toNamed(AppRoutes.driverReviews);
 
       case 'review_reply':
-        // Conducteur a répondu → passager voit ses avis
         Get.toNamed(AppRoutes.passengerMyReviews);
 
-      // ── Compte ──────────────────────────────────────────────────────────────
+      // ── Compte ───────────────────────────────────────────────────────────────
       case 'account_verified':
-        if (role == 'driver') {
-          Get.toNamed(AppRoutes.dashboardDriver);
-        } else {
-          Get.toNamed(AppRoutes.dashboardPassenger);
-        }
+        Get.toNamed(
+          role == 'driver' ? AppRoutes.dashboardDriver : AppRoutes.dashboardPassenger,
+        );
 
       case 'account_blocked':
-        // Pas de navigation — l'app redirigera vers login au prochain lancement
         break;
 
-      // ── Sécurité ────────────────────────────────────────────────────────────
+      // ── Sécurité ─────────────────────────────────────────────────────────────
       case 'sos_triggered':
-        if (role == 'driver') {
-          Get.toNamed(AppRoutes.driverSafetyCenter);
-        } else {
-          Get.toNamed(AppRoutes.passengerSafetyCenter);
-        }
+        Get.toNamed(
+          role == 'driver' ? AppRoutes.driverSafetyCenter : AppRoutes.passengerSafetyCenter,
+        );
 
-      // ── Notifications générales ─────────────────────────────────────────────
+      // ── Notifications générales ──────────────────────────────────────────────
       case 'driver_notifications':
         Get.toNamed(AppRoutes.driverNotifications);
 
@@ -347,7 +380,7 @@ class PushNotificationService {
     }
   }
 
-  // ── Token FCM ─────────────────────────────────────────────────────────────
+  // ── Token FCM ─────────────────────────────────────────────────────────────────
 
   Future<String?> getToken() async {
     try {
@@ -358,8 +391,6 @@ class PushNotificationService {
     }
   }
 
-  /// Envoie le token FCM au backend Laravel.
-  /// À appeler après chaque connexion réussie.
   Future<void> registerFcmToken() async {
     try {
       final token = await _fcm.getToken();
@@ -383,18 +414,16 @@ class PushNotificationService {
 
   void _logToken() {
     _fcm.getToken().then((t) => logger.d('FCM Token: $t'));
-    // Re-enregistre automatiquement si le token est renouvelé par Firebase
     _fcm.onTokenRefresh.listen((t) {
       logger.d('FCM Token refreshed: $t');
       registerFcmToken();
     });
   }
 
-  // ── Helpers payload ───────────────────────────────────────────────────────
+  // ── Helpers payload ───────────────────────────────────────────────────────────
 
-  String _buildPayload(Map<String, dynamic> data) {
-    return data.entries.map((e) => '${e.key}=${e.value}').join('&');
-  }
+  String _buildPayload(Map<String, dynamic> data) =>
+      data.entries.map((e) => '${e.key}=${e.value}').join('&');
 
   Map<String, dynamic> _parsePayload(String payload) {
     final result = <String, dynamic>{};
