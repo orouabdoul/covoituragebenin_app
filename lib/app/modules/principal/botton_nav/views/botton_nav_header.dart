@@ -58,7 +58,7 @@ class BottonNavHeader extends StatelessWidget {
                               width: responsive.w(44),
                               height: responsive.w(44),
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Icon(
+                              errorBuilder: (_, _, _) => Icon(
                                 Icons.person_outline_rounded,
                                 size: responsive.text(22),
                                 color: AppColors.textGhost,

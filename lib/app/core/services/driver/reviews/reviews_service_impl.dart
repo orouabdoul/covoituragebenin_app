@@ -11,6 +11,9 @@ import 'reviews_service.dart';
 class ReviewsServiceImpl implements ReviewsService {
   final Dio _dio = AppDio.create();
 
+  String? _lastErrorMessage;
+  String? get lastErrorMessage => _lastErrorMessage;
+
   Future<Options> _authOptions() async {
     final token = await UserController.instance.getSessionToken();
     return Options(
@@ -57,8 +60,14 @@ class ReviewsServiceImpl implements ReviewsService {
       logger.d('replyToReview[$uuid] [${res.statusCode}]');
       if (res.statusCode == 200) return ApiResult.success(null);
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
-      if (res.statusCode == 403) return ApiResult.failure(AppError.unAuthenticated);
-      if (res.statusCode == 404) return ApiResult.failure(AppError.unexpected);
+      if (res.statusCode == 403) {
+        _lastErrorMessage = 'Vous n\'êtes pas autorisé à répondre à cet avis.';
+        return ApiResult.failure(AppError.permissionDenied);
+      }
+      if (res.statusCode == 404) {
+        _lastErrorMessage = 'Cet avis n\'existe plus.';
+        return ApiResult.failure(AppError.unexpected);
+      }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('replyToReview: $e');

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/reviews/reviews_service.dart';
+import 'package:covoiturage_benin_app/app/core/services/driver/reviews/reviews_service_impl.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import '../../../../../data/models/driver/review_model.dart';
@@ -212,16 +213,19 @@ class ReviewsController extends GetxController {
     isSending.value = false;
 
     if (result.isSuccess) {
-      // Update the review locally
       final idx = reviews.indexWhere((r) => r.id == review.id);
       if (idx != -1) {
         reviews[idx] = reviews[idx].copyWith(driverReply: text);
       }
-      replyCtrl.dispose();
       Get.back();
+      replyCtrl.dispose();
       UIHelper().showSnackBar('MINIZON', 'Votre réponse a été publiée.', 0);
     } else {
-      UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+      final svc = _service;
+      final msg = svc is ReviewsServiceImpl && svc.lastErrorMessage != null
+          ? svc.lastErrorMessage!
+          : result.error!.message;
+      UIHelper().showSnackBar('MINIZON', msg, 2);
     }
   }
 

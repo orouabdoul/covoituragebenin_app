@@ -203,9 +203,42 @@ class _TopicsGrid extends StatelessWidget {
           ),
         );
       }
+
+      final query = controller.searchQuery.value.toLowerCase().trim();
+      final filtered = query.isEmpty
+          ? controller.topics
+          : controller.topics
+              .where((t) =>
+                  t.label.toLowerCase().contains(query) ||
+                  t.items.any((item) =>
+                      item.question.toLowerCase().contains(query) ||
+                      item.answer.toLowerCase().contains(query)))
+              .toList();
+
+      if (filtered.isEmpty) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Column(
+            children: [
+              Icon(Icons.search_off_rounded,
+                  size: r.adaptive(phone: 40, smallPhone: 36, tablet: 48, desktop: 56),
+                  color: AppColors.textGhost),
+              SizedBox(height: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
+              Text(
+                query.isEmpty
+                    ? 'Aucune question disponible.'
+                    : 'Aucun résultat pour "$query".',
+                style: AppTextStyles.bodySmall(r).copyWith(color: AppColors.textMuted),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        );
+      }
+
       return Column(
         children: [
-          for (int i = 0; i < controller.topics.length; i += 2)
+          for (int i = 0; i < filtered.length; i += 2)
             Padding(
               padding: EdgeInsets.only(
                   bottom: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
@@ -213,15 +246,13 @@ class _TopicsGrid extends StatelessWidget {
                 children: [
                   Expanded(
                       child: _TopicCard(
-                          r: r, topic: controller.topics[i], controller: controller)),
+                          r: r, topic: filtered[i], controller: controller)),
                   SizedBox(
                       width: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
-                  if (i + 1 < controller.topics.length)
+                  if (i + 1 < filtered.length)
                     Expanded(
                         child: _TopicCard(
-                            r: r,
-                            topic: controller.topics[i + 1],
-                            controller: controller))
+                            r: r, topic: filtered[i + 1], controller: controller))
                   else
                     const Expanded(child: SizedBox()),
                 ],

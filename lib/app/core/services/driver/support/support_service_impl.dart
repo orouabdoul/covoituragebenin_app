@@ -62,6 +62,9 @@ class SupportServiceImpl implements SupportService {
     }
   }
 
+  String? _lastValidationMessage;
+  String? get lastValidationMessage => _lastValidationMessage;
+
   @override
   Future<ApiResult<void>> createTicket({
     required String subject,
@@ -80,6 +83,10 @@ class SupportServiceImpl implements SupportService {
         return ApiResult.success(null);
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 422) {
+        _lastValidationMessage = _extractMessage(res.data);
+        return ApiResult.failure(AppError.validationError);
+      }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('createTicket: $e');
@@ -87,6 +94,19 @@ class SupportServiceImpl implements SupportService {
     } catch (e) {
       logger.e('createTicket: $e');
       return ApiResult.failure(AppError.unexpected);
+    }
+  }
+
+  String _extractMessage(dynamic data) {
+    try {
+      final errors = data['errors'] as Map?;
+      if (errors != null && errors.isNotEmpty) {
+        final first = errors.values.first;
+        if (first is List && first.isNotEmpty) return first.first as String;
+      }
+      return data['message'] as String? ?? 'Données invalides.';
+    } catch (_) {
+      return 'Données invalides.';
     }
   }
 

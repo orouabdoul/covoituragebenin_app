@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/support/support_service.dart';
+import 'package:covoiturage_benin_app/app/core/services/driver/support/support_service_impl.dart';
+import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 
 // ── Models ────────────────────────────────────────────────────────────────────
@@ -139,7 +141,11 @@ class DriverSupportController extends GetxController {
             UIHelper().showSnackBar('MINIZON', 'Ticket créé avec succès.', 0);
             _loadTickets();
           } else {
-            UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+            final svc = _service;
+            final msg = result.error == AppError.validationError && svc is SupportServiceImpl
+                ? (svc.lastValidationMessage ?? result.error!.message)
+                : result.error!.message;
+            UIHelper().showSnackBar('MINIZON', msg, 2);
           }
         },
       ),

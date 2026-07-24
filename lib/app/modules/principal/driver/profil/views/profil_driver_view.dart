@@ -252,7 +252,7 @@ class _HeroCard extends StatelessWidget {
                     ? Image.network(
                         controller.heroAvatarUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Icon(
+                        errorBuilder: (_, _, _) => Icon(
                           Icons.person_rounded,
                           color: AppColors.white,
                           size: responsive.text(48),
@@ -841,7 +841,7 @@ class _VehicleCard extends StatelessWidget {
                   ? Image.network(
                       vehicle.photoUrl!,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Icon(
+                      errorBuilder: (_, _, _) => Icon(
                         Icons.directions_car_rounded,
                         color: AppColors.textHint,
                         size: responsive.text(30),

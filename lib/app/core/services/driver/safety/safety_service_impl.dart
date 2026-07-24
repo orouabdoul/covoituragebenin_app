@@ -10,6 +10,22 @@ import 'safety_service.dart';
 class SafetyServiceImpl implements SafetyService {
   final Dio _dio = AppDio.create();
 
+  String? _lastValidationMessage;
+  String? get lastValidationMessage => _lastValidationMessage;
+
+  String _extractMessage(dynamic data) {
+    try {
+      final errors = data['errors'] as Map?;
+      if (errors != null && errors.isNotEmpty) {
+        final first = errors.values.first;
+        if (first is List && first.isNotEmpty) return first.first as String;
+      }
+      return data['message'] as String? ?? 'Données invalides.';
+    } catch (_) {
+      return 'Données invalides.';
+    }
+  }
+
   Future<Options> _authOptions() async {
     final token = await UserController.instance.getSessionToken();
     return Options(
@@ -77,6 +93,10 @@ class SafetyServiceImpl implements SafetyService {
         return ApiResult.success(_extractContacts(res.data));
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 422) {
+        _lastValidationMessage = _extractMessage(res.data);
+        return ApiResult.failure(AppError.validationError);
+      }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('addContact: $e');
@@ -145,6 +165,10 @@ class SafetyServiceImpl implements SafetyService {
         return ApiResult.success(null);
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 422) {
+        _lastValidationMessage = _extractMessage(res.data);
+        return ApiResult.failure(AppError.validationError);
+      }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('reportIncident: $e');

@@ -285,8 +285,8 @@ class PushNotificationService {
         Get.toNamed(
           AppRoutes.passengerLiveTracking,
           arguments: {
-            if (tripUuid    != null) 'tripUuid':    tripUuid,
-            if (bookingUuid != null) 'bookingUuid': bookingUuid,
+            'tripUuid':    ?tripUuid,
+            'bookingUuid': ?bookingUuid,
           },
         );
 
@@ -294,8 +294,8 @@ class PushNotificationService {
         Get.toNamed(
           AppRoutes.passengerDriverArrival,
           arguments: {
-            if (tripUuid    != null) 'tripUuid':    tripUuid,
-            if (bookingUuid != null) 'bookingUuid': bookingUuid,
+            'tripUuid':    ?tripUuid,
+            'bookingUuid': ?bookingUuid,
           },
         );
 
@@ -303,8 +303,8 @@ class PushNotificationService {
         Get.toNamed(
           AppRoutes.passengerTripConfirmation,
           arguments: {
-            if (tripUuid    != null) 'tripUuid':    tripUuid,
-            if (bookingUuid != null) 'bookingUuid': bookingUuid,
+            'tripUuid':    ?tripUuid,
+            'bookingUuid': ?bookingUuid,
           },
         );
 

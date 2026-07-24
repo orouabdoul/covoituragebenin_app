@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/safety/safety_service.dart';
+import 'package:covoiturage_benin_app/app/core/services/driver/safety/safety_service_impl.dart';
+import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 
 class EmergencyContact {
@@ -20,9 +22,9 @@ class EmergencyContact {
   final String relation;
 
   factory EmergencyContact.fromJson(Map<String, dynamic> json) => EmergencyContact(
-        id: json['id'] as String,
-        name: json['name'] as String,
-        phone: json['phone'] as String,
+        id: json['id']?.toString() ?? '',
+        name: (json['name'] as String?) ?? '',
+        phone: (json['phone'] as String?) ?? '',
         relation: (json['relation'] as String?) ?? 'Proche',
       );
 }
@@ -31,6 +33,14 @@ class DriverSafetyController extends GetxController {
   static const _kSupportPhone = '+229 21 31 00 00';
 
   SafetyService get _service => Get.find<SafetyService>();
+
+  String _errorMsg(dynamic error) {
+    final svc = _service;
+    if (error == AppError.validationError && svc is SafetyServiceImpl) {
+      return svc.lastValidationMessage ?? (error as AppError).message;
+    }
+    return (error as AppError).message;
+  }
 
   final RxBool isLoading        = false.obs;
   final RxBool isSharingLocation = false.obs;
@@ -78,7 +88,7 @@ class DriverSafetyController extends GetxController {
               Get.back();
               final result = await _service.sendSos();
               if (result.isSuccess) {
-                UIHelper().showSnackBar('SOS', 'Alerte envoyée ! Aide en route.', 2);
+                UIHelper().showSnackBar('SOS', 'Alerte envoyée ! Aide en route.', 0);
               } else {
                 UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
               }
@@ -133,11 +143,6 @@ class DriverSafetyController extends GetxController {
             return;
           }
 
-          Get.back();
-          nameCtrl.dispose();
-          phoneCtrl.dispose();
-          relationCtrl.dispose();
-
           final result = await _service.addContact(
             name:     name,
             phone:    phone,
@@ -145,10 +150,14 @@ class DriverSafetyController extends GetxController {
           );
 
           if (result.isSuccess) {
+            Get.back();
+            nameCtrl.dispose();
+            phoneCtrl.dispose();
+            relationCtrl.dispose();
             emergencyContacts.assignAll(result.data!.map(EmergencyContact.fromJson));
             UIHelper().showSnackBar('MINIZON', 'Contact ajouté avec succès.', 0);
           } else {
-            UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+            UIHelper().showSnackBar('MINIZON', _errorMsg(result.error), 2);
           }
         },
         onCancel: () {
@@ -254,7 +263,6 @@ class DriverSafetyController extends GetxController {
     Get.bottomSheet(
       _IncidentReportSheet(
         onSubmit: (category, description) async {
-          Get.back();
           final result = await _service.reportIncident(
             category:    category,
             description: description.isEmpty ? null : description,
@@ -265,8 +273,10 @@ class DriverSafetyController extends GetxController {
               'Incident signalé. Notre équipe vous contacte sous 30 min.',
               0,
             );
+            return true;
           } else {
-            UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+            UIHelper().showSnackBar('MINIZON', _errorMsg(result.error), 2);
+            return false;
           }
         },
       ),
@@ -322,7 +332,7 @@ class DriverSafetyController extends GetxController {
 
 // ── Form widget (contact d'urgence) ──────────────────────────────────────────
 
-class _ContactForm extends StatelessWidget {
+class _ContactForm extends StatefulWidget {
   const _ContactForm({
     required this.nameController,
     required this.phoneController,
@@ -333,8 +343,15 @@ class _ContactForm extends StatelessWidget {
   final TextEditingController nameController;
   final TextEditingController phoneController;
   final TextEditingController relationController;
-  final VoidCallback onSave;
+  final Future<void> Function() onSave;
   final VoidCallback onCancel;
+
+  @override
+  State<_ContactForm> createState() => _ContactFormState();
+}
+
+class _ContactFormState extends State<_ContactForm> {
+  bool _isSaving = false;
 
   @override
   Widget build(BuildContext context) {
@@ -371,17 +388,17 @@ class _ContactForm extends StatelessWidget {
               style: TextStyle(fontSize: 13, color: AppColors.textMuted),
             ),
             const SizedBox(height: 20),
-            _FormInput(controller: nameController,     label: 'Nom complet', hint: 'Ex: Jean Dupont',       icon: Icons.person_rounded),
+            _FormInput(controller: widget.nameController,     label: 'Nom complet', hint: 'Ex: Jean Dupont',        icon: Icons.person_rounded),
             const SizedBox(height: 12),
-            _FormInput(controller: phoneController,    label: 'Téléphone',   hint: '+229 97 00 00 00',      icon: Icons.phone_rounded, keyboardType: TextInputType.phone),
+            _FormInput(controller: widget.phoneController,    label: 'Téléphone',   hint: '+229 97 00 00 00',       icon: Icons.phone_rounded, keyboardType: TextInputType.phone),
             const SizedBox(height: 12),
-            _FormInput(controller: relationController, label: 'Relation',    hint: 'Ex: Époux, Frère, Ami…', icon: Icons.favorite_rounded),
+            _FormInput(controller: widget.relationController, label: 'Relation',    hint: 'Ex: Époux, Frère, Ami…', icon: Icons.favorite_rounded),
             const SizedBox(height: 24),
             Row(
               children: [
                 Expanded(
                   child: GestureDetector(
-                    onTap: onCancel,
+                    onTap: _isSaving ? null : widget.onCancel,
                     child: Container(
                       height: 50,
                       decoration: BoxDecoration(
@@ -399,16 +416,33 @@ class _ContactForm extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: GestureDetector(
-                    onTap: onSave,
+                    onTap: _isSaving
+                        ? null
+                        : () async {
+                            setState(() => _isSaving = true);
+                            await widget.onSave();
+                            if (mounted) setState(() => _isSaving = false);
+                          },
                     child: Container(
                       height: 50,
                       decoration: BoxDecoration(
-                        color: AppColors.primary,
+                        color: _isSaving
+                            ? AppColors.primary.withValues(alpha: 0.6)
+                            : AppColors.primary,
                         borderRadius: BorderRadius.circular(14),
                       ),
-                      child: const Center(
-                        child: Text('Enregistrer',
-                            style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white)),
+                      child: Center(
+                        child: _isSaving
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text('Enregistrer',
+                                style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white)),
                       ),
                     ),
                   ),
@@ -472,7 +506,7 @@ class _FormInput extends StatelessWidget {
 
 class _IncidentReportSheet extends StatefulWidget {
   const _IncidentReportSheet({required this.onSubmit});
-  final void Function(String category, String description) onSubmit;
+  final Future<bool> Function(String category, String description) onSubmit;
 
   @override
   State<_IncidentReportSheet> createState() => _IncidentReportSheetState();
@@ -480,6 +514,7 @@ class _IncidentReportSheet extends StatefulWidget {
 
 class _IncidentReportSheetState extends State<_IncidentReportSheet> {
   String? _selectedCategory;
+  bool _isSending = false;
   final _descCtrl = TextEditingController();
 
   static const _categories = [
@@ -598,25 +633,46 @@ class _IncidentReportSheetState extends State<_IncidentReportSheet> {
               ),
               const SizedBox(height: 24),
               GestureDetector(
-                onTap: _selectedCategory == null
-                    ? () => UIHelper()
-                        .showSnackBar('MINIZON', "Sélectionnez un type d'incident.", 2)
-                    : () => widget.onSubmit(_selectedCategory!, _descCtrl.text.trim()),
+                onTap: _isSending
+                    ? null
+                    : _selectedCategory == null
+                        ? () => UIHelper()
+                            .showSnackBar('MINIZON', "Sélectionnez un type d'incident.", 2)
+                        : () async {
+                            setState(() => _isSending = true);
+                            final success = await widget.onSubmit(
+                                _selectedCategory!, _descCtrl.text.trim());
+                            if (!mounted) return;
+                            if (success) {
+                              Get.back();
+                            } else {
+                              setState(() => _isSending = false);
+                            }
+                          },
                 child: Container(
                   width: double.infinity,
                   height: 52,
                   decoration: BoxDecoration(
-                    color: _selectedCategory == null
+                    color: _isSending || _selectedCategory == null
                         ? AppColors.textGhost
                         : const Color(0xFFF59E0B),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: const Center(
-                    child: Text('Envoyer le signalement',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                            fontSize: 15)),
+                  child: Center(
+                    child: _isSending
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text('Envoyer le signalement',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                                fontSize: 15)),
                   ),
                 ),
               ),
