@@ -29,7 +29,8 @@ class StatsServiceImpl implements StatsService {
       );
       logger.d('driverStats[$period] [${res.statusCode}]');
       if (res.statusCode == 200 && res.data['success'] == true) {
-        return ApiResult.success(res.data['body'] as Map<String, dynamic>);
+        final body = (res.data['body'] as Map?)?.cast<String, dynamic>() ?? {};
+        return ApiResult.success(body);
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);

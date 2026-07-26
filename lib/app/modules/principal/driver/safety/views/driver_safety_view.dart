@@ -111,7 +111,6 @@ class _SosButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onLongPress: controller.onSosPressed,
-      onTap: controller.onSosPressed,
       child: Container(
         width: double.infinity,
         padding: EdgeInsets.symmetric(
@@ -143,7 +142,7 @@ class _SosButton extends StatelessWidget {
                 style: AppTextStyles.h3(r)
                     .copyWith(color: Colors.white, fontWeight: FontWeight.w900)),
             SizedBox(height: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8)),
-            Text('Appuyez pour contacter les secours',
+            Text('Appuyer longuement pour contacter les secours',
                 style: AppTextStyles.bodySmall(r)
                     .copyWith(color: Colors.white.withValues(alpha: 0.85))),
           ],
@@ -243,7 +242,7 @@ class _EmergencyContactsCard extends StatelessWidget {
                         .copyWith(color: AppColors.textPrimary)),
               ),
               Obx(() => Text(
-                    '${controller.emergencyContacts.length}/3',
+                    '${controller.emergencyContacts.length}/5',
                     style: AppTextStyles.labelSmall(r)
                         .copyWith(color: AppColors.textMuted),
                   )),
@@ -337,7 +336,7 @@ class _EmergencyContactsCard extends StatelessWidget {
               }).toList(),
             );
           }),
-          Obx(() => controller.emergencyContacts.length < 3
+          Obx(() => controller.emergencyContacts.length < 5
               ? GestureDetector(
                   onTap: controller.onAddEmergencyContact,
                   child: Container(

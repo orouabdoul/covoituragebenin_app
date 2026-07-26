@@ -34,6 +34,45 @@ class ProfilDriverView extends StatelessWidget {
       body: Obx(() {
         // Tracks profileVersion to rebuild static sections after API load.
         final _ = controller.profileVersion.value;
+
+        if (controller.isLoading.value) {
+          return const SafeArea(
+            child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+          );
+        }
+
+        if (controller.hasError.value) {
+          return SafeArea(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.cloud_off_rounded,
+                        size: responsive.text(56), color: AppColors.textMuted),
+                    SizedBox(height: responsive.h(16)),
+                    Text('Impossible de charger le profil',
+                        style: AppTextStyles.h6(responsive)
+                            .copyWith(color: AppColors.textPrimary),
+                        textAlign: TextAlign.center),
+                    SizedBox(height: responsive.h(8)),
+                    Text('Vérifiez votre connexion et réessayez.',
+                        style: AppTextStyles.body(responsive)
+                            .copyWith(color: AppColors.textMuted),
+                        textAlign: TextAlign.center),
+                    SizedBox(height: responsive.h(24)),
+                    AppButton(
+                      label: 'Réessayer',
+                      onPressed: controller.retryLoadProfile,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
         return SafeArea(
         child: Center(
           child: ConstrainedBox(

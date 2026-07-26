@@ -5,4 +5,5 @@ abstract class InteractiveMapService {
   Future<ApiResult<MapDataModel>> fetchMapData(String uuid);
   Future<ApiResult<StopDoneResult>> markStopDone(String tripUuid, String bookingUuid);
   Future<ApiResult<RecalculateResult>> recalculate(String uuid);
+  Future<ApiResult<LocationResult>> updateLocation(String uuid, double lat, double lng, double speed);
 }

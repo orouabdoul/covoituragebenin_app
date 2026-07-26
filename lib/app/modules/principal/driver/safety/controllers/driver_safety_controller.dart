@@ -105,7 +105,11 @@ class DriverSafetyController extends GetxController {
 
   // ── Location sharing ──────────────────────────────────────────────────────
 
+  bool _isTogglingLocation = false;
+
   Future<void> toggleLocationSharing() async {
+    if (_isTogglingLocation) return;
+    _isTogglingLocation = true;
     final newValue = !isSharingLocation.value;
     isSharingLocation.value = newValue;
     final result = await _service.updateLocationSharing(newValue);
@@ -119,53 +123,29 @@ class DriverSafetyController extends GetxController {
       isSharingLocation.value = !newValue;
       UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
     }
+    _isTogglingLocation = false;
   }
 
   // ── Emergency contacts ────────────────────────────────────────────────────
 
   void onAddEmergencyContact() {
-    final nameCtrl     = TextEditingController();
-    final phoneCtrl    = TextEditingController();
-    final relationCtrl = TextEditingController();
-
     Get.bottomSheet(
       _ContactForm(
-        nameController:     nameCtrl,
-        phoneController:    phoneCtrl,
-        relationController: relationCtrl,
-        onSave: () async {
-          final name     = nameCtrl.text.trim();
-          final phone    = phoneCtrl.text.trim();
-          final relation = relationCtrl.text.trim();
-
-          if (name.isEmpty || phone.isEmpty) {
-            UIHelper().showSnackBar('MINIZON', 'Nom et téléphone requis.', 2);
-            return;
-          }
-
+        onSave: (name, phone, relation) async {
           final result = await _service.addContact(
             name:     name,
             phone:    phone,
             relation: relation.isEmpty ? 'Proche' : relation,
           );
-
           if (result.isSuccess) {
             Get.back();
-            nameCtrl.dispose();
-            phoneCtrl.dispose();
-            relationCtrl.dispose();
             emergencyContacts.assignAll(result.data!.map(EmergencyContact.fromJson));
             UIHelper().showSnackBar('MINIZON', 'Contact ajouté avec succès.', 0);
           } else {
             UIHelper().showSnackBar('MINIZON', _errorMsg(result.error), 2);
           }
         },
-        onCancel: () {
-          Get.back();
-          nameCtrl.dispose();
-          phoneCtrl.dispose();
-          relationCtrl.dispose();
-        },
+        onCancel: Get.back,
       ),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -333,17 +313,8 @@ class DriverSafetyController extends GetxController {
 // ── Form widget (contact d'urgence) ──────────────────────────────────────────
 
 class _ContactForm extends StatefulWidget {
-  const _ContactForm({
-    required this.nameController,
-    required this.phoneController,
-    required this.relationController,
-    required this.onSave,
-    required this.onCancel,
-  });
-  final TextEditingController nameController;
-  final TextEditingController phoneController;
-  final TextEditingController relationController;
-  final Future<void> Function() onSave;
+  const _ContactForm({required this.onSave, required this.onCancel});
+  final Future<void> Function(String name, String phone, String relation) onSave;
   final VoidCallback onCancel;
 
   @override
@@ -352,6 +323,17 @@ class _ContactForm extends StatefulWidget {
 
 class _ContactFormState extends State<_ContactForm> {
   bool _isSaving = false;
+  final _nameCtrl     = TextEditingController();
+  final _phoneCtrl    = TextEditingController();
+  final _relationCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _phoneCtrl.dispose();
+    _relationCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -388,11 +370,11 @@ class _ContactFormState extends State<_ContactForm> {
               style: TextStyle(fontSize: 13, color: AppColors.textMuted),
             ),
             const SizedBox(height: 20),
-            _FormInput(controller: widget.nameController,     label: 'Nom complet', hint: 'Ex: Jean Dupont',        icon: Icons.person_rounded),
+            _FormInput(controller: _nameCtrl,     label: 'Nom complet', hint: 'Ex: Jean Dupont',        icon: Icons.person_rounded),
             const SizedBox(height: 12),
-            _FormInput(controller: widget.phoneController,    label: 'Téléphone',   hint: '+229 97 00 00 00',       icon: Icons.phone_rounded, keyboardType: TextInputType.phone),
+            _FormInput(controller: _phoneCtrl,    label: 'Téléphone',   hint: '+229 97 00 00 00',       icon: Icons.phone_rounded, keyboardType: TextInputType.phone),
             const SizedBox(height: 12),
-            _FormInput(controller: widget.relationController, label: 'Relation',    hint: 'Ex: Époux, Frère, Ami…', icon: Icons.favorite_rounded),
+            _FormInput(controller: _relationCtrl, label: 'Relation',    hint: 'Ex: Époux, Frère, Ami…', icon: Icons.favorite_rounded),
             const SizedBox(height: 24),
             Row(
               children: [
@@ -419,8 +401,15 @@ class _ContactFormState extends State<_ContactForm> {
                     onTap: _isSaving
                         ? null
                         : () async {
+                            final name     = _nameCtrl.text.trim();
+                            final phone    = _phoneCtrl.text.trim();
+                            final relation = _relationCtrl.text.trim();
+                            if (name.isEmpty || phone.isEmpty) {
+                              UIHelper().showSnackBar('MINIZON', 'Nom et téléphone requis.', 2);
+                              return;
+                            }
                             setState(() => _isSaving = true);
-                            await widget.onSave();
+                            await widget.onSave(name, phone, relation);
                             if (mounted) setState(() => _isSaving = false);
                           },
                     child: Container(

@@ -88,15 +88,40 @@ class StopDoneResult {
     required this.stopId,
     required this.pickedUpAt,
     required this.nextStopIndex,
+    required this.allPickedUp,
   });
   final String stopId;
   final String pickedUpAt;
   final int nextStopIndex;
+  final bool allPickedUp;
 
   factory StopDoneResult.fromJson(Map<String, dynamic> j) => StopDoneResult(
         stopId: j['stop_id'] as String? ?? '',
         pickedUpAt: j['picked_up_at'] as String? ?? '',
         nextStopIndex: j['next_stop_index'] as int? ?? 0,
+        allPickedUp: j['all_picked_up'] as bool? ?? false,
+      );
+}
+
+class ApproachingStop {
+  const ApproachingStop({required this.bookingUuid, required this.distanceM});
+  final String bookingUuid;
+  final int distanceM;
+
+  factory ApproachingStop.fromJson(Map<String, dynamic> j) => ApproachingStop(
+        bookingUuid: j['booking_uuid'] as String? ?? '',
+        distanceM: (j['distance_m'] as num?)?.toInt() ?? 0,
+      );
+}
+
+class LocationResult {
+  const LocationResult({required this.approachingStops});
+  final List<ApproachingStop> approachingStops;
+
+  factory LocationResult.fromJson(Map<String, dynamic> j) => LocationResult(
+        approachingStops: (j['approaching_stops'] as List<dynamic>? ?? [])
+            .map((e) => ApproachingStop.fromJson(e as Map<String, dynamic>))
+            .toList(),
       );
 }
 

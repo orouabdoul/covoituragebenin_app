@@ -167,10 +167,48 @@ class _InteractiveMapViewState extends State<InteractiveMapView> {
               child: _TopBar(responsive: r, controller: _ctrl),
             ),
 
+            // ── Bannières dynamiques (approche + tous à bord) ────────
+            Obx(() {
+              final count = _ctrl.approachingStops.length;
+              final allPickedUp = _ctrl.allPickedUp.value;
+              if (count == 0 && !allPickedUp) return const SizedBox.shrink();
+
+              final banners = <Widget>[];
+
+              if (count > 0) {
+                final nearest = _ctrl.approachingStops.reduce(
+                  (a, b) => a.distanceM < b.distanceM ? a : b,
+                );
+                final stop = _ctrl.stops.where(
+                  (s) => s.id == nearest.bookingUuid && s.status != StopStatus.done,
+                ).firstOrNull;
+                banners.add(_ApproachingBanner(
+                  responsive: r,
+                  passengerName: stop?.passengerName ?? 'un passager',
+                  distanceM: nearest.distanceM,
+                ));
+              }
+
+              if (allPickedUp) {
+                if (banners.isNotEmpty) banners.add(SizedBox(height: r.h(6)));
+                banners.add(_AllPickedUpBanner(responsive: r));
+              }
+
+              return Positioned(
+                top: r.h(110),
+                left: r.w(16),
+                right: r.w(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: banners,
+                ),
+              );
+            }),
+
             // ── Bannière optimisation ─────────────────────────────────
             Obx(() => _ctrl.showOptimizationBanner.value
                 ? Positioned(
-                    top: r.h(110),
+                    top: r.h(158),
                     left: r.w(16),
                     right: r.w(16),
                     child: _OptimizationBanner(responsive: r),
@@ -924,6 +962,178 @@ class _FallbackBanner extends StatelessWidget {
   }
 }
 
+// ── Approaching passenger banner ──────────────────────────────────────────────
+
+class _ApproachingBanner extends StatelessWidget {
+  const _ApproachingBanner({
+    required this.responsive,
+    required this.passengerName,
+    required this.distanceM,
+  });
+  final AppResponsive responsive;
+  final String passengerName;
+  final int distanceM;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+          horizontal: responsive.w(14), vertical: responsive.h(10)),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF7ED),
+        borderRadius: BorderRadius.circular(responsive.radius(12)),
+        border: Border.all(color: const Color(0xFFFED7AA)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFF97316).withValues(alpha: 0.20),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: responsive.w(32),
+            height: responsive.w(32),
+            decoration: const BoxDecoration(
+              color: Color(0xFFFED7AA),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.person_pin_circle_rounded,
+              color: const Color(0xFFEA580C),
+              size: responsive.text(18),
+            ),
+          ),
+          SizedBox(width: responsive.w(10)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$passengerName à ${distanceM}m',
+                  style: AppTextStyles.caption(responsive).copyWith(
+                    color: const Color(0xFF9A3412),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  'Ralentissez — préparez-vous à vous arrêter',
+                  style: AppTextStyles.caption(responsive).copyWith(
+                    color: const Color(0xFFEA580C),
+                    fontSize: responsive.text(11),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: EdgeInsets.symmetric(
+                horizontal: responsive.w(8), vertical: responsive.h(4)),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEA580C),
+              borderRadius: BorderRadius.circular(9999),
+            ),
+            child: Text(
+              '< 300m',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: responsive.text(10),
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── All picked up banner ──────────────────────────────────────────────────────
+
+class _AllPickedUpBanner extends StatelessWidget {
+  const _AllPickedUpBanner({required this.responsive});
+  final AppResponsive responsive;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+          horizontal: responsive.w(14), vertical: responsive.h(10)),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0FDF4),
+        borderRadius: BorderRadius.circular(responsive.radius(12)),
+        border: Border.all(color: const Color(0xFFBBF7D0)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF16A34A).withValues(alpha: 0.16),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: responsive.w(32),
+            height: responsive.w(32),
+            decoration: const BoxDecoration(
+              color: Color(0xFFBBF7D0),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.groups_rounded,
+              color: const Color(0xFF16A34A),
+              size: responsive.text(18),
+            ),
+          ),
+          SizedBox(width: responsive.w(10)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Tous les passagers à bord !',
+                  style: AppTextStyles.caption(responsive).copyWith(
+                    color: const Color(0xFF14532D),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  'Naviguez vers les points de dépose',
+                  style: AppTextStyles.caption(responsive).copyWith(
+                    color: const Color(0xFF16A34A),
+                    fontSize: responsive.text(11),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: EdgeInsets.symmetric(
+                horizontal: responsive.w(8), vertical: responsive.h(4)),
+            decoration: BoxDecoration(
+              color: const Color(0xFF16A34A),
+              borderRadius: BorderRadius.circular(9999),
+            ),
+            child: Text(
+              'En route',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: responsive.text(10),
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ── Stops panel ───────────────────────────────────────────────────────────────
 
 class _StopsPanel extends StatelessWidget {
@@ -986,6 +1196,17 @@ class _StopsPanel extends StatelessWidget {
                                   .where(
                                       (s) => s.status == StopStatus.approaching)
                                   .length;
+                              final allPickedUp = controller.allPickedUp.value;
+                              if (allPickedUp && approaching == 0) {
+                                return Text(
+                                  'Tous à bord — naviguez vers la dépose',
+                                  style: AppTextStyles.caption(responsive)
+                                      .copyWith(
+                                    color: const Color(0xFF16A34A),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                );
+                              }
                               return Text(
                                 approaching > 0
                                     ? '$approaching arrêt(s) en approche'

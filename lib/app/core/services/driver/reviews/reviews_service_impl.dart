@@ -58,7 +58,10 @@ class ReviewsServiceImpl implements ReviewsService {
         options: opts,
       );
       logger.d('replyToReview[$uuid] [${res.statusCode}]');
-      if (res.statusCode == 200) return ApiResult.success(null);
+      if ((res.statusCode == 200 || res.statusCode == 201) &&
+          res.data['success'] == true) {
+        return ApiResult.success(null);
+      }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       if (res.statusCode == 403) {
         _lastErrorMessage = 'Vous n\'êtes pas autorisé à répondre à cet avis.';

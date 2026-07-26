@@ -47,9 +47,16 @@ class SupportServiceImpl implements SupportService {
       final res = await _dio.get(AppApi.driverSupportTickets, options: opts);
       logger.d('driverSupportTickets [${res.statusCode}]');
       if (res.statusCode == 200 && res.data['success'] == true) {
-        final list =
-            (res.data['body'] as List? ?? []).cast<Map<String, dynamic>>();
-        return ApiResult.success(list);
+        final body = res.data['body'];
+        final List<dynamic> rawList;
+        if (body is List) {
+          rawList = body;
+        } else if (body is Map) {
+          rawList = (body['data'] ?? body['tickets'] ?? body['items'] ?? []) as List? ?? [];
+        } else {
+          rawList = [];
+        }
+        return ApiResult.success(rawList.whereType<Map<String, dynamic>>().toList());
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
@@ -79,7 +86,8 @@ class SupportServiceImpl implements SupportService {
         options: opts,
       );
       logger.d('createTicket [${res.statusCode}]');
-      if (res.statusCode == 200 && res.data['success'] == true) {
+      if ((res.statusCode == 200 || res.statusCode == 201) &&
+          res.data['success'] == true) {
         return ApiResult.success(null);
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);

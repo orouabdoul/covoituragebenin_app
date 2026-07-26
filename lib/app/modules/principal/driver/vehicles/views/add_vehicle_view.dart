@@ -1108,8 +1108,10 @@ class _PhotoUploadSection extends StatelessWidget {
           ),
           SizedBox(height: responsive.h(20)),
           Obx(() {
-            final hasPhoto = controller.hasVehiclePhoto;
             controller.filesVersion.value;
+            final hasNew = controller.hasNewVehiclePhoto;
+            final existingUrl = controller.existingPhotoUrl;
+            final hasAny = hasNew || existingUrl != null;
             return GestureDetector(
               onTap: () {
                 _showImageSourcePicker(context, responsive).then((src) {
@@ -1119,35 +1121,80 @@ class _PhotoUploadSection extends StatelessWidget {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 height: responsive.w(120),
+                clipBehavior: Clip.antiAlias,
                 decoration: ShapeDecoration(
-                  color: hasPhoto ? AppColors.successLight : const Color(0xFFF9FAFB),
+                  color: hasAny ? AppColors.successLight : const Color(0xFFF9FAFB),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(responsive.radius(16)),
                     side: BorderSide(
                       width: 2,
-                      color: hasPhoto ? AppColors.success : const Color(0xFFD1D5DB),
-                      style: hasPhoto ? BorderStyle.solid : BorderStyle.solid,
+                      color: hasAny ? AppColors.success : const Color(0xFFD1D5DB),
                     ),
                   ),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      hasPhoto ? Icons.check_circle_rounded : Icons.add_a_photo_rounded,
-                      size: responsive.text(28),
-                      color: hasPhoto ? AppColors.success : AppColors.textMuted,
-                    ),
-                    SizedBox(width: responsive.w(12)),
-                    Text(
-                      hasPhoto ? 'Photo ajoutée ✓' : 'Ajouter une photo du véhicule',
-                      style: AppTextStyles.profileSectionLabel(responsive).copyWith(
-                        color: hasPhoto ? AppColors.success : AppColors.textMuted,
-                        fontWeight: hasPhoto ? FontWeight.w600 : FontWeight.w400,
+                child: !hasAny
+                    ? Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.add_a_photo_rounded,
+                              size: responsive.text(28),
+                              color: AppColors.textMuted),
+                          SizedBox(width: responsive.w(12)),
+                          Text(
+                            'Ajouter une photo du véhicule',
+                            style: AppTextStyles.profileSectionLabel(responsive)
+                                .copyWith(color: AppColors.textMuted),
+                          ),
+                        ],
+                      )
+                    : Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          // Thumbnail — réseau si existant, sinon vert plein
+                          if (!hasNew && existingUrl != null)
+                            Image.network(
+                              existingUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => Container(
+                                color: AppColors.successLight,
+                                child: Icon(Icons.image_not_supported_rounded,
+                                    color: AppColors.success,
+                                    size: responsive.text(32)),
+                              ),
+                            )
+                          else
+                            Container(color: AppColors.successLight),
+                          // Overlay label
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                  vertical: responsive.h(6)),
+                              color: Colors.black.withValues(alpha: 0.45),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.check_circle_rounded,
+                                      size: responsive.text(16),
+                                      color: Colors.white),
+                                  SizedBox(width: responsive.w(6)),
+                                  Text(
+                                    hasNew
+                                        ? 'Nouvelle photo — appuyer pour changer'
+                                        : 'Photo existante — appuyer pour changer',
+                                    style: AppTextStyles.caption(responsive)
+                                        .copyWith(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w600),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
               ),
             );
           }),
@@ -1210,7 +1257,9 @@ class _DocumentsSection extends StatelessWidget {
               children: AddVehicleController.docSlots.asMap().entries.map((entry) {
                 final i = entry.key;
                 final slot = entry.value;
-                final hasFile = controller.hasDoc(slot.apiKey);
+                final hasNew = controller.hasNewDoc(slot.apiKey);
+                final existingUrl = controller.existingDocUrl(slot.apiKey);
+                final hasAny = hasNew || existingUrl != null;
                 return Column(
                   children: [
                     _DocumentRow(
@@ -1219,7 +1268,9 @@ class _DocumentsSection extends StatelessWidget {
                       isRequired: slot.required,
                       icon: _docIcons[slot.apiKey] ?? Icons.attach_file_rounded,
                       badgeColor: _docColors[slot.apiKey] ?? const Color(0x19000000),
-                      hasFile: hasFile,
+                      hasFile: hasAny,
+                      isNewFile: hasNew,
+                      isExistingFile: !hasNew && existingUrl != null,
                       onTap: () {
                         _showDocSourcePicker(context, responsive).then((src) {
                           if (src == null) return;
@@ -1258,6 +1309,8 @@ class _DocumentRow extends StatelessWidget {
     required this.badgeColor,
     required this.hasFile,
     required this.onTap,
+    this.isNewFile = false,
+    this.isExistingFile = false,
   });
 
   final AppResponsive responsive;
@@ -1266,6 +1319,8 @@ class _DocumentRow extends StatelessWidget {
   final IconData icon;
   final Color badgeColor;
   final bool hasFile;
+  final bool isNewFile;
+  final bool isExistingFile;
   final VoidCallback onTap;
 
   @override
@@ -1274,11 +1329,19 @@ class _DocumentRow extends StatelessWidget {
       duration: const Duration(milliseconds: 200),
       padding: EdgeInsets.all(responsive.w(16)),
       decoration: ShapeDecoration(
-        color: hasFile ? AppColors.successLight : Colors.transparent,
+        color: isNewFile
+            ? AppColors.successLight
+            : isExistingFile
+                ? AppColors.primary.withValues(alpha: 0.06)
+                : Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(responsive.radius(16)),
           side: BorderSide(
-            color: hasFile ? AppColors.success : AppColors.border,
+            color: isNewFile
+                ? AppColors.success
+                : isExistingFile
+                    ? AppColors.primary.withValues(alpha: 0.40)
+                    : AppColors.border,
           ),
         ),
       ),
@@ -1288,14 +1351,22 @@ class _DocumentRow extends StatelessWidget {
             width: responsive.w(48),
             height: responsive.w(48),
             decoration: ShapeDecoration(
-              color: hasFile ? AppColors.success.withValues(alpha: 0.15) : badgeColor,
+              color: isNewFile
+                  ? AppColors.success.withValues(alpha: 0.15)
+                  : isExistingFile
+                      ? AppColors.primary.withValues(alpha: 0.12)
+                      : badgeColor,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(responsive.radius(12)),
               ),
             ),
             child: Icon(
               hasFile ? Icons.check_rounded : icon,
-              color: hasFile ? AppColors.success : AppColors.textSecondary,
+              color: isNewFile
+                  ? AppColors.success
+                  : isExistingFile
+                      ? AppColors.primary
+                      : AppColors.textSecondary,
               size: responsive.text(20),
             ),
           ),
@@ -1323,11 +1394,17 @@ class _DocumentRow extends StatelessWidget {
                 ),
                 SizedBox(height: responsive.h(4)),
                 Text(
-                  hasFile
-                      ? 'Fichier ajouté ✓'
-                      : (isRequired ? 'Document obligatoire' : 'Document optionnel'),
+                  isNewFile
+                      ? 'Nouveau fichier ajouté ✓'
+                      : isExistingFile
+                          ? 'Document existant sur le serveur ✓'
+                          : (isRequired ? 'Document obligatoire' : 'Document optionnel'),
                   style: AppTextStyles.caption(responsive).copyWith(
-                    color: hasFile ? AppColors.success : AppColors.textMuted,
+                    color: isNewFile
+                        ? AppColors.success
+                        : isExistingFile
+                            ? AppColors.primary
+                            : AppColors.textMuted,
                   ),
                 ),
               ],
@@ -1345,13 +1422,21 @@ class _DocumentRow extends StatelessWidget {
                   vertical: responsive.h(8),
                 ),
                 decoration: ShapeDecoration(
-                  color: hasFile ? AppColors.success : AppColors.primary,
+                  color: isNewFile
+                      ? AppColors.success
+                      : isExistingFile
+                          ? AppColors.primary.withValues(alpha: 0.85)
+                          : AppColors.primary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(responsive.radius(12)),
                   ),
                 ),
                 child: Text(
-                  hasFile ? 'Modifier' : 'Ajouter',
+                  isNewFile
+                      ? 'Modifier'
+                      : isExistingFile
+                          ? 'Remplacer'
+                          : 'Ajouter',
                   style: AppTextStyles.profileSectionLabel(responsive).copyWith(
                     color: AppColors.white,
                     fontWeight: FontWeight.w600,
@@ -1473,7 +1558,8 @@ class _RegisterButton extends StatelessWidget {
           label: controller.isSubmitting.value
               ? (controller.isEditMode.value ? 'Mise à jour...' : 'Enregistrement...')
               : (controller.isEditMode.value ? 'Mettre à jour' : AppStrings.driverVehicleRegisterButton),
-          onTap: controller.isSubmitting.value ? () {} : controller.onRegisterVehicle,
+          onTap: controller.onRegisterVehicle,
+          enabled: !controller.isSubmitting.value,
           height: responsive.adaptive(phone: 56, smallPhone: 52, tablet: 56, desktop: 56),
           borderRadius: responsive.radius(16),
         ));

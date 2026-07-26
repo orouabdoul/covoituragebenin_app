@@ -28,6 +28,7 @@ class StatisticsController extends GetxController {
   }
 
   void selectPeriod(StatPeriod p) {
+    if (isLoading.value) return;
     selectedPeriod.value = p;
     if (_cache.containsKey(p)) {
       _current.value = _cache[p]!;

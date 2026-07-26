@@ -70,163 +70,32 @@ class ReviewsController extends GetxController {
   }
 
   void onReplyToReview(ReviewModel review) {
-    final replyCtrl = TextEditingController();
-    final isSending = false.obs;
-
     Get.bottomSheet(
-      Obx(() => Padding(
-            padding: EdgeInsets.only(
-                bottom: MediaQuery.of(Get.context!).viewInsets.bottom),
-            child: Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                            color: AppColors.border,
-                            borderRadius: BorderRadius.circular(9999))),
-                  ),
-                  const SizedBox(height: 16),
-                  Text('Répondre à ${review.passengerName}',
-                      style: const TextStyle(
-                          fontSize: 17, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 4),
-                  if (review.comment != null)
-                    Text(review.comment!,
-                        style: const TextStyle(
-                            fontSize: 13,
-                            color: AppColors.textMuted,
-                            fontStyle: FontStyle.italic)),
-                  const SizedBox(height: 16),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.border, width: 1.5),
-                    ),
-                    child: TextField(
-                      controller: replyCtrl,
-                      maxLines: 4,
-                      autofocus: true,
-                      decoration: const InputDecoration(
-                        hintText: 'Écrivez votre réponse…',
-                        hintStyle: TextStyle(color: AppColors.textGhost),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.all(14),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: isSending.value
-                              ? null
-                              : () {
-                                  replyCtrl.dispose();
-                                  Get.back();
-                                },
-                          child: Container(
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: AppColors.surface,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: AppColors.border),
-                            ),
-                            child: const Center(
-                              child: Text('Annuler',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.textMuted)),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: isSending.value
-                              ? null
-                              : () => _submitReply(
-                                    review: review,
-                                    replyCtrl: replyCtrl,
-                                    isSending: isSending,
-                                  ),
-                          child: Container(
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Center(
-                              child: isSending.value
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: Colors.white),
-                                    )
-                                  : const Text('Publier',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          color: Colors.white,
-                                          fontSize: 15)),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          )),
+      _ReplySheet(
+        review: review,
+        onSubmit: (text) async {
+          final result = await _service.replyToReview(review.id, text);
+          if (result.isSuccess) {
+            final idx = reviews.indexWhere((r) => r.id == review.id);
+            if (idx != -1) {
+              reviews[idx] = reviews[idx].copyWith(driverReply: text);
+            }
+            Get.back();
+            UIHelper().showSnackBar('MINIZON', 'Votre réponse a été publiée.', 0);
+            return true;
+          } else {
+            final svc = _service;
+            final msg = svc is ReviewsServiceImpl && svc.lastErrorMessage != null
+                ? svc.lastErrorMessage!
+                : result.error!.message;
+            UIHelper().showSnackBar('MINIZON', msg, 2);
+            return false;
+          }
+        },
+      ),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
     );
-  }
-
-  Future<void> _submitReply({
-    required ReviewModel review,
-    required TextEditingController replyCtrl,
-    required RxBool isSending,
-  }) async {
-    final text = replyCtrl.text.trim();
-    if (text.isEmpty) {
-      UIHelper().showSnackBar('MINIZON', 'Rédigez votre réponse.', 2);
-      return;
-    }
-
-    isSending.value = true;
-    final result = await _service.replyToReview(review.id, text);
-    isSending.value = false;
-
-    if (result.isSuccess) {
-      final idx = reviews.indexWhere((r) => r.id == review.id);
-      if (idx != -1) {
-        reviews[idx] = reviews[idx].copyWith(driverReply: text);
-      }
-      Get.back();
-      replyCtrl.dispose();
-      UIHelper().showSnackBar('MINIZON', 'Votre réponse a été publiée.', 0);
-    } else {
-      final svc = _service;
-      final msg = svc is ReviewsServiceImpl && svc.lastErrorMessage != null
-          ? svc.lastErrorMessage!
-          : result.error!.message;
-      UIHelper().showSnackBar('MINIZON', msg, 2);
-    }
   }
 
   // ── Computed getters used by the view ─────────────────────────────────────
@@ -235,4 +104,149 @@ class ReviewsController extends GetxController {
   int get totalReviews => summary.value?.totalReviews ?? 0;
   Map<int, double> get ratingDistribution =>
       summary.value?.ratingDistribution ?? const {};
+}
+
+// ── Reply sheet (owns its TextEditingController) ──────────────────────────────
+
+class _ReplySheet extends StatefulWidget {
+  const _ReplySheet({required this.review, required this.onSubmit});
+  final ReviewModel review;
+  final Future<bool> Function(String text) onSubmit;
+
+  @override
+  State<_ReplySheet> createState() => _ReplySheetState();
+}
+
+class _ReplySheetState extends State<_ReplySheet> {
+  bool _isSending = false;
+  final _replyCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _replyCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(9999),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text('Répondre à ${widget.review.passengerName}',
+                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 4),
+            if (widget.review.comment != null)
+              Text(widget.review.comment!,
+                  style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textMuted,
+                      fontStyle: FontStyle.italic)),
+            const SizedBox(height: 16),
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.border, width: 1.5),
+              ),
+              child: TextField(
+                controller: _replyCtrl,
+                maxLines: 4,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  hintText: 'Écrivez votre réponse…',
+                  hintStyle: TextStyle(color: AppColors.textGhost),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.all(14),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: _isSending ? null : Get.back,
+                    child: Container(
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: const Center(
+                        child: Text('Annuler',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textMuted)),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: _isSending
+                        ? null
+                        : () async {
+                            final text = _replyCtrl.text.trim();
+                            if (text.isEmpty) {
+                              UIHelper().showSnackBar('MINIZON', 'Rédigez votre réponse.', 2);
+                              return;
+                            }
+                            setState(() => _isSending = true);
+                            final success = await widget.onSubmit(text);
+                            if (mounted && !success) setState(() => _isSending = false);
+                          },
+                    child: Container(
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: _isSending
+                            ? AppColors.primary.withValues(alpha: 0.6)
+                            : AppColors.primary,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Center(
+                        child: _isSending
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Text('Publier',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                    fontSize: 15)),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

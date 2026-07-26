@@ -12,4 +12,5 @@ abstract class TripsService {
   Future<ApiResult<void>> publishTrip(Map<String, dynamic> data);
   Future<ApiResult<Map<String, dynamic>>> fetchTripRaw(String uuid);
   Future<ApiResult<void>> updateTrip(String uuid, Map<String, dynamic> data);
+  Future<ApiResult<Map<String, dynamic>>> estimateTrip(Map<String, dynamic> data);
 }

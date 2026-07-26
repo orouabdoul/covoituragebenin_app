@@ -175,6 +175,32 @@ class TripsServiceImpl implements TripsService {
   }
 
   @override
+  Future<ApiResult<Map<String, dynamic>>> estimateTrip(Map<String, dynamic> data) async {
+    try {
+      final opts = await _authOptions();
+      final response = await _dio.post(
+        AppApi.driverTripEstimate,
+        data: data,
+        options: opts,
+      );
+      logger.d('estimateTrip [${response.statusCode}]');
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        final body = (response.data['body'] as Map?)?.cast<String, dynamic>() ?? {};
+        return ApiResult.success(body);
+      }
+      if (response.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (response.statusCode == 422) return ApiResult.failure(AppError.validationError);
+      return ApiResult.failure(AppError.unexpected);
+    } on DioException catch (e) {
+      logger.e('estimateTrip: $e');
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
+      logger.e('estimateTrip: $e');
+      return ApiResult.failure(AppError.unexpected);
+    }
+  }
+
+  @override
   Future<ApiResult<void>> updateTrip(String uuid, Map<String, dynamic> data) async {
     try {
       final opts = await _authOptions();

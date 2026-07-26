@@ -17,11 +17,44 @@ import '../controllers/add_trajet_controller.dart';
 class AddTrajetView extends GetView<AddTrajetController> {
   const AddTrajetView({super.key});
 
+  Future<bool> _confirmDiscard(BuildContext context) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Abandonner le trajet ?'),
+        content: const Text('Les informations saisies seront perdues.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Continuer'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Abandonner'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final responsive = AppResponsive(context);
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) { return; }
+        if (controller.isEditMode || !controller.formTouched) {
+          Get.back();
+          return;
+        }
+        final discard = await _confirmDiscard(context);
+        if (discard) Get.offAllNamed(AppRoutes.dashboardDriver, arguments: 1);
+      },
+      child: Scaffold(
       backgroundColor: AppColors.surface,
       body: SafeArea(
         child: Center(
@@ -37,7 +70,7 @@ class AddTrajetView extends GetView<AddTrajetController> {
               children: [
                 _TopBar(responsive: responsive, isEditMode: controller.isEditMode),
                 SizedBox(height: responsive.h(16)),
-                _HeroSection(responsive: responsive),
+                _HeroSection(responsive: responsive, controller: controller),
                 SizedBox(height: responsive.h(20)),
                 _SectionCard(
                   responsive: responsive,
@@ -64,6 +97,8 @@ class AddTrajetView extends GetView<AddTrajetController> {
                     hintPoint: 'Ex: Gare routière',
                   ),
                 ),
+                SizedBox(height: responsive.h(12)),
+                _EstimateBanner(responsive: responsive, controller: controller),
                 SizedBox(height: responsive.h(20)),
                 _SectionCard(
                   responsive: responsive,
@@ -181,7 +216,7 @@ class AddTrajetView extends GetView<AddTrajetController> {
           ),
         ),
       ),
-    );
+    ));
   }
 }
 
@@ -208,9 +243,7 @@ class _TopBar extends StatelessWidget {
           AppCircularButton(
             responsive: responsive,
             icon: Icons.arrow_back_rounded,
-            onTap: isEditMode
-                ? Get.back
-                : () => Get.offAllNamed(AppRoutes.dashboardDriver, arguments: 1),
+            onTap: () => Navigator.maybePop(context),
             size: responsive.w(40),
           ),
           SizedBox(width: responsive.w(12)),
@@ -238,7 +271,7 @@ class _TopBar extends StatelessWidget {
             responsive: responsive,
             icon: Icons.save_outlined,
             onTap: () => UIHelper()
-                .showSnackBar(AppStrings.appName, 'Brouillon sauvegardé.', 0),
+                .showSnackBar(AppStrings.appName, 'Sauvegarde de brouillon bientôt disponible.', 1),
             size: responsive.w(40),
           ),
         ],
@@ -250,8 +283,9 @@ class _TopBar extends StatelessWidget {
 // ── Hero section ───────────────────────────────────────────────────────────────
 
 class _HeroSection extends StatelessWidget {
-  const _HeroSection({required this.responsive});
+  const _HeroSection({required this.responsive, required this.controller});
   final AppResponsive responsive;
+  final AddTrajetController controller;
 
   @override
   Widget build(BuildContext context) {
@@ -299,22 +333,31 @@ class _HeroSection extends StatelessWidget {
                 .copyWith(color: AppColors.white.withValues(alpha: 0.90)),
           ),
           SizedBox(height: responsive.h(16)),
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(responsive.w(12)),
-            decoration: ShapeDecoration(
-              color: AppColors.white.withValues(alpha: 0.15),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(responsive.radius(16)),
-                side: const BorderSide(color: AppColors.border),
+          Obx(() {
+            final net = (controller.pricePerSeat.value *
+                    controller.availableSeats.value *
+                    controller.driverSharePercent /
+                    100)
+                .toInt();
+            final formatted =
+                net.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]} ');
+            return Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(responsive.w(12)),
+              decoration: ShapeDecoration(
+                color: AppColors.white.withValues(alpha: 0.15),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(responsive.radius(16)),
+                  side: const BorderSide(color: AppColors.border),
+                ),
               ),
-            ),
-            child: _HeroStat(
-              label: 'Revenus possibles',
-              value: '15 000 - 25 000 FCFA',
-              responsive: responsive,
-            ),
-          ),
+              child: _HeroStat(
+                label: 'Revenus nets estimés',
+                value: '$formatted FCFA',
+                responsive: responsive,
+              ),
+            );
+          }),
         ],
       ),
     );
@@ -1204,34 +1247,89 @@ class _PricingCard extends StatelessWidget {
           final seats = controller.availableSeats.value;
           final price = controller.pricePerSeat.value.toInt();
           final total = seats * price;
+          final net = (total * controller.driverSharePercent / 100).round();
+          final fee = total - net;
           final fmtPrice = _formatAmount(price);
           final fmtTotal = _formatAmount(total);
-          return Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(responsive.w(16)),
-            decoration: ShapeDecoration(
-              color: AppColors.surfaceAccentStrong,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(responsive.radius(16)),
-                side: BorderSide(color: AppColors.primary.withValues(alpha: 0.2)),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '$seats place${seats > 1 ? 's' : ''} × $fmtPrice FCFA',
-                  style: AppTextStyles.profileSectionLabel(responsive),
-                ),
-                Text(
-                  '$fmtTotal FCFA',
-                  style: AppTextStyles.profileSectionLabel(responsive).copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w700,
+          final fmtNet = _formatAmount(net);
+          final fmtFee = _formatAmount(fee);
+          return Column(
+            children: [
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(responsive.w(16)),
+                decoration: ShapeDecoration(
+                  color: AppColors.surfaceAccentStrong,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(responsive.radius(16)),
+                    side: BorderSide(color: AppColors.primary.withValues(alpha: 0.2)),
                   ),
                 ),
-              ],
-            ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '$seats place${seats > 1 ? 's' : ''} × $fmtPrice FCFA',
+                          style: AppTextStyles.profileSectionLabel(responsive),
+                        ),
+                        Text(
+                          '$fmtTotal FCFA',
+                          style: AppTextStyles.profileSectionLabel(responsive).copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Divider(
+                      height: responsive.h(16),
+                      color: AppColors.primary.withValues(alpha: 0.15),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.account_balance_wallet_rounded,
+                                size: responsive.text(14),
+                                color: AppColors.success),
+                            SizedBox(width: responsive.w(6)),
+                            Text(
+                              'Vous recevez (${controller.driverSharePercent}%)',
+                              style: AppTextStyles.caption(responsive)
+                                  .copyWith(color: AppColors.success),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          '$fmtNet FCFA',
+                          style: AppTextStyles.profileSectionLabel(responsive).copyWith(
+                            color: AppColors.success,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: responsive.h(4)),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Commission plateforme (${controller.commissionRatePercent}%)',
+                          style: AppTextStyles.caption(responsive),
+                        ),
+                        Text(
+                          '$fmtFee FCFA',
+                          style: AppTextStyles.caption(responsive),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
           );
         }),
       ],
@@ -1395,6 +1493,168 @@ class _BookingModeSelector extends StatelessWidget {
             ),
           );
         }).toList(growable: false),
+      );
+    });
+  }
+}
+
+// ── Estimate banner ───────────────────────────────────────────────────────────
+
+class _EstimateBanner extends StatelessWidget {
+  const _EstimateBanner({required this.responsive, required this.controller});
+  final AppResponsive responsive;
+  final AddTrajetController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      if (controller.isLoadingEstimate.value) {
+        return Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: responsive.w(16),
+            vertical: responsive.h(12),
+          ),
+          decoration: ShapeDecoration(
+            color: AppColors.surfaceAccentStrong,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(responsive.radius(16)),
+              side: BorderSide(color: AppColors.primary.withValues(alpha: 0.2)),
+            ),
+          ),
+          child: Row(
+            children: [
+              SizedBox(
+                width: responsive.w(16),
+                height: responsive.w(16),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.primary,
+                ),
+              ),
+              SizedBox(width: responsive.w(10)),
+              Text(
+                'Calcul de la distance en cours…',
+                style: AppTextStyles.caption(responsive),
+              ),
+            ],
+          ),
+        );
+      }
+
+      final km = controller.estimatedDistanceKm.value;
+      final label = controller.estimatedDurationLabel.value;
+      if (km == null || label == null) return const SizedBox.shrink();
+
+      return Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(responsive.w(16)),
+        decoration: ShapeDecoration(
+          color: AppColors.surfaceAccentStrong,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(responsive.radius(16)),
+            side: BorderSide(color: AppColors.primary.withValues(alpha: 0.25)),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Distance + duration row ───────────────────────────────────
+            Row(
+              children: [
+                Container(
+                  width: responsive.w(40),
+                  height: responsive.w(40),
+                  decoration: ShapeDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Icon(Icons.straighten_rounded,
+                      color: AppColors.primary, size: responsive.text(18)),
+                ),
+                SizedBox(width: responsive.w(12)),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Distance estimée',
+                          style: AppTextStyles.caption(responsive)),
+                      SizedBox(height: responsive.h(2)),
+                      Text(
+                        '$km km  •  $label',
+                        style: AppTextStyles.profileSectionLabel(responsive)
+                            .copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.gps_fixed_rounded,
+                    color: AppColors.primary.withValues(alpha: 0.4),
+                    size: responsive.text(16)),
+              ],
+            ),
+            // ── Editable duration ─────────────────────────────────────────
+            Divider(
+              height: responsive.h(16),
+              color: AppColors.primary.withValues(alpha: 0.15),
+            ),
+            Row(
+              children: [
+                Icon(Icons.timer_outlined,
+                    size: responsive.text(14), color: AppColors.textMuted),
+                SizedBox(width: responsive.w(6)),
+                Text('Durée estimée',
+                    style: AppTextStyles.caption(responsive)),
+                SizedBox(width: responsive.w(8)),
+                Expanded(
+                  child: Container(
+                    height: responsive.h(36),
+                    padding: EdgeInsets.symmetric(horizontal: responsive.w(10)),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(responsive.radius(10)),
+                      border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.35)),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: controller.durationController,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly
+                            ],
+                            style: AppTextStyles.profileSectionLabel(responsive)
+                                .copyWith(
+                              color: AppColors.primary,
+                              fontSize: responsive.text(14),
+                            ),
+                            decoration: InputDecoration.collapsed(
+                              hintText: '—',
+                              hintStyle: AppTextStyles.muted(responsive),
+                            ),
+                          ),
+                        ),
+                        Text('min',
+                            style: AppTextStyles.caption(responsive)
+                                .copyWith(color: AppColors.primary)),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(width: responsive.w(6)),
+                Icon(Icons.edit_outlined,
+                    size: responsive.text(13),
+                    color: AppColors.textGhost),
+              ],
+            ),
+          ],
+        ),
       );
     });
   }

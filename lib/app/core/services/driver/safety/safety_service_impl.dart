@@ -189,7 +189,7 @@ class SafetyServiceImpl implements SafetyService {
         options: opts,
       );
       logger.d('updateLocationSharing [$enabled] [${res.statusCode}]');
-      if (res.statusCode == 200) return ApiResult.success(null);
+      if (res.statusCode == 200 && res.data['success'] == true) return ApiResult.success(null);
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {

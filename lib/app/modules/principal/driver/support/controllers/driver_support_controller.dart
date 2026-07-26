@@ -97,6 +97,10 @@ class DriverSupportController extends GetxController {
     isLoadingTickets.value = false;
     if (result.isSuccess) {
       tickets.assignAll(result.data!);
+    } else {
+      if (result.error != AppError.socket) {
+        UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+      }
     }
   }
 
@@ -116,7 +120,7 @@ class DriverSupportController extends GetxController {
     final isSubmitting = false.obs;
     final priority     = 'medium'.obs;
 
-    await Get.bottomSheet(
+    await Get.bottomSheet<void>(
       _NewTicketSheet(
         subjectCtrl: subjectCtrl,
         descCtrl: descCtrl,
@@ -152,6 +156,8 @@ class DriverSupportController extends GetxController {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
     );
+    subjectCtrl.dispose();
+    descCtrl.dispose();
   }
 
   void onLiveChat() {

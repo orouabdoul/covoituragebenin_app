@@ -398,7 +398,7 @@ class PushNotificationService {
       final sessionToken = await UserController.instance.getSessionToken();
       if (sessionToken.isEmpty) return;
       final dio = AppDio.create();
-      await dio.post(
+      final res = await dio.post(
         AppApi.fcmToken,
         data: {'fcm_token': token},
         options: Options(
@@ -406,7 +406,15 @@ class PushNotificationService {
           headers: {'Authorization': 'Bearer $sessionToken'},
         ),
       );
-      logger.d('FCM token enregistré: $token');
+      if (res.statusCode == 200) {
+        logger.d('FCM token enregistré');
+      } else if (res.statusCode == 401) {
+        logger.w('registerFcmToken: non authentifié [401]');
+      } else if (res.statusCode == 422) {
+        logger.w('registerFcmToken: token manquant [422]');
+      } else {
+        logger.w('registerFcmToken: réponse inattendue [${res.statusCode}]');
+      }
     } catch (e) {
       logger.e('registerFcmToken: $e');
     }

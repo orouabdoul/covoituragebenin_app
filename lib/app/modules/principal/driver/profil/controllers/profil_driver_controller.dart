@@ -6,6 +6,7 @@ import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/services/auth/auth_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/profile/driver_profile_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/safety/safety_service.dart';
+import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/profile_model.dart';
@@ -21,6 +22,7 @@ class DriverProfileController extends GetxController {
   final RxBool autoAvailability = false.obs;
   final RxBool notificationsEnabled = true.obs;
   final RxBool isLoading = false.obs;
+  final RxBool hasError = false.obs;
   final RxInt profileVersion = 0.obs;
 
   // ── Emergency contacts ──────────────────────────────────────────────────
@@ -188,14 +190,21 @@ class DriverProfileController extends GetxController {
 
   Future<void> _loadProfile() async {
     isLoading.value = true;
+    hasError.value = false;
     final profileResult = await _service.fetchProfile();
     isLoading.value = false;
     if (profileResult.isSuccess) {
       _applyProfile(profileResult.data as ProfileModel);
     } else {
+      hasError.value = true;
       logger.w('profile load failed: ${profileResult.error}');
+      if (profileResult.error != AppError.socket) {
+        UIHelper().showSnackBar(AppStrings.appName, profileResult.error!.message, 2);
+      }
     }
   }
+
+  Future<void> retryLoadProfile() => _loadProfile();
 
   void _applyProfile(ProfileModel data) {
     // Hero
@@ -367,149 +376,57 @@ class DriverProfileController extends GetxController {
   // ── Actions ──────────────────────────────────────────────────────────────
 
   void onEditProfile() {
-    final firstNameCtrl = TextEditingController(text: firstName);
-    final lastNameCtrl = TextEditingController(text: lastName);
-    final emailCtrl = TextEditingController(text: email);
-    final cityCtrl = TextEditingController(text: city);
-    final neighborhoodCtrl = TextEditingController(text: neighborhood);
-    final addressCtrl = TextEditingController(text: addressDetails);
-
     Get.bottomSheet(
-      Padding(
-        padding: EdgeInsets.only(
-            bottom: MediaQuery.of(Get.context!).viewInsets.bottom),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                          color: AppColors.border,
-                          borderRadius: BorderRadius.circular(9999))),
-                ),
-                const SizedBox(height: 16),
-                const Text('Modifier le profil',
-                    style:
-                        TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 16),
-                _ProfileField(
-                    label: 'Prénom',
-                    controller: firstNameCtrl,
-                    icon: Icons.person_rounded),
-                const SizedBox(height: 12),
-                _ProfileField(
-                    label: 'Nom',
-                    controller: lastNameCtrl,
-                    icon: Icons.person_outline_rounded),
-                const SizedBox(height: 12),
-                _ProfileField(
-                    label: 'Email',
-                    controller: emailCtrl,
-                    icon: Icons.email_rounded,
-                    keyboardType: TextInputType.emailAddress),
-                const SizedBox(height: 12),
-                _ProfileField(
-                    label: 'Ville',
-                    controller: cityCtrl,
-                    icon: Icons.location_city_rounded),
-                const SizedBox(height: 12),
-                _ProfileField(
-                    label: 'Quartier',
-                    controller: neighborhoodCtrl,
-                    icon: Icons.map_rounded),
-                const SizedBox(height: 12),
-                _ProfileField(
-                    label: 'Adresse',
-                    controller: addressCtrl,
-                    icon: Icons.home_rounded),
-                const SizedBox(height: 20),
-                GestureDetector(
-                  onTap: () async {
-                    final fn = firstNameCtrl.text.trim();
-                    final ln = lastNameCtrl.text.trim();
-                    final em = emailCtrl.text.trim();
-                    final ct = cityCtrl.text.trim();
-                    final nb = neighborhoodCtrl.text.trim();
-                    final ad = addressCtrl.text.trim();
-                    firstNameCtrl.dispose();
-                    lastNameCtrl.dispose();
-                    emailCtrl.dispose();
-                    cityCtrl.dispose();
-                    neighborhoodCtrl.dispose();
-                    addressCtrl.dispose();
-                    Get.back();
-                    final result = await _service.updateProfile(
-                      firstName: fn,
-                      lastName: ln,
-                      email: em,
-                      city: ct,
-                      neighborhood: nb,
-                      addressDetails: ad,
-                    );
-                    if (result.isSuccess) {
-                      firstName = fn;
-                      lastName = ln;
-                      email = em;
-                      city = ct;
-                      neighborhood = nb;
-                      addressDetails = ad;
-                      heroName = '$fn $ln'.trim();
-                      personalInfo = [
-                        DriverPersonalInfoItem(
-                            label: 'Nom complet',
-                            value: heroName,
-                            icon: Icons.person_rounded),
-                        DriverPersonalInfoItem(
-                            label: AppStrings.profileFieldPhone,
-                            value: phone,
-                            icon: Icons.phone_rounded),
-                        DriverPersonalInfoItem(
-                            label: 'Email',
-                            value: em,
-                            icon: Icons.email_rounded),
-                        DriverPersonalInfoItem(
-                            label: 'Ville',
-                            value: ct,
-                            icon: Icons.location_city_rounded),
-                      ];
-                      profileVersion.value++;
-                      UIHelper().showSnackBar(
-                          AppStrings.appName, 'Profil mis à jour avec succès.', 0);
-                    } else {
-                      UIHelper().showSnackBar(
-                          AppStrings.appName, 'Erreur lors de la mise à jour.', 2);
-                    }
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Center(
-                      child: Text('Enregistrer',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              fontSize: 15)),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+      _EditProfileSheet(
+        initialFirstName: firstName,
+        initialLastName: lastName,
+        initialEmail: email,
+        initialCity: city,
+        initialNeighborhood: neighborhood,
+        initialAddress: addressDetails,
+        onSave: (fn, ln, em, ct, nb, ad) async {
+          final result = await _service.updateProfile(
+            firstName: fn,
+            lastName: ln,
+            email: em,
+            city: ct,
+            neighborhood: nb,
+            addressDetails: ad,
+          );
+          if (result.isSuccess) {
+            firstName = fn;
+            lastName = ln;
+            email = em;
+            city = ct;
+            neighborhood = nb;
+            addressDetails = ad;
+            heroName = '$fn $ln'.trim();
+            personalInfo = [
+              DriverPersonalInfoItem(
+                  label: 'Nom complet',
+                  value: heroName,
+                  icon: Icons.person_rounded),
+              DriverPersonalInfoItem(
+                  label: AppStrings.profileFieldPhone,
+                  value: phone,
+                  icon: Icons.phone_rounded),
+              DriverPersonalInfoItem(
+                  label: 'Email',
+                  value: em,
+                  icon: Icons.email_rounded),
+              DriverPersonalInfoItem(
+                  label: 'Ville',
+                  value: ct,
+                  icon: Icons.location_city_rounded),
+            ];
+            profileVersion.value++;
+            UIHelper().showSnackBar(AppStrings.appName, 'Profil mis à jour avec succès.', 0);
+            return true;
+          } else {
+            UIHelper().showSnackBar(AppStrings.appName, 'Erreur lors de la mise à jour.', 2);
+            return false;
+          }
+        },
       ),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -1192,6 +1109,159 @@ class _SecurityTile extends StatelessWidget {
           )),
           Icon(Icons.chevron_right_rounded, color: AppColors.textHint, size: 18),
         ]),
+      ),
+    );
+  }
+}
+
+// ── Edit profile sheet (StatefulWidget — owns controllers, shows loading) ──────
+
+class _EditProfileSheet extends StatefulWidget {
+  const _EditProfileSheet({
+    required this.initialFirstName,
+    required this.initialLastName,
+    required this.initialEmail,
+    required this.initialCity,
+    required this.initialNeighborhood,
+    required this.initialAddress,
+    required this.onSave,
+  });
+
+  final String initialFirstName;
+  final String initialLastName;
+  final String initialEmail;
+  final String initialCity;
+  final String initialNeighborhood;
+  final String initialAddress;
+  final Future<bool> Function(
+      String fn, String ln, String em, String ct, String nb, String ad) onSave;
+
+  @override
+  State<_EditProfileSheet> createState() => _EditProfileSheetState();
+}
+
+class _EditProfileSheetState extends State<_EditProfileSheet> {
+  bool _isSaving = false;
+
+  late final TextEditingController _firstNameCtrl;
+  late final TextEditingController _lastNameCtrl;
+  late final TextEditingController _emailCtrl;
+  late final TextEditingController _cityCtrl;
+  late final TextEditingController _neighborhoodCtrl;
+  late final TextEditingController _addressCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _firstNameCtrl    = TextEditingController(text: widget.initialFirstName);
+    _lastNameCtrl     = TextEditingController(text: widget.initialLastName);
+    _emailCtrl        = TextEditingController(text: widget.initialEmail);
+    _cityCtrl         = TextEditingController(text: widget.initialCity);
+    _neighborhoodCtrl = TextEditingController(text: widget.initialNeighborhood);
+    _addressCtrl      = TextEditingController(text: widget.initialAddress);
+  }
+
+  @override
+  void dispose() {
+    _firstNameCtrl.dispose();
+    _lastNameCtrl.dispose();
+    _emailCtrl.dispose();
+    _cityCtrl.dispose();
+    _neighborhoodCtrl.dispose();
+    _addressCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (_isSaving) return;
+    setState(() => _isSaving = true);
+    final success = await widget.onSave(
+      _firstNameCtrl.text.trim(),
+      _lastNameCtrl.text.trim(),
+      _emailCtrl.text.trim(),
+      _cityCtrl.text.trim(),
+      _neighborhoodCtrl.text.trim(),
+      _addressCtrl.text.trim(),
+    );
+    if (success) {
+      Get.back();
+    } else {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.border,
+                    borderRadius: BorderRadius.circular(9999),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text('Modifier le profil',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 16),
+              _ProfileField(label: 'Prénom',   controller: _firstNameCtrl,    icon: Icons.person_rounded),
+              const SizedBox(height: 12),
+              _ProfileField(label: 'Nom',      controller: _lastNameCtrl,     icon: Icons.person_outline_rounded),
+              const SizedBox(height: 12),
+              _ProfileField(label: 'Email',    controller: _emailCtrl,        icon: Icons.email_rounded,
+                  keyboardType: TextInputType.emailAddress),
+              const SizedBox(height: 12),
+              _ProfileField(label: 'Ville',    controller: _cityCtrl,         icon: Icons.location_city_rounded),
+              const SizedBox(height: 12),
+              _ProfileField(label: 'Quartier', controller: _neighborhoodCtrl, icon: Icons.map_rounded),
+              const SizedBox(height: 12),
+              _ProfileField(label: 'Adresse',  controller: _addressCtrl,      icon: Icons.home_rounded),
+              const SizedBox(height: 20),
+              GestureDetector(
+                onTap: _isSaving ? null : _submit,
+                child: Container(
+                  width: double.infinity,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: _isSaving
+                        ? AppColors.primary.withValues(alpha: 0.6)
+                        : AppColors.primary,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Center(
+                    child: _isSaving
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Text('Enregistrer',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                                fontSize: 15)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

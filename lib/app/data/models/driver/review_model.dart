@@ -93,15 +93,21 @@ class ReviewsBodyModel {
   final bool hasMore;
   final int nextPage;
 
-  factory ReviewsBodyModel.fromJson(Map<String, dynamic> j) => ReviewsBodyModel(
-        summary: ReviewSummaryModel.fromJson(
-            j['summary'] is Map ? Map<String, dynamic>.from(j['summary'] as Map) : {}),
-        reviews: (j['reviews'] as List?)
-                ?.whereType<Map>()
-                .map((e) => ReviewModel.fromJson(Map<String, dynamic>.from(e)))
-                .toList() ??
-            [],
-        hasMore: j['has_more'] == true || j['has_more'] == 1,
-        nextPage: (j['next_page'] as num?)?.toInt() ?? 1,
-      );
+  factory ReviewsBodyModel.fromJson(Map<String, dynamic> j) {
+    final meta        = j['meta'] as Map?;
+    final currentPage = (meta?['current_page'] as num?)?.toInt() ?? 1;
+    final lastPage    = (meta?['last_page']    as num?)?.toInt() ?? 1;
+
+    return ReviewsBodyModel(
+      summary: ReviewSummaryModel.fromJson(
+          j['summary'] is Map ? Map<String, dynamic>.from(j['summary'] as Map) : {}),
+      reviews: (j['reviews'] as List?)
+              ?.whereType<Map>()
+              .map((e) => ReviewModel.fromJson(Map<String, dynamic>.from(e)))
+              .toList() ??
+          [],
+      hasMore:  currentPage < lastPage,
+      nextPage: currentPage + 1,
+    );
+  }
 }

@@ -44,6 +44,10 @@ class AddVehicleController extends GetxController {
   final Map<String, XFile> _docFiles = {};
   final filesVersion = 0.obs; // rebuild trigger
 
+  // Existing server URLs (edit mode only)
+  String? _existingPhotoUrl;
+  final Map<String, String> _existingDocUrls = {};
+
   static final List<DocSlot> docSlots = [
     DocSlot(label: 'Carte grise',        apiKey: 'registration_doc',      required: true),
     DocSlot(label: 'Assurance',           apiKey: 'insurance_doc',          required: true),
@@ -51,8 +55,14 @@ class AddVehicleController extends GetxController {
     DocSlot(label: 'Visite technique',    apiKey: 'technical_control_doc',  required: false),
   ];
 
-  bool get hasVehiclePhoto => _vehiclePhoto != null;
-  bool hasDoc(String apiKey) => _docFiles.containsKey(apiKey);
+  bool get hasVehiclePhoto => _vehiclePhoto != null || _existingPhotoUrl != null;
+  bool get hasNewVehiclePhoto => _vehiclePhoto != null;
+  String? get existingPhotoUrl => _existingPhotoUrl;
+
+  bool hasDoc(String apiKey) =>
+      _docFiles.containsKey(apiKey) || _existingDocUrls.containsKey(apiKey);
+  bool hasNewDoc(String apiKey) => _docFiles.containsKey(apiKey);
+  String? existingDocUrl(String apiKey) => _existingDocUrls[apiKey];
 
   String? _editingUuid;
 
@@ -89,6 +99,23 @@ class AddVehicleController extends GetxController {
 
     licensePlateController.text = v.licensePlate;
     if (v.year > 0) yearController.text = '${v.year}';
+
+    // Store existing server file URLs so the view can show them
+    if (v.vehiclePhotoUrl != null && v.vehiclePhotoUrl!.isNotEmpty) {
+      _existingPhotoUrl = v.vehiclePhotoUrl;
+    }
+    final docKeyMap = {
+      'registration_doc':      v.registrationDocUrl,
+      'insurance_doc':         v.insuranceDocUrl,
+      'tvm_doc':               v.tvmDocUrl,
+      'technical_control_doc': v.technicalControlDocUrl,
+    };
+    for (final entry in docKeyMap.entries) {
+      if (entry.value != null && entry.value!.isNotEmpty) {
+        _existingDocUrls[entry.key] = entry.value!;
+      }
+    }
+    filesVersion.value++;
   }
 
   // ── File picking ──────────────────────────────────────────────────────────

@@ -91,4 +91,29 @@ class InteractiveMapServiceImpl implements InteractiveMapService {
     }
   }
 
+  @override
+  Future<ApiResult<LocationResult>> updateLocation(
+      String uuid, double lat, double lng, double speed) async {
+    try {
+      final opts = await _authOptions();
+      final res = await _dio.post(
+        AppApi.tripLocation(uuid),
+        data: {'latitude': lat, 'longitude': lng, 'speed': speed},
+        options: opts,
+      );
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        return ApiResult.success(
+          LocationResult.fromJson(res.data['body'] as Map<String, dynamic>),
+        );
+      }
+      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
+      return ApiResult.failure(AppError.unexpected);
+    } on DioException catch (e) {
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
+      return ApiResult.failure(AppError.unexpected);
+    }
+  }
+
 }

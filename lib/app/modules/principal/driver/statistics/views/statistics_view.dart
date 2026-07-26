@@ -62,7 +62,7 @@ class StatisticsView extends StatelessWidget {
                             SizedBox(height: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
                           _PerformanceCard(r: r, stats: stats),
                           SizedBox(height: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-                          _BadgesCard(r: r),
+                          _BadgesCard(r: r, stats: stats),
                           SizedBox(height: r.adaptive(phone: 24, smallPhone: 20, tablet: 28, desktop: 32)),
                         ],
                       ),
@@ -790,17 +790,39 @@ class _MiniStat extends StatelessWidget {
 // ── Badges card ───────────────────────────────────────────────────────────────
 
 class _BadgesCard extends StatelessWidget {
-  const _BadgesCard({required this.r});
+  const _BadgesCard({required this.r, required this.stats});
   final AppResponsive r;
+  final DriverStatsModel stats;
+
+  // Badge unlocked if the driver has earned it based on real stats
+  bool get _isReliable   => stats.averageRating >= 4.0 && stats.tripsCount >= 5;
+  bool get _isTop        => stats.acceptanceRate >= 90;
+  bool get _isFast       => stats.avgTripMinutes > 0 && stats.avgTripMinutes <= 60;
+  bool get _isPunctual   => stats.tripsCount >= 3 && stats.cancellationRate < 10;
+  int  get _unlockedCount =>
+      (_isReliable ? 1 : 0) + (_isTop ? 1 : 0) +
+      (_isFast ? 1 : 0) + (_isPunctual ? 1 : 0);
+
+  // Next milestone: 10 trips → Bronze, 50 → Silver, 100 → Gold
+  static const _milestones = [10, 50, 100, 200];
+  int get _nextMilestone => _milestones.firstWhere(
+      (m) => m > stats.tripsCount,
+      orElse: () => _milestones.last);
+  double get _milestoneProgress =>
+      (_nextMilestone <= 10)
+          ? (stats.tripsCount / 10).clamp(0.0, 1.0)
+          : (stats.tripsCount / _nextMilestone).clamp(0.0, 1.0);
 
   @override
   Widget build(BuildContext context) {
-    const badges = [
-      _BadgeData(icon: Icons.verified_rounded,         label: 'Fiable',   color: Color(0xFF00A86B)),
-      _BadgeData(icon: Icons.workspace_premium_rounded, label: 'Top 10%', color: Color(0xFFF4B400)),
-      _BadgeData(icon: Icons.speed_rounded,             label: 'Rapide',  color: Color(0xFF3B82F6)),
-      _BadgeData(icon: Icons.star_rounded,              label: 'Ponctuel',color: Color(0xFF6366F1)),
+    final badgeDefs = [
+      (icon: Icons.verified_rounded,          label: 'Fiable',   color: const Color(0xFF00A86B), unlocked: _isReliable),
+      (icon: Icons.workspace_premium_rounded, label: 'Top 10%',  color: const Color(0xFFF4B400), unlocked: _isTop),
+      (icon: Icons.speed_rounded,             label: 'Rapide',   color: const Color(0xFF3B82F6), unlocked: _isFast),
+      (icon: Icons.star_rounded,              label: 'Ponctuel', color: const Color(0xFF6366F1), unlocked: _isPunctual),
     ];
+
+    final pct = (_milestoneProgress * 100).round();
 
     return Container(
       padding: EdgeInsets.all(
@@ -814,19 +836,29 @@ class _BadgesCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Badges débloqués',
-              style: AppTextStyles.homeCardTitle(r)
-                  .copyWith(color: AppColors.textPrimary)),
-          SizedBox(
-              height:
-                  r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
+          Row(
+            children: [
+              Text('Badges débloqués',
+                  style: AppTextStyles.homeCardTitle(r)
+                      .copyWith(color: AppColors.textPrimary)),
+              const Spacer(),
+              Text('$_unlockedCount/4',
+                  style: AppTextStyles.bodySmall(r).copyWith(
+                      color: AppColors.primary, fontWeight: FontWeight.w700)),
+            ],
+          ),
+          SizedBox(height: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: badges.map((b) => _BadgeItem(r: r, badge: b)).toList(),
+            children: badgeDefs.map((b) {
+              return _BadgeItem(
+                r: r,
+                badge: _BadgeData(icon: b.icon, label: b.label, color: b.color),
+                unlocked: b.unlocked,
+              );
+            }).toList(),
           ),
-          SizedBox(
-              height:
-                  r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
+          SizedBox(height: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
           Container(
             padding: EdgeInsets.all(
                 r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
@@ -842,34 +874,27 @@ class _BadgesCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Prochain badge : Expert',
+                        'Prochain palier : $_nextMilestone trajets',
                         style: AppTextStyles.bodySmall(r).copyWith(
                             color: AppColors.primary,
                             fontWeight: FontWeight.w600),
                       ),
-                      SizedBox(
-                          height: r.adaptive(
-                              phone: 6, smallPhone: 5, tablet: 7, desktop: 8)),
+                      SizedBox(height: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8)),
                       ClipRRect(
                         borderRadius: BorderRadius.circular(4),
                         child: LinearProgressIndicator(
-                          value: 0.75,
-                          backgroundColor:
-                              AppColors.primary.withValues(alpha: 0.15),
-                          valueColor: const AlwaysStoppedAnimation<Color>(
-                              AppColors.primary),
-                          minHeight: r.adaptive(
-                              phone: 6, smallPhone: 5, tablet: 7, desktop: 8),
+                          value: _milestoneProgress,
+                          backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+                          valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                          minHeight: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8),
                         ),
                       ),
                     ],
                   ),
                 ),
-                SizedBox(
-                    width: r.adaptive(
-                        phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
+                SizedBox(width: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
                 Text(
-                  '75%',
+                  '$pct%',
                   style: AppTextStyles.bodySmall(r).copyWith(
                       color: AppColors.primary, fontWeight: FontWeight.w800),
                 ),
@@ -890,32 +915,52 @@ class _BadgeData {
 }
 
 class _BadgeItem extends StatelessWidget {
-  const _BadgeItem({required this.r, required this.badge});
+  const _BadgeItem({required this.r, required this.badge, required this.unlocked});
   final AppResponsive r;
   final _BadgeData badge;
+  final bool unlocked;
 
   @override
   Widget build(BuildContext context) {
+    final effectiveColor = unlocked ? badge.color : AppColors.textMuted;
     return Column(
       children: [
         Container(
           width: r.adaptive(phone: 48, smallPhone: 44, tablet: 56, desktop: 64),
           height: r.adaptive(phone: 48, smallPhone: 44, tablet: 56, desktop: 64),
           decoration: BoxDecoration(
-            color: badge.color.withValues(alpha: 0.12),
+            color: effectiveColor.withValues(alpha: unlocked ? 0.12 : 0.06),
             shape: BoxShape.circle,
           ),
-          child: Icon(badge.icon,
-              size: r.adaptive(
-                  phone: 24, smallPhone: 22, tablet: 28, desktop: 32),
-              color: badge.color),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Icon(badge.icon,
+                  size: r.adaptive(phone: 24, smallPhone: 22, tablet: 28, desktop: 32),
+                  color: effectiveColor.withValues(alpha: unlocked ? 1.0 : 0.35)),
+              if (!unlocked)
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: const BoxDecoration(
+                      color: AppColors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.lock_rounded,
+                        size: r.adaptive(phone: 10, smallPhone: 9, tablet: 12, desktop: 13),
+                        color: AppColors.textMuted),
+                  ),
+                ),
+            ],
+          ),
         ),
-        SizedBox(
-            height: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8)),
+        SizedBox(height: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8)),
         Text(
           badge.label,
           style: AppTextStyles.labelSmall(r).copyWith(
-            color: AppColors.textMuted,
+            color: unlocked ? badge.color : AppColors.textMuted,
             fontWeight: FontWeight.w600,
           ),
         ),

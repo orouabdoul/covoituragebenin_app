@@ -65,7 +65,8 @@ class AppApi {
   // Trajets — conducteur
   static const String driverTrips = '/driver/trips';
   static const String driverTripForm = '/driver/trip-form';
-  static const String driverTripPublish = '/driver/trip-publish';
+  static const String driverTripPublish   = '/driver/trip-publish';
+  static const String driverTripEstimate = '/driver/trip-estimate';
   static String driverTripPassengers(String uuid) => '/driver/trips/$uuid/passengers';
   static String driverTripCancel(String uuid) => '/driver/trips/$uuid/cancel';
   static String driverTripDetail(String uuid) => '/driver/trips/$uuid';
@@ -91,6 +92,7 @@ class AppApi {
   static String driverTripStopDone(String tripUuid, String bookingUuid) =>
       '/driver/trips/$tripUuid/stops/$bookingUuid/done';
   static String driverTripRecalculate(String uuid) => '/driver/trips/$uuid/recalculate';
+  static String tripLocation(String uuid) => '/trips/$uuid/location';
 
   // Dashboard / Profil / Avis / Stats / Trajets — passager
   static const String passengerHome        = '/passenger/home';

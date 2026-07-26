@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/trips/trips_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/api_result.dart';
+import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/benin_locations_data.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/vehicle_model.dart';
@@ -32,6 +34,10 @@ class AddTrajetController extends GetxController {
   int priceDefault = 5000;
   int priceMin = 500;
   int priceMax = 50000;
+
+  // ── Commission from API ───────────────────────────────────────────────────
+  int commissionRatePercent = 10;
+  int driverSharePercent = 90;
 
   // ── Booking mode & cancellation policy ────────────────────────────────────
   final RxString selectedBookingMode = 'instant'.obs;
@@ -95,6 +101,19 @@ class AddTrajetController extends GetxController {
   final RxnString selectedDestinationCity = RxnString();
   final RxnString selectedDestinationDistrict = RxnString();
 
+  // ── Trip estimate ─────────────────────────────────────────────────────────
+  final RxBool isLoadingEstimate = false.obs;
+  final RxnString estimatedDistanceKm = RxnString();
+  final RxnString estimatedDurationLabel = RxnString();
+  int? estimatedDurationMinutes;
+  final TextEditingController durationController = TextEditingController();
+  bool _durationModifiedByUser = false;
+  bool _updatingDurationProgrammatically = false;
+
+  // ── GPS ───────────────────────────────────────────────────────────────────
+  double? _deviceLat;
+  double? _deviceLng;
+
   static Map<String, List<String>> get beninCitiesWithDistricts =>
       BeninLocations.citiesWithDistricts;
 
@@ -103,6 +122,12 @@ class AddTrajetController extends GetxController {
     return api.isNotEmpty ? api : BeninLocations.cities;
   }
 
+  bool get formTouched =>
+      selectedDepartureCity.value != null ||
+      selectedDestinationCity.value != null ||
+      departureCityController.text.isNotEmpty ||
+      destinationCityController.text.isNotEmpty;
+
   List<String> getDistricts(String? city) => BeninLocations.getDistricts(city);
 
   void onDepartureCityChanged(String? city) {
@@ -110,6 +135,8 @@ class AddTrajetController extends GetxController {
     selectedDepartureDistrict.value = null;
     departureCityController.text = city ?? '';
     departureDistrictController.text = '';
+    _durationModifiedByUser = false;
+    _triggerEstimate();
   }
 
   void onDestinationCityChanged(String? city) {
@@ -117,6 +144,59 @@ class AddTrajetController extends GetxController {
     selectedDestinationDistrict.value = null;
     destinationCityController.text = city ?? '';
     destinationDistrictController.text = '';
+    _durationModifiedByUser = false;
+    _triggerEstimate();
+  }
+
+  Future<void> _triggerEstimate() async {
+    final dep = selectedDepartureCity.value;
+    final dest = selectedDestinationCity.value;
+    if (dep == null || dest == null) {
+      estimatedDistanceKm.value = null;
+      estimatedDurationLabel.value = null;
+      estimatedDurationMinutes = null;
+      return;
+    }
+    isLoadingEstimate.value = true;
+    estimatedDistanceKm.value = null;
+    estimatedDurationLabel.value = null;
+
+    // Build GPS-aware payload: device GPS for departure (prioritized), city table for arrival
+    final depCoords = BeninLocations.getCityCoords(dep);
+    final destCoords = BeninLocations.getCityCoords(dest);
+    final payload = <String, dynamic>{
+      'departure_city': dep,
+      'arrival_city': dest,
+      if (_deviceLat != null && _deviceLng != null) ...{
+        'departure_latitude': _deviceLat,
+        'departure_longitude': _deviceLng,
+      } else if (depCoords != null) ...{
+        'departure_latitude': depCoords.lat,
+        'departure_longitude': depCoords.lng,
+      },
+      if (destCoords != null) ...{
+        'arrival_latitude': destCoords.lat,
+        'arrival_longitude': destCoords.lng,
+      },
+    };
+
+    final result = await _tripsService.estimateTrip(payload);
+    isLoadingEstimate.value = false;
+    if (result.isSuccess && result.data != null) {
+      final body = result.data!;
+      final km = (body['distance_km'] as num?)?.toDouble();
+      estimatedDistanceKm.value = km != null
+          ? (km % 1 == 0 ? km.toInt().toString() : km.toStringAsFixed(1))
+          : null;
+      estimatedDurationLabel.value = body['estimated_duration_label'] as String?;
+      estimatedDurationMinutes = (body['estimated_duration_minutes'] as num?)?.toInt();
+      // Pre-fill duration field only if driver hasn't manually edited it
+      if (!_durationModifiedByUser && estimatedDurationMinutes != null) {
+        _updatingDurationProgrammatically = true;
+        durationController.text = estimatedDurationMinutes.toString();
+        _updatingDurationProgrammatically = false;
+      }
+    }
   }
 
   void onDepartureDistrictChanged(String? district) {
@@ -133,12 +213,24 @@ class AddTrajetController extends GetxController {
     selectedDepartureCity.value = null;
     selectedDepartureDistrict.value = null;
     departureDistrictController.text = '';
+    _clearEstimate();
   }
 
   void onDestinationCityTyped() {
     selectedDestinationCity.value = null;
     selectedDestinationDistrict.value = null;
     destinationDistrictController.text = '';
+    _clearEstimate();
+  }
+
+  void _clearEstimate() {
+    estimatedDistanceKm.value = null;
+    estimatedDurationLabel.value = null;
+    estimatedDurationMinutes = null;
+    _durationModifiedByUser = false;
+    _updatingDurationProgrammatically = true;
+    durationController.text = '';
+    _updatingDurationProgrammatically = false;
   }
 
   void onDepartureDistrictTyped() => selectedDepartureDistrict.value = null;
@@ -165,10 +257,43 @@ class AddTrajetController extends GetxController {
     _editUuid = args?['uuid'] as String?;
     selectedOptions.addAll(const {'no_smoking', 'music'});
     priceController.addListener(_onPriceChanged);
+    durationController.addListener(_onDurationChanged);
+    _fetchDeviceGps();
     if (isEditMode) {
       _loadFormAndEdit();
     } else {
       _loadTripForm();
+    }
+  }
+
+  void _onDurationChanged() {
+    if (_updatingDurationProgrammatically) return;
+    _durationModifiedByUser = true;
+    final val = int.tryParse(durationController.text.trim());
+    if (val != null && val > 0) estimatedDurationMinutes = val;
+  }
+
+  Future<void> _fetchDeviceGps() async {
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) return;
+      var perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.denied ||
+          perm == LocationPermission.deniedForever) { return; }
+      final pos = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
+      );
+      _deviceLat = pos.latitude;
+      _deviceLng = pos.longitude;
+      logger.d('GPS device: $_deviceLat, $_deviceLng');
+      // Re-fire estimate with real GPS coords if both cities are already set
+      if (selectedDepartureCity.value != null && selectedDestinationCity.value != null) {
+        _triggerEstimate();
+      }
+    } catch (e) {
+      logger.w('_fetchDeviceGps: $e');
     }
   }
 
@@ -238,6 +363,13 @@ class AddTrajetController extends GetxController {
         pricePerSeat.value = priceDefault.toDouble();
         priceController.text = priceDefault.toString();
       }
+    }
+
+    // Commission from API
+    final commission = body['commission'] as Map<String, dynamic>?;
+    if (commission != null) {
+      commissionRatePercent = (commission['rate_percent'] as num?)?.toInt() ?? 10;
+      driverSharePercent = (commission['driver_share'] as num?)?.toInt() ?? 90;
     }
   }
 
@@ -442,12 +574,17 @@ class AddTrajetController extends GetxController {
 
     isPublishing.value = true;
 
-    final payload = {
+    final dep = selectedDepartureCity.value!;
+    final dest = selectedDestinationCity.value!;
+    final depCoords = BeninLocations.getCityCoords(dep);
+    final destCoords = BeninLocations.getCityCoords(dest);
+
+    final payload = <String, dynamic>{
       'vehicle_id': selectedVehicle.value!.id,
-      'departure_city': selectedDepartureCity.value!,
+      'departure_city': dep,
       'departure_neighborhood': departureDistrictController.text.trim(),
       'departure_point': departurePointController.text.trim(),
-      'arrival_city': selectedDestinationCity.value!,
+      'arrival_city': dest,
       'arrival_neighborhood': destinationDistrictController.text.trim(),
       'arrival_point': destinationPointController.text.trim(),
       'departure_date': dateController.text,
@@ -461,6 +598,21 @@ class AddTrajetController extends GetxController {
       'description': descriptionController.text.trim(),
       'preferences': _buildPreferencesList(),
       'is_published': true,
+      // GPS: device position for departure (more precise), city coords for arrival
+      if (_deviceLat != null && _deviceLng != null) ...{
+        'departure_latitude': _deviceLat,
+        'departure_longitude': _deviceLng,
+      } else if (depCoords != null) ...{
+        'departure_latitude': depCoords.lat,
+        'departure_longitude': depCoords.lng,
+      },
+      if (destCoords != null) ...{
+        'arrival_latitude': destCoords.lat,
+        'arrival_longitude': destCoords.lng,
+      },
+      // Send duration only if driver manually edited it; backend computes it otherwise
+      if (_durationModifiedByUser && estimatedDurationMinutes != null)
+        'estimated_duration_minutes': estimatedDurationMinutes,
     };
 
     final ApiResult<void> result;
@@ -493,6 +645,7 @@ class AddTrajetController extends GetxController {
   @override
   void onClose() {
     priceController.removeListener(_onPriceChanged);
+    durationController.removeListener(_onDurationChanged);
     departureCityController.dispose();
     departureDistrictController.dispose();
     departurePointController.dispose();
@@ -503,6 +656,7 @@ class AddTrajetController extends GetxController {
     dateController.dispose();
     timeController.dispose();
     priceController.dispose();
+    durationController.dispose();
     super.onClose();
   }
 }

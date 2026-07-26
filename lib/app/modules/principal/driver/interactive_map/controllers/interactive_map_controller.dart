@@ -12,6 +12,7 @@ import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/interactive_map_model.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/trip_model.dart';
+import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 enum StopType { pickup, dropoff }
 
@@ -67,9 +68,14 @@ class InteractiveMapController extends GetxController
   final RxDouble mapMoveZoom = 14.0.obs;
   final RxBool fitAllRequest = false.obs;
 
+  final RxList<ApproachingStop> approachingStops = <ApproachingStop>[].obs;
+  final RxBool allPickedUp = false.obs;
+
   List<LatLng> _apiPolyline = [];
+  double _lastSpeed = 0.0;
 
   StreamSubscription<Position>? _positionSub;
+  Timer? _locationTimer;
   late AnimationController pulseController;
   late final String _uuid;
   TripModel? _fallbackTrip;
@@ -106,6 +112,7 @@ class InteractiveMapController extends GetxController
 
     _startGpsTracking();
     _fetchMapData();
+    if (_uuid.isNotEmpty) _startLocationReporting();
   }
 
   @override
@@ -150,12 +157,33 @@ class InteractiveMapController extends GetxController
         ),
       ).listen((p) {
         driverPosition.value = LatLng(p.latitude, p.longitude);
+        _lastSpeed = p.speed >= 0 ? p.speed * 3.6 : 0.0; // m/s → km/h
       });
     } catch (e) {
       logger.w('InteractiveMap GPS error: $e');
     } finally {
       isLocating.value = false;
     }
+  }
+
+  // ── GPS telemetry (server) ────────────────────────────────────────────────
+
+  void _startLocationReporting() {
+    _locationTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      _sendLocationUpdate();
+    });
+  }
+
+  Future<void> _sendLocationUpdate() async {
+    final pos = driverPosition.value;
+    final result = await _service.updateLocation(
+      _uuid, pos.latitude, pos.longitude, _lastSpeed,
+    );
+    if (result.isSuccess) {
+      final incoming = result.data!.approachingStops;
+      approachingStops.assignAll(incoming);
+    }
+    // Silent on failure — network hiccup shouldn't interrupt the driver
   }
 
   // ── API ────────────────────────────────────────────────────────────────────
@@ -350,15 +378,26 @@ class InteractiveMapController extends GetxController
       if (next != null) {
         mapMoveTo.value = next.latlng;
         mapMoveZoom.value = 15.0;
+        UIHelper().showSnackBar('MINIZON', '$name marqué comme terminé.', 0);
+      } else {
+        UIHelper().showSnackBar('MINIZON', 'Tous les passagers déposés !', 0);
+        Future.delayed(const Duration(milliseconds: 1200), () {
+          Get.offNamed(AppRoutes.driverEndTrip, arguments: {'uuid': _uuid});
+        });
       }
-      UIHelper().showSnackBar('MINIZON', '$name marqué comme terminé.', 0);
       return;
     }
 
     final result = await _service.markStopDone(_uuid, stopId);
 
     if (result.isSuccess) {
-      currentStopIndex.value = result.data!.nextStopIndex;
+      final data = result.data!;
+      currentStopIndex.value = data.nextStopIndex;
+
+      if (data.allPickedUp && !allPickedUp.value) {
+        allPickedUp.value = true;
+      }
+
       final nextIdx = currentStopIndex.value;
       if (nextIdx < stops.length &&
           stops[nextIdx].status == StopStatus.pending) {
@@ -369,8 +408,14 @@ class InteractiveMapController extends GetxController
       if (next != null) {
         mapMoveTo.value = next.latlng;
         mapMoveZoom.value = 15.0;
+        UIHelper().showSnackBar('MINIZON', '$name pris en charge.', 0);
+      } else {
+        // Tous les arrêts terminés → page de fin de trajet
+        UIHelper().showSnackBar('MINIZON', 'Tous les passagers déposés !', 0);
+        Future.delayed(const Duration(milliseconds: 1200), () {
+          Get.offNamed(AppRoutes.driverEndTrip, arguments: {'uuid': _uuid});
+        });
       }
-      UIHelper().showSnackBar('MINIZON', '$name pris en charge.', 0);
     } else {
       stops[idx].status = StopStatus.pending;
       stops.refresh();
@@ -495,6 +540,7 @@ class InteractiveMapController extends GetxController
   @override
   void onClose() {
     _positionSub?.cancel();
+    _locationTimer?.cancel();
     pulseController.dispose();
     super.onClose();
   }
