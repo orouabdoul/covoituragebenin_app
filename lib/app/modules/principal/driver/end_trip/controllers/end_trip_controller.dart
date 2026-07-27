@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/end_trip/end_trip_service.dart';
+import 'package:covoiturage_benin_app/app/core/services/driver/safety/safety_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/end_trip_summary_model.dart';
@@ -11,6 +12,8 @@ import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 class EndTripController extends GetxController {
   EndTripService get _service => Get.find<EndTripService>();
+  SafetyService? get _safetyService =>
+      Get.isRegistered<SafetyService>() ? Get.find<SafetyService>() : null;
 
   final RxBool isLoading   = false.obs;
   final RxBool hasError    = false.obs;
@@ -49,7 +52,7 @@ class EndTripController extends GetxController {
     } else {
       hasError.value = true;
       if (result.error != AppError.socket) {
-        UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+        UIHelper().showSnackBar('MINIZON', result.displayMessage, 2);
       }
     }
   }
@@ -63,7 +66,7 @@ class EndTripController extends GetxController {
       UIHelper().showSnackBar('MINIZON', 'Trajet terminé ! Les passagers ont été notifiés.', 0);
       Get.offAllNamed(AppRoutes.dashboardDriver);
     } else {
-      UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+      UIHelper().showSnackBar('MINIZON', result.displayMessage, 2);
     }
   }
 
@@ -164,11 +167,28 @@ class EndTripController extends GetxController {
                     onTap: selectedCategory == null
                         ? () => UIHelper().showSnackBar(
                             'MINIZON', "Sélectionnez un type d'incident.", 2)
-                        : () {
+                        : () async {
+                            final cat = selectedCategory!;
+                            final desc = descCtrl.text.trim();
                             Get.back();
                             descCtrl.dispose();
-                            UIHelper().showSnackBar('MINIZON',
-                                'Incident signalé. Notre équipe vous contacte sous 30 min.', 0);
+                            final safety = _safetyService;
+                            if (safety != null) {
+                              final res = await safety.reportIncident(
+                                category: cat,
+                                description: desc.isEmpty ? null : desc,
+                              );
+                              if (res.isSuccess) {
+                                UIHelper().showSnackBar('MINIZON',
+                                    'Incident signalé. Notre équipe vous contacte sous 30 min.', 0);
+                              } else {
+                                UIHelper().showSnackBar('MINIZON',
+                                    'Incident enregistré localement — connexion indisponible.', 1);
+                              }
+                            } else {
+                              UIHelper().showSnackBar('MINIZON',
+                                  'Incident signalé. Notre équipe vous contacte sous 30 min.', 0);
+                            }
                           },
                     child: Container(
                       width: double.infinity,

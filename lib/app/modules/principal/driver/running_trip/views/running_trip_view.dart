@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
+import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 
 import '../controllers/running_trip_controller.dart';
 
@@ -306,8 +308,27 @@ class _PassengersCard extends StatelessWidget {
                       ),
                     ),
                     if (s.phone.isNotEmpty)
-                      Icon(Icons.phone_rounded,
-                          size: r.text(16), color: AppColors.primary),
+                      GestureDetector(
+                        onTap: () async {
+                          final uri = Uri(scheme: 'tel', path: s.phone);
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(uri);
+                          } else {
+                            UIHelper().showSnackBar(
+                                'MINIZON', 'Impossible d\'ouvrir le téléphone.', 2);
+                          }
+                        },
+                        child: Container(
+                          width: r.w(32),
+                          height: r.w(32),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.10),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(Icons.phone_rounded,
+                              size: r.text(16), color: AppColors.primary),
+                        ),
+                      ),
                   ],
                 ),
               )),

@@ -28,7 +28,9 @@ class WithdrawServiceImpl implements WithdrawService {
       final res = await _dio.get(AppApi.driverWallet, options: opts);
       logger.d('driverWallet [${res.statusCode}]');
       if (res.statusCode == 200 && res.data['success'] == true) {
-        return ApiResult.success(res.data['body'] as Map<String, dynamic>);
+        // API returns data under 'data' key
+        final body = res.data['data'] ?? res.data['body'];
+        return ApiResult.success((body as Map<String, dynamic>?) ?? {});
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
@@ -45,22 +47,30 @@ class WithdrawServiceImpl implements WithdrawService {
   Future<ApiResult<Map<String, dynamic>>> withdraw({
     required int amount,
     required String provider,
-    required String phoneNumber,
+    String? phoneNumber,
+    String? bankName,
+    String? accountNumber,
+    String? accountHolderName,
   }) async {
     try {
       final opts = await _authOptions();
-      final res = await _dio.post(
-        AppApi.driverWithdraw,
-        data: {
-          'amount': amount,
-          'provider': provider,
-          'phone_number': phoneNumber,
-        },
-        options: opts,
-      );
+      final data = <String, dynamic>{
+        'amount': amount,
+        'provider': provider,
+      };
+      if (provider == 'bank') {
+        if (bankName != null) data['bank_name'] = bankName;
+        if (accountNumber != null) data['account_number'] = accountNumber;
+        if (accountHolderName != null) data['account_holder_name'] = accountHolderName;
+      } else {
+        if (phoneNumber != null) data['phone_number'] = phoneNumber;
+      }
+
+      final res = await _dio.post(AppApi.driverWithdraw, data: data, options: opts);
       logger.d('withdraw [${res.statusCode}]');
       if (res.statusCode == 200 && res.data['success'] == true) {
-        return ApiResult.success(res.data['body'] as Map<String, dynamic>);
+        final body = res.data['data'] ?? res.data['body'];
+        return ApiResult.success((body as Map<String, dynamic>?) ?? {});
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       if (res.statusCode == 422) {
@@ -77,5 +87,4 @@ class WithdrawServiceImpl implements WithdrawService {
       return ApiResult.failure(AppError.unexpected);
     }
   }
-
 }

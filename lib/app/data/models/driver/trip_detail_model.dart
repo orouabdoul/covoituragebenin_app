@@ -68,9 +68,10 @@ class TripDetailSeatsData {
 
   factory TripDetailSeatsData.fromJson(Map<String, dynamic> json) =>
       TripDetailSeatsData(
-        total: (json['total'] as num?)?.toInt() ?? 0,
-        booked: (json['booked'] as num?)?.toInt() ?? 0,
-        available: (json['available'] as num?)?.toInt() ?? 0,
+        // API returns total_seats / booked_seats / available_seats inside passengers object
+        total: (json['total_seats'] ?? json['total'] as num?)?.toInt() ?? 0,
+        booked: (json['booked_seats'] ?? json['booked'] as num?)?.toInt() ?? 0,
+        available: (json['available_seats'] ?? json['available'] as num?)?.toInt() ?? 0,
         pricePerSeat: (json['price_per_seat'] as num?)?.toInt() ?? 0,
         priceLabel: (json['price_label'] as String?) ?? '',
       );
@@ -106,8 +107,9 @@ class TripDetailPassengerData {
   factory TripDetailPassengerData.fromJson(Map<String, dynamic> json) =>
       TripDetailPassengerData(
         bookingUuid: (json['booking_uuid'] as String?) ?? '',
-        fullName: (json['full_name'] as String?) ?? '',
-        initials: (json['initials'] as String?) ?? '',
+        // API returns "name" and "avatar_initial"
+        fullName: (json['full_name'] ?? json['name'] as String?) ?? '',
+        initials: (json['initials'] ?? json['avatar_initial'] as String?) ?? '',
         phone: (json['phone'] as String?) ?? '',
         seatsBooked: (json['seats_booked'] as num?)?.toInt() ?? 1,
         amount: (json['amount'] as num?)?.toInt() ?? 0,
@@ -136,7 +138,8 @@ class TripDetailFinancesData {
       TripDetailFinancesData(
         totalRevenue: (json['total_revenue'] as num?)?.toInt() ?? 0,
         commissionRate: (json['commission_rate'] as num?)?.toInt() ?? 10,
-        commission: (json['commission'] as num?)?.toInt() ?? 0,
+        // API returns commission_amount, not commission
+        commission: (json['commission_amount'] ?? json['commission'] as num?)?.toInt() ?? 0,
         netRevenue: (json['net_revenue'] as num?)?.toInt() ?? 0,
       );
 }
@@ -187,7 +190,8 @@ List<TripDetailPassengerData> _parsePassengers(dynamic raw) {
   if (raw is List) {
     list = raw;
   } else if (raw is Map) {
-    list = (raw['data'] ?? raw['items'] ?? raw['passengers'] ?? []) as List? ?? [];
+    // API nests the passenger list under passengers.list
+    list = (raw['list'] ?? raw['data'] ?? raw['items'] ?? raw['passengers'] ?? []) as List? ?? [];
   } else {
     return [];
   }
@@ -223,25 +227,34 @@ class TripDetailModel {
   final TripDetailStatsData stats;
   final TripDetailActionsData actions;
 
-  factory TripDetailModel.fromJson(Map<String, dynamic> json) => TripDetailModel(
-        uuid: (json['uuid'] as String?) ?? '',
-        status: (json['status'] as String?) ?? '',
-        statusLabel: (json['status_label'] as String?) ?? '',
-        publishedAgo: (json['published_ago'] as String?) ?? '',
-        route: TripDetailRouteData.fromJson(
-            (json['route'] as Map<String, dynamic>?) ?? {}),
-        vehicle: json['vehicle'] != null
-            ? TripDetailVehicleData.fromJson(
-                json['vehicle'] as Map<String, dynamic>)
-            : null,
-        seats: TripDetailSeatsData.fromJson(
-            (json['seats'] as Map<String, dynamic>?) ?? {}),
-        passengers: _parsePassengers(json['passengers']),
-        finances: TripDetailFinancesData.fromJson(
-            (json['finances'] as Map<String, dynamic>?) ?? {}),
-        stats: TripDetailStatsData.fromJson(
-            (json['stats'] as Map<String, dynamic>?) ?? {}),
-        actions: TripDetailActionsData.fromJson(
-            (json['actions'] as Map<String, dynamic>?) ?? {}),
-      );
+  factory TripDetailModel.fromJson(Map<String, dynamic> json) {
+    final passengersObj = (json['passengers'] as Map<String, dynamic>?) ?? {};
+    final financesObj = (json['finances'] as Map<String, dynamic>?) ?? {};
+    // Seats info lives inside passengers object; inject price_per_seat from finances
+    final seatsJson = {
+      ...passengersObj,
+      if (financesObj['price_per_seat'] != null)
+        'price_per_seat': financesObj['price_per_seat'],
+    };
+    return TripDetailModel(
+      uuid: (json['uuid'] as String?) ?? '',
+      status: (json['status'] as String?) ?? '',
+      statusLabel: (json['status_label'] as String?) ?? '',
+      publishedAgo: (json['published_ago'] as String?) ?? '',
+      route: TripDetailRouteData.fromJson(
+          (json['route'] as Map<String, dynamic>?) ?? {}),
+      vehicle: json['vehicle'] != null
+          ? TripDetailVehicleData.fromJson(
+              json['vehicle'] as Map<String, dynamic>)
+          : null,
+      // Seats are inside the passengers object in the API
+      seats: TripDetailSeatsData.fromJson(seatsJson),
+      passengers: _parsePassengers(passengersObj),
+      finances: TripDetailFinancesData.fromJson(financesObj),
+      stats: TripDetailStatsData.fromJson(
+          (json['stats'] as Map<String, dynamic>?) ?? {}),
+      // can_start / can_edit / can_cancel are at the root level, not nested in actions
+      actions: TripDetailActionsData.fromJson(json),
+    );
+  }
 }

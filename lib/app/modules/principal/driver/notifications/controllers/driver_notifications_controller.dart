@@ -4,6 +4,7 @@ import 'package:covoiturage_benin_app/app/core/services/driver/notifications/not
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/notification_driver_model.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 enum NotifFilterType { all, unread, reservations, payments, trips }
@@ -93,22 +94,27 @@ class DriverNotificationsController extends GetxController {
       Get.toNamed(n.actionRoute!);
       return;
     }
-    // Derive route from action_data keys first, then fall back to type
+    // Derive destination from action_data keys first, then fall back to type.
+    // Pages qui sont des onglets du bottom nav utilisent goToTab pour
+    // préserver la barre de navigation.
     final data = n.actionData;
     if (data.containsKey('booking_uuid')) {
       Get.toNamed(AppRoutes.driverReservations);
       return;
     }
     if (data.containsKey('trip_uuid')) {
-      Get.toNamed(AppRoutes.driverTrips);
+      BottonNavController.goToTab(1); // Trajets tab
       return;
     }
-    final route = switch (n.type) {
-      DriverNotificationType.reservation => AppRoutes.driverReservations,
-      DriverNotificationType.payment => AppRoutes.driverRevenus,
-      DriverNotificationType.trip => AppRoutes.driverTrips,
-      _ => null,
-    };
-    if (route != null) Get.toNamed(route);
+    switch (n.type) {
+      case DriverNotificationType.reservation:
+        Get.toNamed(AppRoutes.driverReservations);
+      case DriverNotificationType.payment:
+        BottonNavController.goToTab(2); // Revenus tab
+      case DriverNotificationType.trip:
+        BottonNavController.goToTab(1); // Trajets tab
+      default:
+        break;
+    }
   }
 }

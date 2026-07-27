@@ -13,6 +13,7 @@ import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/dashboard_model.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/notification_driver_model.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 // ── Quick request (with live countdown) ────────────────────────────────────
@@ -902,11 +903,16 @@ class DriverHomeController extends GetxController {
       showInfo('$action : ${request.name}');
 
   void onQuickAction(String action) {
+    // Pages qui sont des onglets du bottom nav : on bascule via goToTab
+    // pour conserver la barre de navigation visible.
+    if (action == 'Mes trajets') {
+      BottonNavController.goToTab(1);
+      return;
+    }
     final routeMap = {
       'Publier': AppRoutes.driverAddTrip,
       'Réservations': AppRoutes.driverReservations,
       'Retirer': AppRoutes.driverWithdraw,
-      'Mes trajets': AppRoutes.driverTrips,
       'Support': AppRoutes.driverSupportCenter,
       'Statistiques': AppRoutes.driverStatistics,
     };

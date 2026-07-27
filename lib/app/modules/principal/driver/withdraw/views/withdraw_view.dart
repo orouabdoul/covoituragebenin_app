@@ -44,7 +44,8 @@ class WithdrawView extends StatelessWidget {
                       SizedBox(height: r.adaptive(phone: 20, smallPhone: 16, tablet: 24, desktop: 28)),
                       _MethodsSection(r: r, controller: controller),
                       SizedBox(height: r.adaptive(phone: 20, smallPhone: 16, tablet: 24, desktop: 28)),
-                      _PhoneSection(r: r, controller: controller),
+                      // Section dynamique : téléphone (MoMo) ou champs bancaires
+                      _PaymentDetailsSection(r: r, controller: controller),
                       SizedBox(height: r.adaptive(phone: 20, smallPhone: 16, tablet: 24, desktop: 28)),
                       _DelayInfo(r: r, controller: controller),
                       SizedBox(height: r.adaptive(phone: 24, smallPhone: 20, tablet: 28, desktop: 32)),
@@ -94,7 +95,8 @@ class _Header extends StatelessWidget {
               height: r.adaptive(phone: 36, smallPhone: 32, tablet: 40, desktop: 44),
               decoration: BoxDecoration(
                 color: AppColors.surface,
-                borderRadius: BorderRadius.circular(r.adaptive(phone: 10, smallPhone: 9, tablet: 12, desktop: 14)),
+                borderRadius: BorderRadius.circular(
+                    r.adaptive(phone: 10, smallPhone: 9, tablet: 12, desktop: 14)),
               ),
               child: Icon(Icons.arrow_back_rounded,
                   size: r.adaptive(phone: 18, smallPhone: 16, tablet: 20, desktop: 22),
@@ -125,24 +127,25 @@ class _BalanceCard extends StatelessWidget {
     return Obx(() {
       final isLoading = controller.isLoadingWallet.value;
       return Container(
-        padding: EdgeInsets.all(r.adaptive(phone: 20, smallPhone: 16, tablet: 24, desktop: 28)),
+        padding: EdgeInsets.all(
+            r.adaptive(phone: 20, smallPhone: 16, tablet: 24, desktop: 28)),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [Color(0xFF00A86B), Color(0xFF008F5A)],
           ),
-          borderRadius:
-              BorderRadius.circular(r.adaptive(phone: 18, smallPhone: 16, tablet: 20, desktop: 24)),
+          borderRadius: BorderRadius.circular(
+              r.adaptive(phone: 18, smallPhone: 16, tablet: 20, desktop: 24)),
         ),
         child: isLoading
             ? SizedBox(
                 height: r.adaptive(phone: 72, smallPhone: 64, tablet: 80, desktop: 88),
                 child: const Center(
                   child: SizedBox(
-                    width: 28,
-                    height: 28,
-                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                    width: 28, height: 28,
+                    child: CircularProgressIndicator(
+                        color: Colors.white, strokeWidth: 2.5),
                   ),
                 ),
               )
@@ -154,7 +157,9 @@ class _BalanceCard extends StatelessWidget {
                     style: AppTextStyles.bodySmall(r)
                         .copyWith(color: Colors.white.withValues(alpha: 0.8)),
                   ),
-                  SizedBox(height: r.adaptive(phone: 8, smallPhone: 6, tablet: 10, desktop: 12)),
+                  SizedBox(
+                      height: r.adaptive(
+                          phone: 8, smallPhone: 6, tablet: 10, desktop: 12)),
                   Text(
                     '${_fmtFcfa(controller.availableBalance.value)} FCFA',
                     style: AppTextStyles.h3(r).copyWith(
@@ -162,7 +167,9 @@ class _BalanceCard extends StatelessWidget {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  SizedBox(height: r.adaptive(phone: 4, smallPhone: 3, tablet: 5, desktop: 6)),
+                  SizedBox(
+                      height: r.adaptive(
+                          phone: 4, smallPhone: 3, tablet: 5, desktop: 6)),
                   Text(
                     controller.availableBalance.value > 0
                         ? 'Disponible immédiatement'
@@ -170,31 +177,23 @@ class _BalanceCard extends StatelessWidget {
                     style: AppTextStyles.labelSmall(r)
                         .copyWith(color: Colors.white.withValues(alpha: 0.75)),
                   ),
-                  SizedBox(height: r.adaptive(phone: 16, smallPhone: 12, tablet: 18, desktop: 20)),
-                  Divider(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    height: 1,
-                  ),
-                  SizedBox(height: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
+                  SizedBox(
+                      height: r.adaptive(
+                          phone: 16, smallPhone: 12, tablet: 18, desktop: 20)),
+                  Divider(color: Colors.white.withValues(alpha: 0.2), height: 1),
+                  SizedBox(
+                      height: r.adaptive(
+                          phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
                   Row(
                     children: [
-                      _WalletStat(
-                        r: r,
-                        label: 'En attente',
-                        value: controller.pendingAmount.value,
-                      ),
+                      _WalletStat(r: r, label: 'En attente',
+                          value: controller.pendingAmount.value),
                       _WalletStatDivider(),
-                      _WalletStat(
-                        r: r,
-                        label: 'Total gagné',
-                        value: controller.totalRevenue.value,
-                      ),
+                      _WalletStat(r: r, label: 'Total gagné',
+                          value: controller.totalRevenue.value),
                       _WalletStatDivider(),
-                      _WalletStat(
-                        r: r,
-                        label: 'Retiré',
-                        value: controller.totalWithdrawn.value,
-                      ),
+                      _WalletStat(r: r, label: 'Retiré',
+                          value: controller.totalWithdrawn.value),
                     ],
                   ),
                 ],
@@ -216,13 +215,16 @@ class _AmountSection extends StatelessWidget {
       children: [
         Text(
           'Montant à retirer',
-          style: AppTextStyles.homeCardTitle(r).copyWith(color: AppColors.textPrimary),
+          style: AppTextStyles.homeCardTitle(r)
+              .copyWith(color: AppColors.textPrimary),
         ),
-        SizedBox(height: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
+        SizedBox(
+            height: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
         Container(
           decoration: BoxDecoration(
             color: AppColors.white,
-            borderRadius: BorderRadius.circular(r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+            borderRadius: BorderRadius.circular(
+                r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
             border: Border.all(color: AppColors.border),
           ),
           child: Row(
@@ -238,20 +240,23 @@ class _AmountSection extends StatelessWidget {
                   ),
                   decoration: InputDecoration(
                     hintText: '0',
-                    hintStyle: AppTextStyles.bodyMedium(r).copyWith(
-                      color: AppColors.textGhost,
-                    ),
+                    hintStyle: AppTextStyles.bodyMedium(r)
+                        .copyWith(color: AppColors.textGhost),
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.symmetric(
-                      horizontal: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18),
-                      vertical: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18),
+                      horizontal: r.adaptive(
+                          phone: 14, smallPhone: 12, tablet: 16, desktop: 18),
+                      vertical: r.adaptive(
+                          phone: 14, smallPhone: 12, tablet: 16, desktop: 18),
                     ),
                   ),
                   onChanged: (_) => controller.errorMessage.value = '',
                 ),
               ),
               Padding(
-                padding: EdgeInsets.only(right: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
+                padding: EdgeInsets.only(
+                    right: r.adaptive(
+                        phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
                 child: Text(
                   'FCFA',
                   style: AppTextStyles.bodySmall(r).copyWith(
@@ -266,32 +271,43 @@ class _AmountSection extends StatelessWidget {
         Obx(() {
           if (controller.errorMessage.value.isEmpty) return const SizedBox.shrink();
           return Padding(
-            padding: EdgeInsets.only(top: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8)),
+            padding: EdgeInsets.only(
+                top: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8)),
             child: Text(
               controller.errorMessage.value,
-              style: AppTextStyles.labelSmall(r).copyWith(color: const Color(0xFFE53935)),
+              style: AppTextStyles.labelSmall(r)
+                  .copyWith(color: const Color(0xFFE53935)),
             ),
           );
         }),
-        SizedBox(height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+        SizedBox(
+            height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
         Row(
           children: [
             ...controller.quickAmounts.map((amount) => Padding(
-                  padding: EdgeInsets.only(right: r.adaptive(phone: 8, smallPhone: 6, tablet: 10, desktop: 12)),
+                  padding: EdgeInsets.only(
+                      right: r.adaptive(
+                          phone: 8, smallPhone: 6, tablet: 10, desktop: 12)),
                   child: GestureDetector(
                     onTap: () => controller.setQuickAmount(amount),
                     child: Container(
                       padding: EdgeInsets.symmetric(
-                        horizontal: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16),
-                        vertical: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8),
+                        horizontal: r.adaptive(
+                            phone: 12, smallPhone: 10, tablet: 14, desktop: 16),
+                        vertical: r.adaptive(
+                            phone: 6, smallPhone: 5, tablet: 7, desktop: 8),
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.surfaceAccent,
-                        borderRadius: BorderRadius.circular(r.adaptive(phone: 20, smallPhone: 18, tablet: 24, desktop: 28)),
-                        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                        borderRadius: BorderRadius.circular(r.adaptive(
+                            phone: 20, smallPhone: 18, tablet: 24, desktop: 28)),
+                        border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.3)),
                       ),
                       child: Text(
-                        amount >= 1000 ? '${(amount / 1000).toStringAsFixed(0)}K' : amount.toStringAsFixed(0),
+                        amount >= 1000
+                            ? '${(amount / 1000).toStringAsFixed(0)}K'
+                            : amount.toStringAsFixed(0),
                         style: AppTextStyles.labelSmall(r).copyWith(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w600,
@@ -304,12 +320,15 @@ class _AmountSection extends StatelessWidget {
               onTap: controller.setAllAmount,
               child: Container(
                 padding: EdgeInsets.symmetric(
-                  horizontal: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16),
-                  vertical: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8),
+                  horizontal:
+                      r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16),
+                  vertical:
+                      r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8),
                 ),
                 decoration: BoxDecoration(
                   color: AppColors.surfaceAccentStrong,
-                  borderRadius: BorderRadius.circular(r.adaptive(phone: 20, smallPhone: 18, tablet: 24, desktop: 28)),
+                  borderRadius: BorderRadius.circular(r.adaptive(
+                      phone: 20, smallPhone: 18, tablet: 24, desktop: 28)),
                 ),
                 child: Text(
                   'Tout',
@@ -339,20 +358,24 @@ class _MethodsSection extends StatelessWidget {
       children: [
         Text(
           'Méthode de retrait',
-          style: AppTextStyles.homeCardTitle(r).copyWith(color: AppColors.textPrimary),
+          style: AppTextStyles.homeCardTitle(r)
+              .copyWith(color: AppColors.textPrimary),
         ),
-        SizedBox(height: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
+        SizedBox(
+            height: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
         Obx(() => Container(
               decoration: BoxDecoration(
                 color: AppColors.white,
-                borderRadius: BorderRadius.circular(r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
+                borderRadius: BorderRadius.circular(
+                    r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
                 border: Border.all(color: AppColors.border),
               ),
               child: Column(
                 children: controller.methods.asMap().entries.map((entry) {
                   final i = entry.key;
                   final method = entry.value;
-                  final isSelected = controller.selectedMethodId.value == method.id;
+                  final isSelected =
+                      controller.selectedMethodId.value == method.id;
                   final isLast = i == controller.methods.length - 1;
                   return _MethodRow(
                     r: r,
@@ -364,25 +387,6 @@ class _MethodsSection extends StatelessWidget {
                 }).toList(),
               ),
             )),
-        SizedBox(height: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
-        GestureDetector(
-          onTap: controller.onAddMethod,
-          child: Row(
-            children: [
-              Icon(Icons.add_circle_outline_rounded,
-                  size: r.adaptive(phone: 18, smallPhone: 16, tablet: 20, desktop: 22),
-                  color: AppColors.primary),
-              SizedBox(width: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8)),
-              Text(
-                'Ajouter une méthode',
-                style: AppTextStyles.bodySmall(r).copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
       ],
     );
   }
@@ -408,8 +412,10 @@ class _MethodRow extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: EdgeInsets.symmetric(
-          horizontal: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18),
-          vertical: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16),
+          horizontal:
+              r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18),
+          vertical:
+              r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16),
         ),
         decoration: BoxDecoration(
           border: isLast
@@ -420,32 +426,41 @@ class _MethodRow extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              width: r.adaptive(phone: 40, smallPhone: 36, tablet: 44, desktop: 48),
-              height: r.adaptive(phone: 40, smallPhone: 36, tablet: 44, desktop: 48),
+              width:
+                  r.adaptive(phone: 40, smallPhone: 36, tablet: 44, desktop: 48),
+              height:
+                  r.adaptive(phone: 40, smallPhone: 36, tablet: 44, desktop: 48),
               decoration: BoxDecoration(
                 color: method.iconBackground,
-                borderRadius: BorderRadius.circular(r.adaptive(phone: 10, smallPhone: 9, tablet: 12, desktop: 14)),
+                borderRadius: BorderRadius.circular(
+                    r.adaptive(phone: 10, smallPhone: 9, tablet: 12, desktop: 14)),
               ),
               child: Icon(method.icon,
-                  size: r.adaptive(phone: 20, smallPhone: 18, tablet: 22, desktop: 24),
+                  size: r.adaptive(
+                      phone: 20, smallPhone: 18, tablet: 22, desktop: 24),
                   color: AppColors.textPrimary),
             ),
-            SizedBox(width: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+            SizedBox(
+                width: r.adaptive(
+                    phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(method.title,
                       style: AppTextStyles.bodySmall(r).copyWith(
-                          color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w600)),
                   Text(method.subtitle,
-                      style: AppTextStyles.labelSmall(r).copyWith(color: AppColors.textMuted)),
+                      style: AppTextStyles.labelSmall(r)
+                          .copyWith(color: AppColors.textMuted)),
                 ],
               ),
             ),
             Container(
               width: r.adaptive(phone: 20, smallPhone: 18, tablet: 22, desktop: 24),
-              height: r.adaptive(phone: 20, smallPhone: 18, tablet: 22, desktop: 24),
+              height:
+                  r.adaptive(phone: 20, smallPhone: 18, tablet: 22, desktop: 24),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
@@ -456,7 +471,8 @@ class _MethodRow extends StatelessWidget {
               ),
               child: isSelected
                   ? Icon(Icons.check_rounded,
-                      size: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16),
+                      size: r.adaptive(
+                          phone: 12, smallPhone: 10, tablet: 14, desktop: 16),
                       color: Colors.white)
                   : null,
             ),
@@ -467,53 +483,73 @@ class _MethodRow extends StatelessWidget {
   }
 }
 
-class _DelayInfo extends StatelessWidget {
-  const _DelayInfo({required this.r, required this.controller});
+// ── Formatters ────────────────────────────────────────────────────────────────
+
+/// Format Bénin : +229 01 XX XX XX XX
+/// Le préfixe "+229 01 " est fixe ; l'utilisateur saisit uniquement les 8 chiffres restants.
+class _BeninPhoneFormatter extends TextInputFormatter {
+  static const _prefix = '+229 01 ';
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    String digits = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
+    // Retire le préfixe numérique fixe (22901 = 5 chiffres)
+    if (digits.startsWith('22901')) {
+      digits = digits.substring(5);
+    } else if (digits.startsWith('229')) {
+      digits = digits.substring(3);
+      if (digits.startsWith('01')) digits = digits.substring(2);
+    }
+    // Limite aux 8 chiffres variables
+    if (digits.length > 8) digits = digits.substring(0, 8);
+
+    // Construit : +229 01 XX XX XX XX
+    final buf = StringBuffer(_prefix);
+    for (int i = 0; i < digits.length; i++) {
+      if (i > 0 && i % 2 == 0) buf.write(' ');
+      buf.write(digits[i]);
+    }
+    final formatted = buf.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
+/// Convertit en majuscules (pour le numéro de compte IBAN)
+class _UpperCaseFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) =>
+      newValue.copyWith(text: newValue.text.toUpperCase());
+}
+
+// ── Section dynamique : téléphone ou champs bancaires ────────────────────────
+
+class _PaymentDetailsSection extends StatelessWidget {
+  const _PaymentDetailsSection({required this.r, required this.controller});
   final AppResponsive r;
   final WithdrawController controller;
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() => Container(
-          padding: EdgeInsets.all(r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceAccent,
-            borderRadius: BorderRadius.circular(r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.info_outline_rounded,
-                  size: r.adaptive(phone: 18, smallPhone: 16, tablet: 20, desktop: 22),
-                  color: AppColors.primary),
-              SizedBox(width: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      controller.delayLabel,
-                      style: AppTextStyles.bodySmall(r).copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Text(
-                      'Frais de transfert : 0 FCFA',
-                      style: AppTextStyles.labelSmall(r).copyWith(color: AppColors.textMuted),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ));
+    return Obx(() {
+      if (controller.isBank) {
+        return _BankFields(r: r, controller: controller);
+      }
+      return _PhoneField(r: r, controller: controller);
+    });
   }
 }
 
-// ── Phone section ─────────────────────────────────────────────────────────────
-
-class _PhoneSection extends StatelessWidget {
-  const _PhoneSection({required this.r, required this.controller});
+class _PhoneField extends StatelessWidget {
+  const _PhoneField({required this.r, required this.controller});
   final AppResponsive r;
   final WithdrawController controller;
 
@@ -524,9 +560,11 @@ class _PhoneSection extends StatelessWidget {
       children: [
         Text(
           'Numéro de réception',
-          style: AppTextStyles.homeCardTitle(r).copyWith(color: AppColors.textPrimary),
+          style: AppTextStyles.homeCardTitle(r)
+              .copyWith(color: AppColors.textPrimary),
         ),
-        SizedBox(height: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
+        SizedBox(
+            height: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
         Container(
           decoration: BoxDecoration(
             color: AppColors.white,
@@ -538,11 +576,13 @@ class _PhoneSection extends StatelessWidget {
             children: [
               Padding(
                 padding: EdgeInsets.only(
-                  left: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18),
+                  left: r.adaptive(
+                      phone: 14, smallPhone: 12, tablet: 16, desktop: 18),
                 ),
                 child: Icon(
                   Icons.phone_android_rounded,
-                  size: r.adaptive(phone: 18, smallPhone: 16, tablet: 20, desktop: 22),
+                  size: r.adaptive(
+                      phone: 18, smallPhone: 16, tablet: 20, desktop: 22),
                   color: AppColors.textMuted,
                 ),
               ),
@@ -550,19 +590,21 @@ class _PhoneSection extends StatelessWidget {
                 child: TextField(
                   controller: controller.phoneController,
                   keyboardType: TextInputType.phone,
+                  inputFormatters: [_BeninPhoneFormatter()],
                   style: AppTextStyles.bodyMedium(r).copyWith(
                     color: AppColors.textPrimary,
                     fontWeight: FontWeight.w500,
                   ),
                   decoration: InputDecoration(
-                    hintText: '+229 ·· ·· ·· ··',
-                    hintStyle: AppTextStyles.bodyMedium(r).copyWith(
-                      color: AppColors.textGhost,
-                    ),
+                    hintText: '59 25 85 88',
+                    hintStyle: AppTextStyles.bodyMedium(r)
+                        .copyWith(color: AppColors.textGhost),
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.symmetric(
-                      horizontal: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14),
-                      vertical: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18),
+                      horizontal: r.adaptive(
+                          phone: 10, smallPhone: 8, tablet: 12, desktop: 14),
+                      vertical: r.adaptive(
+                          phone: 14, smallPhone: 12, tablet: 16, desktop: 18),
                     ),
                   ),
                   onChanged: (_) => controller.phoneErrorMessage.value = '',
@@ -572,7 +614,9 @@ class _PhoneSection extends StatelessWidget {
           ),
         ),
         Obx(() {
-          if (controller.phoneErrorMessage.value.isEmpty) return const SizedBox.shrink();
+          if (controller.phoneErrorMessage.value.isEmpty) {
+            return const SizedBox.shrink();
+          }
           return Padding(
             padding: EdgeInsets.only(
                 top: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8)),
@@ -588,10 +632,218 @@ class _PhoneSection extends StatelessWidget {
   }
 }
 
+class _BankFields extends StatelessWidget {
+  const _BankFields({required this.r, required this.controller});
+  final AppResponsive r;
+  final WithdrawController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Informations bancaires',
+          style: AppTextStyles.homeCardTitle(r)
+              .copyWith(color: AppColors.textPrimary),
+        ),
+        SizedBox(
+            height: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
+        // Nom de la banque — texte libre
+        _BankTextField(
+          r: r,
+          controller: controller.bankNameController,
+          hint: 'Ex : Ecobank, BOA, UBA, Coris Bank…',
+          icon: Icons.account_balance_outlined,
+          errorObs: controller.bankNameError,
+          textCapitalization: TextCapitalization.words,
+          onChanged: (_) => controller.bankNameError.value = '',
+        ),
+        SizedBox(
+            height: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
+        // Numéro de compte — IBAN (BJ…) ou numéro local, majuscules, 27 chars max pour IBAN
+        _BankTextField(
+          r: r,
+          controller: controller.accountNumberController,
+          hint: 'BJ0610100400060000001278391',
+          icon: Icons.credit_card_rounded,
+          errorObs: controller.accountNumberError,
+          keyboardType: TextInputType.visiblePassword,
+          maxLength: 34, // IBAN max international
+          formatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
+            _UpperCaseFormatter(),
+          ],
+          onChanged: (_) => controller.accountNumberError.value = '',
+        ),
+        SizedBox(
+            height: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
+        // Titulaire — texte libre
+        _BankTextField(
+          r: r,
+          controller: controller.accountHolderController,
+          hint: 'Nom complet du titulaire',
+          icon: Icons.person_outline_rounded,
+          errorObs: controller.accountHolderError,
+          textCapitalization: TextCapitalization.words,
+          onChanged: (_) => controller.accountHolderError.value = '',
+        ),
+      ],
+    );
+  }
+}
+
+class _BankTextField extends StatelessWidget {
+  const _BankTextField({
+    required this.r,
+    required this.controller,
+    required this.hint,
+    required this.icon,
+    required this.errorObs,
+    required this.onChanged,
+    this.formatters = const [],
+    this.keyboardType = TextInputType.text,
+    this.textCapitalization = TextCapitalization.none,
+    this.maxLength,
+  });
+  final AppResponsive r;
+  final TextEditingController controller;
+  final String hint;
+  final IconData icon;
+  final RxString errorObs;
+  final ValueChanged<String> onChanged;
+  final List<TextInputFormatter> formatters;
+  final TextInputType keyboardType;
+  final TextCapitalization textCapitalization;
+  final int? maxLength;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(
+                r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            children: [
+              Padding(
+                padding: EdgeInsets.only(
+                  left: r.adaptive(
+                      phone: 14, smallPhone: 12, tablet: 16, desktop: 18),
+                ),
+                child: Icon(
+                  icon,
+                  size: r.adaptive(
+                      phone: 18, smallPhone: 16, tablet: 20, desktop: 22),
+                  color: AppColors.textMuted,
+                ),
+              ),
+              Expanded(
+                child: TextField(
+                  controller: controller,
+                  keyboardType: keyboardType,
+                  textCapitalization: textCapitalization,
+                  inputFormatters: formatters,
+                  maxLength: maxLength,
+                  style: AppTextStyles.bodyMedium(r).copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: hint,
+                    hintStyle: AppTextStyles.bodyMedium(r)
+                        .copyWith(color: AppColors.textGhost),
+                    border: InputBorder.none,
+                    counterText: '', // masque le compteur de caractères
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: r.adaptive(
+                          phone: 10, smallPhone: 8, tablet: 12, desktop: 14),
+                      vertical: r.adaptive(
+                          phone: 14, smallPhone: 12, tablet: 16, desktop: 18),
+                    ),
+                  ),
+                  onChanged: onChanged,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Obx(() {
+          if (errorObs.value.isEmpty) return const SizedBox.shrink();
+          return Padding(
+            padding: EdgeInsets.only(
+                top: r.adaptive(phone: 5, smallPhone: 4, tablet: 6, desktop: 7)),
+            child: Text(
+              errorObs.value,
+              style: AppTextStyles.labelSmall(r)
+                  .copyWith(color: const Color(0xFFE53935)),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+}
+
+class _DelayInfo extends StatelessWidget {
+  const _DelayInfo({required this.r, required this.controller});
+  final AppResponsive r;
+  final WithdrawController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() => Container(
+          padding: EdgeInsets.all(
+              r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceAccent,
+            borderRadius: BorderRadius.circular(
+                r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.info_outline_rounded,
+                  size: r.adaptive(
+                      phone: 18, smallPhone: 16, tablet: 20, desktop: 22),
+                  color: AppColors.primary),
+              SizedBox(
+                  width: r.adaptive(
+                      phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      controller.delayLabel,
+                      style: AppTextStyles.bodySmall(r).copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      'Frais de transfert : 0 FCFA',
+                      style: AppTextStyles.labelSmall(r)
+                          .copyWith(color: AppColors.textMuted),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ));
+  }
+}
+
 // ── Wallet stat widgets ───────────────────────────────────────────────────────
 
 class _WalletStat extends StatelessWidget {
-  const _WalletStat({required this.r, required this.label, required this.value});
+  const _WalletStat(
+      {required this.r, required this.label, required this.value});
   final AppResponsive r;
   final String label;
   final double value;
@@ -628,8 +880,7 @@ class _WalletStatDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 1,
-      height: 28,
+      width: 1, height: 28,
       color: Colors.white.withValues(alpha: 0.2),
       margin: const EdgeInsets.symmetric(horizontal: 8),
     );
@@ -640,4 +891,5 @@ class _WalletStatDivider extends StatelessWidget {
 
 String _fmtFcfa(double v) => v
     .toStringAsFixed(0)
-    .replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]} ');
+    .replaceAllMapped(
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]} ');

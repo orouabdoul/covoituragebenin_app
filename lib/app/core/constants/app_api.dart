@@ -146,5 +146,7 @@ class AppApi {
 
   // Avis — conducteur
   static const String driverReviews = '/driver/reviews';
-  static String driverReviewReply(String uuid) => '/driver/reviews/$uuid/reply';
+  static String driverReviewReply(String uuid)  => '/driver/reviews/$uuid/reply';
+  static String driverReviewReact(String uuid)  => '/driver/reviews/$uuid/react';
+  static String driverTripReviews(String uuid)  => '/driver/trips/$uuid/reviews';
 }

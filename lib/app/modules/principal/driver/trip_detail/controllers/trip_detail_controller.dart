@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:covoiturage_benin_app/app/core/services/driver/trip_detail/trip_detail_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/trips/trips_service.dart';
@@ -306,8 +307,18 @@ class TripDetailController extends GetxController {
     }
   }
 
-  void onContactPassenger(TripPassengerModel passenger) {
-    UIHelper().showSnackBar('MINIZON', 'Appel vers ${passenger.name}…', 1);
+  Future<void> onContactPassenger(TripPassengerModel passenger) async {
+    final phone = passenger.phone;
+    if (phone == null || phone.isEmpty) {
+      UIHelper().showSnackBar('MINIZON', 'Numéro de téléphone non disponible.', 2);
+      return;
+    }
+    final uri = Uri(scheme: 'tel', path: phone);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      UIHelper().showSnackBar('MINIZON', 'Impossible d\'ouvrir l\'application téléphone.', 2);
+    }
   }
 }
 

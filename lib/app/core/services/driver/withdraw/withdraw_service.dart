@@ -6,6 +6,11 @@ abstract class WithdrawService {
   Future<ApiResult<Map<String, dynamic>>> withdraw({
     required int amount,
     required String provider,
-    required String phoneNumber,
+    // MoMo fields
+    String? phoneNumber,
+    // Bank fields
+    String? bankName,
+    String? accountNumber,
+    String? accountHolderName,
   });
 }
