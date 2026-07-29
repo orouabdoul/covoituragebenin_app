@@ -83,10 +83,12 @@ class ConfirmationReservationController extends GetxController {
   final RxBool isLoadingContext = false.obs;
 
   final RxInt commissionRate = 10.obs;
-  final RxInt maxPerBooking = 4.obs;
+  final RxInt maxPerBooking = 0.obs;       // 0 = pas de cap API, on utilise seatsAvailable
+  final RxInt availableSeatsFromCtx = 0.obs; // places réelles (source authoritative post-contexte)
   int _pricePerSeat = 0;
   String _bookingMode = 'approval';
   String _bookingUuid = '';
+  bool _priceConfirmed = false;
 
   Timer? _otpCountdownTimer;
 
@@ -301,6 +303,15 @@ class ConfirmationReservationController extends GetxController {
     maxPerBooking.value = ctx.trip.maxPerBooking;
     _pricePerSeat = ctx.trip.pricePerSeat;
     _bookingMode = ctx.trip.bookingMode;
+    // Source authoritative pour les places disponibles
+    if (ctx.trip.availableSeats > 0) {
+      availableSeatsFromCtx.value = ctx.trip.availableSeats;
+    }
+    // Clamp la sélection courante au nouveau max
+    final newMax = maxSeats;
+    if (newMax > 0 && reservedSeats.value > newMax) {
+      reservedSeats.value = newMax;
+    }
     if (ctx.userPhone.isNotEmpty) {
       paymentContactController.text = ctx.userPhone;
     }
@@ -352,11 +363,20 @@ class ConfirmationReservationController extends GetxController {
   String get cardCodeLabel => AppStrings.reservationCardCodeLabel;
   String get cardCodeHint => AppStrings.reservationCardCodeHint;
 
+  // Nombre de places réellement disponibles (contexte API prioritaire sur recherche)
+  int get effectiveAvailable =>
+      availableSeatsFromCtx.value > 0
+          ? availableSeatsFromCtx.value
+          : (ride.value?.seatsAvailable ?? 0);
+
+  // Max sélectionnable = min(places dispo, cap conducteur) ; 0 dans l'un = ignoré
   int get maxSeats {
-    final available = ride.value?.seatsAvailable ?? 0;
-    final cap = maxPerBooking.value;
-    if (available > 0) return available < cap ? available : cap;
-    return cap;
+    final available = effectiveAvailable;
+    final cap = maxPerBooking.value; // 0 = pas de cap côté conducteur
+    if (available > 0 && cap > 0) return available < cap ? available : cap;
+    if (available > 0) return available;
+    if (cap > 0) return cap;
+    return 0; // indéterminé (contexte pas encore chargé)
   }
 
   void incrementSeats() {
@@ -462,18 +482,32 @@ class ConfirmationReservationController extends GetxController {
   }
 
   void _showPriceSheet(CreateBookingResult booking) {
+    _priceConfirmed = false;
     Get.bottomSheet(
       _PriceConfirmSheet(
         booking: booking,
         seats: reservedSeats.value,
         onConfirm: _proceedToNextStep,
+        onCancel: _cancelAndDismiss,
       ),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-    );
+    ).then((_) {
+      // Déclenché sur fermeture par swipe (ni Annuler ni Continuer pressés)
+      if (!_priceConfirmed && _bookingUuid.isNotEmpty) _cancelAndDismiss();
+    });
+  }
+
+  Future<void> _cancelAndDismiss() async {
+    Get.back();
+    if (_bookingUuid.isEmpty) return;
+    final uuid = _bookingUuid;
+    _bookingUuid = ''; // reset immédiat pour permettre un nouvel essai
+    await _service.cancelBooking(uuid);
   }
 
   void _proceedToNextStep() {
+    _priceConfirmed = true; // empêche l'annulation automatique via .then()
     Get.back();
     if (_bookingUuid.isEmpty) return;
 
@@ -583,11 +617,13 @@ class _PriceConfirmSheet extends StatelessWidget {
     required this.booking,
     required this.seats,
     required this.onConfirm,
+    required this.onCancel,
   });
 
   final CreateBookingResult booking;
   final int seats;
   final VoidCallback onConfirm;
+  final VoidCallback onCancel;
 
   String _fmt(int v) => v
       .toString()
@@ -709,7 +745,7 @@ class _PriceConfirmSheet extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           TextButton(
-            onPressed: Get.back,
+            onPressed: onCancel,
             child: Text(
               'Annuler',
               style: TextStyle(

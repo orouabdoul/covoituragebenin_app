@@ -39,4 +39,20 @@ class AppColors {
 	static const Color blueLight = surfaceInfo;
 	static const Color successLight = surfaceSuccess;
 	static const Color purpleLight = surfaceWarning;
+
+	// ── Danger (rouge) ─────────────────────────────────────────────────────────
+	static const Color danger       = Color(0xFFE53935);
+	static const Color dangerLight  = Color(0x1AE53935);
+	static const Color dangerSurface = Color(0xFFFFF1F1);
+	static const Color dangerBorder  = Color(0xFFFFCDD2);
+
+	// ── Orange ─────────────────────────────────────────────────────────────────
+	static const Color orange       = Color(0xFFFB923C);
+
+	// ── Accent (ambre/jaune) avec opacité pré-calculée ────────────────────────
+	static const Color accentLight  = Color(0x1AF4B400); // accent à 10 %
+	static const Color accentMedium = Color(0x33F4B400); // accent à 20 %
+
+	// ── Completed (bleu) ──────────────────────────────────────────────────────
+	static const Color completedLight = Color(0x193B82F6); // blue à 10 %
 }

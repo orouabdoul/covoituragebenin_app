@@ -66,16 +66,7 @@ class ProfilView extends StatelessWidget {
 														children: [
 															_SummaryCard(responsive: responsive, controller: controller),
 															SizedBox(height: responsive.h(24)),
-															GestureDetector(
-																onTap: controller.openMyReviews,
-																child: _StatCard(
-																	responsive: responsive,
-																	value: controller.ratingMetric.value,
-																	label: controller.ratingMetric.label,
-																	leadingIcon: Icons.star_rounded,
-																	trailingStars: true,
-																),
-															),
+															_StatsOverviewRow(responsive: responsive, controller: controller),
 															SizedBox(height: responsive.h(24)),
 															GestureDetector(
 																onTap: controller.openTrustHub,
@@ -366,6 +357,51 @@ class _SummaryCard extends StatelessWidget {
 
 
 
+
+String _fmtFcfa(int v) {
+	if (v >= 1000000) {
+		return '${(v / 1000000).toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), '')}M';
+	}
+	if (v >= 1000) {
+		return '${(v / 1000).toStringAsFixed(v % 1000 == 0 ? 0 : 1)}k';
+	}
+	return '$v';
+}
+
+class _StatsOverviewRow extends StatelessWidget {
+	const _StatsOverviewRow({required this.responsive, required this.controller});
+
+	final AppResponsive responsive;
+	final ProfilController controller;
+
+	@override
+	Widget build(BuildContext context) {
+		final loaded = controller.statsLoaded.value;
+		return Row(
+			children: [
+				Expanded(
+					child: _StatCard(
+						responsive: responsive,
+						value: loaded ? '${controller.statsBookingsCompleted.value}' : '—',
+						label: 'Trajets complétés',
+						leadingIcon: Icons.check_circle_outline_rounded,
+					),
+				),
+				SizedBox(width: responsive.w(16)),
+				Expanded(
+					child: _StatCard(
+						responsive: responsive,
+						value: loaded && controller.statsTotalSpendingFcfa.value > 0
+								? '${_fmtFcfa(controller.statsTotalSpendingFcfa.value)} F'
+								: '—',
+						label: 'Total dépensé',
+						leadingIcon: Icons.account_balance_wallet_outlined,
+					),
+				),
+			],
+		);
+	}
+}
 
 class _StatCard extends StatelessWidget {
 	const _StatCard({

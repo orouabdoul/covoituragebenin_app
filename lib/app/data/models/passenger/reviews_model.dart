@@ -27,7 +27,7 @@ class PassengerReviewData {
         route: (json['route'] as String?) ?? '',
         date: (json['date'] as String?) ?? '',
         rating: (json['rating'] as num?)?.toInt() ?? 0,
-        tags: (json['tags'] as List?)?.map((t) => t as String).toList() ?? [],
+        tags: (json['tags'] as List?)?.map((t) => t.toString()).toList() ?? [],
         comment: json['comment'] as String?,
       );
 }
@@ -56,11 +56,10 @@ class PassengerReviewsDashboard {
       averageRating: (json['average_rating'] as num?)?.toDouble() ?? 0.0,
       formattedAverage: (json['formatted_average'] as String?) ?? '0',
       ratingDistribution: dist,
-      reviews: (json['reviews'] as List?)
-              ?.map((r) =>
-                  PassengerReviewData.fromJson(r as Map<String, dynamic>))
-              .toList() ??
-          [],
+      reviews: (json['reviews'] as List? ?? [])
+          .whereType<Map<String, dynamic>>()
+          .map((r) => PassengerReviewData.fromJson(r))
+          .toList(),
     );
   }
 }

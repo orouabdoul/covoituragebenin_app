@@ -42,7 +42,8 @@ class RefundContext {
         maxProofImages: (j['max_proof_images'] as num?)?.toInt() ?? 3,
         alreadyRefunded: j['already_refunded'] as bool? ?? false,
         reasons: ((j['reasons'] as List?) ?? [])
-            .map((r) => RefundReason.fromJson(r as Map<String, dynamic>))
+            .whereType<Map<String, dynamic>>()
+            .map((r) => RefundReason.fromJson(r))
             .toList(),
       );
 }

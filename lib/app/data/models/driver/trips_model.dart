@@ -58,6 +58,22 @@ class TripPrimaryActionData {
       );
 }
 
+class TripReviewsSummaryData {
+  const TripReviewsSummaryData({
+    required this.count,
+    required this.hasPendingReply,
+  });
+
+  final int count;
+  final bool hasPendingReply;
+
+  factory TripReviewsSummaryData.fromJson(Map<String, dynamic> j) =>
+      TripReviewsSummaryData(
+        count: (j['count'] as num?)?.toInt() ?? 0,
+        hasPendingReply: j['has_pending_reply'] as bool? ?? false,
+      );
+}
+
 class TripItemData {
   const TripItemData({
     required this.uuid,
@@ -79,6 +95,7 @@ class TripItemData {
     required this.canCancel,
     this.primaryAction,
     this.note,
+    this.reviewsSummary,
   });
 
   final String uuid;
@@ -100,6 +117,7 @@ class TripItemData {
   final bool canCancel;
   final TripPrimaryActionData? primaryAction;
   final String? note;
+  final TripReviewsSummaryData? reviewsSummary;
 
   factory TripItemData.fromJson(Map<String, dynamic> json) => TripItemData(
         uuid: (json['uuid'] as String?) ?? '',
@@ -128,6 +146,10 @@ class TripItemData {
                 json['primary_action'] as Map<String, dynamic>)
             : null,
         note: json['note'] as String?,
+        reviewsSummary: json['reviews_summary'] is Map
+            ? TripReviewsSummaryData.fromJson(
+                Map<String, dynamic>.from(json['reviews_summary'] as Map))
+            : null,
       );
 }
 

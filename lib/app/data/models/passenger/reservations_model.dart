@@ -19,12 +19,12 @@ class ConfirmationContextTripInfo {
 
   factory ConfirmationContextTripInfo.fromJson(Map<String, dynamic> j) =>
       ConfirmationContextTripInfo(
-        uuid: j['uuid'] as String? ?? '',
-        availableSeats: j['available_seats'] as int? ?? 0,
-        maxPerBooking: j['max_per_booking'] as int? ?? 1,
-        pricePerSeat: j['price_per_seat'] as int? ?? 0,
-        bookingMode: j['booking_mode'] as String? ?? 'approval',
-        distanceKm: j['distance_km'] as String? ?? '',
+        uuid: (j['uuid'] ?? '').toString(),
+        availableSeats: (j['available_seats'] as num?)?.toInt() ?? 0,
+        maxPerBooking: (j['max_per_booking'] as num?)?.toInt() ?? 0,
+        pricePerSeat: (j['price_per_seat'] as num?)?.toInt() ?? 0,
+        bookingMode: (j['booking_mode'] ?? 'approval').toString(),
+        distanceKm: (j['distance_km'] ?? '').toString(),
       );
 }
 
@@ -44,11 +44,11 @@ class ApiPaymentMethod {
   final int color;
 
   factory ApiPaymentMethod.fromJson(Map<String, dynamic> j) => ApiPaymentMethod(
-        provider: j['provider'] as String? ?? '',
-        title: j['title'] as String? ?? '',
-        description: j['description'] as String? ?? '',
-        iconName: j['icon'] as String? ?? 'phone_android',
-        color: j['color'] as int? ?? 0xFF00A86B,
+        provider: (j['provider'] ?? '').toString(),
+        title: (j['title'] ?? '').toString(),
+        description: (j['description'] ?? '').toString(),
+        iconName: (j['icon'] ?? 'phone_android').toString(),
+        color: (j['color'] as num?)?.toInt() ?? 0xFF00A86B,
       );
 }
 
@@ -67,11 +67,15 @@ class ConfirmationContextModel {
 
   factory ConfirmationContextModel.fromJson(Map<String, dynamic> j) =>
       ConfirmationContextModel(
-        trip: ConfirmationContextTripInfo.fromJson(j['trip'] as Map<String, dynamic>),
-        commissionRate: j['commission_rate'] as int? ?? 10,
-        userPhone: j['user_phone'] as String? ?? '',
-        paymentMethods: (j['payment_methods'] as List<dynamic>? ?? [])
-            .map((e) => ApiPaymentMethod.fromJson(e as Map<String, dynamic>))
+        trip: ConfirmationContextTripInfo.fromJson(
+            j['trip'] is Map<String, dynamic>
+                ? j['trip'] as Map<String, dynamic>
+                : const {}),
+        commissionRate: (j['commission_rate'] as num?)?.toInt() ?? 10,
+        userPhone: (j['user_phone'] ?? '').toString(),
+        paymentMethods: (j['payment_methods'] as List? ?? [])
+            .whereType<Map<String, dynamic>>()
+            .map((e) => ApiPaymentMethod.fromJson(e))
             .toList(),
       );
 }
@@ -91,14 +95,14 @@ class CreateBookingResult {
   final String bookingUuid;
   final String bookingMode; // 'approval' | 'instant'
   final int priceTotal;
-  final int calculatedPrice; // Prix pour le trajet exact du passager
+  final int calculatedPrice;
   final double passengerDistanceKm;
   final double tripDistanceKm;
 
   factory CreateBookingResult.fromJson(Map<String, dynamic> j) =>
       CreateBookingResult(
-        bookingUuid: j['booking_uuid'] as String? ?? '',
-        bookingMode: j['booking_mode'] as String? ?? 'approval',
+        bookingUuid: (j['booking_uuid'] ?? '').toString(),
+        bookingMode: (j['booking_mode'] ?? 'approval').toString(),
         priceTotal: (j['price_total'] as num?)?.toInt() ?? 0,
         calculatedPrice: (j['calculated_price'] as num?)?.toInt() ?? 0,
         passengerDistanceKm:
@@ -141,12 +145,12 @@ class LiveTrackingRideInfo {
 
   factory LiveTrackingRideInfo.fromJson(Map<String, dynamic> j) =>
       LiveTrackingRideInfo(
-        driverName: j['driver_name'] as String? ?? '',
-        driverInitials: j['driver_initials'] as String? ?? '',
-        rating: j['rating'] as String? ?? '',
-        vehicle: j['vehicle'] as String? ?? '',
-        vehiclePlate: j['vehicle_plate'] as String? ?? '',
-        driverPhone: j['driver_phone'] as String? ?? '',
+        driverName: (j['driver_name'] ?? '').toString(),
+        driverInitials: (j['driver_initials'] ?? '').toString(),
+        rating: (j['rating'] ?? '').toString(),
+        vehicle: (j['vehicle'] ?? '').toString(),
+        vehiclePlate: (j['vehicle_plate'] ?? '').toString(),
+        driverPhone: (j['driver_phone'] ?? '').toString(),
       );
 }
 
@@ -174,12 +178,16 @@ class LiveTrackingModel {
   factory LiveTrackingModel.fromJson(Map<String, dynamic> j) => LiveTrackingModel(
         lat: (j['lat'] as num?)?.toDouble() ?? 0,
         lng: (j['lng'] as num?)?.toDouble() ?? 0,
-        speedKmh: j['speed_kmh'] as int? ?? 0,
-        etaMinutes: j['eta_minutes'] as int? ?? 0,
-        distanceRemainingKm: (j['distance_remaining_km'] as num?)?.toDouble() ?? 0,
-        tripStatus: j['trip_status'] as String? ?? 'active',
+        speedKmh: (j['speed_kmh'] as num?)?.toInt() ?? 0,
+        etaMinutes: (j['eta_minutes'] as num?)?.toInt() ?? 0,
+        distanceRemainingKm:
+            (j['distance_remaining_km'] as num?)?.toDouble() ?? 0,
+        tripStatus: (j['trip_status'] ?? 'active').toString(),
         tripEnded: j['trip_ended'] as bool? ?? false,
-        ride: LiveTrackingRideInfo.fromJson(j['ride'] as Map<String, dynamic>),
+        ride: LiveTrackingRideInfo.fromJson(
+            j['ride'] is Map<String, dynamic>
+                ? j['ride'] as Map<String, dynamic>
+                : const {}),
       );
 }
 
@@ -210,17 +218,18 @@ class PaymentSuccessRide {
   final String destination;
   final String departureTime;
 
-  factory PaymentSuccessRide.fromJson(Map<String, dynamic> j) => PaymentSuccessRide(
-        uuid: j['uuid'] as String? ?? '',
-        driverName: j['driver_name'] as String? ?? '',
-        driverInitials: j['driver_initials'] as String? ?? '',
-        rating: j['rating'] as String? ?? '',
-        reviewCount: j['review_count'] as int? ?? 0,
-        vehicle: j['vehicle'] as String? ?? '',
-        vehiclePlate: j['vehicle_plate'] as String? ?? '',
-        origin: j['origin'] as String? ?? '',
-        destination: j['destination'] as String? ?? '',
-        departureTime: j['departure_time'] as String? ?? '',
+  factory PaymentSuccessRide.fromJson(Map<String, dynamic> j) =>
+      PaymentSuccessRide(
+        uuid: (j['uuid'] ?? '').toString(),
+        driverName: (j['driver_name'] ?? '').toString(),
+        driverInitials: (j['driver_initials'] ?? '').toString(),
+        rating: (j['rating'] ?? '').toString(),
+        reviewCount: (j['review_count'] as num?)?.toInt() ?? 0,
+        vehicle: (j['vehicle'] ?? '').toString(),
+        vehiclePlate: (j['vehicle_plate'] ?? '').toString(),
+        origin: (j['origin'] ?? '').toString(),
+        destination: (j['destination'] ?? '').toString(),
+        departureTime: (j['departure_time'] ?? '').toString(),
       );
 }
 
@@ -243,14 +252,18 @@ class PaymentSuccessModel {
   final int reservedSeats;
   final PaymentSuccessRide ride;
 
-  factory PaymentSuccessModel.fromJson(Map<String, dynamic> j) => PaymentSuccessModel(
-        transactionRef: j['transaction_ref'] as String? ?? '',
-        amountPaid: j['amount_paid'] as int? ?? 0,
-        formattedAmount: j['formatted_amount'] as String? ?? '',
-        driverPhone: j['driver_phone'] as String? ?? '',
-        conversationUuid: j['conversation_uuid'] as String? ?? '',
-        reservedSeats: j['reserved_seats'] as int? ?? 1,
-        ride: PaymentSuccessRide.fromJson(j['ride'] as Map<String, dynamic>),
+  factory PaymentSuccessModel.fromJson(Map<String, dynamic> j) =>
+      PaymentSuccessModel(
+        transactionRef: (j['transaction_ref'] ?? '').toString(),
+        amountPaid: (j['amount_paid'] as num?)?.toInt() ?? 0,
+        formattedAmount: (j['formatted_amount'] ?? '').toString(),
+        driverPhone: (j['driver_phone'] ?? '').toString(),
+        conversationUuid: (j['conversation_uuid'] ?? '').toString(),
+        reservedSeats: (j['reserved_seats'] as num?)?.toInt() ?? 1,
+        ride: PaymentSuccessRide.fromJson(
+            j['ride'] is Map<String, dynamic>
+                ? j['ride'] as Map<String, dynamic>
+                : const {}),
       );
 }
 
@@ -268,9 +281,9 @@ class ActiveTripBanner {
   final String arrivalCity;
 
   factory ActiveTripBanner.fromJson(Map<String, dynamic> j) => ActiveTripBanner(
-        uuid: j['uuid'] as String? ?? '',
-        departureCity: j['departure_city'] as String? ?? '',
-        arrivalCity: j['arrival_city'] as String? ?? '',
+        uuid: (j['uuid'] ?? '').toString(),
+        departureCity: (j['departure_city'] ?? '').toString(),
+        arrivalCity: (j['arrival_city'] ?? '').toString(),
       );
 }
 
@@ -287,9 +300,9 @@ class ReservationStatusTabApi {
 
   factory ReservationStatusTabApi.fromJson(Map<String, dynamic> j) =>
       ReservationStatusTabApi(
-        status: j['status'] as String? ?? '',
-        label: j['label'] as String? ?? '',
-        count: j['count'] as int? ?? 0,
+        status: (j['status'] ?? '').toString(),
+        label: (j['label'] ?? '').toString(),
+        count: (j['count'] as num?)?.toInt() ?? 0,
       );
 }
 
@@ -344,30 +357,31 @@ class ReservationApiItem {
   final String refundStatus;
   final String conversationUuid;
 
-  factory ReservationApiItem.fromJson(Map<String, dynamic> j) => ReservationApiItem(
-        uuid: j['uuid'] as String? ?? '',
-        status: j['status'] as String? ?? 'pending',
+  factory ReservationApiItem.fromJson(Map<String, dynamic> j) =>
+      ReservationApiItem(
+        uuid: (j['uuid'] ?? '').toString(),
+        status: (j['status'] ?? 'pending').toString(),
         isPaid: j['is_paid'] as bool? ?? false,
-        cancelReason: j['cancel_reason'] as String?,
-        timeAgo: j['time_ago'] as String? ?? '',
-        driverName: j['driver_name'] as String? ?? '',
-        driverInitials: j['driver_initials'] as String? ?? '',
+        cancelReason: j['cancel_reason']?.toString(),
+        timeAgo: (j['time_ago'] ?? '').toString(),
+        driverName: (j['driver_name'] ?? '').toString(),
+        driverInitials: (j['driver_initials'] ?? '').toString(),
         rating: (j['rating'] as num?)?.toDouble() ?? 0,
-        reviewCount: j['review_count'] as String? ?? '',
-        totalPrice: j['total_price'] as String? ?? '',
-        seatsCount: j['seats_count'] as int? ?? 1,
-        departureCity: j['departure_city'] as String? ?? '',
-        departureNote: j['departure_note'] as String? ?? '',
-        arrivalCity: j['arrival_city'] as String? ?? '',
-        arrivalNote: j['arrival_note'] as String? ?? '',
-        departureTime: j['departure_time'] as String? ?? '',
-        departureDate: j['departure_date'] as String? ?? '',
-        vehicle: j['vehicle'] as String? ?? '',
-        vehiclePlate: j['vehicle_plate'] as String? ?? '',
-        etaMinutes: j['eta_minutes'] as int?,
+        reviewCount: (j['review_count'] ?? '').toString(),
+        totalPrice: (j['total_price'] ?? '').toString(),
+        seatsCount: (j['seats_count'] as num?)?.toInt() ?? 1,
+        departureCity: (j['departure_city'] ?? '').toString(),
+        departureNote: (j['departure_note'] ?? '').toString(),
+        arrivalCity: (j['arrival_city'] ?? '').toString(),
+        arrivalNote: (j['arrival_note'] ?? '').toString(),
+        departureTime: (j['departure_time'] ?? '').toString(),
+        departureDate: (j['departure_date'] ?? '').toString(),
+        vehicle: (j['vehicle'] ?? '').toString(),
+        vehiclePlate: (j['vehicle_plate'] ?? '').toString(),
+        etaMinutes: (j['eta_minutes'] as num?)?.toInt(),
         hasRated: j['has_rated'] as bool? ?? false,
-        refundStatus: j['refund_status'] as String? ?? 'none',
-        conversationUuid: j['conversation_uuid'] as String? ?? '',
+        refundStatus: (j['refund_status'] ?? 'none').toString(),
+        conversationUuid: (j['conversation_uuid'] ?? '').toString(),
       );
 }
 
@@ -382,15 +396,18 @@ class ReservationsPageModel {
   final List<ReservationStatusTabApi> statusTabs;
   final List<ReservationApiItem> items;
 
-  factory ReservationsPageModel.fromJson(Map<String, dynamic> j) => ReservationsPageModel(
-        activeTrip: j['active_trip'] != null
+  factory ReservationsPageModel.fromJson(Map<String, dynamic> j) =>
+      ReservationsPageModel(
+        activeTrip: j['active_trip'] is Map<String, dynamic>
             ? ActiveTripBanner.fromJson(j['active_trip'] as Map<String, dynamic>)
             : null,
-        statusTabs: (j['status_tabs'] as List<dynamic>? ?? [])
-            .map((e) => ReservationStatusTabApi.fromJson(e as Map<String, dynamic>))
+        statusTabs: (j['status_tabs'] as List? ?? [])
+            .whereType<Map<String, dynamic>>()
+            .map((e) => ReservationStatusTabApi.fromJson(e))
             .toList(),
-        items: (j['items'] as List<dynamic>? ?? [])
-            .map((e) => ReservationApiItem.fromJson(e as Map<String, dynamic>))
+        items: (j['items'] as List? ?? [])
+            .whereType<Map<String, dynamic>>()
+            .map((e) => ReservationApiItem.fromJson(e))
             .toList(),
       );
 }
@@ -427,18 +444,18 @@ class InvoiceModel {
   final String bookingRef;
 
   factory InvoiceModel.fromJson(Map<String, dynamic> j) => InvoiceModel(
-        invoiceRef: j['invoice_ref'] as String? ?? '',
-        issuedAt: j['issued_at'] as String? ?? '',
-        passengerName: j['passenger_name'] as String? ?? '',
-        driverName: j['driver_name'] as String? ?? '',
-        route: j['route'] as String? ?? '',
-        departureDate: j['departure_date'] as String? ?? '',
-        seats: j['seats'] as int? ?? 1,
-        pricePerSeat: j['price_per_seat'] as String? ?? '',
-        totalAmount: j['total_amount'] as String? ?? '',
-        paymentMethod: j['payment_method'] as String? ?? '',
-        transactionRef: j['transaction_ref'] as String? ?? '',
-        bookingRef: j['booking_ref'] as String? ?? '',
+        invoiceRef: (j['invoice_ref'] ?? '').toString(),
+        issuedAt: (j['issued_at'] ?? '').toString(),
+        passengerName: (j['passenger_name'] ?? '').toString(),
+        driverName: (j['driver_name'] ?? '').toString(),
+        route: (j['route'] ?? '').toString(),
+        departureDate: (j['departure_date'] ?? '').toString(),
+        seats: (j['seats'] as num?)?.toInt() ?? 1,
+        pricePerSeat: (j['price_per_seat'] ?? '').toString(),
+        totalAmount: (j['total_amount'] ?? '').toString(),
+        paymentMethod: (j['payment_method'] ?? '').toString(),
+        transactionRef: (j['transaction_ref'] ?? '').toString(),
+        bookingRef: (j['booking_ref'] ?? '').toString(),
       );
 }
 
@@ -459,12 +476,13 @@ class TripConfirmationRide {
   final String driverName;
   final String driverInitials;
 
-  factory TripConfirmationRide.fromJson(Map<String, dynamic> j) => TripConfirmationRide(
-        origin: j['origin'] as String? ?? '',
-        destination: j['destination'] as String? ?? '',
-        duration: j['duration'] as String? ?? '',
-        driverName: j['driver_name'] as String? ?? '',
-        driverInitials: j['driver_initials'] as String? ?? '',
+  factory TripConfirmationRide.fromJson(Map<String, dynamic> j) =>
+      TripConfirmationRide(
+        origin: (j['origin'] ?? '').toString(),
+        destination: (j['destination'] ?? '').toString(),
+        duration: (j['duration'] ?? '').toString(),
+        driverName: (j['driver_name'] ?? '').toString(),
+        driverInitials: (j['driver_initials'] ?? '').toString(),
       );
 }
 
@@ -481,9 +499,12 @@ class TripConfirmationContextModel {
 
   factory TripConfirmationContextModel.fromJson(Map<String, dynamic> j) =>
       TripConfirmationContextModel(
-        ride: TripConfirmationRide.fromJson(j['ride'] as Map<String, dynamic>),
+        ride: TripConfirmationRide.fromJson(
+            j['ride'] is Map<String, dynamic>
+                ? j['ride'] as Map<String, dynamic>
+                : const {}),
         alreadyReviewed: j['already_reviewed'] as bool? ?? false,
-        passengerConfirmedAt: j['passenger_confirmed_at'] as String?,
+        passengerConfirmedAt: j['passenger_confirmed_at']?.toString(),
       );
 }
 
@@ -506,13 +527,14 @@ class ApprovalStatusRide {
   final String rating;
   final String price;
 
-  factory ApprovalStatusRide.fromJson(Map<String, dynamic> j) => ApprovalStatusRide(
-        origin: j['origin'] as String? ?? '',
-        destination: j['destination'] as String? ?? '',
-        departureTime: j['departure_time'] as String? ?? '',
-        driverName: j['driver_name'] as String? ?? '',
-        rating: j['rating'] as String? ?? '',
-        price: j['price'] as String? ?? '',
+  factory ApprovalStatusRide.fromJson(Map<String, dynamic> j) =>
+      ApprovalStatusRide(
+        origin: (j['origin'] ?? '').toString(),
+        destination: (j['destination'] ?? '').toString(),
+        departureTime: (j['departure_time'] ?? '').toString(),
+        driverName: (j['driver_name'] ?? '').toString(),
+        rating: (j['rating'] ?? '').toString(),
+        price: (j['price'] ?? '').toString(),
       );
 }
 
@@ -535,14 +557,18 @@ class ApprovalStatusModel {
   final int secondsRemaining;
   final ApprovalStatusRide ride;
 
-  factory ApprovalStatusModel.fromJson(Map<String, dynamic> j) => ApprovalStatusModel(
-        bookingUuid: j['booking_uuid'] as String? ?? '',
-        status: j['status'] as String? ?? 'pending',
-        reservedSeats: j['reserved_seats'] as int? ?? 1,
-        totalTimeoutSeconds: j['total_timeout_seconds'] as int? ?? 300,
-        timeoutAt: j['timeout_at'] as String? ?? '',
-        secondsRemaining: j['seconds_remaining'] as int? ?? 300,
-        ride: ApprovalStatusRide.fromJson(j['ride'] as Map<String, dynamic>),
+  factory ApprovalStatusModel.fromJson(Map<String, dynamic> j) =>
+      ApprovalStatusModel(
+        bookingUuid: (j['booking_uuid'] ?? '').toString(),
+        status: (j['status'] ?? 'pending').toString(),
+        reservedSeats: (j['reserved_seats'] as num?)?.toInt() ?? 1,
+        totalTimeoutSeconds: (j['total_timeout_seconds'] as num?)?.toInt() ?? 300,
+        timeoutAt: (j['timeout_at'] ?? '').toString(),
+        secondsRemaining: (j['seconds_remaining'] as num?)?.toInt() ?? 300,
+        ride: ApprovalStatusRide.fromJson(
+            j['ride'] is Map<String, dynamic>
+                ? j['ride'] as Map<String, dynamic>
+                : const {}),
       );
 }
 
@@ -590,24 +616,24 @@ class TripDetailRide {
   final String? waypointNote;
 
   factory TripDetailRide.fromJson(Map<String, dynamic> j) => TripDetailRide(
-        uuid: j['uuid'] as String? ?? '',
-        driverName: j['driver_name'] as String? ?? '',
-        driverInitials: j['driver_initials'] as String? ?? '',
-        rating: j['rating'] as String? ?? '',
-        reviewCount: j['review_count'] as int? ?? 0,
-        vehicle: j['vehicle'] as String? ?? '',
-        vehiclePlate: j['vehicle_plate'] as String? ?? '',
-        origin: j['origin'] as String? ?? '',
-        destination: j['destination'] as String? ?? '',
-        departureTime: j['departure_time'] as String? ?? '',
-        arrivalTime: j['arrival_time'] as String? ?? '',
-        departureNote: j['departure_note'] as String? ?? '',
-        arrivalNote: j['arrival_note'] as String? ?? '',
-        duration: j['duration'] as String? ?? '',
-        price: j['price'] as String? ?? '',
-        availableSeats: j['available_seats'] as int? ?? 0,
-        waypointCity: j['waypoint_city'] as String?,
-        waypointNote: j['waypoint_note'] as String?,
+        uuid: (j['uuid'] ?? '').toString(),
+        driverName: (j['driver_name'] ?? '').toString(),
+        driverInitials: (j['driver_initials'] ?? '').toString(),
+        rating: (j['rating'] ?? '').toString(),
+        reviewCount: (j['review_count'] as num?)?.toInt() ?? 0,
+        vehicle: (j['vehicle'] ?? '').toString(),
+        vehiclePlate: (j['vehicle_plate'] ?? '').toString(),
+        origin: (j['origin'] ?? '').toString(),
+        destination: (j['destination'] ?? '').toString(),
+        departureTime: (j['departure_time'] ?? '').toString(),
+        arrivalTime: (j['arrival_time'] ?? '').toString(),
+        departureNote: (j['departure_note'] ?? '').toString(),
+        arrivalNote: (j['arrival_note'] ?? '').toString(),
+        duration: (j['duration'] ?? '').toString(),
+        price: (j['price'] ?? '').toString(),
+        availableSeats: (j['available_seats'] as num?)?.toInt() ?? 0,
+        waypointCity: j['waypoint_city']?.toString(),
+        waypointNote: j['waypoint_note']?.toString(),
       );
 }
 
@@ -624,9 +650,9 @@ class TripDetailDriverMetrics {
 
   factory TripDetailDriverMetrics.fromJson(Map<String, dynamic> j) =>
       TripDetailDriverMetrics(
-        acceptanceRate: j['acceptance_rate'] as String? ?? '',
-        responseTime: j['response_time'] as String? ?? '',
-        memberSince: j['member_since'] as String? ?? '',
+        acceptanceRate: (j['acceptance_rate'] ?? '').toString(),
+        responseTime: (j['response_time'] ?? '').toString(),
+        memberSince: (j['member_since'] ?? '').toString(),
       );
 }
 
@@ -644,10 +670,10 @@ class TripDetailReview {
   final String comment;
 
   factory TripDetailReview.fromJson(Map<String, dynamic> j) => TripDetailReview(
-        reviewerName: j['reviewer_name'] as String? ?? '',
+        reviewerName: (j['reviewer_name'] ?? '').toString(),
         rating: (j['rating'] as num?)?.toDouble() ?? 0,
-        date: j['date'] as String? ?? '',
-        comment: j['comment'] as String? ?? '',
+        date: (j['date'] ?? '').toString(),
+        comment: (j['comment'] ?? '').toString(),
       );
 }
 
@@ -671,15 +697,21 @@ class TripDetailModel {
   final String? reservationStatus;
 
   factory TripDetailModel.fromJson(Map<String, dynamic> j) => TripDetailModel(
-        ride: TripDetailRide.fromJson(j['ride'] as Map<String, dynamic>),
+        ride: TripDetailRide.fromJson(
+            j['ride'] is Map<String, dynamic>
+                ? j['ride'] as Map<String, dynamic>
+                : const {}),
         driverMetrics: TripDetailDriverMetrics.fromJson(
-            j['driver_metrics'] as Map<String, dynamic>),
-        recentReviews: (j['recent_reviews'] as List<dynamic>? ?? [])
-            .map((e) => TripDetailReview.fromJson(e as Map<String, dynamic>))
+            j['driver_metrics'] is Map<String, dynamic>
+                ? j['driver_metrics'] as Map<String, dynamic>
+                : const {}),
+        recentReviews: (j['recent_reviews'] as List? ?? [])
+            .whereType<Map<String, dynamic>>()
+            .map((e) => TripDetailReview.fromJson(e))
             .toList(),
         isFavorite: j['is_favorite'] as bool? ?? false,
         isExistingReservation: j['is_existing_reservation'] as bool? ?? false,
-        reservationUuid: j['reservation_uuid'] as String?,
-        reservationStatus: j['reservation_status'] as String?,
+        reservationUuid: j['reservation_uuid']?.toString(),
+        reservationStatus: j['reservation_status']?.toString(),
       );
 }

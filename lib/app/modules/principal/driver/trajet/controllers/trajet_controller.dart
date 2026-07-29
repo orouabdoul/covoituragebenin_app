@@ -94,6 +94,7 @@ class TrajetController extends GetxController {
       _applyTripsData(result.data!, filter);
     } else {
       logger.w('driverTrips failed: ${result.error}');
+      UIHelper().showSnackBar('MINIZON', result.error?.message ?? 'Impossible de charger les trajets.', 2);
     }
   }
 
@@ -146,12 +147,10 @@ class TrajetController extends GetxController {
       canCancel: t.canCancel,
       canEdit: t.canEdit,
       note: t.note?.isNotEmpty == true ? t.note : null,
-      noteBackground: t.note?.isNotEmpty == true
-          ? const Color(0x19F4B400)
-          : null,
-      noteColor: t.note?.isNotEmpty == true
-          ? const Color(0xFFF4B400)
-          : null,
+      noteBackground: t.note?.isNotEmpty == true ? AppColors.accentLight : null,
+      noteColor: t.note?.isNotEmpty == true ? AppColors.accent : null,
+      reviewsCount: t.reviewsSummary?.count,
+      hasPendingReply: t.reviewsSummary?.hasPendingReply ?? false,
     );
   }
 
@@ -167,9 +166,9 @@ class TrajetController extends GetxController {
 
   (Color, Color) _statusStyle(String status) => switch (status) {
         'active' => (AppColors.primary, AppColors.white),
-        'pending' => (const Color(0x33F4B400), const Color(0xFFF4B400)),
-        'completed' => (const Color(0x193B82F6), const Color(0xFF2563EB)),
-        'cancelled' => (const Color(0x19E53935), const Color(0xFFE53935)),
+        'pending' => (AppColors.accentMedium, AppColors.accent),
+        'completed' => (AppColors.completedLight, AppColors.blueDark),
+        'cancelled' => (AppColors.dangerLight, AppColors.danger),
         _ => (AppColors.surfaceMuted, AppColors.textMuted),
       };
 
@@ -512,7 +511,7 @@ class TrajetController extends GetxController {
               _OptionTile(
                 icon: Icons.cancel_outlined,
                 label: 'Annuler le trajet',
-                color: const Color(0xFFE53935),
+                color: AppColors.danger,
                 onTap: () {
                   Get.back();
                   _confirmCancel(trip);
@@ -553,7 +552,7 @@ class TrajetController extends GetxController {
             },
             child: const Text('Annuler le trajet',
                 style: TextStyle(
-                    color: Color(0xFFE53935),
+                    color: AppColors.danger,
                     fontWeight: FontWeight.w700)),
           ),
         ],
@@ -592,6 +591,13 @@ class TrajetController extends GetxController {
 
   void showInfo(String message) =>
       UIHelper().showSnackBar('MINIZON', message, 1);
+
+  void onViewTripReviews(TrajetCardData trip) {
+    Get.toNamed(
+      AppRoutes.driverTripReviews,
+      arguments: {'tripUuid': trip.uuid, 'tripRoute': trip.routeLabel},
+    );
+  }
 }
 
 // ── Option tile for the secondary action sheet ──────────────────────────────
@@ -660,6 +666,8 @@ class TrajetCardData {
     this.note,
     this.noteBackground,
     this.noteColor,
+    this.reviewsCount,
+    this.hasPendingReply = false,
   });
 
   final String uuid;
@@ -685,6 +693,8 @@ class TrajetCardData {
   final String? note;
   final Color? noteBackground;
   final Color? noteColor;
+  final int? reviewsCount;
+  final bool hasPendingReply;
 
   String get routeLabel => '$origin → $destination';
 }

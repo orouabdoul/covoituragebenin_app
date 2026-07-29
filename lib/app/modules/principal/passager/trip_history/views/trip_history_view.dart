@@ -45,7 +45,10 @@ class TripHistoryView extends StatelessWidget {
 												filter: controller.selectedFilter.value,
 											);
 										}
-										return ListView.separated(
+										return RefreshIndicator(
+										color: AppColors.primary,
+										onRefresh: controller.refresh,
+										child: ListView.separated(
 											padding: EdgeInsets.symmetric(
 												horizontal: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
 												vertical: responsive.h(16),
@@ -57,7 +60,8 @@ class TripHistoryView extends StatelessWidget {
 												controller: controller,
 												trip: items[i],
 											),
-										);
+										),
+									);
 									}),
 								),
 							],
@@ -478,9 +482,13 @@ class _ActionButton extends StatelessWidget {
 					children: [
 						Icon(icon, size: responsive.text(14), color: color),
 						SizedBox(width: responsive.w(5)),
-						Text(
-							label,
-							style: AppTextStyles.caption(responsive).copyWith(color: color, fontWeight: FontWeight.w600),
+						Flexible(
+							child: Text(
+								label,
+								maxLines: 1,
+								overflow: TextOverflow.ellipsis,
+								style: AppTextStyles.caption(responsive).copyWith(color: color, fontWeight: FontWeight.w600),
+							),
 						),
 					],
 				),

@@ -180,8 +180,10 @@ class _RatingOverview extends StatelessWidget {
         border: Border.all(color: AppColors.border),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 controller.averageRating.toStringAsFixed(1),
@@ -191,6 +193,7 @@ class _RatingOverview extends StatelessWidget {
                 ),
               ),
               Row(
+                mainAxisSize: MainAxisSize.min,
                 children: List.generate(
                     5,
                     (i) => Icon(
@@ -413,22 +416,95 @@ class _ReviewCard extends StatelessWidget {
               ),
             ),
           ],
-          if (review.comment != null && review.driverReply == null) ...[
-            SizedBox(
-                height: r.adaptive(
-                    phone: 8, smallPhone: 6, tablet: 10, desktop: 12)),
-            GestureDetector(
-              onTap: () => controller.onReplyToReview(review),
-              child: Text(
-                'Répondre',
-                style: AppTextStyles.labelSmall(r).copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
+          SizedBox(height: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              if (review.canReact) ...[
+                _ReviewReactButton(
+                  icon: Icons.check_circle_outline_rounded,
+                  label: 'Ok',
+                  active: review.driverReaction == 'ok',
+                  activeColor: AppColors.success,
+                  onTap: () => controller.onReactToReview(review, 'ok'),
                 ),
-              ),
-            ),
-          ],
+                _ReviewReactButton(
+                  icon: Icons.gavel_rounded,
+                  label: 'Contesté',
+                  active: review.driverReaction == 'disputed',
+                  activeColor: AppColors.accent,
+                  onTap: () => controller.onReactToReview(review, 'disputed'),
+                ),
+                _ReviewReactButton(
+                  icon: Icons.flag_outlined,
+                  label: 'Signaler',
+                  active: review.driverReaction == 'reported',
+                  activeColor: AppColors.danger,
+                  onTap: () => controller.onReactToReview(review, 'reported'),
+                ),
+              ],
+              if (review.canReply)
+                _ReviewReactButton(
+                  icon: Icons.reply_rounded,
+                  label: review.driverReply != null ? 'Modifier' : 'Répondre',
+                  active: false,
+                  activeColor: AppColors.primary,
+                  onTap: () => controller.onReplyToReview(review),
+                ),
+            ],
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _ReviewReactButton extends StatelessWidget {
+  const _ReviewReactButton({
+    required this.icon,
+    required this.label,
+    required this.active,
+    required this.activeColor,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool active;
+  final Color activeColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = active ? activeColor : AppColors.textMuted;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: active
+              ? activeColor.withValues(alpha: 0.10)
+              : AppColors.surface,
+          borderRadius: BorderRadius.circular(9999),
+          border: Border.all(
+            color: active
+                ? activeColor.withValues(alpha: 0.4)
+                : AppColors.border,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 13, color: color),
+            const SizedBox(width: 4),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: color)),
+          ],
+        ),
       ),
     );
   }

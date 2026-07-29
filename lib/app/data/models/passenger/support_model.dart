@@ -22,13 +22,29 @@ class SupportTicket {
     this.lastMessage,
   });
 
-  factory SupportTicket.fromJson(Map<String, dynamic> j) => SupportTicket(
-        id: (j['id'] ?? j['ticket_id'] ?? '').toString(),
-        subject: (j['subject'] ?? '').toString(),
-        category: (j['category'] ?? '').toString(),
-        status: (j['status'] ?? 'open').toString(),
-        createdAt: (j['created_at'] ?? j['createdAt'] ?? '').toString(),
-        lastMessage:
-            j['last_message']?.toString() ?? j['lastMessage']?.toString(),
-      );
+  factory SupportTicket.fromJson(Map<String, dynamic> j) {
+    final rawDate = (j['created_at'] ?? j['createdAt'] ?? '').toString();
+    return SupportTicket(
+      id: (j['uuid'] ?? j['id'] ?? j['ticket_id'] ?? '').toString(),
+      subject: (j['subject'] ?? '').toString(),
+      category: (j['category'] ?? '').toString(),
+      status: (j['status'] ?? 'open').toString(),
+      createdAt: _formatDate(rawDate),
+      lastMessage: j['last_message']?.toString() ?? j['lastMessage']?.toString(),
+    );
+  }
+
+  static String _formatDate(String raw) {
+    if (raw.isEmpty) return '';
+    try {
+      final dt = DateTime.parse(raw).toLocal();
+      const months = [
+        'jan.', 'fév.', 'mars', 'avr.', 'mai', 'juin',
+        'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.',
+      ];
+      return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+    } catch (_) {
+      return raw;
+    }
+  }
 }

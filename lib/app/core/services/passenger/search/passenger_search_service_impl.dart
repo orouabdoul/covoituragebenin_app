@@ -20,9 +20,9 @@ class PassengerSearchServiceImpl implements PassengerSearchService {
   }) async {
     try {
       final params = <String, dynamic>{
-        if (origin.isNotEmpty) 'departure_city': origin,
-        if (destination.isNotEmpty) 'arrival_city': destination,
-        'date': ?date,
+        if (origin.isNotEmpty) 'origin': origin,
+        if (destination.isNotEmpty) 'destination': destination,
+        if (date != null) 'date': date,
         if (passengers != null && passengers > 0) 'passengers': passengers,
         if (maxPrice != null && maxPrice < 999999) 'max_price': maxPrice,
       };
@@ -31,41 +31,46 @@ class PassengerSearchServiceImpl implements PassengerSearchService {
         queryParameters: params,
         options: Options(validateStatus: (_) => true),
       );
-      logger.d('passengerSearch [$origin→$destination] [${res.statusCode}] body=${res.data}');
-      if (res.statusCode == 200) {
+      final statusCode = res.statusCode ?? 0;
+      logger.d('passengerSearch [$origin→$destination] [$statusCode]');
+
+      if (statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
+
+      if (statusCode == 200) {
         final data = res.data;
+        List<dynamic>? rawList;
+
         // Essai 1 : { success: true, body: { rides: [...] } }
         if (data is Map && data['success'] == true) {
           final body = data['body'];
-          List<dynamic> rawList = [];
           if (body is Map) {
-            rawList = (body['rides'] ?? body['data'] ?? body['trips'] ?? []) as List<dynamic>;
+            rawList = (body['rides'] ?? body['data'] ?? body['trips']) as List<dynamic>?
+                ?? const [];
           } else if (body is List) {
             rawList = body;
           }
-          final rides = rawList
-              .map((e) => _mapRide(e as Map<String, dynamic>))
-              .toList();
-          return ApiResult.success(rides);
         }
+
         // Essai 2 : { data: [...] } ou { rides: [...] } ou { trips: [...] }
-        if (data is Map) {
-          final rawList = (data['data'] ?? data['rides'] ?? data['trips']) as List<dynamic>?;
-          if (rawList != null) {
-            final rides = rawList
-                .map((e) => _mapRide(e as Map<String, dynamic>))
-                .toList();
-            return ApiResult.success(rides);
-          }
-        }
+        rawList ??= data is Map
+            ? (data['data'] ?? data['rides'] ?? data['trips']) as List<dynamic>?
+            : null;
+
         // Essai 3 : la réponse est directement une liste
-        if (data is List) {
-          final rides = data
-              .map((e) => _mapRide(e as Map<String, dynamic>))
+        rawList ??= data is List ? data : null;
+
+        if (rawList != null) {
+          final rides = rawList
+              .whereType<Map<String, dynamic>>()
+              .map((e) => _mapRide(e))
               .toList();
+          logger.d('passengerSearch → ${rides.length} trajet(s) mappé(s)');
           return ApiResult.success(rides);
         }
       }
+
+      logger.w('passengerSearch → format inattendu [statusCode=$statusCode]');
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('passengerSearch: $e');
@@ -98,11 +103,11 @@ class PassengerSearchServiceImpl implements PassengerSearchService {
 
     // seats : available_seats ou seats_available ou seats
     final rawSeats = j['available_seats'] ?? j['seats_available'] ?? j['seats'];
-    final seatsAvailable = rawSeats is int ? rawSeats : int.tryParse('${rawSeats ?? 0}') ?? 0;
+    final seatsAvailable = (rawSeats as num?)?.toInt() ?? 0;
 
     // minutes_until_departure peut être absent
     final rawMins = j['minutes_until_departure'] ?? j['minutes_to_departure'];
-    final minutes = rawMins is int ? rawMins : int.tryParse('${rawMins ?? 0}') ?? 0;
+    final minutes = (rawMins as num?)?.toInt() ?? 0;
 
     return SearchRide(
       uuid: j['uuid'] as String? ?? '',

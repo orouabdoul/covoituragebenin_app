@@ -5,7 +5,6 @@ import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/models/passenger/notification_model.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
-import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 class NotificationsController extends GetxController {
   PassengerNotificationsService get _service =>
@@ -17,13 +16,14 @@ class NotificationsController extends GetxController {
   final isLoading = false.obs;
   final hasError = false.obs;
 
-  final List<Map<String, String>> categories = const [
-    {'key': 'all', 'label': 'Tout'},
+  // Seed with API spec categories; replaced by API response on first successful fetch
+  final categories = <Map<String, String>>[
+    {'key': 'all',          'label': 'Toutes'},
+    {'key': 'unread',       'label': 'Non lues'},
     {'key': 'reservations', 'label': 'Réservations'},
-    {'key': 'payments', 'label': 'Paiements'},
-    {'key': 'promos', 'label': 'Promos'},
-    {'key': 'alerts', 'label': 'Alertes'},
-  ];
+    {'key': 'trips',        'label': 'Trajets'},
+    {'key': 'payments',     'label': 'Paiements'},
+  ].obs;
 
   @override
   void onInit() {
@@ -45,6 +45,9 @@ class NotificationsController extends GetxController {
       final body = result.data!;
       notifications.assignAll(body.notifications);
       unreadCount.value = body.unreadCount;
+      if (body.categories.isNotEmpty) {
+        categories.assignAll(body.categories);
+      }
     } else {
       hasError.value = true;
       if (result.error != AppError.socket) {
@@ -53,14 +56,11 @@ class NotificationsController extends GetxController {
     }
   }
 
-  List<PassengerNotificationModel> get filteredNotifications {
-    if (selectedCategory.value == 'all') return notifications.toList();
-    return notifications
-        .where((n) => n.category == selectedCategory.value)
-        .toList();
-  }
+  // Filtering is server-side; the list already contains the correct items
+  List<PassengerNotificationModel> get filteredNotifications => notifications.toList();
 
   void selectCategory(String key) {
+    if (selectedCategory.value == key) return;
     selectedCategory.value = key;
     _fetch();
   }
@@ -102,16 +102,16 @@ class NotificationsController extends GetxController {
   }
 
   void _navigate(PassengerNotificationModel notif) {
-    final route = notif.actionRoute;
-    if (route == null) return;
-    if (route == AppRoutes.passengerSearch) {
-      BottonNavController.goToTab(1);
-    } else if (route == AppRoutes.passengerReservations) {
-      BottonNavController.goToTab(2);
-    } else if (route == AppRoutes.passengerMessages) {
-      BottonNavController.goToTab(3);
-    } else {
-      Get.toNamed(route);
+    switch (notif.category) {
+      case 'reservations':
+      case 'trips':
+        BottonNavController.goToTab(2);
+        break;
+      case 'payments':
+        BottonNavController.goToTab(2);
+        break;
+      default:
+        break;
     }
   }
 

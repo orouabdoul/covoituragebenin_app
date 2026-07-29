@@ -24,12 +24,20 @@ class PassengerStatsServiceImpl implements PassengerStatsService {
     try {
       final opts = await _authOptions();
       final res = await _dio.get(AppApi.passengerStats, options: opts);
-      logger.d('passengerStats [${res.statusCode}]');
-      if (res.statusCode == 200 && res.data['success'] == true) {
-        return ApiResult.success(
-            PassengerStatsModel.fromJson(res.data['body'] as Map<String, dynamic>));
+      final statusCode = res.statusCode ?? 0;
+      logger.d('passengerStats [$statusCode]');
+
+      if (statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
+
+      if (statusCode == 200 && res.data is Map && res.data['success'] == true) {
+        final body = res.data['body'];
+        if (body is Map<String, dynamic>) {
+          return ApiResult.success(PassengerStatsModel.fromJson(body));
+        }
       }
-      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+
+      logger.w('passengerStats → format inattendu [$statusCode]');
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('passengerStats: $e');

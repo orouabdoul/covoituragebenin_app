@@ -14,9 +14,7 @@ class TripConfirmationView extends StatelessWidget {
 	@override
 	Widget build(BuildContext context) {
 		final TripConfirmationController controller =
-				Get.isRegistered<TripConfirmationController>()
-						? Get.find<TripConfirmationController>()
-						: Get.put(TripConfirmationController());
+				Get.find<TripConfirmationController>();
 		final responsive = AppResponsive(context);
 
 		return Scaffold(
@@ -157,64 +155,66 @@ class _TripSummary extends StatelessWidget {
 
 	@override
 	Widget build(BuildContext context) {
-		final ride = controller.ride.value;
-		final origin = ride?.origin ?? 'Cotonou';
-		final destination = ride?.destination ?? 'Porto-Novo';
-		final duration = ride?.duration ?? '3h30';
-		final driver = ride?.driverName ?? 'Votre conducteur';
+		return Obx(() {
+			final ride = controller.ride.value;
+			final origin = ride?.origin ?? '…';
+			final destination = ride?.destination ?? '…';
+			final duration = ride?.duration ?? '…';
+			final driver = ride?.driverName ?? 'Votre conducteur';
 
-		return _Card(
-			responsive: responsive,
-			child: Column(
-				children: [
-					Row(
-						children: [
-							Container(
-								width: responsive.w(48),
-								height: responsive.w(48),
-								decoration: BoxDecoration(
-									color: const Color(0x1900A86B),
-									borderRadius: BorderRadius.circular(12),
+			return _Card(
+				responsive: responsive,
+				child: Column(
+					children: [
+						Row(
+							children: [
+								Container(
+									width: responsive.w(48),
+									height: responsive.w(48),
+									decoration: BoxDecoration(
+										color: const Color(0x1900A86B),
+										borderRadius: BorderRadius.circular(12),
+									),
+									child: const Icon(Icons.check_circle_outline_rounded, color: AppColors.primary),
 								),
-								child: const Icon(Icons.check_circle_outline_rounded, color: AppColors.primary),
-							),
-							SizedBox(width: responsive.w(14)),
-							Expanded(
-								child: Column(
-									crossAxisAlignment: CrossAxisAlignment.start,
-									children: [
-										Text(
-											'$origin → $destination',
-											style: AppTextStyles.subtitle(responsive),
-										),
-										SizedBox(height: responsive.h(2)),
-										Text(
-											'Durée : $duration · Avec $driver',
-											style: AppTextStyles.caption(responsive),
-										),
-									],
-								),
-							),
-							Container(
-								padding: EdgeInsets.symmetric(horizontal: responsive.w(10), vertical: responsive.h(4)),
-								decoration: BoxDecoration(
-									color: const Color(0x1900A86B),
-									borderRadius: BorderRadius.circular(9999),
-									border: Border.all(color: const Color(0x3300A86B)),
-								),
-								child: Text(
-									'Terminé ✓',
-									style: AppTextStyles.caption(responsive).copyWith(
-										color: AppColors.primary,
-										fontWeight: FontWeight.w700,
+								SizedBox(width: responsive.w(14)),
+								Expanded(
+									child: Column(
+										crossAxisAlignment: CrossAxisAlignment.start,
+										children: [
+											Text(
+												'$origin → $destination',
+												style: AppTextStyles.subtitle(responsive),
+											),
+											SizedBox(height: responsive.h(2)),
+											Text(
+												'Durée : $duration · Avec $driver',
+												style: AppTextStyles.caption(responsive),
+											),
+										],
 									),
 								),
-							),
-						],
-					),
-				],
-			),
-		);
+								Container(
+									padding: EdgeInsets.symmetric(horizontal: responsive.w(10), vertical: responsive.h(4)),
+									decoration: BoxDecoration(
+										color: const Color(0x1900A86B),
+										borderRadius: BorderRadius.circular(9999),
+										border: Border.all(color: const Color(0x3300A86B)),
+									),
+									child: Text(
+										'Terminé ✓',
+										style: AppTextStyles.caption(responsive).copyWith(
+											color: AppColors.primary,
+											fontWeight: FontWeight.w700,
+										),
+									),
+								),
+							],
+						),
+					],
+				),
+			);
+		});
 	}
 }
 
@@ -330,8 +330,8 @@ class _RatingCard extends StatelessWidget {
 
 	@override
 	Widget build(BuildContext context) {
-		final ride = controller.ride.value;
-		final driverName = ride?.driverName ?? 'Votre conducteur';
+		return Obx(() {
+		final driverName = controller.ride.value?.driverName ?? 'Votre conducteur';
 
 		return _Card(
 			responsive: responsive,
@@ -378,6 +378,7 @@ class _RatingCard extends StatelessWidget {
 				],
 			),
 		);
+		});
 	}
 
 	String _ratingLabel(int r) {

@@ -25,12 +25,19 @@ class PassengerSupportServiceImpl implements PassengerSupportService {
       final opts = await _authOptions();
       final res = await _dio.get(AppApi.passengerSupportFaq, options: opts);
       logger.d('passengerSupportFaq [${res.statusCode}]');
-      if (res.statusCode == 200 && res.data['success'] == true) {
-        final topics = res.data['body']['topics'] as List? ?? [];
+      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
+      if (res.statusCode == 200 && res.data is Map && res.data['success'] == true) {
+        final body = res.data['body'];
+        final topics = body is Map<String, dynamic>
+            ? (body['topics'] as List? ?? [])
+            : <dynamic>[];
         final faqs = <FaqItem>[];
         for (final t in topics) {
+          if (t is! Map) continue;
           final label = (t['label'] ?? t['key'] ?? '').toString();
           for (final item in (t['items'] as List? ?? [])) {
+            if (item is! Map) continue;
             faqs.add(FaqItem(
               question: (item['question'] ?? '').toString(),
               answer: (item['answer'] ?? '').toString(),
@@ -40,7 +47,6 @@ class PassengerSupportServiceImpl implements PassengerSupportService {
         }
         return ApiResult.success(faqs);
       }
-      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('passengerSupportFaq: $e');
@@ -57,12 +63,20 @@ class PassengerSupportServiceImpl implements PassengerSupportService {
       final opts = await _authOptions();
       final res = await _dio.get(AppApi.passengerSupportTickets, options: opts);
       logger.d('passengerSupportTickets [${res.statusCode}]');
-      if (res.statusCode == 200 && res.data['success'] == true) {
-        final list = res.data['body']['tickets'] as List? ?? [];
-        return ApiResult.success(
-            list.map((j) => SupportTicket.fromJson(j as Map<String, dynamic>)).toList());
-      }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
+      if (res.statusCode == 200 && res.data is Map && res.data['success'] == true) {
+        final body = res.data['body'];
+        final List raw = body is List
+            ? body
+            : body is Map<String, dynamic>
+                ? ((body['tickets'] ?? body['data'] ?? []) as List? ?? [])
+                : [];
+        return ApiResult.success(
+            raw.whereType<Map<String, dynamic>>()
+                .map((j) => SupportTicket.fromJson(j))
+                .toList());
+      }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('passengerSupportTickets: $e');
@@ -93,13 +107,18 @@ class PassengerSupportServiceImpl implements PassengerSupportService {
         options: opts,
       );
       logger.d('createSupportTicket [${res.statusCode}]');
-      if (res.statusCode == 200 && res.data['success'] == true) {
-        final ticketJson =
-            res.data['body']['ticket'] as Map<String, dynamic>? ?? {};
-        return ApiResult.success(SupportTicket.fromJson(ticketJson));
-      }
-      if (res.statusCode == 422) return ApiResult.failure(AppError.validationError);
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
+      if (res.statusCode == 422) return ApiResult.failure(AppError.validationError);
+      if (res.statusCode == 200 && res.data is Map && res.data['success'] == true) {
+        final body = res.data['body'];
+        if (body is Map<String, dynamic>) {
+          final ticketJson = body['ticket'] is Map<String, dynamic>
+              ? body['ticket'] as Map<String, dynamic>
+              : body;
+          return ApiResult.success(SupportTicket.fromJson(ticketJson));
+        }
+      }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('createSupportTicket: $e');

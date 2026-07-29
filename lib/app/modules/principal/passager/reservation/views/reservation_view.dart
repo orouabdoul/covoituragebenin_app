@@ -1137,11 +1137,15 @@ class _Btn extends StatelessWidget {
 					children: [
 						Icon(icon, size: responsive.text(14), color: color),
 						SizedBox(width: responsive.w(6)),
-						Text(
-							label,
-							style: AppTextStyles.caption(responsive).copyWith(
-								color: color,
-								fontWeight: FontWeight.w600,
+						Flexible(
+							child: Text(
+								label,
+								maxLines: 1,
+								overflow: TextOverflow.ellipsis,
+								style: AppTextStyles.caption(responsive).copyWith(
+									color: color,
+									fontWeight: FontWeight.w600,
+								),
 							),
 						),
 					],

@@ -30,18 +30,18 @@ class TripRecord {
   final double? rating;
 
   factory TripRecord.fromJson(Map<String, dynamic> j) => TripRecord(
-        id: j['uuid'] as String? ?? '',
-        tripUuid: j['trip_uuid'] as String? ?? '',
-        origin: j['origin'] as String? ?? '',
-        destination: j['destination'] as String? ?? '',
-        date: j['date'] as String? ?? '',
-        time: j['time'] as String? ?? '',
-        driverName: j['driver_name'] as String? ?? '',
-        vehicle: j['vehicle'] as String? ?? '',
-        vehiclePlate: j['vehicle_plate'] as String? ?? '',
-        price: j['price'] as int? ?? 0,
-        seats: j['seats'] as int? ?? 1,
-        status: j['status'] as String? ?? 'upcoming',
+        id: (j['uuid'] ?? j['id'] ?? '').toString(),
+        tripUuid: (j['trip_uuid'] ?? '').toString(),
+        origin: (j['origin'] ?? '').toString(),
+        destination: (j['destination'] ?? '').toString(),
+        date: (j['date'] ?? '').toString(),
+        time: (j['time'] ?? '').toString(),
+        driverName: (j['driver_name'] ?? '').toString(),
+        vehicle: (j['vehicle'] ?? '').toString(),
+        vehiclePlate: (j['vehicle_plate'] ?? '').toString(),
+        price: (j['price'] as num?)?.toInt() ?? 0,
+        seats: (j['seats'] as num?)?.toInt() ?? 1,
+        status: (j['status'] ?? 'upcoming').toString(),
         rating: (j['rating'] as num?)?.toDouble(),
       );
 }
@@ -59,9 +59,9 @@ class TripHistoryCounts {
 
   factory TripHistoryCounts.fromJson(Map<String, dynamic> j) =>
       TripHistoryCounts(
-        upcoming: j['upcoming'] as int? ?? 0,
-        completed: j['completed'] as int? ?? 0,
-        cancelled: j['cancelled'] as int? ?? 0,
+        upcoming: (j['upcoming'] as num?)?.toInt() ?? 0,
+        completed: (j['completed'] as num?)?.toInt() ?? 0,
+        cancelled: (j['cancelled'] as num?)?.toInt() ?? 0,
       );
 }
 
@@ -71,12 +71,15 @@ class TripHistoryResult {
   final TripHistoryCounts counts;
   final List<TripRecord> trips;
 
-  factory TripHistoryResult.fromJson(Map<String, dynamic> j) =>
-      TripHistoryResult(
-        counts: TripHistoryCounts.fromJson(
-            j['counts'] as Map<String, dynamic>),
-        trips: (j['trips'] as List<dynamic>? ?? [])
-            .map((e) => TripRecord.fromJson(e as Map<String, dynamic>))
-            .toList(),
-      );
+  factory TripHistoryResult.fromJson(Map<String, dynamic> j) {
+    final rawCounts = j['counts'];
+    final counts = rawCounts is Map<String, dynamic>
+        ? TripHistoryCounts.fromJson(rawCounts)
+        : const TripHistoryCounts(upcoming: 0, completed: 0, cancelled: 0);
+    final trips = (j['trips'] as List? ?? [])
+        .whereType<Map<String, dynamic>>()
+        .map((e) => TripRecord.fromJson(e))
+        .toList();
+    return TripHistoryResult(counts: counts, trips: trips);
+  }
 }

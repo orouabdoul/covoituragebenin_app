@@ -378,8 +378,21 @@ class HomeController extends GetxController {
   void openSupport() => Get.toNamed(AppRoutes.passengerSupportCenter);
   void openLiveTracking() => Get.toNamed(AppRoutes.passengerLiveTracking);
   void openDriverArrival() => Get.toNamed(AppRoutes.passengerDriverArrival);
+  void openContactDriver(HomeUpcomingTrip trip) =>
+      Get.toNamed(AppRoutes.passengerMessages);
 
-  void onRepeatTrip(HomeActivity activity) => BottonNavController.goToTab(1);
+  void onRepeatTrip(HomeActivity activity) {
+    BottonNavController.goToTab(1);
+    if (Get.isRegistered<SearchController>()) {
+      final parts = activity.route.split(' → ');
+      final sc = Get.find<SearchController>();
+      sc.expandPanel();
+      if (parts.length >= 2) {
+        sc.onOriginCityChanged(parts[0].trim());
+        sc.onDestinationCityChanged(parts[1].trim());
+      }
+    }
+  }
 
   void onUpcomingTripTap(HomeUpcomingTrip trip) {
     switch (trip.status) {

@@ -4,12 +4,18 @@ class PassengerProfileSummaryData {
     required this.name,
     required this.phone,
     required this.isVerified,
+    this.email = '',
+    this.city = '',
+    this.neighborhood = '',
   });
 
   final String avatarUrl;
   final String name;
   final String phone;
   final bool isVerified;
+  final String email;
+  final String city;
+  final String neighborhood;
 
   factory PassengerProfileSummaryData.fromJson(Map<String, dynamic> json) =>
       PassengerProfileSummaryData(
@@ -17,6 +23,9 @@ class PassengerProfileSummaryData {
         name: (json['name'] as String?) ?? '',
         phone: (json['phone'] as String?) ?? '',
         isVerified: (json['is_verified'] as bool?) ?? false,
+        email: (json['email'] as String?) ?? '',
+        city: (json['city'] as String?) ?? '',
+        neighborhood: (json['neighborhood'] as String?) ?? '',
       );
 }
 
@@ -85,11 +94,10 @@ class PassengerTrustData {
         verifiedNumber: (json['verified_number'] as String?) ?? '',
         identityDocument: (json['identity_document'] as String?) ?? '',
         verifiedEmail: (json['verified_email'] as String?) ?? '',
-        items: (json['items'] as List?)
-                ?.map((i) =>
-                    PassengerTrustItemData.fromJson(i as Map<String, dynamic>))
-                .toList() ??
-            [],
+        items: (json['items'] as List? ?? [])
+            .whereType<Map<String, dynamic>>()
+            .map((i) => PassengerTrustItemData.fromJson(i))
+            .toList(),
       );
 }
 
@@ -170,6 +178,7 @@ class PassengerProfileDashboard {
     required this.settings,
     required this.paymentMethods,
     required this.recentTrips,
+    this.emergencyContacts = const [],
   });
 
   final PassengerProfileSummaryData summary;
@@ -178,31 +187,36 @@ class PassengerProfileDashboard {
   final List<PassengerSettingData> settings;
   final List<PassengerPaymentMethodData> paymentMethods;
   final List<PassengerRecentTripData> recentTrips;
+  final List<Map<String, dynamic>> emergencyContacts;
 
   factory PassengerProfileDashboard.fromJson(Map<String, dynamic> json) =>
       PassengerProfileDashboard(
         summary: PassengerProfileSummaryData.fromJson(
-            (json['summary'] as Map<String, dynamic>?) ?? {}),
-        metrics: (json['metrics'] as List?)
-                ?.map((m) => PassengerProfileMetricData.fromJson(
-                    m as Map<String, dynamic>))
-                .toList() ??
-            [],
+            json['summary'] is Map<String, dynamic>
+                ? json['summary'] as Map<String, dynamic>
+                : const {}),
+        metrics: (json['metrics'] as List? ?? [])
+            .whereType<Map<String, dynamic>>()
+            .map((m) => PassengerProfileMetricData.fromJson(m))
+            .toList(),
         trust: PassengerTrustData.fromJson(
-            (json['trust'] as Map<String, dynamic>?) ?? {}),
-        settings: (json['settings'] as List?)
-                ?.map((s) =>
-                    PassengerSettingData.fromJson(s as Map<String, dynamic>))
-                .toList() ??
-            [],
-        paymentMethods: (json['payment_methods'] as List?)
-                ?.map((p) => PassengerPaymentMethodData.fromJson(
-                    p as Map<String, dynamic>))
-                .toList() ??
-            [],
-        recentTrips: (json['recent_trips'] as List?)
-                ?.map((t) => PassengerRecentTripData.fromJson(
-                    t as Map<String, dynamic>))
+            json['trust'] is Map<String, dynamic>
+                ? json['trust'] as Map<String, dynamic>
+                : const {}),
+        settings: (json['settings'] as List? ?? [])
+            .whereType<Map<String, dynamic>>()
+            .map((s) => PassengerSettingData.fromJson(s))
+            .toList(),
+        paymentMethods: (json['payment_methods'] as List? ?? [])
+            .whereType<Map<String, dynamic>>()
+            .map((p) => PassengerPaymentMethodData.fromJson(p))
+            .toList(),
+        recentTrips: (json['recent_trips'] as List? ?? [])
+            .whereType<Map<String, dynamic>>()
+            .map((t) => PassengerRecentTripData.fromJson(t))
+            .toList(),
+        emergencyContacts: (json['emergency_contacts'] as List?)
+                ?.whereType<Map<String, dynamic>>()
                 .toList() ??
             [],
       );

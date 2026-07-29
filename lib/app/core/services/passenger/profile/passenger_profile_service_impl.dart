@@ -25,12 +25,14 @@ class PassengerProfileServiceImpl implements PassengerProfileService {
       final opts = await _authOptions();
       final response = await _dio.get(AppApi.passengerProfile, options: opts);
       logger.d('passengerProfile [${response.statusCode}]');
-      if (response.statusCode == 200 && response.data['success'] == true) {
-        final body = response.data['body'] as Map<String, dynamic>;
-        return ApiResult.success(PassengerProfileDashboard.fromJson(body));
-      }
       if (response.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       if (response.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
+      if (response.statusCode == 200 && response.data is Map && response.data['success'] == true) {
+        final body = response.data['body'];
+        if (body is Map<String, dynamic>) {
+          return ApiResult.success(PassengerProfileDashboard.fromJson(body));
+        }
+      }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('passengerProfile: $e');
@@ -63,9 +65,12 @@ class PassengerProfileServiceImpl implements PassengerProfileService {
         options: opts,
       );
       logger.d('updatePassengerProfile [${response.statusCode}]');
-      if (response.statusCode == 200) return ApiResult.success(null);
       if (response.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (response.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
       if (response.statusCode == 422) return ApiResult.failure(AppError.validationError);
+      if (response.statusCode == 200 && response.data is Map && response.data['success'] == true) {
+        return ApiResult.success(null);
+      }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('updatePassengerProfile: $e');

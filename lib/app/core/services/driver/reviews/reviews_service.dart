@@ -4,4 +4,6 @@ import 'package:covoiturage_benin_app/app/data/models/driver/review_model.dart';
 abstract class ReviewsService {
   Future<ApiResult<ReviewsBodyModel>> fetchReviews({int page = 1});
   Future<ApiResult<void>> replyToReview(String uuid, String reply);
+  Future<ApiResult<Map<String, dynamic>>> reactToReview(String uuid, String? reaction);
+  Future<ApiResult<TripReviewsModel>> fetchTripReviews(String tripUuid);
 }

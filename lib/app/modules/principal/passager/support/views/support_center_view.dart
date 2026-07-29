@@ -599,7 +599,7 @@ class _TicketCard extends StatelessWidget {
 							),
 							SizedBox(width: responsive.w(8)),
 							Text(
-								ticket.id,
+								'#${ticket.id.length > 8 ? ticket.id.substring(0, 8) : ticket.id}',
 								style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint),
 							),
 							const Spacer(),

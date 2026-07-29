@@ -33,7 +33,7 @@ class ReviewsServiceImpl implements ReviewsService {
       );
       logger.d('fetchReviews[page=$page] [${res.statusCode}]');
       if (res.statusCode == 200 && res.data['success'] == true) {
-        final raw = res.data['body'];
+        final raw = res.data['data'] ?? res.data['body'];
         final body = raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
         return ApiResult.success(ReviewsBodyModel.fromJson(body));
       }
@@ -81,4 +81,60 @@ class ReviewsServiceImpl implements ReviewsService {
     }
   }
 
+  @override
+  Future<ApiResult<Map<String, dynamic>>> reactToReview(
+      String uuid, String? reaction) async {
+    try {
+      final opts = await _authOptions();
+      final res = await _dio.patch(
+        AppApi.driverReviewReact(uuid),
+        data: {'reaction': reaction},
+        options: opts,
+      );
+      logger.d('reactToReview[$uuid reaction=$reaction] [${res.statusCode}]');
+      if ((res.statusCode == 200 || res.statusCode == 201) &&
+          res.data['success'] == true) {
+        final raw = res.data['data'] ?? res.data['body'];
+        return ApiResult.success(
+            raw is Map ? Map<String, dynamic>.from(raw) : {});
+      }
+      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 403) {
+        _lastErrorMessage = 'Action non autorisée sur cet avis.';
+        return ApiResult.failure(AppError.permissionDenied);
+      }
+      return ApiResult.failure(AppError.unexpected);
+    } on DioException catch (e) {
+      logger.e('reactToReview: $e');
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
+      logger.e('reactToReview: $e');
+      return ApiResult.failure(AppError.unexpected);
+    }
+  }
+
+  @override
+  Future<ApiResult<TripReviewsModel>> fetchTripReviews(String tripUuid) async {
+    try {
+      final opts = await _authOptions();
+      final res = await _dio.get(
+        AppApi.driverTripReviews(tripUuid),
+        options: opts,
+      );
+      logger.d('fetchTripReviews[$tripUuid] [${res.statusCode}]');
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        final raw = res.data['data'] ?? res.data['body'];
+        final body = raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
+        return ApiResult.success(TripReviewsModel.fromJson(body));
+      }
+      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      return ApiResult.failure(AppError.unexpected);
+    } on DioException catch (e) {
+      logger.e('fetchTripReviews: $e');
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
+      logger.e('fetchTripReviews: $e');
+      return ApiResult.failure(AppError.unexpected);
+    }
+  }
 }

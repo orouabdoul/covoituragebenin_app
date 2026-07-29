@@ -47,7 +47,7 @@ class RefundRequestController extends GetxController {
     final args = Get.arguments;
     if (args is Map) {
       _bookingUuid = (args['bookingUuid'] as String?) ?? '';
-      refundAmount.value = (args['amount'] as int?) ?? 0;
+      refundAmount.value = (args['amount'] as num?)?.toInt() ?? 0;
       tripRef.value      = (args['ref'] as String?) ?? '';
       tripRoute.value    = (args['route'] as String?) ?? '';
       tripDate.value     = (args['date'] as String?) ?? '';
@@ -87,6 +87,24 @@ class RefundRequestController extends GetxController {
   void selectReason(String key) => selectedReason.value = key;
 
   Future<void> submitRequest() async {
+    if (alreadyRefunded.value) {
+      Get.snackbar(
+        'Déjà remboursé',
+        'Une demande de remboursement existe déjà pour ce trajet.',
+        backgroundColor: AppColors.warning,
+        colorText: Colors.white,
+      );
+      return;
+    }
+    if (_bookingUuid.isEmpty) {
+      Get.snackbar(
+        'Erreur',
+        'Référence de réservation introuvable.',
+        backgroundColor: const Color(0xFFEF4444),
+        colorText: Colors.white,
+      );
+      return;
+    }
     if (selectedReason.value == null) {
       Get.snackbar(
         'Motif requis',
@@ -109,6 +127,7 @@ class RefundRequestController extends GetxController {
     if (result.isSuccess) {
       submitted.value = true;
     } else if (result.error == AppError.refundAlreadySubmitted) {
+      alreadyRefunded.value = true;
       Get.snackbar(
         'Déjà soumis',
         'Une demande de remboursement a déjà été soumise pour ce trajet.',
@@ -126,7 +145,7 @@ class RefundRequestController extends GetxController {
       Get.snackbar(
         'Erreur',
         'Impossible de soumettre la demande. Réessayez.',
-        backgroundColor: AppColors.warning,
+        backgroundColor: const Color(0xFFEF4444),
         colorText: Colors.white,
       );
     }

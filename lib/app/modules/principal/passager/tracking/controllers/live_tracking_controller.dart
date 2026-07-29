@@ -174,6 +174,7 @@ class LiveTrackingController extends GetxController {
   }
 
   void _onTripEnded() {
+    if (Get.currentRoute == AppRoutes.passengerTripConfirmation) return;
     Get.toNamed(
       AppRoutes.passengerTripConfirmation,
       arguments: {

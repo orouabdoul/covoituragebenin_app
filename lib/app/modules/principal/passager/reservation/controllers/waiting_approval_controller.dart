@@ -25,6 +25,7 @@ class WaitingApprovalController extends GetxController {
 
   String _bookingUuid = '';
   Timer? _pollingTimer;
+  int _consecutiveErrors = 0;
 
   String get timeLabel {
     final m = secondsRemaining.value ~/ 60;
@@ -75,11 +76,14 @@ class WaitingApprovalController extends GetxController {
     if (status.value != WaitingStatus.pending) return;
     final result = await _service.fetchApprovalStatus(_bookingUuid);
     if (!result.isSuccess) {
-      if (result.error != AppError.socket) {
+      _consecutiveErrors++;
+      // Afficher un message seulement après 3 erreurs consécutives (réseau instable)
+      if (_consecutiveErrors == 3 && result.error != AppError.socket) {
         UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
       }
       return;
     }
+    _consecutiveErrors = 0;
     final data = result.data!;
     secondsRemaining.value = data.secondsRemaining;
     totalTimeoutSeconds.value = data.totalTimeoutSeconds;
@@ -136,10 +140,8 @@ class WaitingApprovalController extends GetxController {
   void requestRefund() {
     _cancelTimers();
     Get.toNamed(AppRoutes.passengerRefundRequest, arguments: {
-      'amount': '2 500 FCFA',
+      'bookingUuid': _bookingUuid,
       'route': '${ride.value?.origin ?? 'Départ'} → ${ride.value?.destination ?? 'Arrivée'}',
-      'date': DateTime.now().toString().substring(0, 10),
-      'ref': 'REF-${DateTime.now().millisecondsSinceEpoch}',
     });
   }
 

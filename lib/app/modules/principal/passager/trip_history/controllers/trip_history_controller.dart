@@ -172,7 +172,10 @@ class _TripDetailSheet extends StatelessWidget {
                     SizedBox(width: responsive.w(8)),
                     Text(_statusLabel, style: AppTextStyles.subtitle(responsive).copyWith(color: _statusColor, fontWeight: FontWeight.w800)),
                     const Spacer(),
-                    Text(trip.id, style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint, fontFamily: 'monospace')),
+                    Text(
+                      '#${trip.id.length > 8 ? trip.id.substring(0, 8) : trip.id}',
+                      style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint, fontFamily: 'monospace'),
+                    ),
                   ],
                 ),
                 SizedBox(height: responsive.h(16)),
@@ -217,19 +220,21 @@ class _TripDetailSheet extends StatelessWidget {
                   ],
                 ]),
                 SizedBox(height: responsive.h(20)),
-                if (trip.status == 'cancelled')
+                if (trip.status == 'cancelled') ...[
                   OutlinedButton.icon(
                     onPressed: () { Get.back(); controller.requestRefund(trip); },
                     icon: Icon(Icons.account_balance_wallet_rounded, size: responsive.text(16)),
                     label: const Text('Demander un remboursement'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      side: BorderSide(color: AppColors.primary.withValues(alpha: 0.40)),
+                      foregroundColor: const Color(0xFFEF4444),
+                      side: const BorderSide(color: Color(0x66EF4444)),
                       padding: EdgeInsets.symmetric(vertical: responsive.h(14)),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(responsive.radius(12))),
                     ),
                   ),
-                if (trip.status == 'upcoming' || trip.status == 'completed')
+                  SizedBox(height: responsive.h(10)),
+                ],
+                if (trip.status == 'upcoming' || trip.status == 'completed' || trip.status == 'cancelled')
                   OutlinedButton.icon(
                     onPressed: () { Get.back(); controller.rebookTrip(trip); },
                     icon: Icon(Icons.repeat_rounded, size: responsive.text(16)),

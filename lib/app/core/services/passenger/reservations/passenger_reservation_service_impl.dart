@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/utils/api_result.dart';
@@ -26,13 +28,16 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       final opts = await _authOptions();
       final res =
           await _dio.get(AppApi.passengerTripConfirmationCtx(tripUuid), options: opts);
-      logger.d('confirmationContext[$tripUuid] [${res.statusCode}] body=${res.data}');
-      if (res.statusCode == 200 && res.data['success'] == true) {
-        return ApiResult.success(
-            ConfirmationContextModel.fromJson(res.data['body'] as Map<String, dynamic>));
+      final statusCode = res.statusCode ?? 0;
+      logger.d('confirmationContext[$tripUuid] [$statusCode]');
+      if (statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (statusCode == 404) return ApiResult.failure(AppError.tripNotFound);
+      if (statusCode == 200 && res.data is Map && res.data['success'] == true) {
+        final body = res.data['body'];
+        if (body is Map<String, dynamic>) {
+          return ApiResult.success(ConfirmationContextModel.fromJson(body));
+        }
       }
-      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
-      if (res.statusCode == 404) return ApiResult.failure(AppError.tripNotFound);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('confirmationContext: $e');
@@ -77,11 +82,8 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
         },
         options: opts,
       );
-      logger.d('createBooking[$tripUuid] [${res.statusCode}] body=${res.data}');
-      if (res.statusCode == 200 || res.statusCode == 201) {
-        final body = res.data['body'] as Map<String, dynamic>? ?? {};
-        return ApiResult.success(CreateBookingResult.fromJson(body));
-      }
+      final statusCode = res.statusCode ?? 0;
+      logger.d('createBooking[$tripUuid] [$statusCode]');
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       if (res.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
       if (res.statusCode == 404) return ApiResult.failure(AppError.tripNotFound);
@@ -93,6 +95,14 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       if (res.statusCode == 422) {
         final msg = res.data is Map ? res.data['message'] as String? : null;
         return ApiResult.failure(AppError.tripDataInvalid, message: msg);
+      }
+      if ((res.statusCode == 200 || res.statusCode == 201) &&
+          res.data is Map &&
+          res.data['success'] == true) {
+        final body = res.data['body'];
+        if (body is Map<String, dynamic>) {
+          return ApiResult.success(CreateBookingResult.fromJson(body));
+        }
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
@@ -109,12 +119,12 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
     try {
       final opts = await _authOptions();
       final res = await _dio.post(AppApi.cancelBooking(bookingUuid), options: opts);
-      logger.d('cancelBooking[$bookingUuid] [${res.statusCode}] body=${res.data}');
-      if (res.statusCode == 200 || res.statusCode == 201) return ApiResult.success(null);
+      logger.d('cancelBooking[$bookingUuid] [${res.statusCode}]');
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       if (res.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
       if (res.statusCode == 404) return ApiResult.failure(AppError.tripNotFound);
       if (res.statusCode == 422) return ApiResult.failure(AppError.tripDataInvalid);
+      if (res.statusCode == 200) return ApiResult.success(null);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('cancelBooking: $e');
@@ -135,7 +145,7 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
         data: {'phone_number': phone, 'provider': provider},
         options: opts,
       );
-      logger.d('initiatePayment[$bookingUuid] [${res.statusCode}] body=${res.data}');
+      logger.d('initiatePayment[$bookingUuid] [${res.statusCode}]');
       if (res.statusCode == 200 || res.statusCode == 201) {
         if (res.data is Map && res.data['success'] == false) {
           logger.e('initiatePayment failed: ${res.data['message']}');
@@ -177,13 +187,15 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       final res =
           await _dio.get(AppApi.passengerBookingApprovalStatus(bookingUuid), options: opts);
       logger.d('approvalStatus[$bookingUuid] [${res.statusCode}]');
-      if (res.statusCode == 200 && res.data['success'] == true) {
-        return ApiResult.success(
-            ApprovalStatusModel.fromJson(res.data['body'] as Map<String, dynamic>));
-      }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       if (res.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
-      if (res.statusCode == 404) return ApiResult.failure(AppError.userNotFound);
+      if (res.statusCode == 404) return ApiResult.failure(AppError.tripNotFound);
+      if (res.statusCode == 200 && res.data is Map && res.data['success'] == true) {
+        final body = res.data['body'];
+        if (body is Map<String, dynamic>) {
+          return ApiResult.success(ApprovalStatusModel.fromJson(body));
+        }
+      }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('approvalStatus: $e');
@@ -202,13 +214,15 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       final res =
           await _dio.get(AppApi.passengerBookingSuccess(bookingUuid), options: opts);
       logger.d('paymentSuccess[$bookingUuid] [${res.statusCode}]');
-      if (res.statusCode == 200 && res.data['success'] == true) {
-        return ApiResult.success(
-            PaymentSuccessModel.fromJson(res.data['body'] as Map<String, dynamic>));
-      }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       if (res.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
-      if (res.statusCode == 404) return ApiResult.failure(AppError.userNotFound);
+      if (res.statusCode == 404) return ApiResult.failure(AppError.tripNotFound);
+      if (res.statusCode == 200 && res.data is Map && res.data['success'] == true) {
+        final body = res.data['body'];
+        if (body is Map<String, dynamic>) {
+          return ApiResult.success(PaymentSuccessModel.fromJson(body));
+        }
+      }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('paymentSuccess: $e');
@@ -232,11 +246,14 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
         options: opts,
       );
       logger.d('passengerReservations[${status ?? 'all'}] [${res.statusCode}]');
-      if (res.statusCode == 200 && res.data['success'] == true) {
-        return ApiResult.success(
-            ReservationsPageModel.fromJson(res.data['body'] as Map<String, dynamic>));
-      }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
+      if (res.statusCode == 200 && res.data is Map && res.data['success'] == true) {
+        final body = res.data['body'];
+        if (body is Map<String, dynamic>) {
+          return ApiResult.success(ReservationsPageModel.fromJson(body));
+        }
+      }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('passengerReservations: $e');
@@ -253,14 +270,49 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       final opts = await _authOptions();
       final res = await _dio.get(
           AppApi.passengerReservationInvoice(bookingUuid), options: opts);
-      logger.d('invoice[$bookingUuid] [${res.statusCode}]');
-      if (res.statusCode == 200 && res.data['success'] == true) {
-        return ApiResult.success(
-            InvoiceModel.fromJson(res.data['body'] as Map<String, dynamic>));
+      final sc = res.statusCode ?? 0;
+      logger.d('invoice[$bookingUuid] [$sc] body=${res.data}');
+      if (sc == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (sc == 403) return ApiResult.failure(AppError.permissionDenied);
+      if (sc == 404) return ApiResult.failure(AppError.tripNotFound);
+      if (sc == 200) {
+        try {
+          // Normalise res.data en Map<String, dynamic> quel que soit le type retourné par Dio
+          Map<String, dynamic> root;
+          final raw = res.data;
+          logger.d('invoice type=${raw?.runtimeType}');
+          if (raw is Map<String, dynamic>) {
+            root = raw;
+          } else if (raw is Map) {
+            root = Map<String, dynamic>.from(raw);
+          } else if (raw is String) {
+            root = Map<String, dynamic>.from(jsonDecode(raw) as Map);
+          } else {
+            logger.e('invoice: inattendu type=${raw?.runtimeType}');
+            return ApiResult.failure(AppError.unexpected);
+          }
+
+          // Le backend enveloppe dans { success, body: {...} }
+          final rawBody = root['body'];
+          Map<String, dynamic> body;
+          if (rawBody is Map<String, dynamic>) {
+            body = rawBody;
+          } else if (rawBody is Map) {
+            body = Map<String, dynamic>.from(rawBody);
+          } else if (root.containsKey('invoice_ref')) {
+            body = root; // champs à la racine
+          } else {
+            logger.e('invoice: body manquant root=$root');
+            return ApiResult.failure(AppError.unexpected);
+          }
+
+          logger.d('invoice: ok keys=${body.keys.toList()}');
+          return ApiResult.success(InvoiceModel.fromJson(body));
+        } catch (e, st) {
+          logger.e('invoice parse: $e\n$st');
+          return ApiResult.failure(AppError.unexpected);
+        }
       }
-      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
-      if (res.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
-      if (res.statusCode == 404) return ApiResult.failure(AppError.userNotFound);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('invoice: $e');
@@ -278,13 +330,15 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       final res =
           await _dio.get(AppApi.passengerTripLiveTracking(tripUuid), options: opts);
       logger.d('liveTracking[$tripUuid] [${res.statusCode}]');
-      if (res.statusCode == 200 && res.data['success'] == true) {
-        return ApiResult.success(
-            LiveTrackingModel.fromJson(res.data['body'] as Map<String, dynamic>));
-      }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       if (res.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
-      if (res.statusCode == 404) return ApiResult.failure(AppError.userNotFound);
+      if (res.statusCode == 404) return ApiResult.failure(AppError.tripNotFound);
+      if (res.statusCode == 200 && res.data is Map && res.data['success'] == true) {
+        final body = res.data['body'];
+        if (body is Map<String, dynamic>) {
+          return ApiResult.success(LiveTrackingModel.fromJson(body));
+        }
+      }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('liveTracking: $e');
@@ -303,12 +357,14 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       final res = await _dio.get(
           AppApi.passengerBookingTripConfirmationCtx(bookingUuid), options: opts);
       logger.d('tripConfirmationCtx[$bookingUuid] [${res.statusCode}]');
-      if (res.statusCode == 200 && res.data['success'] == true) {
-        return ApiResult.success(TripConfirmationContextModel.fromJson(
-            res.data['body'] as Map<String, dynamic>));
-      }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
-      if (res.statusCode == 404) return ApiResult.failure(AppError.userNotFound);
+      if (res.statusCode == 404) return ApiResult.failure(AppError.tripNotFound);
+      if (res.statusCode == 200 && res.data is Map && res.data['success'] == true) {
+        final body = res.data['body'];
+        if (body is Map<String, dynamic>) {
+          return ApiResult.success(TripConfirmationContextModel.fromJson(body));
+        }
+      }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('tripConfirmationCtx: $e');
@@ -329,12 +385,11 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
         data: {'issues': issues},
         options: opts,
       );
-      logger.d('confirmTrip[$bookingUuid] [${res.statusCode}]');
-      if (res.statusCode == 200 && res.data['success'] == true) {
-        return ApiResult.success(null);
-      }
-      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
-      if (res.statusCode == 404) return ApiResult.failure(AppError.userNotFound);
+      final sc = res.statusCode ?? 0;
+      logger.d('confirmTrip[$bookingUuid] [$sc] body=${res.data}');
+      if (sc == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (sc == 404) return ApiResult.failure(AppError.tripNotFound);
+      if (sc >= 200 && sc < 300) return ApiResult.success(null);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('confirmTrip: $e');
@@ -356,16 +411,19 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       final opts = await _authOptions();
       final res = await _dio.post(
         AppApi.passengerBookingReview(bookingUuid),
-        data: {'rating': rating, 'tags': tags, 'comment': comment},
+        data: {
+          'rating': rating,
+          'tags': tags,
+          if (comment.isNotEmpty) 'comment': comment,
+        },
         options: opts,
       );
-      logger.d('submitReview[$bookingUuid] [${res.statusCode}]');
-      if (res.statusCode == 200 && res.data['success'] == true) {
-        return ApiResult.success(null);
-      }
-      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
-      if (res.statusCode == 404) return ApiResult.failure(AppError.userNotFound);
-      if (res.statusCode == 422) return ApiResult.failure(AppError.validationError);
+      final sc2 = res.statusCode ?? 0;
+      logger.d('submitReview[$bookingUuid] [$sc2] body=${res.data}');
+      if (sc2 == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (sc2 == 404) return ApiResult.failure(AppError.tripNotFound);
+      if (sc2 == 422) return ApiResult.failure(AppError.validationError);
+      if (sc2 >= 200 && sc2 < 300) return ApiResult.success(null);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('submitReview: $e');
@@ -383,12 +441,14 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       final res =
           await _dio.get(AppApi.passengerTripDetail(tripUuid), options: opts);
       logger.d('tripDetail[$tripUuid] [${res.statusCode}]');
-      if (res.statusCode == 200 && res.data['success'] == true) {
-        return ApiResult.success(
-            TripDetailModel.fromJson(res.data['body'] as Map<String, dynamic>));
-      }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
-      if (res.statusCode == 404) return ApiResult.failure(AppError.userNotFound);
+      if (res.statusCode == 404) return ApiResult.failure(AppError.tripNotFound);
+      if (res.statusCode == 200 && res.data is Map && res.data['success'] == true) {
+        final body = res.data['body'];
+        if (body is Map<String, dynamic>) {
+          return ApiResult.success(TripDetailModel.fromJson(body));
+        }
+      }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('tripDetail: $e');

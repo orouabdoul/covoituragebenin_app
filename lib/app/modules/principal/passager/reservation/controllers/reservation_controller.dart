@@ -137,6 +137,13 @@ class ReservationController extends GetxController {
 
 	void selectStatus(int index) => selectedStatusIndex.value = index;
 
+	void markAsRated(String bookingUuid) {
+		final idx = _allReservations.indexWhere((item) => item.id == bookingUuid);
+		if (idx >= 0) {
+			_allReservations[idx] = _allReservations[idx].copyWith(hasRated: true);
+		}
+	}
+
 	void viewDetails(ReservationItem r) =>
 			Get.toNamed(AppRoutes.passengerReservationDetail, arguments: r);
 
@@ -178,7 +185,9 @@ class ReservationController extends GetxController {
 			BottonNavController.goToTab(1);
 
 	void cancelReservation(ReservationItem r) {
-		final isFree = r.minutesUntilDeparture > 30;
+		// etaMinutes is only set for in_progress trips; if null, we can't compute the
+		// window precisely — assume free cancellation and let the backend enforce policy.
+		final isFree = r.etaMinutes == null || r.minutesUntilDeparture > 30;
 		final refundAmount = isFree ? r.totalPriceValue : (r.totalPriceValue * 0.8).round();
 		final penaltyAmount = r.totalPriceValue - refundAmount;
 
@@ -209,7 +218,8 @@ class ReservationController extends GetxController {
 				cancelReason: 'Annulé par le passager',
 			);
 		}
-		selectStatus(4);
+		final cancelledIdx = statusTabs.indexWhere((t) => t.status == ReservationStatus.cancelled);
+		if (cancelledIdx >= 0) selectStatus(cancelledIdx);
 		final formatted = _formatPrice(refundAmount);
 		UIHelper().showSnackBar(
 			'Annulation confirmée',

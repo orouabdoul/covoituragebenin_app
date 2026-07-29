@@ -6,63 +6,45 @@ import 'package:covoiturage_benin_app/app/core/services/driver/reviews/reviews_s
 import 'package:covoiturage_benin_app/app/core/services/driver/reviews/reviews_service_impl.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
-import '../../../../../data/models/driver/review_model.dart';
+import 'package:covoiturage_benin_app/app/data/models/driver/review_model.dart';
 
-class ReviewsController extends GetxController {
+class TripReviewsController extends GetxController {
   ReviewsService get _service => Get.find<ReviewsService>();
 
   final RxBool isLoading = false.obs;
   final RxBool hasError = false.obs;
-  final RxBool isLoadingMore = false.obs;
-  final RxBool hasMore = false.obs;
-
   final RxList<ReviewModel> reviews = <ReviewModel>[].obs;
   final Rxn<ReviewSummaryModel> summary = Rxn<ReviewSummaryModel>();
+  final RxList<ReplyTemplateModel> templates = <ReplyTemplateModel>[].obs;
 
-  int _nextPage = 1;
+  String tripUuid = '';
+  String tripRoute = '';
 
   @override
   void onInit() {
     super.onInit();
-    _fetch(page: 1, replace: true);
+    final args = Get.arguments as Map<String, dynamic>?;
+    tripUuid = (args?['tripUuid'] as String?) ?? '';
+    tripRoute = (args?['tripRoute'] as String?) ?? '';
+    if (tripUuid.isNotEmpty) _load();
   }
 
   @override
-  Future<void> refresh() => _fetch(page: 1, replace: true);
+  Future<void> refresh() => _load();
 
-  Future<void> loadMore() async {
-    if (isLoadingMore.value || !hasMore.value) return;
-    await _fetch(page: _nextPage, replace: false);
-  }
-
-  Future<void> _fetch({required int page, required bool replace}) async {
-    if (replace) {
-      isLoading.value = true;
-      hasError.value = false;
-    } else {
-      isLoadingMore.value = true;
-    }
-
-    final result = await _service.fetchReviews(page: page);
-
-    if (replace) {
-      isLoading.value = false;
-    } else {
-      isLoadingMore.value = false;
-    }
-
+  Future<void> _load() async {
+    isLoading.value = true;
+    hasError.value = false;
+    final result = await _service.fetchTripReviews(tripUuid);
+    isLoading.value = false;
     if (result.isSuccess) {
-      final body = result.data!;
-      summary.value = body.summary;
-      if (replace) {
-        reviews.assignAll(body.reviews);
-      } else {
-        reviews.addAll(body.reviews);
-      }
-      hasMore.value = body.hasMore;
-      _nextPage = body.nextPage;
+      final data = result.data!;
+      tripRoute = data.tripRoute.isNotEmpty ? data.tripRoute : tripRoute;
+      summary.value = data.summary;
+      reviews.assignAll(data.reviews);
+      templates.assignAll(data.replyTemplates);
     } else {
-      if (replace) hasError.value = true;
+      hasError.value = true;
       if (result.error != AppError.socket) {
         UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
       }
@@ -71,7 +53,7 @@ class ReviewsController extends GetxController {
 
   // ── React ─────────────────────────────────────────────────────────────────
 
-  Future<void> onReactToReview(ReviewModel review, String? reaction) async {
+  Future<void> onReact(ReviewModel review, String? reaction) async {
     final newReaction = review.driverReaction == reaction ? null : reaction;
     final idx = reviews.indexWhere((r) => r.id == review.id);
     if (idx == -1) return;
@@ -93,10 +75,11 @@ class ReviewsController extends GetxController {
 
   // ── Reply ─────────────────────────────────────────────────────────────────
 
-  void onReplyToReview(ReviewModel review) {
+  void onReply(ReviewModel review) {
     Get.bottomSheet(
       _ReplySheet(
         review: review,
+        templates: templates,
         onSubmit: (text) async {
           final result = await _service.replyToReview(review.id, text);
           if (result.isSuccess) {
@@ -108,7 +91,7 @@ class ReviewsController extends GetxController {
               );
             }
             Get.back();
-            UIHelper().showSnackBar('MINIZON', 'Votre réponse a été publiée.', 0);
+            UIHelper().showSnackBar('MINIZON', 'Réponse publiée.', 0);
             return true;
           } else {
             final svc = _service;
@@ -125,19 +108,24 @@ class ReviewsController extends GetxController {
     );
   }
 
-  // ── Computed getters used by the view ─────────────────────────────────────
+  // ── Computed ──────────────────────────────────────────────────────────────
 
   double get averageRating => summary.value?.averageRating ?? 0.0;
   int get totalReviews => summary.value?.totalReviews ?? 0;
-  Map<int, double> get ratingDistribution =>
-      summary.value?.ratingDistribution ?? const {};
+  int get pendingReplyCount => summary.value?.pendingReplyCount ?? 0;
 }
 
-// ── Reply sheet (owns its TextEditingController) ──────────────────────────────
+// ── Reply sheet with templates ────────────────────────────────────────────────
 
 class _ReplySheet extends StatefulWidget {
-  const _ReplySheet({required this.review, required this.onSubmit});
+  const _ReplySheet({
+    required this.review,
+    required this.templates,
+    required this.onSubmit,
+  });
+
   final ReviewModel review;
+  final List<ReplyTemplateModel> templates;
   final Future<bool> Function(String text) onSubmit;
 
   @override
@@ -146,12 +134,17 @@ class _ReplySheet extends StatefulWidget {
 
 class _ReplySheetState extends State<_ReplySheet> {
   bool _isSending = false;
-  final _replyCtrl = TextEditingController();
+  final _ctrl = TextEditingController();
 
   @override
   void dispose() {
-    _replyCtrl.dispose();
+    _ctrl.dispose();
     super.dispose();
+  }
+
+  void _applyTemplate(ReplyTemplateModel t) {
+    setState(() => _ctrl.text = t.text);
+    _ctrl.selection = TextSelection.collapsed(offset: t.text.length);
   }
 
   @override
@@ -181,14 +174,46 @@ class _ReplySheetState extends State<_ReplySheet> {
             const SizedBox(height: 16),
             Text('Répondre à ${widget.review.passengerName}',
                 style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 4),
-            if (widget.review.comment != null)
+            if (widget.review.comment != null) ...[
+              const SizedBox(height: 4),
               Text(widget.review.comment!,
                   style: const TextStyle(
                       fontSize: 13,
                       color: AppColors.textMuted,
                       fontStyle: FontStyle.italic)),
-            const SizedBox(height: 16),
+            ],
+            if (widget.templates.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: widget.templates.map((t) {
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: GestureDetector(
+                        onTap: () => _applyTemplate(t),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(9999),
+                            border: Border.all(
+                                color: AppColors.primary.withValues(alpha: 0.3)),
+                          ),
+                          child: Text(t.label,
+                              style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
             Container(
               decoration: BoxDecoration(
                 color: AppColors.surface,
@@ -196,7 +221,7 @@ class _ReplySheetState extends State<_ReplySheet> {
                 border: Border.all(color: AppColors.border, width: 1.5),
               ),
               child: TextField(
-                controller: _replyCtrl,
+                controller: _ctrl,
                 maxLines: 4,
                 autofocus: true,
                 decoration: const InputDecoration(
@@ -235,14 +260,15 @@ class _ReplySheetState extends State<_ReplySheet> {
                     onTap: _isSending
                         ? null
                         : () async {
-                            final text = _replyCtrl.text.trim();
+                            final text = _ctrl.text.trim();
                             if (text.isEmpty) {
-                              UIHelper().showSnackBar('MINIZON', 'Rédigez votre réponse.', 2);
+                              UIHelper().showSnackBar(
+                                  'MINIZON', 'Rédigez votre réponse.', 2);
                               return;
                             }
                             setState(() => _isSending = true);
-                            final success = await widget.onSubmit(text);
-                            if (mounted && !success) setState(() => _isSending = false);
+                            final ok = await widget.onSubmit(text);
+                            if (mounted && !ok) setState(() => _isSending = false);
                           },
                     child: Container(
                       height: 48,

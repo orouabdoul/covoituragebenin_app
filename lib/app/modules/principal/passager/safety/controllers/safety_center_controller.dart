@@ -19,13 +19,14 @@ class SafetyCenterController extends GetxController {
   final isSharingTrip  = false.obs;
   final shareCode      = ''.obs;
 
-  final emergencyContacts = <EmergencyContact>[].obs;
+  final emergencyContacts  = <EmergencyContact>[].obs;
+  final isLoadingContext   = true.obs;
 
   // Add contact form
-  final addNameController     = TextEditingController();
-  final addPhoneController    = TextEditingController();
-  final selectedRelation      = 'Famille'.obs;
-  final isAddingContact       = false.obs;
+  final addNameController  = TextEditingController();
+  final addPhoneController = TextEditingController();
+  final selectedRelation   = 'Famille'.obs;
+  final isAddingContact    = false.obs;
 
   static const _relationOptions = ['Famille', 'Ami·e', 'Collègue', 'Autre'];
 
@@ -36,7 +37,9 @@ class SafetyCenterController extends GetxController {
   }
 
   Future<void> _loadContext() async {
+    isLoadingContext.value = true;
     final result = await _service.fetchContext();
+    isLoadingContext.value = false;
     if (result.isSuccess) {
       final ctx = result.data!;
       sosActivated.value  = ctx.sosActive;
@@ -176,11 +179,12 @@ class SafetyCenterController extends GetxController {
 
   // ── Emergency Contacts ────────────────────────────────────────────────────
 
-  Future<void> removeContact(int index) async {
-    if (index >= emergencyContacts.length) return;
+  Future<void> removeContact(String contactId) async {
+    final index = emergencyContacts.indexWhere((c) => c.id == contactId);
+    if (index < 0) return;
     final contact = emergencyContacts[index];
     emergencyContacts.removeAt(index);
-    final result = await _service.deleteContact(contact.id);
+    final result = await _service.deleteContact(contactId);
     if (!result.isSuccess) {
       emergencyContacts.insert(index, contact);
       if (result.error != AppError.socket) {
@@ -190,6 +194,10 @@ class SafetyCenterController extends GetxController {
   }
 
   void addContact() {
+    if (emergencyContacts.length >= 5) {
+      Get.snackbar('Limite atteinte', 'Vous ne pouvez pas ajouter plus de 5 contacts d\'urgence.', backgroundColor: AppColors.warning, colorText: Colors.white);
+      return;
+    }
     addNameController.clear();
     addPhoneController.clear();
     selectedRelation.value = _relationOptions.first;

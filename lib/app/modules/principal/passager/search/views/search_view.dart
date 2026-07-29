@@ -41,6 +41,41 @@ class SearchView extends StatelessWidget {
 												);
 											}
 											final rides = controller.filteredSortedRides;
+											if (rides.isEmpty && controller.hasSearched.value) {
+												return Column(
+													children: [
+														_ResultsHeader(responsive: responsive, controller: controller),
+														Expanded(
+															child: Center(
+																child: Padding(
+																	padding: EdgeInsets.all(responsive.w(32)),
+																	child: Column(
+																		mainAxisSize: MainAxisSize.min,
+																		children: [
+																			Icon(Icons.search_off_rounded,
+																					size: responsive.text(56),
+																					color: AppColors.textHint),
+																			SizedBox(height: responsive.h(16)),
+																			Text(
+																				'Aucun trajet trouvé',
+																				style: AppTextStyles.homeSectionTitle(responsive),
+																				textAlign: TextAlign.center,
+																			),
+																			SizedBox(height: responsive.h(8)),
+																			Text(
+																				'Essayez une autre date, une autre ville ou réinitialisez les filtres.',
+																				style: AppTextStyles.caption(responsive)
+																						.copyWith(color: AppColors.textSecondary),
+																				textAlign: TextAlign.center,
+																			),
+																		],
+																	),
+																),
+															),
+														),
+													],
+												);
+											}
 											return ListView.separated(
 												padding: EdgeInsets.symmetric(
 													horizontal: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
@@ -789,7 +824,7 @@ class _RideCard extends StatelessWidget {
 									// Driver + price row
 									Row(
 										children: [
-											_Avatar(responsive: responsive, name: ride.driverName),
+											_Avatar(responsive: responsive, name: ride.driverName, initials: ride.driverInitials),
 											SizedBox(width: responsive.w(10)),
 											Expanded(
 												child: Column(
@@ -940,57 +975,125 @@ class _RouteTimeline extends StatelessWidget {
 
 	@override
 	Widget build(BuildContext context) {
-		return Row(
-			crossAxisAlignment: CrossAxisAlignment.start,
-			children: [
-				Column(
-					children: [
-						Container(
-							width: responsive.w(10),
-							height: responsive.w(10),
-							decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
-						),
-						Container(width: 2, height: responsive.h(22), color: AppColors.border),
-						Container(
-							width: responsive.w(10),
-							height: responsive.w(10),
-							decoration: BoxDecoration(
-								shape: BoxShape.circle,
-								border: Border.all(color: const Color(0xFFEF4444), width: 2),
-							),
-						),
-					],
-				),
-				SizedBox(width: responsive.w(10)),
-				Expanded(
-					child: Column(
-						crossAxisAlignment: CrossAxisAlignment.start,
+		final hasWaypoint =
+				ride.waypointCity != null && ride.waypointCity!.isNotEmpty;
+
+		return IntrinsicHeight(
+			child: Row(
+				crossAxisAlignment: CrossAxisAlignment.stretch,
+				children: [
+					// ── Left: dots + connector lines ──────────────────────────
+					Column(
 						children: [
-							Row(
-								children: [
-									Expanded(child: Text(ride.origin, style: AppTextStyles.subtitle(responsive))),
-									Text(
-										ride.departureTime,
-										style: AppTextStyles.caption(responsive).copyWith(fontWeight: FontWeight.w700),
-									),
-								],
+							Container(
+								width: responsive.w(10),
+								height: responsive.w(10),
+								decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
 							),
-							Text(ride.departureNote, style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint)),
-							SizedBox(height: responsive.h(8)),
-							Row(
-								children: [
-									Expanded(child: Text(ride.destination, style: AppTextStyles.subtitle(responsive))),
-									Text(
-										ride.arrivalTime,
-										style: AppTextStyles.caption(responsive).copyWith(fontWeight: FontWeight.w700, color: AppColors.textHint),
-									),
-								],
+							Expanded(
+								child: Container(
+									width: 2,
+									margin: EdgeInsets.symmetric(vertical: responsive.h(2)),
+									color: AppColors.border,
+								),
 							),
-							Text(ride.arrivalNote, style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint)),
+							if (hasWaypoint) ...[
+								Container(
+									width: responsive.w(8),
+									height: responsive.w(8),
+									decoration: const BoxDecoration(color: Color(0xFFF59E0B), shape: BoxShape.circle),
+								),
+								Expanded(
+									child: Container(
+										width: 2,
+										margin: EdgeInsets.symmetric(vertical: responsive.h(2)),
+										color: AppColors.border,
+									),
+								),
+							],
+							Container(
+								width: responsive.w(10),
+								height: responsive.w(10),
+								decoration: BoxDecoration(
+									shape: BoxShape.circle,
+									border: Border.all(color: const Color(0xFFEF4444), width: 2),
+								),
+							),
 						],
 					),
-				),
-			],
+					SizedBox(width: responsive.w(10)),
+					// ── Right: text content ────────────────────────────────────
+					Expanded(
+						child: Column(
+							crossAxisAlignment: CrossAxisAlignment.start,
+							children: [
+								Row(
+									children: [
+										Expanded(child: Text(ride.origin, style: AppTextStyles.subtitle(responsive))),
+										Text(
+											ride.departureTime,
+											style: AppTextStyles.caption(responsive).copyWith(fontWeight: FontWeight.w700),
+										),
+									],
+								),
+								if (ride.departureNote.isNotEmpty)
+									Text(ride.departureNote,
+											style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint)),
+								if (hasWaypoint) ...[
+									SizedBox(height: responsive.h(8)),
+									Row(
+										children: [
+											Container(
+												padding: EdgeInsets.symmetric(horizontal: responsive.w(7), vertical: responsive.h(3)),
+												decoration: BoxDecoration(
+													color: const Color(0xFFFEF3C7),
+													borderRadius: BorderRadius.circular(responsive.radius(6)),
+													border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.40)),
+												),
+												child: Row(
+													mainAxisSize: MainAxisSize.min,
+													children: [
+														const Icon(Icons.sync_alt_rounded, size: 11, color: Color(0xFFF59E0B)),
+														SizedBox(width: responsive.w(4)),
+														Text(ride.waypointCity!,
+																style: AppTextStyles.caption(responsive).copyWith(
+																	color: const Color(0xFF92400E),
+																	fontWeight: FontWeight.w600,
+																	fontSize: responsive.text(11),
+																)),
+													],
+												),
+											),
+											if (ride.waypointNote != null && ride.waypointNote!.isNotEmpty) ...[
+												SizedBox(width: responsive.w(6)),
+												Flexible(
+													child: Text(ride.waypointNote!,
+															style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint),
+															overflow: TextOverflow.ellipsis),
+												),
+											],
+										],
+									),
+								],
+								SizedBox(height: responsive.h(8)),
+								Row(
+									children: [
+										Expanded(child: Text(ride.destination, style: AppTextStyles.subtitle(responsive))),
+										Text(
+											ride.arrivalTime,
+											style: AppTextStyles.caption(responsive)
+													.copyWith(fontWeight: FontWeight.w700, color: AppColors.textHint),
+										),
+									],
+								),
+								if (ride.arrivalNote.isNotEmpty)
+									Text(ride.arrivalNote,
+											style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint)),
+							],
+						),
+					),
+				],
+			),
 		);
 	}
 }
@@ -1066,12 +1169,14 @@ class _SeatsChip extends StatelessWidget {
 // ── Avatar ─────────────────────────────────────────────────────────────────
 
 class _Avatar extends StatelessWidget {
-	const _Avatar({required this.responsive, required this.name});
+	const _Avatar({required this.responsive, required this.name, this.initials});
 
 	final AppResponsive responsive;
 	final String name;
+	final String? initials;
 
-	String get _initials {
+	String get _resolvedInitials {
+		if (initials != null && initials!.isNotEmpty) return initials!;
 		final parts = name.trim().split(RegExp(r'\s+'));
 		final a = parts.isNotEmpty && parts.first.isNotEmpty ? parts.first[0] : 'M';
 		final b = parts.length > 1 && parts[1].isNotEmpty ? parts[1][0] : '';
@@ -1090,7 +1195,7 @@ class _Avatar extends StatelessWidget {
 			),
 			child: Center(
 				child: Text(
-					_initials,
+					_resolvedInitials,
 					style: TextStyle(color: Colors.white, fontSize: responsive.text(14), fontFamily: 'Inter', fontWeight: FontWeight.w700),
 				),
 			),

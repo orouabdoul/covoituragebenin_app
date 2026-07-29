@@ -26,13 +26,15 @@ class PassengerRefundServiceImpl implements PassengerRefundService {
       final res = await _dio.get(
           AppApi.passengerRefundContext(bookingUuid), options: opts);
       logger.d('refundContext($bookingUuid) [${res.statusCode}]');
-      if (res.statusCode == 200 && res.data['success'] == true) {
-        return ApiResult.success(
-            RefundContext.fromJson(res.data['body'] as Map<String, dynamic>));
-      }
-      if (res.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
-      if (res.statusCode == 404) return ApiResult.failure(AppError.userNotFound);
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
+      if (res.statusCode == 404) return ApiResult.failure(AppError.tripNotFound);
+      if (res.statusCode == 200 && res.data is Map && res.data['success'] == true) {
+        final body = res.data['body'];
+        if (body is Map<String, dynamic>) {
+          return ApiResult.success(RefundContext.fromJson(body));
+        }
+      }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('refundContext: $e');
@@ -63,17 +65,17 @@ class PassengerRefundServiceImpl implements PassengerRefundService {
         options: opts,
       );
       logger.d('submitRefund($bookingUuid) [${res.statusCode}]');
-      if (res.statusCode == 201 && res.data['success'] == true) {
-        return ApiResult.success(
-            RefundResult.fromJson(res.data['body'] as Map<String, dynamic>));
-      }
-      if (res.statusCode == 409) {
-        return ApiResult.failure(AppError.refundAlreadySubmitted);
-      }
-      if (res.statusCode == 422) return ApiResult.failure(AppError.validationError);
-      if (res.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
-      if (res.statusCode == 404) return ApiResult.failure(AppError.userNotFound);
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
+      if (res.statusCode == 404) return ApiResult.failure(AppError.tripNotFound);
+      if (res.statusCode == 409) return ApiResult.failure(AppError.refundAlreadySubmitted);
+      if (res.statusCode == 422) return ApiResult.failure(AppError.validationError);
+      if (res.statusCode == 201 && res.data is Map && res.data['success'] == true) {
+        final body = res.data['body'];
+        if (body is Map<String, dynamic>) {
+          return ApiResult.success(RefundResult.fromJson(body));
+        }
+      }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('submitRefund: $e');
@@ -90,13 +92,14 @@ class PassengerRefundServiceImpl implements PassengerRefundService {
       final opts = await _authOptions();
       final res = await _dio.get(AppApi.passengerRefunds, options: opts);
       logger.d('passengerRefunds [${res.statusCode}]');
-      if (res.statusCode == 200 && res.data['success'] == true) {
-        final list = res.data['body'] as List? ?? [];
+      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 200 && res.data is Map && res.data['success'] == true) {
+        final body = res.data['body'];
+        final list = body is List ? body : [];
         return ApiResult.success(
             list.map((j) => RefundHistoryItem.fromJson(j as Map<String, dynamic>))
                 .toList());
       }
-      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('passengerRefunds: $e');

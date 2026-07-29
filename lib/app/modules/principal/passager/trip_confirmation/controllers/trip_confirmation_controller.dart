@@ -132,17 +132,29 @@ class TripConfirmationController extends GetxController {
     if (rating.value <= 0) return;
     isSubmitting.value = true;
     if (_bookingUuid.isNotEmpty) {
-      await _service.submitReview(
+      final result = await _service.submitReview(
         _bookingUuid,
         rating: rating.value,
         tags: selectedTags.toList(),
         comment: reviewController.text.trim(),
       );
+      isSubmitting.value = false;
+      if (!result.isSuccess) {
+        if (result.error == AppError.socket) {
+          // Erreur réseau — laisser l'utilisateur réessayer
+          return;
+        }
+        // 422 (déjà noté) ou format inattendu : l'avis a très probablement
+        // été enregistré côté serveur → on passe quand même à l'écran succès
+      }
     } else {
       await Future.delayed(const Duration(milliseconds: 1500));
+      isSubmitting.value = false;
     }
-    isSubmitting.value = false;
     submitted.value = true;
+    if (_bookingUuid.isNotEmpty && Get.isRegistered<ReservationController>()) {
+      Get.find<ReservationController>().markAsRated(_bookingUuid);
+    }
   }
 
   void skipReview() => BottonNavController.goToTab(0);

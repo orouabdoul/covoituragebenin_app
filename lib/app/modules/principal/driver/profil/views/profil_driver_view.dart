@@ -151,10 +151,10 @@ class ProfilDriverView extends StatelessWidget {
                     width: double.infinity,
                     padding: EdgeInsets.symmetric(vertical: responsive.h(16)),
                     decoration: ShapeDecoration(
-                      color: const Color(0xFFFFF1F1),
+                      color: AppColors.dangerSurface,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(responsive.radius(16)),
-                        side: const BorderSide(color: Color(0xFFFFCDD2)),
+                        side: const BorderSide(color: AppColors.dangerBorder),
                       ),
                     ),
                     child: Row(
@@ -162,14 +162,14 @@ class ProfilDriverView extends StatelessWidget {
                       children: [
                         Icon(
                           Icons.logout_rounded,
-                          color: const Color(0xFFE53935),
+                          color: AppColors.danger,
                           size: responsive.text(18),
                         ),
                         SizedBox(width: responsive.w(8)),
                         Text(
                           'Se déconnecter',
                           style: AppTextStyles.profileSectionLabel(responsive).copyWith(
-                            color: const Color(0xFFE53935),
+                            color: AppColors.danger,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -932,10 +932,10 @@ class _VehicleCard extends StatelessWidget {
                             horizontal: responsive.w(8),
                             vertical: responsive.h(4),
                           ),
-                          decoration: ShapeDecoration(
-                            color: const Color(0x33F4B400),
+                          decoration: const ShapeDecoration(
+                            color: AppColors.accentMedium,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(9999),
+                              borderRadius: BorderRadius.all(Radius.circular(9999)),
                             ),
                           ),
                           child: Text(
@@ -1116,7 +1116,7 @@ class _PerformanceSection extends StatelessWidget {
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [AppColors.accent, Color(0xFFFB923C)],
+              colors: [AppColors.accent, AppColors.orange],
             ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(responsive.radius(16)),
@@ -1466,11 +1466,11 @@ class _DriverEmergencyContactsSection extends StatelessWidget {
       width: double.infinity,
       padding: EdgeInsets.all(responsive.w(20)),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(responsive.radius(20)),
         border: Border.all(color: AppColors.border),
         boxShadow: const [
-          BoxShadow(color: Color(0x14000000), blurRadius: 12, offset: Offset(0, 4)),
+          BoxShadow(color: AppColors.shadow, blurRadius: 12, offset: Offset(0, 4)),
         ],
       ),
       child: Column(
@@ -1483,12 +1483,12 @@ class _DriverEmergencyContactsSection extends StatelessWidget {
                 children: [
                   Container(
                     width: responsive.w(36), height: responsive.w(36),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEF4444).withValues(alpha: 0.10),
+                    decoration: const BoxDecoration(
+                      color: AppColors.dangerLight,
                       shape: BoxShape.circle,
                     ),
                     child: Icon(Icons.shield_rounded,
-                        color: const Color(0xFFEF4444),
+                        color: AppColors.danger,
                         size: responsive.text(18)),
                   ),
                   SizedBox(width: responsive.w(10)),
@@ -1606,15 +1606,15 @@ class _DriverContactTile extends StatelessWidget {
         children: [
           Container(
             width: responsive.w(38), height: responsive.w(38),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEF4444).withValues(alpha: 0.10),
+            decoration: const BoxDecoration(
+              color: AppColors.dangerLight,
               shape: BoxShape.circle,
             ),
             child: Center(
               child: Text(initials,
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFFEF4444),
+                    color: AppColors.danger,
                     fontSize: responsive.text(14),
                   )),
             ),
@@ -1638,7 +1638,7 @@ class _DriverContactTile extends StatelessWidget {
           IconButton(
             onPressed: onDelete,
             icon: Icon(Icons.delete_outline_rounded,
-                color: const Color(0xFFEF4444), size: responsive.text(20)),
+                color: AppColors.danger, size: responsive.text(20)),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
           ),

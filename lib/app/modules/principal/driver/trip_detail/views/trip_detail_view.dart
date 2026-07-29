@@ -55,6 +55,10 @@ class TripDetailView extends StatelessWidget {
                         _FinancesCard(r: r, trip: trip),
                         SizedBox(height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
                         _StatsRow(r: r, trip: trip),
+                        if (trip.status == TripStatus.completed) ...[
+                          SizedBox(height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+                          _ReviewsSection(r: r, controller: controller),
+                        ],
                         SizedBox(height: r.adaptive(phone: 20, smallPhone: 18, tablet: 24, desktop: 28)),
                         if (isActionable) ...[
                           _MapButton(r: r, controller: controller),
@@ -255,7 +259,7 @@ class _RouteCard extends StatelessWidget {
           _RouteRow(
             r: r,
             icon: Icons.location_on_rounded,
-            iconColor: const Color(0xFFEF4444),
+            iconColor: AppColors.danger,
             label: 'Arrivée',
             value: trip.destination,
             time: '~16:35',
@@ -502,7 +506,7 @@ class _PassengerRow extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: isPaid
                       ? AppColors.surfaceSuccess
-                      : const Color(0x19F4B400),
+                      : AppColors.accentLight,
                   borderRadius: BorderRadius.circular(r.adaptive(phone: 20, smallPhone: 18, tablet: 24, desktop: 28)),
                 ),
                 child: Text(
@@ -510,7 +514,7 @@ class _PassengerRow extends StatelessWidget {
                   style: AppTextStyles.labelSmall(r).copyWith(
                     color: isPaid
                         ? AppColors.success
-                        : const Color(0xFFF4B400),
+                        : AppColors.accent,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -603,7 +607,7 @@ class _FinancesCard extends StatelessWidget {
             label: 'Commission MINIZON (${trip.commissionRate}%)',
             value: '-${trip.commission.toStringAsFixed(0)} FCFA',
             isTotal: false,
-            valueColor: const Color(0xFFE53935),
+            valueColor: AppColors.danger,
           ),
           Divider(height: r.adaptive(phone: 20, smallPhone: 16, tablet: 24, desktop: 28), color: AppColors.border),
           _FinRow(r: r, label: 'Vos revenus nets', value: '${trip.netRevenue.toStringAsFixed(0)} FCFA', isTotal: true),
@@ -827,10 +831,77 @@ class _CancelButton extends StatelessWidget {
           child: Text(
             'Annuler ce trajet',
             style: AppTextStyles.bodySmall(r).copyWith(
-              color: const Color(0xFFE53935),
+              color: AppColors.danger,
               fontWeight: FontWeight.w600,
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Reviews Section (completed trips only) ────────────────────────────────────
+
+class _ReviewsSection extends StatelessWidget {
+  const _ReviewsSection({required this.r, required this.controller});
+  final AppResponsive r;
+  final TripDetailController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: controller.onViewReviews,
+      child: Container(
+        padding: EdgeInsets.all(r.adaptive(phone: 16, smallPhone: 14, tablet: 18, desktop: 20)),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: r.adaptive(phone: 44, smallPhone: 40, tablet: 48, desktop: 52),
+              height: r.adaptive(phone: 44, smallPhone: 40, tablet: 48, desktop: 52),
+              decoration: BoxDecoration(
+                color: AppColors.accentLight,
+                borderRadius: BorderRadius.circular(
+                    r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+              ),
+              child: Icon(
+                Icons.star_rounded,
+                size: r.adaptive(phone: 22, smallPhone: 20, tablet: 24, desktop: 26),
+                color: AppColors.accent,
+              ),
+            ),
+            SizedBox(width: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Avis passagers',
+                    style: AppTextStyles.homeCardTitle(r).copyWith(
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  SizedBox(height: r.adaptive(phone: 2, smallPhone: 1, tablet: 3, desktop: 4)),
+                  Text(
+                    'Voir et répondre aux avis de ce trajet',
+                    style: AppTextStyles.labelSmall(r).copyWith(
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              size: r.adaptive(phone: 20, smallPhone: 18, tablet: 22, desktop: 24),
+              color: AppColors.textHint,
+            ),
+          ],
         ),
       ),
     );

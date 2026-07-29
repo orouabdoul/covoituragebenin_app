@@ -111,6 +111,8 @@ import '../modules/principal/driver/safety/bindings/driver_safety_binding.dart';
 import '../modules/principal/driver/safety/views/driver_safety_view.dart';
 import '../modules/principal/driver/support/bindings/driver_support_binding.dart';
 import '../modules/principal/driver/support/views/driver_support_view.dart';
+import '../modules/principal/driver/trip_reviews/bindings/trip_reviews_binding.dart';
+import '../modules/principal/driver/trip_reviews/views/trip_reviews_view.dart';
 
 import 'app_routes.dart';
 
@@ -385,6 +387,11 @@ class AppPages {
       name: AppRoutes.driverSupportCenter,
       page: () => const DriverSupportView(),
       binding: DriverSupportBinding(),
+    ),
+    _page(
+      name: AppRoutes.driverTripReviews,
+      page: () => const TripReviewsView(),
+      binding: TripReviewsBinding(),
     ),
   ];
 }

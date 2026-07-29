@@ -32,18 +32,16 @@ class PassengerNotificationsServiceImpl
         queryParameters: {'filter': filter, 'per_page': perPage},
         options: opts,
       );
-      logger.d(
-          'passengerNotifications [${response.statusCode}] ${response.data}');
-      if (response.statusCode == 200 && response.data['success'] == true) {
-        final body = response.data['body'] as Map<String, dynamic>;
-        return ApiResult.success(
-            PassengerNotificationsBodyModel.fromJson(body));
-      }
-      if (response.statusCode == 401) {
-        return ApiResult.failure(AppError.unAuthenticated);
-      }
-      if (response.statusCode == 403) {
-        return ApiResult.failure(AppError.permissionDenied);
+      logger.d('passengerNotifications [${response.statusCode}]');
+      if (response.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (response.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
+      if (response.statusCode == 200 &&
+          response.data is Map &&
+          response.data['success'] == true) {
+        final body = response.data['body'];
+        if (body is Map<String, dynamic>) {
+          return ApiResult.success(PassengerNotificationsBodyModel.fromJson(body));
+        }
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
@@ -63,9 +61,14 @@ class PassengerNotificationsServiceImpl
         AppApi.passengerNotificationRead(id),
         options: opts,
       );
+      logger.d('markAsRead($id) [${response.statusCode}]');
+      if (response.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (response.statusCode == 404) return ApiResult.failure(AppError.tripNotFound);
       if (response.statusCode == 200) return ApiResult.success(null);
       return ApiResult.failure(AppError.unexpected);
-    } catch (_) {
+    } on DioException catch (e) {
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -78,9 +81,13 @@ class PassengerNotificationsServiceImpl
         AppApi.passengerNotificationsReadAll,
         options: opts,
       );
+      logger.d('markAllRead [${response.statusCode}]');
+      if (response.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       if (response.statusCode == 200) return ApiResult.success(null);
       return ApiResult.failure(AppError.unexpected);
-    } catch (_) {
+    } on DioException catch (e) {
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -93,11 +100,16 @@ class PassengerNotificationsServiceImpl
         AppApi.passengerNotificationDelete(id),
         options: opts,
       );
+      logger.d('deleteNotification($id) [${response.statusCode}]');
+      if (response.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (response.statusCode == 404) return ApiResult.failure(AppError.tripNotFound);
       if (response.statusCode == 200 || response.statusCode == 204) {
         return ApiResult.success(null);
       }
       return ApiResult.failure(AppError.unexpected);
-    } catch (_) {
+    } on DioException catch (e) {
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
       return ApiResult.failure(AppError.unexpected);
     }
   }

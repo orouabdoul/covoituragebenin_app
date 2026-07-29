@@ -1155,41 +1155,85 @@ class _SeatsCard extends StatelessWidget {
 						child: Obx(() {
 							final current = controller.reservedSeats.value;
 							final max = controller.maxSeats;
-							return Row(
-								mainAxisAlignment: MainAxisAlignment.spaceBetween,
+							final available = controller.effectiveAvailable;
+							final cap = controller.maxPerBooking.value;
+							final isLoading = controller.isLoadingContext.value && available == 0;
+							return Column(
 								children: [
-									AppCircularButton(
-										responsive: responsive,
-										icon: Icons.remove_rounded,
-										onTap: controller.decrementSeats,
-										enabled: current > 1,
-										size: responsive.w(48),
-									),
-									Column(
+									Row(
+										mainAxisAlignment: MainAxisAlignment.spaceBetween,
 										children: [
-											Text(
-												current.toString(),
-												textAlign: TextAlign.center,
-												style: AppTextStyles.price(responsive).copyWith(fontSize: responsive.text(30)),
+											AppCircularButton(
+												responsive: responsive,
+												icon: Icons.remove_rounded,
+												onTap: controller.decrementSeats,
+												enabled: current > 1,
+												size: responsive.w(48),
 											),
-											Text(AppStrings.reservationSeatsReserved, style: AppTextStyles.caption(responsive)),
-											if (max > 0) ...[
-												SizedBox(height: responsive.h(4)),
-												Text(
-													'$max place(s) disponible(s)',
-													style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint, fontSize: responsive.text(10)),
-												),
-											],
+											Column(
+												children: [
+													isLoading
+															? SizedBox(
+																	width: responsive.w(30),
+																	height: responsive.w(30),
+																	child: const CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+																)
+															: Text(
+																	current.toString(),
+																	textAlign: TextAlign.center,
+																	style: AppTextStyles.price(responsive).copyWith(fontSize: responsive.text(30)),
+																),
+													Text(AppStrings.reservationSeatsReserved, style: AppTextStyles.caption(responsive)),
+													if (!isLoading && available > 0) ...[
+														SizedBox(height: responsive.h(4)),
+														Text(
+															'$available place${available > 1 ? 's' : ''} disponible${available > 1 ? 's' : ''}',
+															style: AppTextStyles.caption(responsive).copyWith(
+																color: AppColors.primary,
+																fontSize: responsive.text(10),
+																fontWeight: FontWeight.w600,
+															),
+														),
+													],
+												],
+											),
+											AppCircularButton(
+												responsive: responsive,
+												icon: Icons.add_rounded,
+												onTap: controller.incrementSeats,
+												filled: true,
+												enabled: !isLoading && (max <= 0 || current < max),
+												size: responsive.w(48),
+											),
 										],
 									),
-									AppCircularButton(
-										responsive: responsive,
-										icon: Icons.add_rounded,
-										onTap: controller.incrementSeats,
-										filled: true,
-										enabled: max <= 0 || current < max,
-										size: responsive.w(48),
-									),
+									// Affiche la limite conducteur si elle est inférieure aux places dispo
+									if (!isLoading && cap > 0 && available > cap) ...[
+										SizedBox(height: responsive.h(10)),
+										Container(
+											padding: EdgeInsets.symmetric(horizontal: responsive.w(10), vertical: responsive.h(6)),
+											decoration: BoxDecoration(
+												color: const Color(0xFFFFF7ED),
+												borderRadius: BorderRadius.circular(responsive.radius(8)),
+												border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.4)),
+											),
+											child: Row(
+												children: [
+													Icon(Icons.info_outline_rounded, size: responsive.text(13), color: const Color(0xFFF59E0B)),
+													SizedBox(width: responsive.w(6)),
+													Expanded(
+														child: Text(
+															'Le conducteur autorise max $cap place${cap > 1 ? 's' : ''} par réservation',
+															style: AppTextStyles.caption(responsive).copyWith(
+																color: const Color(0xFF92400E),
+																fontSize: responsive.text(11),
+															),
+														),
+													),
+												],
+											),
+										),
+									],
 								],
 							);
 						}),

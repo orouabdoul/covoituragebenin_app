@@ -25,12 +25,14 @@ class PassengerReviewsServiceImpl implements PassengerReviewsService {
       final opts = await _authOptions();
       final response = await _dio.get(AppApi.passengerReviews, options: opts);
       logger.d('passengerReviews [${response.statusCode}]');
-      if (response.statusCode == 200 && response.data['success'] == true) {
-        final body = response.data['body'] as Map<String, dynamic>;
-        return ApiResult.success(PassengerReviewsDashboard.fromJson(body));
-      }
       if (response.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       if (response.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
+      if (response.statusCode == 200 && response.data is Map && response.data['success'] == true) {
+        final body = response.data['body'];
+        if (body is Map<String, dynamic>) {
+          return ApiResult.success(PassengerReviewsDashboard.fromJson(body));
+        }
+      }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('passengerReviews: $e');

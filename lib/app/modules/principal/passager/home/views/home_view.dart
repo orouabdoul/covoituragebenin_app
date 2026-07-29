@@ -166,7 +166,7 @@ class HomeView extends StatelessWidget {
                         responsive: responsive,
                         title: AppStrings.homeRecentActivity,
                         actionLabel: AppStrings.homeViewAll,
-                        onAction: controller.onSeeAllTrips,
+                        onAction: controller.openTripHistory,
                       ),
                       SizedBox(height: responsive.adaptive(
                           phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
@@ -255,6 +255,21 @@ class _TopBar extends StatelessWidget {
             ],
           ),
         ),
+        InkWell(
+          onTap: controller.openNotifications,
+          borderRadius: BorderRadius.circular(9999),
+          child: Container(
+            width: responsive.w(40),
+            height: responsive.w(40),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceSoft,
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Icon(Icons.notifications_outlined, color: AppColors.textSecondary, size: responsive.text(18)),
+          ),
+        ),
+        SizedBox(width: responsive.w(8)),
         InkWell(
           onTap: controller.openTrustHub,
           borderRadius: BorderRadius.circular(9999),
@@ -457,15 +472,6 @@ class _TripTrackingCard extends StatelessWidget {
   final HomeUpcomingTrip trip;
   final HomeController controller;
 
-  Color _levelColor(String level) {
-    switch (level.toLowerCase()) {
-      case 'or': return const Color(0xFFD4AF37);
-      case 'platine': return const Color(0xFF00A86B);
-      case 'argent': return const Color(0xFF6B7280);
-      default: return const Color(0xFFCD7F32);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final bool isActive = trip.status == UpcomingTripStatus.inProgress;
@@ -489,7 +495,7 @@ class _TripTrackingCard extends StatelessWidget {
             ? "Voir l'arrivée"
             : 'Voir les détails';
 
-    final Color levelColor = _levelColor(trip.driverLevel);
+    final Color levelColor = _driverLevelColor(trip.driverLevel);
     final String initials = trip.driverInitials.isNotEmpty
         ? trip.driverInitials
         : _initialsFromName(trip.driverName);
@@ -827,10 +833,10 @@ class _TripTrackingCard extends StatelessWidget {
                 child: _InlineActionButton(
                   responsive: responsive,
                   label: 'Contacter',
-                  icon: Icons.call_rounded,
+                  icon: Icons.chat_bubble_outline_rounded,
                   backgroundColor: AppColors.surfaceSoft,
                   textColor: AppColors.textPrimary,
-                  onTap: () {},
+                  onTap: () => controller.openContactDriver(trip),
                 ),
               ),
               SizedBox(width: responsive.w(10)),
@@ -865,15 +871,6 @@ class _DriverLevelCard extends StatelessWidget {
   final AppResponsive responsive;
   final HomeUpcomingTrip trip;
 
-  Color _levelColor(String level) {
-    switch (level.toLowerCase()) {
-      case 'or': return const Color(0xFFD4AF37);
-      case 'platine': return const Color(0xFF00A86B);
-      case 'argent': return const Color(0xFF6B7280);
-      default: return const Color(0xFFCD7F32);
-    }
-  }
-
   String _nextLevel(String level) {
     switch (level.toLowerCase()) {
       case 'bronze': return 'Argent';
@@ -894,7 +891,7 @@ class _DriverLevelCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color levelColor = _levelColor(trip.driverLevel);
+    final Color levelColor = _driverLevelColor(trip.driverLevel);
     final String nextLevel = _nextLevel(trip.driverLevel);
 
     return Container(
@@ -1025,37 +1022,6 @@ class _DriverLevelCard extends StatelessWidget {
           ],
         ],
       ),
-    );
-  }
-}
-
-class _PulsingDot extends StatefulWidget {
-  @override
-  State<_PulsingDot> createState() => _PulsingDotState();
-}
-
-class _PulsingDotState extends State<_PulsingDot> with SingleTickerProviderStateMixin {
-  late final AnimationController _anim;
-  late final Animation<double> _scale;
-
-  @override
-  void initState() {
-    super.initState();
-    _anim = AnimationController(vsync: this, duration: const Duration(milliseconds: 800))..repeat(reverse: true);
-    _scale = Tween(begin: 0.7, end: 1.0).animate(CurvedAnimation(parent: _anim, curve: Curves.easeInOut));
-  }
-
-  @override
-  void dispose() {
-    _anim.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ScaleTransition(
-      scale: _scale,
-      child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
     );
   }
 }
@@ -1208,19 +1174,19 @@ class _HeroSection extends StatelessWidget {
               SizedBox(height: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 18, desktop: 18)),
               Row(
                 children: [
-                  SizedBox(
-                    width: metricWidth,
-                    child: _HeroMetricCard(metric: metrics[0], responsive: responsive),
-                  ),
-                  SizedBox(width: metricGap),
-                  SizedBox(
-                    width: metricWidth,
-                    child: _HeroMetricCard(metric: metrics[1], responsive: responsive),
-                  ),
-                  SizedBox(width: metricGap),
-                  Expanded(
-                    child: _HeroMetricCard(metric: metrics[2], responsive: responsive),
-                  ),
+                  for (var i = 0; i < metrics.length; i++) ...[
+                    if (i == metrics.length - 1)
+                      Expanded(
+                        child: _HeroMetricCard(metric: metrics[i], responsive: responsive),
+                      )
+                    else ...[
+                      SizedBox(
+                        width: metricWidth,
+                        child: _HeroMetricCard(metric: metrics[i], responsive: responsive),
+                      ),
+                      SizedBox(width: metricGap),
+                    ],
+                  ],
                 ],
               ),
             ],
@@ -1445,7 +1411,7 @@ class _RideCard extends StatelessWidget {
                         SizedBox(height: responsive.h(2)),
                         Row(
                           children: [
-                            Icon(Icons.star_rounded, size: responsive.text(12), color: AppColors.warning),
+                            Icon(Icons.directions_car_outlined, size: responsive.text(12), color: AppColors.textHint),
                             SizedBox(width: responsive.w(4)),
                             Text(ride.driverVehicle, style: AppTextStyles.homeCardBody(responsive)),
                           ],
@@ -1794,4 +1760,17 @@ String _initialsFromName(String name) {
   final String first = parts.first.isNotEmpty ? parts.first[0] : 'M';
   final String second = parts.length > 1 && parts[1].isNotEmpty ? parts[1][0] : '';
   return (first + second).toUpperCase();
+}
+
+Color _driverLevelColor(String level) {
+  switch (level.toLowerCase()) {
+    case 'or':
+      return const Color(0xFFD4AF37);
+    case 'platine':
+      return const Color(0xFF00A86B);
+    case 'argent':
+      return const Color(0xFF6B7280);
+    default:
+      return const Color(0xFFCD7F32);
+  }
 }

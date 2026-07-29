@@ -307,6 +307,16 @@ class TripDetailController extends GetxController {
     }
   }
 
+  void onViewReviews() {
+    Get.toNamed(
+      AppRoutes.driverTripReviews,
+      arguments: {
+        'tripUuid': _tripUuid,
+        'tripRoute': '${trip.origin} → ${trip.destination}',
+      },
+    );
+  }
+
   Future<void> onContactPassenger(TripPassengerModel passenger) async {
     final phone = passenger.phone;
     if (phone == null || phone.isEmpty) {

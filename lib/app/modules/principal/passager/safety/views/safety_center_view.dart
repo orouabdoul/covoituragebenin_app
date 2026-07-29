@@ -407,28 +407,37 @@ class _EmergencyContactsCard extends StatelessWidget {
 						children: [
 							Text('Contacts d\'urgence', style: AppTextStyles.h6(responsive)),
 							const Spacer(),
-							InkWell(
-								onTap: controller.addContact,
-								borderRadius: BorderRadius.circular(8),
-								child: Container(
-									padding: EdgeInsets.symmetric(horizontal: responsive.w(10), vertical: responsive.h(4)),
-									decoration: BoxDecoration(
-										color: AppColors.primary.withValues(alpha: 0.10),
-										borderRadius: BorderRadius.circular(8),
+							Obx(() {
+								if (controller.emergencyContacts.length >= 5) return const SizedBox.shrink();
+								return InkWell(
+									onTap: controller.addContact,
+									borderRadius: BorderRadius.circular(8),
+									child: Container(
+										padding: EdgeInsets.symmetric(horizontal: responsive.w(10), vertical: responsive.h(4)),
+										decoration: BoxDecoration(
+											color: AppColors.primary.withValues(alpha: 0.10),
+											borderRadius: BorderRadius.circular(8),
+										),
+										child: Row(
+											children: [
+												Icon(Icons.add_rounded, color: AppColors.primary, size: responsive.text(14)),
+												SizedBox(width: responsive.w(4)),
+												Text('Ajouter', style: AppTextStyles.caption(responsive).copyWith(color: AppColors.primary, fontWeight: FontWeight.w600)),
+											],
+										),
 									),
-									child: Row(
-										children: [
-											Icon(Icons.add_rounded, color: AppColors.primary, size: responsive.text(14)),
-											SizedBox(width: responsive.w(4)),
-											Text('Ajouter', style: AppTextStyles.caption(responsive).copyWith(color: AppColors.primary, fontWeight: FontWeight.w600)),
-										],
-									),
-								),
-							),
+								);
+							}),
 						],
 					),
 					SizedBox(height: responsive.h(14)),
 					Obx(() {
+						if (controller.isLoadingContext.value) {
+							return const Padding(
+								padding: EdgeInsets.symmetric(vertical: 16),
+								child: Center(child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2)),
+							);
+						}
 						if (controller.emergencyContacts.isEmpty) {
 							return Padding(
 								padding: EdgeInsets.symmetric(vertical: responsive.h(12)),
@@ -442,6 +451,7 @@ class _EmergencyContactsCard extends StatelessWidget {
 						return Column(
 							children: List.generate(controller.emergencyContacts.length, (i) {
 								final contact = controller.emergencyContacts[i];
+								final initials = contact.initials.isNotEmpty ? contact.initials : '?';
 								return Dismissible(
 									key: ValueKey(contact.id),
 									direction: DismissDirection.endToStart,
@@ -454,7 +464,7 @@ class _EmergencyContactsCard extends StatelessWidget {
 										),
 										child: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444)),
 									),
-									onDismissed: (_) => controller.removeContact(i),
+									onDismissed: (_) => controller.removeContact(contact.id),
 									child: Container(
 										margin: EdgeInsets.only(bottom: responsive.h(i < controller.emergencyContacts.length - 1 ? 10 : 0)),
 										padding: EdgeInsets.all(responsive.w(12)),
@@ -474,8 +484,8 @@ class _EmergencyContactsCard extends StatelessWidget {
 													),
 													child: Center(
 														child: Text(
-															contact.name.isNotEmpty ? contact.name[0].toUpperCase() : 'C',
-															style: TextStyle(color: AppColors.primary, fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: responsive.text(16)),
+															initials,
+															style: TextStyle(color: AppColors.primary, fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: responsive.text(14)),
 														),
 													),
 												),

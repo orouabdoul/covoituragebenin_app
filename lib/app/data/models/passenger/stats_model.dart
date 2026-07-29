@@ -15,11 +15,11 @@ class PassengerStatsBookings {
 
   factory PassengerStatsBookings.fromJson(Map<String, dynamic> j) =>
       PassengerStatsBookings(
-        total: j['total'] as int? ?? 0,
-        accepted: j['accepted'] as int? ?? 0,
-        completed: j['completed'] as int? ?? 0,
-        cancelled: j['cancelled'] as int? ?? 0,
-        rejected: j['rejected'] as int? ?? 0,
+        total: (j['total'] as num?)?.toInt() ?? 0,
+        accepted: (j['accepted'] as num?)?.toInt() ?? 0,
+        completed: (j['completed'] as num?)?.toInt() ?? 0,
+        cancelled: (j['cancelled'] as num?)?.toInt() ?? 0,
+        rejected: (j['rejected'] as num?)?.toInt() ?? 0,
       );
 }
 
@@ -34,31 +34,42 @@ class PassengerStatsSpending {
 
   factory PassengerStatsSpending.fromJson(Map<String, dynamic> j) =>
       PassengerStatsSpending(
-        totalFcfa: j['total_fcfa'] as int? ?? 0,
-        thisMonthFcfa: j['this_month_fcfa'] as int? ?? 0,
+        totalFcfa: (j['total_fcfa'] as num?)?.toInt() ?? 0,
+        thisMonthFcfa: (j['this_month_fcfa'] as num?)?.toInt() ?? 0,
       );
 }
 
 class PassengerTopDriver {
   const PassengerTopDriver({
+    required this.driverUuid,
     required this.name,
     required this.initials,
     required this.tripsCount,
-    required this.rating,
+    required this.totalSpent,
   });
 
+  final String driverUuid;
   final String name;
   final String initials;
   final int tripsCount;
-  final String rating;
+  final int totalSpent;
 
-  factory PassengerTopDriver.fromJson(Map<String, dynamic> j) =>
-      PassengerTopDriver(
-        name: j['name'] as String? ?? '',
-        initials: j['initials'] as String? ?? '',
-        tripsCount: j['trips_count'] as int? ?? 0,
-        rating: j['rating'] as String? ?? '',
-      );
+  factory PassengerTopDriver.fromJson(Map<String, dynamic> j) {
+    final rawName = (j['driver_name'] ?? '').toString();
+    final initials = rawName
+        .split(' ')
+        .where((w) => w.isNotEmpty)
+        .take(2)
+        .map((w) => w[0].toUpperCase())
+        .join();
+    return PassengerTopDriver(
+      driverUuid: (j['driver_uuid'] ?? '').toString(),
+      name: rawName,
+      initials: initials,
+      tripsCount: (j['trips_count'] as num?)?.toInt() ?? 0,
+      totalSpent: (j['total_spent'] as num?)?.toInt() ?? 0,
+    );
+  }
 }
 
 class PassengerStatsModel {
@@ -77,12 +88,13 @@ class PassengerStatsModel {
   factory PassengerStatsModel.fromJson(Map<String, dynamic> j) =>
       PassengerStatsModel(
         bookings: PassengerStatsBookings.fromJson(
-            j['bookings'] as Map<String, dynamic>),
+            (j['bookings'] as Map<String, dynamic>?) ?? {}),
         spending: PassengerStatsSpending.fromJson(
-            j['spending'] as Map<String, dynamic>),
-        topDrivers: (j['top_drivers'] as List<dynamic>? ?? [])
-            .map((e) => PassengerTopDriver.fromJson(e as Map<String, dynamic>))
+            (j['spending'] as Map<String, dynamic>?) ?? {}),
+        topDrivers: (j['top_drivers'] as List? ?? [])
+            .whereType<Map<String, dynamic>>()
+            .map((e) => PassengerTopDriver.fromJson(e))
             .toList(),
-        memberSince: j['member_since'] as String? ?? '',
+        memberSince: (j['member_since'] ?? '').toString(),
       );
 }

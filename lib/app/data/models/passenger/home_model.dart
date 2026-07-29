@@ -80,7 +80,7 @@ class PassengerUpcomingTripData {
       driverLevelProgress:
           (json['driver_level_progress'] as num?)?.toDouble() ?? 0.0,
       driverBadges: (json['driver_badges'] as List?)
-              ?.map((b) => b as String)
+              ?.map((b) => b.toString())
               .toList() ??
           [],
       seatsBooked: (json['seats_booked'] as num?)?.toInt() ?? 1,
@@ -269,39 +269,33 @@ class PassengerHomeDashboard {
   factory PassengerHomeDashboard.fromJson(Map<String, dynamic> json) =>
       PassengerHomeDashboard(
         greeting: (json['greeting'] as String?) ?? '',
-        upcomingTrip: json['upcoming_trip'] != null
+        upcomingTrip: json['upcoming_trip'] is Map<String, dynamic>
             ? PassengerUpcomingTripData.fromJson(
                 json['upcoming_trip'] as Map<String, dynamic>)
             : null,
-        heroMetrics: (json['hero_metrics'] as List?)
-                ?.map((m) =>
-                    PassengerMetricData.fromJson(m as Map<String, dynamic>))
-                .toList() ??
-            [],
-        popularRoutes: (json['popular_routes'] as List?)
-                ?.map((r) =>
-                    PassengerRouteData.fromJson(r as Map<String, dynamic>))
-                .toList() ??
-            [],
-        availableRides: (json['available_rides'] as List?)
-                ?.map((r) =>
-                    PassengerRideData.fromJson(r as Map<String, dynamic>))
-                .toList() ??
-            [],
-        recommendedDrivers: (json['recommended_drivers'] as List?)
-                ?.map((d) =>
-                    PassengerDriverData.fromJson(d as Map<String, dynamic>))
-                .toList() ??
-            [],
-        specialOffers: (json['special_offers'] as List?)
-                ?.map((o) =>
-                    PassengerOfferData.fromJson(o as Map<String, dynamic>))
-                .toList() ??
-            [],
-        recentActivities: (json['recent_activities'] as List?)
-                ?.map((a) =>
-                    PassengerActivityData.fromJson(a as Map<String, dynamic>))
-                .toList() ??
-            [],
+        heroMetrics: (json['hero_metrics'] as List? ?? [])
+            .whereType<Map<String, dynamic>>()
+            .map((m) => PassengerMetricData.fromJson(m))
+            .toList(),
+        popularRoutes: (json['popular_routes'] as List? ?? [])
+            .whereType<Map<String, dynamic>>()
+            .map((r) => PassengerRouteData.fromJson(r))
+            .toList(),
+        availableRides: (json['available_rides'] as List? ?? [])
+            .whereType<Map<String, dynamic>>()
+            .map((r) => PassengerRideData.fromJson(r))
+            .toList(),
+        recommendedDrivers: (json['recommended_drivers'] as List? ?? [])
+            .whereType<Map<String, dynamic>>()
+            .map((d) => PassengerDriverData.fromJson(d))
+            .toList(),
+        specialOffers: (json['special_offers'] as List? ?? [])
+            .whereType<Map<String, dynamic>>()
+            .map((o) => PassengerOfferData.fromJson(o))
+            .toList(),
+        recentActivities: (json['recent_activities'] as List? ?? [])
+            .whereType<Map<String, dynamic>>()
+            .map((a) => PassengerActivityData.fromJson(a))
+            .toList(),
       );
 }

@@ -38,6 +38,35 @@ class RefundRequestView extends StatelessWidget {
 																vertical: responsive.h(16),
 															),
 															children: [
+																Obx(() {
+																	if (!controller.alreadyRefunded.value) return const SizedBox.shrink();
+																	return Padding(
+																		padding: EdgeInsets.only(bottom: responsive.h(16)),
+																		child: Container(
+																			padding: EdgeInsets.all(responsive.w(14)),
+																			decoration: BoxDecoration(
+																				color: const Color(0xFFFFFBEB),
+																				borderRadius: BorderRadius.circular(12),
+																				border: Border.all(color: const Color(0xFFF59E0B)),
+																			),
+																			child: Row(
+																				children: [
+																					const Icon(Icons.info_rounded, color: Color(0xFFF59E0B), size: 18),
+																					SizedBox(width: responsive.w(10)),
+																					Expanded(
+																						child: Text(
+																							'Une demande de remboursement a déjà été soumise pour ce trajet.',
+																							style: AppTextStyles.caption(responsive).copyWith(
+																								color: const Color(0xFF92400E),
+																								fontWeight: FontWeight.w500,
+																							),
+																						),
+																					),
+																				],
+																			),
+																		),
+																	);
+																}),
 																_TripCard(responsive: responsive, controller: controller),
 																SizedBox(height: responsive.h(16)),
 																_ReasonsCard(responsive: responsive, controller: controller),
@@ -46,13 +75,16 @@ class RefundRequestView extends StatelessWidget {
 																SizedBox(height: responsive.h(16)),
 																_RefundSummaryCard(responsive: responsive, controller: controller),
 																SizedBox(height: responsive.h(24)),
-																AppPrimaryButton(
+																Obx(() => AppPrimaryButton(
 																	responsive: responsive,
-																	label: 'Soumettre la demande',
+																	label: controller.alreadyRefunded.value
+																			? 'Remboursement déjà demandé'
+																			: 'Soumettre la demande',
 																	onTap: controller.submitRequest,
+																	enabled: !controller.alreadyRefunded.value,
 																	height: responsive.h(56),
 																	borderRadius: responsive.radius(16),
-																),
+																)),
 																SizedBox(height: responsive.h(16)),
 																Center(
 																	child: Text(

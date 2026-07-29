@@ -63,10 +63,16 @@ class PaymentSuccessController extends GetxController {
     conversationUuid.value = data.conversationUuid;
     reservedSeats.value = data.reservedSeats;
     ride.value = SearchRide(
+      uuid: data.ride.uuid,
       driverName: data.ride.driverName,
+      driverInitials: data.ride.driverInitials,
       rating: data.ride.rating,
       reviewCount: '${data.ride.reviewCount}',
-      price: data.ride.uuid,
+      vehicle: data.ride.vehicle,
+      vehiclePlate: data.ride.vehiclePlate,
+      price: data.formattedAmount.isNotEmpty
+          ? data.formattedAmount
+          : '${data.amountPaid} FCFA',
       priceValue: data.amountPaid,
       origin: data.ride.origin,
       destination: data.ride.destination,
@@ -75,7 +81,6 @@ class PaymentSuccessController extends GetxController {
       arrivalTime: '',
       arrivalNote: '',
       duration: '',
-      vehicle: data.ride.vehicle,
       seatsAvailable: data.reservedSeats,
       minutesUntilDeparture: 0,
       isVerified: false,

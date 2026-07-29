@@ -32,6 +32,7 @@ class ProfilController extends GetxController {
   final RxBool isLoadingContacts = false.obs;
 
   // ── Stats from /passenger/stats ────────────────────────────────────────────
+  final statsLoaded            = false.obs;
   final statsBookingsTotal     = 0.obs;
   final statsBookingsCompleted = 0.obs;
   final statsBookingsCancelled = 0.obs;
@@ -86,15 +87,10 @@ class ProfilController extends GetxController {
     final results = await Future.wait([
       _profileService.fetchProfile(),
       _statsService.fetchStats(),
-      _safetyService.fetchContacts(),
     ]);
     isLoading.value = false;
-    final profileResult  = results[0];
-    final statsResult    = results[1];
-    final contactsResult = results[2];
-    if (contactsResult.isSuccess) {
-      emergencyContacts.assignAll(contactsResult.data as List<EmergencyContact>);
-    }
+    final profileResult = results[0];
+    final statsResult   = results[1];
     if (profileResult.isSuccess) {
       _applyProfile(profileResult.data as PassengerProfileDashboard);
     } else {
@@ -116,17 +112,27 @@ class ProfilController extends GetxController {
     statsThisMonthSpendingFcfa.value = data.spending.thisMonthFcfa;
     statsMemberSince.value = data.memberSince;
     statsTopDrivers.assignAll(data.topDrivers);
+    statsLoaded.value = true;
   }
 
   @override
   Future<void> refresh() => _loadAll();
 
   void _applyProfile(PassengerProfileDashboard data) {
+    emergencyContacts.assignAll(
+      data.emergencyContacts
+          .map((j) => EmergencyContact.fromJson(j))
+          .toList(),
+    );
+
     profileSummary = ProfileSummary(
       name: data.summary.name,
       phone: data.summary.phone,
       avatarUrl: data.summary.avatarUrl,
       isVerified: data.summary.isVerified,
+      email: data.summary.email,
+      city: data.summary.city,
+      neighborhood: data.summary.neighborhood,
     );
 
     trustCard = ProfileTrustCard(
@@ -580,12 +586,18 @@ class ProfileSummary {
     required this.phone,
     required this.avatarUrl,
     required this.isVerified,
+    this.email = '',
+    this.city = '',
+    this.neighborhood = '',
   });
 
   final String name;
   final String phone;
   final String avatarUrl;
   final bool isVerified;
+  final String email;
+  final String city;
+  final String neighborhood;
 }
 
 class ProfileTrustItem {

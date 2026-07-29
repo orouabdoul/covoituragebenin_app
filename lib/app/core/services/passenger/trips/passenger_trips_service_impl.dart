@@ -25,11 +25,14 @@ class PassengerTripsServiceImpl implements PassengerTripsService {
       final opts = await _authOptions();
       final res = await _dio.get(AppApi.passengerTripHistory, options: opts);
       logger.d('passengerTripHistory [${res.statusCode}]');
-      if (res.statusCode == 200 && res.data['success'] == true) {
-        return ApiResult.success(
-            TripHistoryResult.fromJson(res.data['body'] as Map<String, dynamic>));
-      }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
+      if (res.statusCode == 200 && res.data is Map && res.data['success'] == true) {
+        final body = res.data['body'];
+        if (body is Map<String, dynamic>) {
+          return ApiResult.success(TripHistoryResult.fromJson(body));
+        }
+      }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('passengerTripHistory: $e');

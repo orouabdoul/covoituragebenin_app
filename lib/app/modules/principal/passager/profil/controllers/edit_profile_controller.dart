@@ -28,13 +28,16 @@ class EditProfileController extends GetxController {
 
   void _prefillFromProfile() {
     if (!Get.isRegistered<ProfilController>()) return;
-    final profil = Get.find<ProfilController>();
-    final name = profil.profileSummary.name.trim();
+    final summary = Get.find<ProfilController>().profileSummary;
+    final name = summary.name.trim();
     if (name.isNotEmpty) {
       final parts = name.split(RegExp(r'\s+'));
       firstNameController.text = parts.first;
       if (parts.length > 1) lastNameController.text = parts.skip(1).join(' ');
     }
+    if (summary.email.isNotEmpty) emailController.text = summary.email;
+    if (summary.city.isNotEmpty) cityController.text = summary.city;
+    if (summary.neighborhood.isNotEmpty) neighborhoodController.text = summary.neighborhood;
   }
 
   bool get hasAvatar => avatarFile.value != null;

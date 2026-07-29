@@ -52,4 +52,5 @@ abstract class AppRoutes {
   static const driverNotifications = '/driver-notifications';
   static const driverSafetyCenter = '/driver-safety-center';
   static const driverSupportCenter = '/driver-support-center';
+  static const driverTripReviews = '/driver-trip-reviews';
 }

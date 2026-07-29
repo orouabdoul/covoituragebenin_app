@@ -66,7 +66,7 @@ class SearchController extends GetxController {
 		var list = _allRides.where((r) {
 			if (r.minutesUntilDeparture < 0) return false; // trajet déjà parti
 			if (verifiedOnly.value && !r.isVerified) return false;
-			if (highRatedOnly.value && double.parse(r.rating) < 4.5) return false;
+			if (highRatedOnly.value && (double.tryParse(r.rating) ?? 0.0) < 4.5) return false;
 			if (r.seatsAvailable < minSeatsFilter.value) return false;
 			if (bagsAllowed.value && !r.allowsBags) return false;
 			if (r.priceValue > maxPrice.value) return false;
@@ -81,7 +81,7 @@ class SearchController extends GetxController {
 			case SortOption.soonest:
 				list.sort((a, b) => a.minutesUntilDeparture.compareTo(b.minutesUntilDeparture));
 			case SortOption.bestRated:
-				list.sort((a, b) => double.parse(b.rating).compareTo(double.parse(a.rating)));
+				list.sort((a, b) => (double.tryParse(b.rating) ?? 0.0).compareTo(double.tryParse(a.rating) ?? 0.0));
 			case SortOption.relevance:
 				break;
 		}
@@ -155,7 +155,9 @@ class SearchController extends GetxController {
 		destinationDistrictController.text = '';
 	}
 
-	void incrementPassengers() => passengerCount.value += 1;
+	void incrementPassengers() {
+		if (passengerCount.value < 6) passengerCount.value += 1;
+	}
 
 	void decrementPassengers() {
 		if (passengerCount.value > 1) passengerCount.value -= 1;
@@ -323,6 +325,7 @@ class SearchController extends GetxController {
 	}
 
 	String formatDeparture(int minutes) {
+		if (minutes <= 0) return 'Imminent';
 		if (minutes < 60) return 'Dans $minutes min';
 		final h = minutes ~/ 60;
 		final m = minutes % 60;

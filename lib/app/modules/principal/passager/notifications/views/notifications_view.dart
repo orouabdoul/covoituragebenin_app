@@ -296,7 +296,9 @@ class _NotificationTile extends StatelessWidget {
 									Row(
 										children: [
 											Text(
-												controller.formatTime(notif.time),
+												notif.timeLabel.isNotEmpty
+														? notif.timeLabel
+														: controller.formatTime(notif.time),
 												style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint),
 											),
 											if (notif.actionLabel != null) ...[

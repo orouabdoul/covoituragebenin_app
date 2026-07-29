@@ -51,7 +51,17 @@ class TrajetView extends StatelessWidget {
 												onFilterSelected: controller.selectFilter,
 											),
 											SizedBox(height: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 18, desktop: 20)),
-											  if (controller.visibleTrips.isEmpty)
+											  if (controller.isLoading.value)
+												const Center(
+												  child: Padding(
+												    padding: EdgeInsets.symmetric(vertical: 40),
+												    child: CircularProgressIndicator(
+												      color: AppColors.primary,
+												      strokeWidth: 2.5,
+												    ),
+												  ),
+												)
+											  else if (controller.visibleTrips.isEmpty)
 												_EmptyTripsState(responsive: responsive)
 											else
 												Column(
@@ -67,6 +77,7 @@ class TrajetView extends StatelessWidget {
 																	label,
 																	controller.visibleTrips[index],
 																),
+																onViewReviews: () => controller.onViewTripReviews(controller.visibleTrips[index]),
 															),
 															if (index != controller.visibleTrips.length - 1)
 																SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
@@ -274,6 +285,7 @@ class _TripCard extends StatelessWidget {
 		required this.onPrimaryAction,
 		required this.onPassengers,
 		required this.onSecondaryAction,
+		required this.onViewReviews,
 	});
 
 	final AppResponsive responsive;
@@ -282,6 +294,7 @@ class _TripCard extends StatelessWidget {
 	final VoidCallback onPrimaryAction;
 	final VoidCallback onPassengers;
 	final ValueChanged<String> onSecondaryAction;
+	final VoidCallback onViewReviews;
 
 	@override
 	Widget build(BuildContext context) {
@@ -293,7 +306,7 @@ class _TripCard extends StatelessWidget {
 				decoration: ShapeDecoration(
 					color: AppColors.white,
 					shape: RoundedRectangleBorder(
-						side: const BorderSide(color: Color(0xFFF3F4F6)),
+						side: const BorderSide(color: AppColors.surfaceSoft),
 					borderRadius: BorderRadius.circular(responsive.radius(24)),
 				),
 				shadows: const [
@@ -325,6 +338,8 @@ class _TripCard extends StatelessWidget {
 									children: [
 										Text(
 											trip.origin,
+											maxLines: 1,
+											overflow: TextOverflow.ellipsis,
 											style: AppTextStyles.homeCardTitle(responsive).copyWith(
 												fontSize: responsive.text(14),
 												color: AppColors.textPrimary,
@@ -333,6 +348,8 @@ class _TripCard extends StatelessWidget {
 										SizedBox(height: responsive.h(2)),
 										Text(
 											trip.destination,
+											maxLines: 1,
+											overflow: TextOverflow.ellipsis,
 											style: AppTextStyles.homeCardTitle(responsive).copyWith(
 												fontSize: responsive.text(14),
 												color: AppColors.textPrimary,
@@ -412,6 +429,63 @@ class _TripCard extends StatelessWidget {
 										),
 									),
 								],
+							),
+						),
+					],
+					if (trip.status == 'completed' && (trip.reviewsCount ?? 0) > 0) ...[
+						SizedBox(height: responsive.adaptive(phone: 8, smallPhone: 6, tablet: 8, desktop: 8)),
+						GestureDetector(
+							onTap: onViewReviews,
+							child: Container(
+								padding: EdgeInsets.symmetric(
+									horizontal: responsive.w(10),
+									vertical: responsive.h(5),
+								),
+								decoration: ShapeDecoration(
+									color: trip.hasPendingReply
+											? AppColors.accentLight
+											: AppColors.completedLight,
+									shape: RoundedRectangleBorder(
+										borderRadius: BorderRadius.circular(9999),
+										side: BorderSide(
+											color: trip.hasPendingReply
+													? AppColors.accentMedium
+													: AppColors.blueDark.withValues(alpha: 0.12),
+										),
+									),
+								),
+								child: Row(
+									mainAxisSize: MainAxisSize.min,
+									children: [
+										Icon(Icons.star_rounded,
+												size: responsive.text(13),
+												color: trip.hasPendingReply
+														? AppColors.accent
+														: AppColors.blueDark),
+										SizedBox(width: responsive.w(4)),
+										Text(
+											'${trip.reviewsCount} avis',
+											style: AppTextStyles.caption(responsive).copyWith(
+												fontSize: responsive.text(12),
+												fontWeight: FontWeight.w600,
+												color: trip.hasPendingReply
+														? AppColors.accent
+														: AppColors.blueDark,
+											),
+										),
+										if (trip.hasPendingReply) ...[
+											SizedBox(width: responsive.w(4)),
+											Container(
+												width: 6,
+												height: 6,
+												decoration: const BoxDecoration(
+													color: AppColors.accent,
+													shape: BoxShape.circle,
+												),
+											),
+										],
+									],
+								),
 							),
 						),
 					],
@@ -513,7 +587,7 @@ class _TripTimeline extends StatelessWidget {
 						shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999)),
 					),
 				),
-				_TimelineDot(color: const Color(0xFFF4B400)),
+				_TimelineDot(color: AppColors.accent),
 			],
 		);
 	}
