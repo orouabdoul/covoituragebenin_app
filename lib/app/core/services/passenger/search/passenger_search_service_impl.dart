@@ -1,8 +1,11 @@
+import 'dart:math';
+
 import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
 import 'package:covoiturage_benin_app/app/core/utils/api_result.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_dio.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
+import 'package:covoiturage_benin_app/app/data/benin_locations_data.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/passager/search/controllers/search_controller.dart';
 import 'package:dio/dio.dart';
 import 'passenger_search_service.dart';
@@ -132,6 +135,23 @@ class PassengerSearchServiceImpl implements PassengerSearchService {
       allowsBags: j['allows_bags'] as bool? ?? false,
       waypointCity: j['waypoint_city'] as String?,
       waypointNote: j['waypoint_note'] as String?,
+      distanceKm: _resolveDistanceKm(j, origin, destination),
     );
+  }
+
+  double _resolveDistanceKm(Map<String, dynamic> j, String origin, String destination) {
+    final apiDist = (j['distance_km'] as num?)?.toDouble();
+    if (apiDist != null && apiDist > 0) return apiDist;
+    final dep = BeninLocations.getCityCoords(origin);
+    final dest = BeninLocations.getCityCoords(destination);
+    if (dep == null || dest == null) return 0.0;
+    const R = 6371.0;
+    final lat1 = dep.lat * (pi / 180);
+    final lat2 = dest.lat * (pi / 180);
+    final dLat = (dest.lat - dep.lat) * (pi / 180);
+    final dLng = (dest.lng - dep.lng) * (pi / 180);
+    final a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(lat1) * cos(lat2) * sin(dLng / 2) * sin(dLng / 2);
+    return R * 2 * atan2(sqrt(a), sqrt(1 - a));
   }
 }

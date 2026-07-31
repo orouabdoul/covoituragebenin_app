@@ -38,6 +38,8 @@ import '../modules/principal/passager/reservation/views/confirmation_reservation
 import '../modules/principal/passager/reservation/views/confirmation_payment_view.dart';
 import '../modules/principal/passager/reservation/views/waiting_approval_view.dart';
 import '../modules/principal/passager/reservation/views/payment_success_view.dart';
+import '../modules/principal/passager/reservation/bindings/payment_webview_binding.dart';
+import '../modules/principal/passager/reservation/views/payment_webview_view.dart';
 import '../modules/principal/passager/reservation/views/detail_journey_view.dart';
 import '../modules/principal/passager/tracking/bindings/live_tracking_binding.dart';
 import '../modules/principal/passager/tracking/bindings/driver_arrival_binding.dart';
@@ -392,6 +394,11 @@ class AppPages {
       name: AppRoutes.driverTripReviews,
       page: () => const TripReviewsView(),
       binding: TripReviewsBinding(),
+    ),
+    _page(
+      name: AppRoutes.passengerPaymentWebview,
+      page: () => const PaymentWebviewView(),
+      binding: PaymentWebviewBinding(),
     ),
   ];
 }

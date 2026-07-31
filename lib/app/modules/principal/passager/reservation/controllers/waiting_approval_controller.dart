@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/passenger_reservation_service.dart';
@@ -24,6 +23,7 @@ class WaitingApprovalController extends GetxController {
   final RxInt paymentIndex = 0.obs;
 
   String _bookingUuid = '';
+  int _totalAmount = 0;
   Timer? _pollingTimer;
   int _consecutiveErrors = 0;
 
@@ -40,29 +40,29 @@ class WaitingApprovalController extends GetxController {
   void onInit() {
     super.onInit();
     final dynamic savedArgs = Get.arguments;
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      if (savedArgs is Map<String, dynamic>) {
-        final r = savedArgs['ride'];
-        if (r is SearchRide) ride.value = r;
-        final seats = savedArgs['seats'];
-        if (seats is int) reservedSeats.value = seats;
-        final idx = savedArgs['paymentIndex'];
-        if (idx is int) paymentIndex.value = idx;
-        final uuid = savedArgs['bookingUuid'];
-        if (uuid is String && uuid.isNotEmpty) {
-          _bookingUuid = uuid;
-          _startPolling();
-          return;
-        }
+    if (savedArgs is Map<String, dynamic>) {
+      final r = savedArgs['ride'];
+      if (r is SearchRide) ride.value = r;
+      final seats = savedArgs['seats'];
+      if (seats is int) reservedSeats.value = seats;
+      final idx = savedArgs['paymentIndex'];
+      if (idx is int) paymentIndex.value = idx;
+      final amt = savedArgs['totalAmount'];
+      if (amt is int && amt > 0) _totalAmount = amt;
+      final uuid = savedArgs['bookingUuid'];
+      if (uuid is String && uuid.isNotEmpty) {
+        _bookingUuid = uuid;
+        _startPolling();
+        return;
       }
-      // UUID manquant — on ne peut pas attendre la confirmation d'un conducteur sans référence
-      UIHelper().showSnackBar(
-        'MINIZON',
-        'Réservation introuvable. Vérifiez dans Mes Réservations.',
-        3,
-      );
-      Get.back();
-    });
+    }
+    // UUID manquant — démarrer le polling sans UUID (mode dégradé)
+    // On ne redirige pas pour ne pas quitter la page d'attente
+    UIHelper().showSnackBar(
+      'MINIZON',
+      'Réservation en cours de synchronisation…',
+      2,
+    );
   }
 
   // ── API polling ────────────────────────────────────────────────────────────
@@ -116,6 +116,7 @@ class WaitingApprovalController extends GetxController {
           'seats': reservedSeats.value,
           'paymentIndex': paymentIndex.value,
           if (_bookingUuid.isNotEmpty) 'bookingUuid': _bookingUuid,
+          if (_totalAmount > 0) 'totalAmount': _totalAmount,
         },
       );
     });

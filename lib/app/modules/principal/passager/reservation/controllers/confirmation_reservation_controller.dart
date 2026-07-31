@@ -1,13 +1,14 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/passenger_reservation_service.dart';
+import 'package:covoiturage_benin_app/app/core/services/routing/routing_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
@@ -83,10 +84,38 @@ class ConfirmationReservationController extends GetxController {
   final RxBool isLoadingContext = false.obs;
 
   final RxInt commissionRate = 10.obs;
-  final RxInt maxPerBooking = 0.obs;       // 0 = pas de cap API, on utilise seatsAvailable
-  final RxInt availableSeatsFromCtx = 0.obs; // places réelles (source authoritative post-contexte)
-  int _pricePerSeat = 0;
+  final RxInt maxPerBooking = 0.obs;
+  final RxInt availableSeatsFromCtx = 0.obs;
+  final RxInt _pricePerSeat = 0.obs; // mis à jour par l'API → Obx se reconstruit
+  int _argsTotalAmount = 0;          // passé en args navigation — non-réactif
+  int _confirmedPrice = 0;           // prix confirmé par le sheet createBooking
   String _bookingMode = 'approval';
+
+  // ── Distance / prorata ────────────────────────────────────────────────────
+  final RoutingService _routing = RoutingService();
+  final RxDouble passengerDistanceKm = 0.0.obs; // pickup→dropoff du passager
+  final RxDouble _tripDistanceKm = 0.0.obs;     // trajet complet conducteur
+
+  int get estimatedPricePerSeat => _pricePerSeat.value;
+
+  /// Prix par place au prorata de la distance passager / distance trajet.
+  /// Retourne le prix plein si les distances ne sont pas encore disponibles.
+  int get estimatedProratedPricePerSeat {
+    final perSeat = _pricePerSeat.value;
+    if (perSeat == 0) return 0;
+    final pDist = passengerDistanceKm.value;
+    final tDist = _tripDistanceKm.value;
+    if (pDist <= 0 || tDist <= 0) return perSeat;
+    final ratio = (pDist / tDist).clamp(0.0, 1.0);
+    return (ratio * perSeat).round().clamp(1, perSeat);
+  }
+
+  /// Vrai si on a calculé un prix proratisé (pickup/dropoff connus).
+  bool get isPriceProrated =>
+      passengerDistanceKm.value > 0 &&
+      _tripDistanceKm.value > 0 &&
+      _pricePerSeat.value > 0;
+
   String _bookingUuid = '';
   bool _priceConfirmed = false;
 
@@ -119,30 +148,36 @@ class ConfirmationReservationController extends GetxController {
     _autoLocate(); // Détection GPS automatique dès l'ouverture de la page
 
     final dynamic savedArgs = Get.arguments;
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      if (savedArgs is Map<String, dynamic>) {
-        final dynamic selectedRide = savedArgs['ride'];
-        if (selectedRide is SearchRide) {
-          ride.value = selectedRide;
-          _buildCityLists(selectedRide);
-          if (selectedRide.uuid.isNotEmpty) _fetchContext(selectedRide.uuid);
-          final available = selectedRide.seatsAvailable;
-          if (available > 0 && reservedSeats.value > available) {
-            reservedSeats.value = available;
-          }
+    if (savedArgs is Map<String, dynamic>) {
+      final dynamic selectedRide = savedArgs['ride'];
+      if (selectedRide is SearchRide) {
+        ride.value = selectedRide;
+        _buildCityLists(selectedRide);
+        _tripDistanceKm.value = selectedRide.distanceKm; // Haversine déjà calculé
+        unawaited(_fetchTripDistanceOsrm(selectedRide)); // affine via OSRM
+        if (selectedRide.uuid.isNotEmpty) _fetchContext(selectedRide.uuid);
+        final available = selectedRide.seatsAvailable;
+        if (available > 0 && reservedSeats.value > available) {
+          reservedSeats.value = available;
         }
-        final dynamic seats = savedArgs['seats'];
-        if (seats is int) {
-          final available = ride.value?.seatsAvailable ?? 0;
-          reservedSeats.value =
-              (available > 0 && seats > available) ? available : seats;
-        }
-        final dynamic idx = savedArgs['paymentIndex'];
-        if (idx is int) selectedPaymentIndex.value = idx;
-        final dynamic bUuid = savedArgs['bookingUuid'];
-        if (bUuid is String) _bookingUuid = bUuid;
       }
-    });
+      final dynamic seats = savedArgs['seats'];
+      if (seats is int) {
+        final available = ride.value?.seatsAvailable ?? 0;
+        reservedSeats.value =
+            (available > 0 && seats > available) ? available : seats;
+      }
+      final dynamic idx = savedArgs['paymentIndex'];
+      if (idx is int) selectedPaymentIndex.value = idx;
+      final dynamic bUuid = savedArgs['bookingUuid'];
+      if (bUuid is String) _bookingUuid = bUuid;
+      // Montant passé par navigation → stocké sans mise à jour réactive
+      // (évite un setState-during-build quand le contrôleur est initialisé lazily)
+      final dynamic passedTotal = savedArgs['totalAmount'];
+      if (passedTotal is int && passedTotal > 0) {
+        _argsTotalAmount = passedTotal;
+      }
+    }
   }
 
   // ── Listes de villes ordonnées selon le trajet ────────────────────────────
@@ -188,6 +223,7 @@ class ConfirmationReservationController extends GetxController {
       pickupLat.value = coords?.lat;
       pickupLng.value = coords?.lng;
     }
+    unawaited(_updatePassengerDistance());
   }
 
   void onPickupCityTyped() {
@@ -198,6 +234,7 @@ class ConfirmationReservationController extends GetxController {
       pickupLat.value = null;
       pickupLng.value = null;
     }
+    passengerDistanceKm.value = 0.0;
   }
 
   void onPickupNeighborhoodSelected(String district) {
@@ -217,6 +254,7 @@ class ConfirmationReservationController extends GetxController {
     final coords = BeninLocations.getCityCoords(city);
     dropoffLat.value = coords?.lat;
     dropoffLng.value = coords?.lng;
+    unawaited(_updatePassengerDistance());
   }
 
   void onDropoffCityTyped() {
@@ -225,6 +263,7 @@ class ConfirmationReservationController extends GetxController {
     dropoffNeighborhoodController.text = '';
     dropoffLat.value = null;
     dropoffLng.value = null;
+    passengerDistanceKm.value = 0.0;
   }
 
   void onDropoffNeighborhoodSelected(String district) {
@@ -236,15 +275,22 @@ class ConfirmationReservationController extends GetxController {
 
   // ── GPS auto-détection ────────────────────────────────────────────────────
 
+  // Vérifie que les coordonnées sont dans les limites du Bénin
+  bool _isInBenin(double lat, double lng) =>
+      lat >= 6.0 && lat <= 12.5 && lng >= 0.8 && lng <= 3.8;
+
   Future<void> _autoLocate() async {
     isAutoLocating.value = true;
     try {
       final pos = await _getPosition();
-      if (pos != null) {
+      if (pos != null && _isInBenin(pos.latitude, pos.longitude)) {
         _gpsPosition = pos;
-        // GPS réel prend toujours la priorité pour la prise en charge
         pickupLat.value = pos.latitude;
         pickupLng.value = pos.longitude;
+        logger.d('GPS Bénin: (${pos.latitude}, ${pos.longitude})');
+      } else if (pos != null) {
+        // Position hors Bénin (émulateur) → ignorée, les coords de ville seront utilisées
+        logger.w('GPS hors Bénin ignoré: (${pos.latitude}, ${pos.longitude})');
       }
     } finally {
       isAutoLocating.value = false;
@@ -291,6 +337,61 @@ class ConfirmationReservationController extends GetxController {
     }
   }
 
+  // ── Distance trajet complet (OSRM) ───────────────────────────────────────
+
+  Future<void> _fetchTripDistanceOsrm(SearchRide r) async {
+    final dep = BeninLocations.getCityCoords(r.origin);
+    final dest = BeninLocations.getCityCoords(r.destination);
+    if (dep == null || dest == null) return;
+    final route = await _routing.computeRoute(
+      departureLat: dep.lat,
+      departureLng: dep.lng,
+      arrivalLat: dest.lat,
+      arrivalLng: dest.lng,
+    );
+    if (route != null) {
+      _tripDistanceKm.value = route.distanceKm;
+      logger.d('Trip distance OSRM: ${route.distanceKm.toStringAsFixed(1)}km');
+    }
+  }
+
+  // ── Distance passager (pickup→dropoff via OSRM) ───────────────────────────
+
+  Future<void> _updatePassengerDistance() async {
+    final pLat = pickupLat.value;
+    final pLng = pickupLng.value;
+    final dLat = dropoffLat.value;
+    final dLng = dropoffLng.value;
+    if (pLat == null || pLng == null || dLat == null || dLng == null) {
+      passengerDistanceKm.value = 0.0;
+      return;
+    }
+    final route = await _routing.computeRoute(
+      departureLat: pLat,
+      departureLng: pLng,
+      arrivalLat: dLat,
+      arrivalLng: dLng,
+    );
+    if (route != null) {
+      passengerDistanceKm.value = route.distanceKm;
+      logger.d('Passenger distance OSRM: ${route.distanceKm.toStringAsFixed(1)}km');
+    } else {
+      passengerDistanceKm.value = _haversineKm(pLat, pLng, dLat, dLng);
+      logger.d('Passenger distance Haversine: ${passengerDistanceKm.value.toStringAsFixed(1)}km');
+    }
+  }
+
+  double _haversineKm(double lat1, double lng1, double lat2, double lng2) {
+    const R = 6371.0;
+    final rad1 = lat1 * (pi / 180);
+    final rad2 = lat2 * (pi / 180);
+    final dLat = (lat2 - lat1) * (pi / 180);
+    final dLng = (lng2 - lng1) * (pi / 180);
+    final a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(rad1) * cos(rad2) * sin(dLng / 2) * sin(dLng / 2);
+    return R * 2 * atan2(sqrt(a), sqrt(1 - a));
+  }
+
   // ── Contexte trajet ───────────────────────────────────────────────────────
 
   Future<void> _fetchContext(String tripUuid) async {
@@ -301,8 +402,14 @@ class ConfirmationReservationController extends GetxController {
     final ctx = result.data!;
     commissionRate.value = ctx.commissionRate;
     maxPerBooking.value = ctx.trip.maxPerBooking;
-    _pricePerSeat = ctx.trip.pricePerSeat;
+    _pricePerSeat.value = ctx.trip.pricePerSeat;
     _bookingMode = ctx.trip.bookingMode;
+    // Distance trajet depuis le backend (si OSRM n'a pas encore répondu)
+    final ctxDist = double.tryParse(ctx.trip.distanceKm) ?? 0.0;
+    if (ctxDist > 0 && _tripDistanceKm.value <= 0) {
+      _tripDistanceKm.value = ctxDist;
+      logger.d('Trip distance from context: ${ctxDist.toStringAsFixed(1)}km');
+    }
     // Source authoritative pour les places disponibles
     if (ctx.trip.availableSeats > 0) {
       availableSeatsFromCtx.value = ctx.trip.availableSeats;
@@ -447,6 +554,11 @@ class ConfirmationReservationController extends GetxController {
       return;
     }
 
+    logger.d('confirmReservation: '
+        'pickup=(${pickupLat.value},${pickupLng.value}) '
+        'dropoff=(${dropoffLat.value},${dropoffLng.value}) '
+        'seats=${reservedSeats.value}');
+
     isProcessingPayment.value = true;
     final result = await _service.createBooking(
       tripUuid,
@@ -483,10 +595,45 @@ class ConfirmationReservationController extends GetxController {
 
   void _showPriceSheet(CreateBookingResult booking) {
     _priceConfirmed = false;
+
+    // Calcul du prix confirmé avec fallback si le backend retourne 0
+    if (booking.calculatedPrice > 0) {
+      // Prix calculé par le backend (distance réelle du passager)
+      _confirmedPrice = booking.calculatedPrice * reservedSeats.value;
+    } else if (booking.passengerDistanceKm > 0 &&
+        booking.tripDistanceKm > 0 &&
+        _pricePerSeat.value > 0) {
+      // Distances retournées par le backend → calcul local du prorata
+      final ratio = (booking.passengerDistanceKm / booking.tripDistanceKm)
+          .clamp(0.0, 1.0);
+      final perSeat = (ratio * _pricePerSeat.value).round();
+      _confirmedPrice =
+          (perSeat > 0 ? perSeat : _pricePerSeat.value) * reservedSeats.value;
+    } else if (passengerDistanceKm.value > 0 &&
+        _tripDistanceKm.value > 0 &&
+        _pricePerSeat.value > 0) {
+      // Distances OSRM pré-calculées (pickup/dropoff sélectionnés avant réservation)
+      final ratio =
+          (passengerDistanceKm.value / _tripDistanceKm.value).clamp(0.0, 1.0);
+      final perSeat = (ratio * _pricePerSeat.value).round();
+      _confirmedPrice =
+          (perSeat > 0 ? perSeat : _pricePerSeat.value) * reservedSeats.value;
+    } else if (_pricePerSeat.value > 0) {
+      // Dernier recours : prix plein × places
+      _confirmedPrice = _pricePerSeat.value * reservedSeats.value;
+    }
+
+    logger.d('_showPriceSheet: calculatedPrice=${booking.calculatedPrice} '
+        'passengerDist=${booking.passengerDistanceKm}km '
+        'tripDist=${booking.tripDistanceKm}km '
+        'pricePerSeat=${_pricePerSeat.value} '
+        'confirmedPrice=$_confirmedPrice');
+
     Get.bottomSheet(
       _PriceConfirmSheet(
         booking: booking,
         seats: reservedSeats.value,
+        confirmedTotal: _confirmedPrice,
         onConfirm: _proceedToNextStep,
         onCancel: _cancelAndDismiss,
       ),
@@ -517,6 +664,7 @@ class ConfirmationReservationController extends GetxController {
         'seats': reservedSeats.value,
         'bookingUuid': _bookingUuid,
         'paymentIndex': selectedPaymentIndex.value,
+        'totalAmount': totalAmount,
       });
     } else {
       Get.toNamed(AppRoutes.passengerWaitingApproval, arguments: {
@@ -524,6 +672,7 @@ class ConfirmationReservationController extends GetxController {
         'seats': reservedSeats.value,
         'bookingUuid': _bookingUuid,
         'paymentIndex': selectedPaymentIndex.value,
+        'totalAmount': totalAmount,
       });
     }
   }
@@ -551,15 +700,27 @@ class ConfirmationReservationController extends GetxController {
   }
 
   int get totalAmount {
-    if (_pricePerSeat > 0) {
-      final base = _pricePerSeat * reservedSeats.value;
+    // Priorité 0 : prix confirmé par le sheet (calculatedPrice du backend)
+    if (_confirmedPrice > 0) return _confirmedPrice;
+    // Priorité 1 : prix proratisé (ou plein si pas de distances) depuis l'API
+    final perSeat = estimatedProratedPricePerSeat;
+    if (perSeat > 0) {
+      final base = perSeat * reservedSeats.value;
       return base + (base * commissionRate.value / 100).round();
     }
-    final price = ride.value?.price ?? '1 500 FCFA';
-    final digits = price.replaceAll(RegExp(r'[^0-9]'), '');
-    final unit = int.tryParse(digits) ?? 1500;
-    final base = unit * reservedSeats.value;
-    return base + (base * 0.1).round();
+    // Priorité 2 : montant transmis par les arguments de navigation (non-réactif)
+    if (_argsTotalAmount > 0) return _argsTotalAmount;
+    // Priorité 3 : fallback depuis la chaîne de prix du trajet
+    final price = ride.value?.price ?? '';
+    if (price.isNotEmpty) {
+      final digits = price.replaceAll(RegExp(r'[^0-9]'), '');
+      final unit = int.tryParse(digits) ?? 0;
+      if (unit > 0) {
+        final base = unit * reservedSeats.value;
+        return base + (base * commissionRate.value / 100).round();
+      }
+    }
+    return 0;
   }
 
   Future<void> confirmPayment() async {
@@ -567,29 +728,40 @@ class ConfirmationReservationController extends GetxController {
       UIHelper().showSnackBar('MINIZON', 'Réservation introuvable. Veuillez recommencer.', 3);
       return;
     }
-    final phone = paymentContactController.text.trim();
-    if (phone.isEmpty) {
+    final rawPhone = paymentContactController.text.trim().replaceAll(RegExp(r'\s'), '');
+    if (rawPhone.isEmpty) {
       UIHelper().showSnackBar('MINIZON', 'Veuillez entrer votre numéro de téléphone.', 2);
       return;
     }
+    // Envoyer les chiffres locaux tels que saisis (ex : 0159000892)
+    // Le backend gère le préfixe pays pour FedaPay
+    final phone = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
+
     isProcessingPayment.value = true;
     final provider = selectedMobileService.value.name;
+    final amount = totalAmount;
     final result = await _service.initiatePayment(
       _bookingUuid,
       phone: phone,
       provider: provider,
+      amount: amount,
     );
     isProcessingPayment.value = false;
     if (!result.isSuccess) {
       if (result.error != AppError.socket) {
-        UIHelper().showSnackBar('MINIZON', result.displayMessage, 2);
+        UIHelper().showSnackBar('MINIZON', result.displayMessage, 3);
       }
       return;
     }
-    Get.toNamed(AppRoutes.passengerPaymentSuccess, arguments: {
+
+    // Ouvrir la WebView FedaPay intégrée pour validation MoMo
+    Get.toNamed(AppRoutes.passengerPaymentWebview, arguments: {
+      'paymentUrl': result.data!.paymentUrl,
+      'paymentUuid': result.data!.paymentUuid,
       'ride': ride.value,
       'bookingUuid': _bookingUuid,
       'seats': reservedSeats.value,
+      'amount': totalAmount,
     });
   }
 
@@ -616,12 +788,14 @@ class _PriceConfirmSheet extends StatelessWidget {
   const _PriceConfirmSheet({
     required this.booking,
     required this.seats,
+    required this.confirmedTotal,
     required this.onConfirm,
     required this.onCancel,
   });
 
   final CreateBookingResult booking;
   final int seats;
+  final int confirmedTotal;
   final VoidCallback onConfirm;
   final VoidCallback onCancel;
 
@@ -663,7 +837,7 @@ class _PriceConfirmSheet extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           const Text(
-            'Prix estimé pour votre trajet',
+            'Prix de votre trajet',
             style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
@@ -671,7 +845,9 @@ class _PriceConfirmSheet extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Calculé selon votre distance exacte',
+            booking.passengerDistanceKm > 0
+                ? 'Calculé sur ${booking.formattedPassengerDistance} de trajet'
+                : 'Basé sur le tarif du conducteur',
             style: TextStyle(fontSize: 13, color: Colors.grey[600]),
           ),
           const SizedBox(height: 20),
@@ -687,7 +863,7 @@ class _PriceConfirmSheet extends StatelessWidget {
             child: Column(
               children: [
                 Text(
-                  '${_fmt(booking.calculatedPrice)} FCFA',
+                  confirmedTotal > 0 ? '${_fmt(confirmedTotal)} FCFA' : '-- FCFA',
                   style: const TextStyle(
                     fontSize: 30,
                     fontWeight: FontWeight.w900,
@@ -696,30 +872,35 @@ class _PriceConfirmSheet extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  seats > 1 ? 'pour $seats places' : 'pour 1 place',
+                  seats > 1 && confirmedTotal > 0
+                      ? '${_fmt((confirmedTotal / seats).round())} FCFA × $seats places'
+                      : 'pour 1 place',
                   style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 14),
-          _DetailRow(
-            icon: Icons.social_distance_rounded,
-            label: 'Votre trajet',
-            value: booking.formattedPassengerDistance,
-          ),
-          const SizedBox(height: 8),
-          _DetailRow(
-            icon: Icons.route_rounded,
-            label: 'Trajet total du conducteur',
-            value: booking.formattedTripDistance,
-          ),
-          if (booking.priceTotal > 0 &&
-              booking.priceTotal != booking.calculatedPrice) ...[
+          if (booking.passengerDistanceKm > 0) ...[
+            _DetailRow(
+              icon: Icons.social_distance_rounded,
+              label: 'Votre trajet',
+              value: booking.formattedPassengerDistance,
+            ),
             const SizedBox(height: 8),
             _DetailRow(
+              icon: Icons.route_rounded,
+              label: 'Trajet total du conducteur',
+              value: booking.formattedTripDistance,
+            ),
+            const SizedBox(height: 8),
+          ],
+          if (booking.priceTotal > 0 &&
+              confirmedTotal > 0 &&
+              booking.priceTotal != (confirmedTotal / seats).round()) ...[
+            _DetailRow(
               icon: Icons.receipt_long_rounded,
-              label: 'Prix total du trajet (référence)',
+              label: 'Prix plein du trajet (référence)',
               value: '${_fmt(booking.priceTotal)} FCFA',
               valueColor: Colors.grey[500],
             ),

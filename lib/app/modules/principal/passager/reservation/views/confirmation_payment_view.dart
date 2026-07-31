@@ -18,6 +18,8 @@ class ConfirmationPaymentView extends StatelessWidget {
 						? Get.find<ConfirmationReservationController>()
 						: Get.put(ConfirmationReservationController());
 		final responsive = AppResponsive(context);
+		final dynamic rawArgs = Get.arguments;
+		final int navTotal = rawArgs is Map ? ((rawArgs['totalAmount'] as int?) ?? 0) : 0;
 
 		return Stack(
 			children: [
@@ -37,7 +39,7 @@ class ConfirmationPaymentView extends StatelessWidget {
 									children: [
 										_HeaderBar(responsive: responsive),
 										SizedBox(height: responsive.h(20)),
-										_TripSummaryCard(responsive: responsive, controller: controller),
+										_TripSummaryCard(responsive: responsive, controller: controller, navTotal: navTotal),
 										SizedBox(height: responsive.h(16)),
 										_PaymentMethodCard(responsive: responsive, controller: controller),
 										SizedBox(height: responsive.h(16)),
@@ -45,20 +47,21 @@ class ConfirmationPaymentView extends StatelessWidget {
 										SizedBox(height: responsive.h(16)),
 										_SecurityCard(responsive: responsive),
 										SizedBox(height: responsive.h(24)),
-										Obx(
-											() => AppPrimaryButton(
+										Obx(() {
+											final displayAmount = navTotal > 0 ? navTotal : controller.totalAmount;
+											return AppPrimaryButton(
 												responsive: responsive,
 												label: controller.isProcessingPayment.value
 														? 'Traitement en cours…'
-														: 'Payer ${_formatAmount(controller.totalAmount)} FCFA',
+														: 'Payer ${_formatAmount(displayAmount)} FCFA',
 												onTap: controller.isProcessingPayment.value ? () {} : controller.confirmPayment,
 												enabled: !controller.isProcessingPayment.value,
 												backgroundColor: AppColors.primary,
 												textColor: Colors.white,
 												borderRadius: responsive.radius(16),
 												height: responsive.h(56),
-											),
-										),
+											);
+										}),
 									],
 								),
 							),
@@ -152,10 +155,15 @@ class _RoundIconButton extends StatelessWidget {
 // ── Trip Summary ───────────────────────────────────────────────────────────
 
 class _TripSummaryCard extends StatelessWidget {
-	const _TripSummaryCard({required this.responsive, required this.controller});
+	const _TripSummaryCard({
+		required this.responsive,
+		required this.controller,
+		required this.navTotal,
+	});
 
 	final AppResponsive responsive;
 	final ConfirmationReservationController controller;
+	final int navTotal;
 
 	@override
 	Widget build(BuildContext context) {
@@ -163,14 +171,6 @@ class _TripSummaryCard extends StatelessWidget {
 		final origin = ride?.origin ?? 'Cotonou';
 		final destination = ride?.destination ?? 'Porto-Novo';
 		final time = ride?.departureTime ?? 'Aujourd\'hui, 14h30';
-		final seats = controller.reservedSeats.value;
-
-		final price = ride?.price ?? '1 500 FCFA';
-		final digits = price.replaceAll(RegExp(r'[^0-9]'), '');
-		final unit = int.tryParse(digits) ?? 1500;
-		final base = unit * seats;
-		final fee = (base * 0.10).round();
-		final total = base + fee;
 
 		return _SectionCard(
 			responsive: responsive,
@@ -189,30 +189,35 @@ class _TripSummaryCard extends StatelessWidget {
 					SizedBox(height: responsive.h(16)),
 					Container(height: 1, color: AppColors.border),
 					SizedBox(height: responsive.h(16)),
-					_PriceLine(
-						responsive: responsive,
-						label: 'Prix unitaire × $seats',
-						value: '${_formatAmount(base)} FCFA',
-					),
-					SizedBox(height: responsive.h(6)),
-					_PriceLine(
-						responsive: responsive,
-						label: 'Frais de service (10%)',
-						value: '${_formatAmount(fee)} FCFA',
-					),
-					SizedBox(height: responsive.h(10)),
-					Container(height: 1, color: AppColors.border),
-					SizedBox(height: responsive.h(10)),
-					Row(
-						mainAxisAlignment: MainAxisAlignment.spaceBetween,
-						children: [
-							Text('Total à payer', style: AppTextStyles.subtitle(responsive)),
-							Text(
-								'${_formatAmount(total)} FCFA',
-								style: AppTextStyles.price(responsive),
-							),
-						],
-					),
+					Obx(() {
+						// navTotal : transmis depuis la page confirmation (source principale)
+						// controller.totalAmount : fallback si navTotal = 0
+						final total = navTotal > 0 ? navTotal : controller.totalAmount;
+						final seats = controller.reservedSeats.value;
+						return Column(
+							crossAxisAlignment: CrossAxisAlignment.start,
+							children: [
+								_PriceLine(
+									responsive: responsive,
+									label: 'Places réservées',
+									value: '$seats place${seats > 1 ? 's' : ''}',
+								),
+								SizedBox(height: responsive.h(10)),
+								Container(height: 1, color: AppColors.border),
+								SizedBox(height: responsive.h(10)),
+								Row(
+									mainAxisAlignment: MainAxisAlignment.spaceBetween,
+									children: [
+										Text('Total à payer', style: AppTextStyles.subtitle(responsive)),
+										Text(
+											total > 0 ? '${_formatAmount(total)} FCFA' : '---',
+											style: AppTextStyles.price(responsive),
+										),
+									],
+								),
+							],
+						);
+					}),
 				],
 			),
 		);

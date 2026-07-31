@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/trips/trips_service.dart';
+import 'package:covoiturage_benin_app/app/core/services/routing/routing_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/api_result.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
@@ -13,6 +14,7 @@ import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controlle
 
 class AddTrajetController extends GetxController {
   TripsService get _tripsService => Get.find<TripsService>();
+  final RoutingService _routing = RoutingService();
 
   String? _editUuid;
   bool get isEditMode => _editUuid != null;
@@ -161,16 +163,39 @@ class AddTrajetController extends GetxController {
     estimatedDistanceKm.value = null;
     estimatedDurationLabel.value = null;
 
-    // Build GPS-aware payload: device GPS for departure (prioritized), city table for arrival
     final depCoords = BeninLocations.getCityCoords(dep);
     final destCoords = BeninLocations.getCityCoords(dest);
+
+    // ── Étape 1: OSRM (routage routier réel via OpenStreetMap) ──────────────
+    if (depCoords != null && destCoords != null) {
+      final route = await _routing.computeRoute(
+        departureLat: depCoords.lat,
+        departureLng: depCoords.lng,
+        arrivalLat: destCoords.lat,
+        arrivalLng: destCoords.lng,
+      );
+      if (route != null) {
+        isLoadingEstimate.value = false;
+        final km = route.distanceKm;
+        estimatedDistanceKm.value =
+            km % 1 == 0 ? km.toInt().toString() : km.toStringAsFixed(1);
+        estimatedDurationLabel.value = route.durationLabel;
+        estimatedDurationMinutes = route.durationMinutes;
+        if (!_durationModifiedByUser) {
+          _updatingDurationProgrammatically = true;
+          durationController.text = estimatedDurationMinutes.toString();
+          _updatingDurationProgrammatically = false;
+        }
+        return; // OSRM succeeded — skip backend estimate
+      }
+      logger.w('OSRM unavailable for $dep→$dest, falling back to backend');
+    }
+
+    // ── Étape 2: Fallback — estimation backend ───────────────────────────────
     final payload = <String, dynamic>{
       'departure_city': dep,
       'arrival_city': dest,
-      if (_deviceLat != null && _deviceLng != null) ...{
-        'departure_latitude': _deviceLat,
-        'departure_longitude': _deviceLng,
-      } else if (depCoords != null) ...{
+      if (depCoords != null) ...{
         'departure_latitude': depCoords.lat,
         'departure_longitude': depCoords.lng,
       },
@@ -190,7 +215,6 @@ class AddTrajetController extends GetxController {
           : null;
       estimatedDurationLabel.value = body['estimated_duration_label'] as String?;
       estimatedDurationMinutes = (body['estimated_duration_minutes'] as num?)?.toInt();
-      // Pre-fill duration field only if driver hasn't manually edited it
       if (!_durationModifiedByUser && estimatedDurationMinutes != null) {
         _updatingDurationProgrammatically = true;
         durationController.text = estimatedDurationMinutes.toString();
@@ -288,10 +312,6 @@ class AddTrajetController extends GetxController {
       _deviceLat = pos.latitude;
       _deviceLng = pos.longitude;
       logger.d('GPS device: $_deviceLat, $_deviceLng');
-      // Re-fire estimate with real GPS coords if both cities are already set
-      if (selectedDepartureCity.value != null && selectedDestinationCity.value != null) {
-        _triggerEstimate();
-      }
     } catch (e) {
       logger.w('_fetchDeviceGps: $e');
     }
@@ -598,11 +618,7 @@ class AddTrajetController extends GetxController {
       'description': descriptionController.text.trim(),
       'preferences': _buildPreferencesList(),
       'is_published': true,
-      // GPS: device position for departure (more precise), city coords for arrival
-      if (_deviceLat != null && _deviceLng != null) ...{
-        'departure_latitude': _deviceLat,
-        'departure_longitude': _deviceLng,
-      } else if (depCoords != null) ...{
+      if (depCoords != null) ...{
         'departure_latitude': depCoords.lat,
         'departure_longitude': depCoords.lng,
       },

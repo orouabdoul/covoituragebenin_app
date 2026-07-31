@@ -18,7 +18,6 @@ class ConfirmationReservationView extends StatelessWidget {
 						? Get.find<ConfirmationReservationController>()
 						: Get.put(ConfirmationReservationController());
 		final responsive = AppResponsive(context);
-		final SearchRide? ride = controller.ride.value;
 
 		return Scaffold(
 			backgroundColor: AppColors.surface,
@@ -36,15 +35,15 @@ class ConfirmationReservationView extends StatelessWidget {
 							children: [
 								_HeaderBar(responsive: responsive),
 								SizedBox(height: responsive.h(16)),
-								_TripCard(responsive: responsive, ride: ride),
+								Obx(() => _TripCard(responsive: responsive, ride: controller.ride.value)),
 								SizedBox(height: responsive.h(16)),
 								_StopsCard(responsive: responsive, controller: controller),
 								SizedBox(height: responsive.h(16)),
-								_DriverCard(responsive: responsive, ride: ride),
+								Obx(() => _DriverCard(responsive: responsive, ride: controller.ride.value)),
 								SizedBox(height: responsive.h(16)),
 								_SeatsCard(responsive: responsive, controller: controller),
 								SizedBox(height: responsive.h(16)),
-								_PriceCard(responsive: responsive, controller: controller, ride: ride),
+								Obx(() => _PriceCard(responsive: responsive, controller: controller, ride: controller.ride.value)),
 								SizedBox(height: responsive.h(16)),
 								_PaymentCard(responsive: responsive, controller: controller),
 								SizedBox(height: responsive.h(16)),
@@ -833,7 +832,8 @@ class _TripCard extends StatelessWidget {
 		final String departureNote = ride?.departureNote ?? 'Départ';
 		final String arrivalNote = ride?.arrivalNote ?? 'Arrivée';
 		final String duration = ride?.duration ?? '1h 15min';
-		final String distance = '42 km';
+		final double distKm = ride?.distanceKm ?? 0.0;
+		final String distance = distKm > 0 ? '${distKm.round()} km' : '-- km';
 
 		return _SectionCard(
 			responsive: responsive,
@@ -1264,38 +1264,93 @@ class _PriceCard extends StatelessWidget {
 
 	@override
 	Widget build(BuildContext context) {
-		final int unitPrice = _parsePrice(ride?.price ?? '1 500 FCFA');
-
 		return _SectionCard(
 			responsive: responsive,
-			child: Obx(
-				() {
-					final int baseTotal = unitPrice * controller.reservedSeats.value;
-					final int serviceFee = (baseTotal * 0.1).round();
-					final int total = baseTotal + serviceFee;
+			child: Obx(() {
+				// Proratisé si les distances sont connues, plein sinon
+				final bool isProrated = controller.isPriceProrated;
+				final bool fromApi = controller.estimatedPricePerSeat > 0;
+				final int unitPrice = controller.estimatedProratedPricePerSeat > 0
+						? controller.estimatedProratedPricePerSeat
+						: _parsePrice(ride?.price);
+				final int seats = controller.reservedSeats.value;
+				final int commissionPct = controller.commissionRate.value;
+				final int baseTotal = unitPrice * seats;
+				final int serviceFee = (baseTotal * commissionPct / 100).round();
+				final int total = baseTotal + serviceFee;
 
-					return Column(
-						crossAxisAlignment: CrossAxisAlignment.start,
-						children: [
-							Text(AppStrings.reservationTotalToPay, style: AppTextStyles.h6(responsive)),
-							SizedBox(height: responsive.h(12)),
-							_PriceLine(label: 'Prix par place', value: _formatPrice(unitPrice), responsive: responsive),
+				String? badgeLabel;
+				Color badgeColor = const Color(0xFFFFF3CD);
+				Color badgeBorder = const Color(0xFFFFCA2C);
+				Color badgeText = const Color(0xFF856404);
+				if (isProrated) {
+					badgeLabel = 'Au prorata';
+					badgeColor = const Color(0xFFD1FAE5);
+					badgeBorder = const Color(0xFF34D399);
+					badgeText = const Color(0xFF065F46);
+				} else if (!fromApi) {
+					badgeLabel = 'Estimé';
+				}
+
+				String? noteText;
+				if (!isProrated) {
+					noteText = fromApi
+							? 'Choisissez vos villes pour obtenir le prix exact au prorata'
+							: 'Le prix exact sera calculé selon votre distance réelle';
+				}
+
+				return Column(
+					crossAxisAlignment: CrossAxisAlignment.start,
+					children: [
+						Row(
+							mainAxisAlignment: MainAxisAlignment.spaceBetween,
+							children: [
+								Text(AppStrings.reservationTotalToPay, style: AppTextStyles.h6(responsive)),
+								if (badgeLabel != null)
+									Container(
+										padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+										decoration: BoxDecoration(
+											color: badgeColor,
+											borderRadius: BorderRadius.circular(9999),
+											border: Border.all(color: badgeBorder),
+										),
+										child: Text(
+											badgeLabel,
+											style: AppTextStyles.caption(responsive).copyWith(
+												color: badgeText,
+												fontWeight: FontWeight.w600,
+											),
+										),
+									),
+							],
+						),
+						SizedBox(height: responsive.h(12)),
+						_PriceLine(label: 'Prix par place', value: _formatPrice(unitPrice), responsive: responsive),
+						SizedBox(height: responsive.h(8)),
+						_PriceLine(label: AppStrings.reservationServiceFee, value: _formatPrice(serviceFee), responsive: responsive),
+						SizedBox(height: responsive.h(12)),
+						Container(height: 1, color: const Color(0xFFF3F4F6)),
+						SizedBox(height: responsive.h(12)),
+						Row(
+							mainAxisAlignment: MainAxisAlignment.spaceBetween,
+							children: [
+								Text(AppStrings.reservationTotalToPay, style: AppTextStyles.subtitle(responsive)),
+								Text(_formatPrice(total), style: AppTextStyles.price(responsive)),
+							],
+						),
+						if (noteText != null) ...[
 							SizedBox(height: responsive.h(8)),
-							_PriceLine(label: AppStrings.reservationServiceFee, value: _formatPrice(serviceFee), responsive: responsive),
-							SizedBox(height: responsive.h(12)),
-							Container(height: 1, color: const Color(0xFFF3F4F6)),
-							SizedBox(height: responsive.h(12)),
-							Row(
-								mainAxisAlignment: MainAxisAlignment.spaceBetween,
-								children: [
-									Text(AppStrings.reservationTotalToPay, style: AppTextStyles.subtitle(responsive)),
-									Text(_formatPrice(total), style: AppTextStyles.price(responsive)),
-								],
+							Text(
+								noteText,
+								style: AppTextStyles.caption(responsive).copyWith(
+									color: const Color(0xFF6B7280),
+									fontStyle: FontStyle.italic,
+								),
 							),
 						],
-					);
-				},
-			),
+					],
+				);
+			}),
 		);
 	}
 }

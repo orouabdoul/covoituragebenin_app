@@ -80,6 +80,35 @@ class ConfirmationContextModel {
       );
 }
 
+// ── Payment Init Result ────────────────────────────────────────────────────
+
+class PaymentInitResult {
+  const PaymentInitResult({
+    required this.paymentUuid,
+    required this.bookingUuid,
+    required this.amount,
+    required this.status,
+    required this.paymentUrl,
+    required this.fedapayId,
+  });
+
+  final String paymentUuid;
+  final String bookingUuid;
+  final int amount;
+  final String status;
+  final String paymentUrl;
+  final int fedapayId;
+
+  factory PaymentInitResult.fromJson(Map<String, dynamic> j) => PaymentInitResult(
+        paymentUuid: (j['payment_uuid'] ?? '').toString(),
+        bookingUuid: (j['booking_uuid'] ?? '').toString(),
+        amount: (j['amount'] as num?)?.toInt() ?? 0,
+        status: (j['status'] ?? 'pending').toString(),
+        paymentUrl: (j['payment_url'] ?? '').toString(),
+        fedapayId: (j['fedapay_id'] as num?)?.toInt() ?? 0,
+      );
+}
+
 // ── Create Booking Result ──────────────────────────────────────────────────
 
 class CreateBookingResult {
@@ -122,6 +151,36 @@ class CreateBookingResult {
 
   String get formattedTripDistance =>
       '${tripDistanceKm.toStringAsFixed(1)} km';
+}
+
+// ── Payment Status (polling step 4) ───────────────────────────────────────
+
+class PaymentStatusModel {
+  const PaymentStatusModel({
+    required this.paymentUuid,
+    required this.status,
+    required this.grossAmount,
+    required this.provider,
+    required this.transactionRef,
+    required this.bookingUuid,
+  });
+
+  final String paymentUuid;
+  final String status; // 'pending' | 'locked' | 'success' | 'failed'
+  final int grossAmount;
+  final String provider;
+  final String transactionRef;
+  final String bookingUuid;
+
+  factory PaymentStatusModel.fromJson(Map<String, dynamic> j) =>
+      PaymentStatusModel(
+        paymentUuid: (j['payment_uuid'] ?? '').toString(),
+        status: (j['status'] ?? 'pending').toString(),
+        grossAmount: (j['gross_amount'] as num?)?.toInt() ?? 0,
+        provider: (j['provider'] ?? '').toString(),
+        transactionRef: (j['transaction_ref'] ?? '').toString(),
+        bookingUuid: (j['booking_uuid'] ?? '').toString(),
+      );
 }
 
 // ── Live Tracking ──────────────────────────────────────────────────────────

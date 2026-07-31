@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
@@ -29,39 +28,37 @@ class PaymentSuccessController extends GetxController {
   void onInit() {
     super.onInit();
     final dynamic savedArgs = Get.arguments;
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      if (savedArgs is Map<String, dynamic>) {
-        final r = savedArgs['ride'];
-        if (r is SearchRide) ride.value = r;
-        final ref = savedArgs['ref'];
-        if (ref is String) transactionRef.value = ref;
-        final amount = savedArgs['amount'];
-        if (amount is int) totalAmount.value = amount;
-        final seats = savedArgs['seats'];
-        if (seats is int) reservedSeats.value = seats;
-        final uuid = savedArgs['bookingUuid'];
-        if (uuid is String && uuid.isNotEmpty) {
-          _bookingUuid = uuid;
-          _fetchSuccess();
-        }
+    if (savedArgs is Map<String, dynamic>) {
+      final r = savedArgs['ride'];
+      if (r is SearchRide) ride.value = r;
+      final ref = savedArgs['ref'];
+      if (ref is String) transactionRef.value = ref;
+      final amount = savedArgs['amount'];
+      if (amount is int) totalAmount.value = amount;
+      final seats = savedArgs['seats'];
+      if (seats is int) reservedSeats.value = seats;
+      final uuid = savedArgs['bookingUuid'];
+      if (uuid is String && uuid.isNotEmpty) {
+        _bookingUuid = uuid;
+        _fetchSuccess();
       }
-      if (transactionRef.value.isEmpty) {
-        transactionRef.value =
-            '#TXN-${(DateTime.now().millisecondsSinceEpoch % 100000).toString().padLeft(5, '0')}';
-      }
-    });
+    }
+    if (transactionRef.value.isEmpty) {
+      transactionRef.value =
+          '#TXN-${(DateTime.now().millisecondsSinceEpoch % 100000).toString().padLeft(5, '0')}';
+    }
   }
 
   Future<void> _fetchSuccess() async {
     final result = await _service.fetchPaymentSuccess(_bookingUuid);
     if (!result.isSuccess) return;
     final data = result.data!;
-    transactionRef.value = data.transactionRef;
-    totalAmount.value = data.amountPaid;
-    formattedAmount.value = data.formattedAmount;
-    driverPhone.value = data.driverPhone;
-    conversationUuid.value = data.conversationUuid;
-    reservedSeats.value = data.reservedSeats;
+    if (data.transactionRef.isNotEmpty) transactionRef.value = data.transactionRef;
+    if (data.amountPaid > 0) totalAmount.value = data.amountPaid;
+    if (data.formattedAmount.isNotEmpty) formattedAmount.value = data.formattedAmount;
+    if (data.driverPhone.isNotEmpty) driverPhone.value = data.driverPhone;
+    if (data.conversationUuid.isNotEmpty) conversationUuid.value = data.conversationUuid;
+    if (data.reservedSeats > 0) reservedSeats.value = data.reservedSeats;
     ride.value = SearchRide(
       uuid: data.ride.uuid,
       driverName: data.ride.driverName,

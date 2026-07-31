@@ -136,13 +136,67 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
   }
 
   @override
-  Future<ApiResult<void>> initiatePayment(String bookingUuid,
-      {required String phone, required String provider}) async {
+  Future<ApiResult<PaymentStatusModel>> fetchPaymentStatus(
+      String paymentUuid) async {
+    try {
+      final opts = await _authOptions();
+      final res =
+          await _dio.get(AppApi.fetchPaymentStatus(paymentUuid), options: opts);
+      logger.d('paymentStatus[$paymentUuid] [${res.statusCode}]');
+      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 404) return ApiResult.failure(AppError.tripNotFound);
+      if (res.statusCode == 200 && res.data is Map && res.data['success'] == true) {
+        final body = res.data['body'];
+        if (body is Map<String, dynamic>) {
+          return ApiResult.success(PaymentStatusModel.fromJson(body));
+        }
+      }
+      return ApiResult.failure(AppError.unexpected);
+    } on DioException catch (e) {
+      logger.e('paymentStatus: $e');
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
+      logger.e('paymentStatus: $e');
+      return ApiResult.failure(AppError.unexpected);
+    }
+  }
+
+  @override
+  Future<ApiResult<void>> confirmArrival(String bookingUuid) async {
+    try {
+      final opts = await _authOptions();
+      final res =
+          await _dio.post(AppApi.confirmArrival(bookingUuid), options: opts);
+      logger.d('confirmArrival[$bookingUuid] [${res.statusCode}]');
+      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 404) return ApiResult.failure(AppError.tripNotFound);
+      if (res.statusCode == 422) {
+        final msg = res.data is Map ? res.data['message'] as String? : null;
+        return ApiResult.failure(AppError.tripDataInvalid, message: msg);
+      }
+      if (res.statusCode == 200) return ApiResult.success(null);
+      return ApiResult.failure(AppError.unexpected);
+    } on DioException catch (e) {
+      logger.e('confirmArrival: $e');
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
+      logger.e('confirmArrival: $e');
+      return ApiResult.failure(AppError.unexpected);
+    }
+  }
+
+  @override
+  Future<ApiResult<PaymentInitResult>> initiatePayment(String bookingUuid,
+      {required String phone, required String provider, required int amount}) async {
     try {
       final opts = await _authOptions();
       final res = await _dio.post(
         AppApi.initiateBookingPayment(bookingUuid),
-        data: {'phone_number': phone, 'provider': provider},
+        data: {
+          'phone_number': phone,
+          'provider': provider,
+          'amount': amount,
+        },
         options: opts,
       );
       logger.d('initiatePayment[$bookingUuid] [${res.statusCode}]');
@@ -151,16 +205,22 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
           logger.e('initiatePayment failed: ${res.data['message']}');
           return ApiResult.failure(AppError.unexpected);
         }
-        return ApiResult.success(null);
-      }
-      // 409 = paiement déjà effectué → traiter comme succès
-      if (res.statusCode == 409) {
-        logger.d('initiatePayment[$bookingUuid] already paid, treating as success');
-        return ApiResult.success(null);
+        final body = res.data is Map ? res.data['body'] : null;
+        if (body is Map<String, dynamic>) {
+          return ApiResult.success(PaymentInitResult.fromJson(body));
+        }
+        return ApiResult.failure(AppError.unexpected);
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
-      if (res.statusCode == 422) return ApiResult.failure(AppError.validationError);
-      if (res.statusCode == 500) return ApiResult.failure(AppError.paymentProviderError);
+      if (res.statusCode == 409) {
+        logger.d('initiatePayment[$bookingUuid] already paid');
+        return ApiResult.failure(AppError.unexpected,
+            message: 'Ce paiement a déjà été effectué.');
+      }
+      if (res.statusCode == 422) {
+        final msg = res.data is Map ? res.data['message'] as String? : null;
+        return ApiResult.failure(AppError.validationError, message: msg);
+      }
       // 502 = FedaPay a rejeté la demande (mauvais numéro, réseau incorrect, sandbox…)
       if (res.statusCode == 502) {
         final msg = res.data is Map ? res.data['message'] as String? : null;

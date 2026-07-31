@@ -667,6 +667,7 @@ class SearchRide {
 		this.allowsBags = false,
 		this.waypointCity,
 		this.waypointNote,
+		this.distanceKm = 0.0,
 	});
 
 	final String uuid;
@@ -691,4 +692,5 @@ class SearchRide {
 	final bool allowsBags;
 	final String? waypointCity;
 	final String? waypointNote;
+	final double distanceKm;
 }
