@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
+import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/passenger_reservation_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
@@ -49,6 +50,7 @@ class ReservationController extends GetxController {
 	void onInit() {
 		super.onInit();
 		_fetch();
+		ever(AppSync.i.passengerData, (_) => _fetch());
 	}
 
 	@override
@@ -81,10 +83,20 @@ class ReservationController extends GetxController {
 		statusTabs.assignAll(mapped);
 	}
 
+	static String _fmtPrice(int value) {
+		final s = value.toString().replaceAllMapped(
+			RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ' ');
+		return '$s FCFA';
+	}
+
 	ReservationItem _mapItem(ReservationApiItem a) {
-		final totalPriceValue = int.tryParse(
-				a.totalPrice.replaceAll(RegExp(r'[^0-9]'), '')) ??
-			0;
+		final totalPriceValue = a.proratedPrice > 0
+				? a.proratedPrice
+				: int.tryParse(a.totalPrice.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+		// Use prorated price string when backend provides calculated_price/amount_paid
+		final displayPrice = a.proratedPrice > 0
+				? _fmtPrice(a.proratedPrice)
+				: a.totalPrice;
 		return ReservationItem(
 			id: a.uuid,
 			driverName: a.driverName,
@@ -93,13 +105,17 @@ class ReservationController extends GetxController {
 			reviewCount: a.reviewCount,
 			vehicle: a.vehicle,
 			vehiclePlate: a.vehiclePlate,
-			price: a.totalPrice,
-			totalPrice: a.totalPrice,
+			price: displayPrice,
+			totalPrice: displayPrice,
 			totalPriceValue: totalPriceValue,
 			departureCity: a.departureCity,
 			departureNote: a.departureNote,
 			arrivalCity: a.arrivalCity,
 			arrivalNote: a.arrivalNote,
+			pickupCity: a.pickupCity,
+			dropoffCity: a.dropoffCity,
+			pickupNote: a.pickupNote,
+			dropoffNote: a.dropoffNote,
 			departureTime: a.departureTime,
 			departureDate: a.departureDate,
 			seatsCount: a.seatsCount,
@@ -117,7 +133,8 @@ class ReservationController extends GetxController {
 
 	ReservationStatus _parseStatus(String s) {
 		switch (s) {
-			case 'confirmed': return ReservationStatus.confirmed;
+			case 'confirmed':
+			case 'accepted': return ReservationStatus.confirmed;
 			case 'in_progress': return ReservationStatus.inProgress;
 			case 'completed': return ReservationStatus.completed;
 			case 'cancelled': return ReservationStatus.cancelled;
@@ -156,7 +173,7 @@ class ReservationController extends GetxController {
 	void contactDriver(ReservationItem r) =>
 			MessagerController.openDriverChat(
 				driverName: r.driverName,
-				tripRoute: '${r.departureCity} → ${r.arrivalCity}',
+				tripRoute: '${r.displayPickupCity} → ${r.displayDropoffCity}',
 				conversationUuid: r.conversationUuid,
 				bookingUuid: r.id,
 			);
@@ -289,7 +306,7 @@ class _CancellationDialog extends StatelessWidget {
 						),
 						SizedBox(height: responsive.h(8)),
 						Text(
-							'${reservation.departureCity} → ${reservation.arrivalCity}',
+							'${reservation.displayPickupCity} → ${reservation.displayDropoffCity}',
 							style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint),
 							textAlign: TextAlign.center,
 						),
@@ -518,7 +535,7 @@ class _InvoiceSheetState extends State<_InvoiceSheet> {
 						),
 						child: Column(
 							children: [
-								_InvoiceRow(responsive: responsive, label: 'Trajet', value: inv?.route ?? '${r.departureCity} → ${r.arrivalCity}'),
+								_InvoiceRow(responsive: responsive, label: 'Trajet', value: inv?.route ?? '${r.displayPickupCity} → ${r.displayDropoffCity}'),
 								Divider(color: AppColors.border, height: responsive.h(20)),
 								_InvoiceRow(responsive: responsive, label: 'Date', value: inv?.departureDate ?? '${r.departureDate} · ${r.departureTime}'),
 								Divider(color: AppColors.border, height: responsive.h(20)),
@@ -632,6 +649,10 @@ class ReservationItem {
 		required this.departureNote,
 		required this.arrivalCity,
 		required this.arrivalNote,
+		this.pickupCity = '',
+		this.dropoffCity = '',
+		this.pickupNote = '',
+		this.dropoffNote = '',
 		required this.departureTime,
 		required this.departureDate,
 		required this.seatsCount,
@@ -657,10 +678,16 @@ class ReservationItem {
 	final String price;
 	final String totalPrice;
 	final int totalPriceValue;
+	// Full trip origin/destination
 	final String departureCity;
 	final String departureNote;
 	final String arrivalCity;
 	final String arrivalNote;
+	// Passenger-specific pickup/dropoff (fallback to full trip if not provided)
+	final String pickupCity;
+	final String dropoffCity;
+	final String pickupNote;
+	final String dropoffNote;
 	final String departureTime;
 	final String departureDate;
 	final int seatsCount;
@@ -674,6 +701,16 @@ class ReservationItem {
 	final int? etaMinutes;
 	final String timeAgo;
 	final String conversationUuid;
+
+	// Effective display cities — passenger's own pickup/dropoff or full trip as fallback
+	String get displayPickupCity =>
+			(pickupCity.isNotEmpty) ? pickupCity : departureCity;
+	String get displayDropoffCity =>
+			(dropoffCity.isNotEmpty) ? dropoffCity : arrivalCity;
+	String get displayPickupNote =>
+			(pickupNote.isNotEmpty) ? pickupNote : departureNote;
+	String get displayDropoffNote =>
+			(dropoffNote.isNotEmpty) ? dropoffNote : arrivalNote;
 
 	ReservationItem copyWith({
 		ReservationStatus? status,
@@ -699,6 +736,10 @@ class ReservationItem {
 			departureNote: departureNote,
 			arrivalCity: arrivalCity,
 			arrivalNote: arrivalNote,
+			pickupCity: pickupCity,
+			dropoffCity: dropoffCity,
+			pickupNote: pickupNote,
+			dropoffNote: dropoffNote,
 			departureTime: departureTime,
 			departureDate: departureDate,
 			seatsCount: seatsCount,

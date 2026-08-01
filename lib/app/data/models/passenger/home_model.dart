@@ -7,6 +7,11 @@ class PassengerUpcomingTripData {
     required this.destination,
     this.originPoint = '',
     this.destinationPoint = '',
+    this.pickupCity = '',
+    this.dropoffCity = '',
+    this.pickupNote = '',
+    this.dropoffNote = '',
+    this.proratedPrice = 0,
     this.etaMinutes,
     required this.tripProgress,
     required this.departureTime,
@@ -31,6 +36,11 @@ class PassengerUpcomingTripData {
   final String destination;
   final String originPoint;
   final String destinationPoint;
+  final String pickupCity;
+  final String dropoffCity;
+  final String pickupNote;
+  final String dropoffNote;
+  final int proratedPrice;
   final int? etaMinutes;
   final double tripProgress;
   final String departureTime;
@@ -50,23 +60,35 @@ class PassengerUpcomingTripData {
   factory PassengerUpcomingTripData.fromJson(Map<String, dynamic> json) {
     final origin = (json['origin'] as String?) ?? '';
     final destination = (json['destination'] as String?) ?? '';
+    final originPoint = (json['origin_point'] as String?)?.isNotEmpty == true
+        ? json['origin_point'] as String
+        : (json['pickup_point'] as String?)?.isNotEmpty == true
+            ? json['pickup_point'] as String
+            : origin;
+    final destinationPoint =
+        (json['destination_point'] as String?)?.isNotEmpty == true
+            ? json['destination_point'] as String
+            : (json['dropoff_point'] as String?)?.isNotEmpty == true
+                ? json['dropoff_point'] as String
+                : destination;
     return PassengerUpcomingTripData(
       bookingUuid: (json['booking_uuid'] as String?) ?? '',
       tripUuid: (json['trip_uuid'] as String?) ?? '',
       status: (json['status'] as String?) ?? '',
       origin: origin,
       destination: destination,
-      originPoint: (json['origin_point'] as String?)?.isNotEmpty == true
-          ? json['origin_point'] as String
-          : (json['pickup_point'] as String?)?.isNotEmpty == true
-              ? json['pickup_point'] as String
-              : origin,
-      destinationPoint:
-          (json['destination_point'] as String?)?.isNotEmpty == true
-              ? json['destination_point'] as String
-              : (json['dropoff_point'] as String?)?.isNotEmpty == true
-                  ? json['dropoff_point'] as String
-                  : destination,
+      originPoint: originPoint,
+      destinationPoint: destinationPoint,
+      pickupCity: (json['pickup_city'] as String?)?.isNotEmpty == true
+          ? json['pickup_city'] as String
+          : originPoint,
+      dropoffCity: (json['dropoff_city'] as String?)?.isNotEmpty == true
+          ? json['dropoff_city'] as String
+          : destinationPoint,
+      pickupNote: (json['pickup_note'] as String?) ?? '',
+      dropoffNote: (json['dropoff_note'] as String?) ?? '',
+      proratedPrice: (json['calculated_price'] as num?)?.toInt() ??
+          (json['amount_paid'] as num?)?.toInt() ?? 0,
       etaMinutes: (json['eta_minutes'] as num?)?.toInt(),
       tripProgress: (json['trip_progress'] as num?)?.toDouble() ?? 0.0,
       departureTime: (json['departure_time'] as String?) ?? '',

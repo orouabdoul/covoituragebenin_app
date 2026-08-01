@@ -51,12 +51,13 @@ class DetailReservationController extends GetxController {
         reviewCount: arg.reviewCount,
         price: arg.totalPrice,
         priceValue: arg.totalPriceValue,
-        origin: arg.departureCity,
-        destination: arg.arrivalCity,
+        // Use passenger-specific pickup/dropoff, not full trip origin/destination
+        origin: arg.displayPickupCity,
+        destination: arg.displayDropoffCity,
         departureTime: arg.departureTime,
-        departureNote: arg.departureNote,
+        departureNote: arg.displayPickupNote,
         arrivalTime: '',
-        arrivalNote: arg.arrivalNote,
+        arrivalNote: arg.displayDropoffNote,
         duration: '',
         vehicle: arg.vehicle,
         vehiclePlate: arg.vehiclePlate,
@@ -88,22 +89,39 @@ class DetailReservationController extends GetxController {
     responseTime.value = detail.driverMetrics.responseTime;
     memberSince.value = detail.driverMetrics.memberSince;
     apiReviews.assignAll(detail.recentReviews);
-    // Update ride from API (more complete data)
+    // Update ride from API — keep passenger's price and pickup/dropoff when available
+    final existing = _existingReservation;
+    final passengerPrice = existing != null && existing.totalPriceValue > 0
+        ? existing.totalPrice
+        : detail.ride.price;
+    final passengerPriceValue = existing != null && existing.totalPriceValue > 0
+        ? existing.totalPriceValue
+        : int.tryParse(detail.ride.price.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+    final passengerOrigin = existing != null
+        ? existing.displayPickupCity
+        : detail.ride.origin;
+    final passengerDestination = existing != null
+        ? existing.displayDropoffCity
+        : detail.ride.destination;
+    final passengerDepartureNote = existing != null
+        ? existing.displayPickupNote
+        : detail.ride.departureNote;
+    final passengerArrivalNote = existing != null
+        ? existing.displayDropoffNote
+        : detail.ride.arrivalNote;
     ride.value = SearchRide(
       uuid: detail.ride.uuid,
       driverName: detail.ride.driverName,
       rating: detail.ride.rating,
       reviewCount: '${detail.ride.reviewCount}',
-      price: detail.ride.price,
-      priceValue: int.tryParse(
-              detail.ride.price.replaceAll(RegExp(r'[^0-9]'), '')) ??
-          0,
-      origin: detail.ride.origin,
-      destination: detail.ride.destination,
+      price: passengerPrice,
+      priceValue: passengerPriceValue,
+      origin: passengerOrigin,
+      destination: passengerDestination,
       departureTime: detail.ride.departureTime,
-      departureNote: detail.ride.departureNote,
+      departureNote: passengerDepartureNote,
       arrivalTime: detail.ride.arrivalTime,
-      arrivalNote: detail.ride.arrivalNote,
+      arrivalNote: passengerArrivalNote,
       duration: detail.ride.duration,
       vehicle: detail.ride.vehicle,
       seatsAvailable: detail.ride.availableSeats,
@@ -114,7 +132,8 @@ class DetailReservationController extends GetxController {
 
   ReservationStatus _parseStatus(String s) {
     switch (s) {
-      case 'confirmed': return ReservationStatus.confirmed;
+      case 'confirmed':
+      case 'accepted': return ReservationStatus.confirmed;
       case 'in_progress': return ReservationStatus.inProgress;
       case 'completed': return ReservationStatus.completed;
       case 'cancelled': return ReservationStatus.cancelled;
@@ -166,7 +185,7 @@ class DetailReservationController extends GetxController {
     if (r.conversationUuid.isNotEmpty) {
       MessagerController.openDriverChat(
         driverName: r.driverName,
-        tripRoute: '${r.departureCity} → ${r.arrivalCity}',
+        tripRoute: '${r.displayPickupCity} → ${r.displayDropoffCity}',
         conversationUuid: r.conversationUuid,
       );
       return;
@@ -190,7 +209,7 @@ class DetailReservationController extends GetxController {
 
     MessagerController.openDriverChat(
       driverName: r.driverName,
-      tripRoute: '${r.departureCity} → ${r.arrivalCity}',
+      tripRoute: '${r.displayPickupCity} → ${r.displayDropoffCity}',
       conversationUuid: result.data!,
     );
   }

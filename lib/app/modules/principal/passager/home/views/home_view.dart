@@ -481,13 +481,19 @@ class _TripTrackingCard extends StatelessWidget {
         ? AppColors.primary
         : isArriving
             ? const Color(0xFFF59E0B)
-            : AppColors.blue;
+            : trip.isPending
+                ? const Color(0xFFF59E0B)
+                : AppColors.blue;
 
     final String statusText = isActive
         ? 'Trajet en cours'
         : isArriving
             ? 'Conducteur en approche'
-            : 'Prochain trajet';
+            : trip.isPending
+                ? 'En attente de confirmation'
+                : trip.isAccepted
+                    ? 'Réservation confirmée'
+                    : 'Prochain trajet';
 
     final String actionText = isActive
         ? 'Suivi en direct'
@@ -611,7 +617,7 @@ class _TripTrackingCard extends StatelessWidget {
                   ),
                   Container(
                     width: 2,
-                    height: responsive.h(trip.originPoint != trip.origin ? 78 : 56),
+                    height: responsive.h(78),
                     color: AppColors.border,
                   ),
                   Container(
@@ -631,11 +637,19 @@ class _TripTrackingCard extends StatelessWidget {
                           color: AppColors.textHint, fontSize: responsive.text(11),
                         )),
                     SizedBox(height: responsive.h(2)),
-                    Text(trip.originPoint,
+                    Text(trip.pickupCity.isNotEmpty ? trip.pickupCity : trip.originPoint,
                         style: AppTextStyles.homeCardTitle(responsive)
                             .copyWith(fontWeight: FontWeight.w700),
                         maxLines: 1, overflow: TextOverflow.ellipsis),
-                    if (trip.originPoint != trip.origin) ...[
+                    if (trip.pickupNote.isNotEmpty) ...[
+                      SizedBox(height: responsive.h(1)),
+                      Text(trip.pickupNote,
+                          style: AppTextStyles.caption(responsive).copyWith(
+                            color: AppColors.textMuted,
+                            fontSize: responsive.text(11),
+                          ),
+                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ] else if (trip.pickupCity != trip.origin && trip.origin.isNotEmpty) ...[
                       SizedBox(height: responsive.h(1)),
                       Text(trip.origin,
                           style: AppTextStyles.caption(responsive).copyWith(
@@ -644,19 +658,25 @@ class _TripTrackingCard extends StatelessWidget {
                           ),
                           maxLines: 1, overflow: TextOverflow.ellipsis),
                     ],
-                    SizedBox(
-                        height: responsive.h(
-                            trip.originPoint != trip.origin ? 10 : 22)),
+                    SizedBox(height: responsive.h(10)),
                     Text('Dépose',
                         style: AppTextStyles.caption(responsive).copyWith(
                           color: AppColors.textHint, fontSize: responsive.text(11),
                         )),
                     SizedBox(height: responsive.h(2)),
-                    Text(trip.destinationPoint,
+                    Text(trip.dropoffCity.isNotEmpty ? trip.dropoffCity : trip.destinationPoint,
                         style: AppTextStyles.homeCardTitle(responsive)
                             .copyWith(fontWeight: FontWeight.w700),
                         maxLines: 1, overflow: TextOverflow.ellipsis),
-                    if (trip.destinationPoint != trip.destination) ...[
+                    if (trip.dropoffNote.isNotEmpty) ...[
+                      SizedBox(height: responsive.h(1)),
+                      Text(trip.dropoffNote,
+                          style: AppTextStyles.caption(responsive).copyWith(
+                            color: AppColors.textMuted,
+                            fontSize: responsive.text(11),
+                          ),
+                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ] else if (trip.dropoffCity != trip.destination && trip.destination.isNotEmpty) ...[
                       SizedBox(height: responsive.h(1)),
                       Text(trip.destination,
                           style: AppTextStyles.caption(responsive).copyWith(
@@ -681,6 +701,13 @@ class _TripTrackingCard extends StatelessWidget {
                 icon: Icons.event_seat_rounded,
                 label: '${trip.seatsBooked} place${trip.seatsBooked > 1 ? 's' : ''}',
               ),
+              if (trip.proratedPrice > 0)
+                _TripInfoChip(
+                  responsive: responsive,
+                  icon: Icons.payments_outlined,
+                  label: '${trip.proratedPrice.toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ' ')} FCFA',
+                  color: AppColors.primary,
+                ),
               if (trip.vehiclePlate.isNotEmpty)
                 _TripInfoChip(
                   responsive: responsive,

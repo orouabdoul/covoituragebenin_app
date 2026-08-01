@@ -668,14 +668,14 @@ class _RouteBlock extends StatelessWidget {
 						crossAxisAlignment: CrossAxisAlignment.start,
 						children: [
 							_PlaceLine(
-								title: reservation.departureCity,
-								subtitle: reservation.departureNote,
+								title: reservation.displayPickupCity,
+								subtitle: reservation.displayPickupNote,
 								responsive: responsive,
 							),
 							SizedBox(height: responsive.h(14)),
 							_PlaceLine(
-								title: reservation.arrivalCity,
-								subtitle: reservation.arrivalNote,
+								title: reservation.displayDropoffCity,
+								subtitle: reservation.displayDropoffNote,
 								responsive: responsive,
 							),
 						],
@@ -716,8 +716,10 @@ class _PlaceLine extends StatelessWidget {
 			crossAxisAlignment: CrossAxisAlignment.start,
 			children: [
 				Text(title, style: AppTextStyles.subtitle(responsive)),
-				SizedBox(height: responsive.h(2)),
-				Text(subtitle, style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint)),
+				if (subtitle.isNotEmpty) ...[
+					SizedBox(height: responsive.h(2)),
+					Text(subtitle, style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint)),
+				],
 			],
 		);
 	}

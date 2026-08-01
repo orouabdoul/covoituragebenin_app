@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
+import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/trips/trips_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
@@ -82,6 +83,10 @@ class TrajetController extends GetxController {
   void onInit() {
     super.onInit();
     _loadTrips(selectedFilter.value);
+    ever(AppSync.i.driverTrips, (_) {
+      _tripsByFilter.clear();
+      _loadTrips(selectedFilter.value);
+    });
   }
 
   // ── API ───────────────────────────────────────────────────────────────────

@@ -14,7 +14,9 @@ import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/benin_locations_data.dart';
 import 'package:covoiturage_benin_app/app/data/models/passenger/reservations_model.dart';
+import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 
 import '../../search/controllers/search_controller.dart';
 
@@ -83,7 +85,7 @@ class ConfirmationReservationController extends GetxController {
   final RxBool isProcessingPayment = false.obs;
   final RxBool isLoadingContext = false.obs;
 
-  final RxInt commissionRate = 10.obs;
+  final RxInt commissionRate = 5.obs;
   final RxInt maxPerBooking = 0.obs;
   final RxInt availableSeatsFromCtx = 0.obs;
   final RxInt _pricePerSeat = 0.obs; // mis à jour par l'API → Obx se reconstruit
@@ -596,31 +598,16 @@ class ConfirmationReservationController extends GetxController {
   void _showPriceSheet(CreateBookingResult booking) {
     _priceConfirmed = false;
 
-    // Calcul du prix confirmé avec fallback si le backend retourne 0
-    if (booking.calculatedPrice > 0) {
-      // Prix calculé par le backend (distance réelle du passager)
-      _confirmedPrice = booking.calculatedPrice * reservedSeats.value;
-    } else if (booking.passengerDistanceKm > 0 &&
-        booking.tripDistanceKm > 0 &&
-        _pricePerSeat.value > 0) {
-      // Distances retournées par le backend → calcul local du prorata
-      final ratio = (booking.passengerDistanceKm / booking.tripDistanceKm)
-          .clamp(0.0, 1.0);
-      final perSeat = (ratio * _pricePerSeat.value).round();
-      _confirmedPrice =
-          (perSeat > 0 ? perSeat : _pricePerSeat.value) * reservedSeats.value;
-    } else if (passengerDistanceKm.value > 0 &&
-        _tripDistanceKm.value > 0 &&
-        _pricePerSeat.value > 0) {
-      // Distances OSRM pré-calculées (pickup/dropoff sélectionnés avant réservation)
-      final ratio =
-          (passengerDistanceKm.value / _tripDistanceKm.value).clamp(0.0, 1.0);
-      final perSeat = (ratio * _pricePerSeat.value).round();
-      _confirmedPrice =
-          (perSeat > 0 ? perSeat : _pricePerSeat.value) * reservedSeats.value;
+    // Prix confirmé = price_total retourné par le backend (inclut frais de service)
+    if (booking.priceTotal > 0) {
+      _confirmedPrice = booking.priceTotal;
+    } else if (booking.calculatedPrice > 0) {
+      // Fallback : recalcul local si price_total absent
+      final subtotal = booking.calculatedPrice * reservedSeats.value;
+      _confirmedPrice = subtotal + (subtotal * commissionRate.value / 100).round();
     } else if (_pricePerSeat.value > 0) {
-      // Dernier recours : prix plein × places
-      _confirmedPrice = _pricePerSeat.value * reservedSeats.value;
+      final subtotal = _pricePerSeat.value * reservedSeats.value;
+      _confirmedPrice = subtotal + (subtotal * commissionRate.value / 100).round();
     }
 
     logger.d('_showPriceSheet: calculatedPrice=${booking.calculatedPrice} '
@@ -636,6 +623,12 @@ class ConfirmationReservationController extends GetxController {
         confirmedTotal: _confirmedPrice,
         onConfirm: _proceedToNextStep,
         onCancel: _cancelAndDismiss,
+        pickupCity: pickupSelectedCity.value ?? '',
+        pickupNeighborhood: pickupNeighborhoodController.text,
+        pickupAddress: pickupController.text,
+        dropoffCity: dropoffSelectedCity.value ?? '',
+        dropoffNeighborhood: dropoffNeighborhoodController.text,
+        dropoffAddress: dropoffController.text,
       ),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -659,6 +652,7 @@ class ConfirmationReservationController extends GetxController {
     if (_bookingUuid.isEmpty) return;
 
     if (_bookingMode == 'instant') {
+      AppSync.i.refreshPassenger();
       Get.toNamed(AppRoutes.passengerReservationPayment, arguments: {
         'ride': ride.value,
         'seats': reservedSeats.value,
@@ -667,13 +661,14 @@ class ConfirmationReservationController extends GetxController {
         'totalAmount': totalAmount,
       });
     } else {
-      Get.toNamed(AppRoutes.passengerWaitingApproval, arguments: {
-        'ride': ride.value,
-        'seats': reservedSeats.value,
-        'bookingUuid': _bookingUuid,
-        'paymentIndex': selectedPaymentIndex.value,
-        'totalAmount': totalAmount,
-      });
+      // Mode approbation : retour à l'accueil, le conducteur répondra par notification
+      AppSync.i.refreshPassenger();
+      UIHelper().showSnackBar(
+        'MINIZON',
+        'Demande envoyée ! Vous serez notifié dès que le conducteur confirme.',
+        5,
+      );
+      BottonNavController.goToTab(0);
     }
   }
 
@@ -739,12 +734,10 @@ class ConfirmationReservationController extends GetxController {
 
     isProcessingPayment.value = true;
     final provider = selectedMobileService.value.name;
-    final amount = totalAmount;
     final result = await _service.initiatePayment(
       _bookingUuid,
       phone: phone,
       provider: provider,
-      amount: amount,
     );
     isProcessingPayment.value = false;
     if (!result.isSuccess) {
@@ -791,6 +784,12 @@ class _PriceConfirmSheet extends StatelessWidget {
     required this.confirmedTotal,
     required this.onConfirm,
     required this.onCancel,
+    this.pickupCity = '',
+    this.pickupNeighborhood = '',
+    this.pickupAddress = '',
+    this.dropoffCity = '',
+    this.dropoffNeighborhood = '',
+    this.dropoffAddress = '',
   });
 
   final CreateBookingResult booking;
@@ -798,6 +797,12 @@ class _PriceConfirmSheet extends StatelessWidget {
   final int confirmedTotal;
   final VoidCallback onConfirm;
   final VoidCallback onCancel;
+  final String pickupCity;
+  final String pickupNeighborhood;
+  final String pickupAddress;
+  final String dropoffCity;
+  final String dropoffNeighborhood;
+  final String dropoffAddress;
 
   String _fmt(int v) => v
       .toString()
@@ -850,7 +855,146 @@ class _PriceConfirmSheet extends StatelessWidget {
                 : 'Basé sur le tarif du conducteur',
             style: TextStyle(fontSize: 13, color: Colors.grey[600]),
           ),
+          // ── Prise et dépôt ───────────────────────────────────────────────
+          if (pickupCity.isNotEmpty || dropoffCity.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            Container(
+              width: double.infinity,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF9FAFB),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              child: Column(
+                children: [
+                  // Prise
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Column(
+                        children: [
+                          const SizedBox(height: 4),
+                          Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          Container(
+                              width: 2, height: 30, color: const Color(0xFFD1D5DB)),
+                        ],
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              pickupCity.isNotEmpty ? pickupCity : '—',
+                              style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF111827)),
+                            ),
+                            if (pickupNeighborhood.isNotEmpty)
+                              Text(pickupNeighborhood,
+                                  style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFF6B7280))),
+                            if (pickupAddress.isNotEmpty)
+                              Text(pickupAddress,
+                                  style: const TextStyle(
+                                      fontSize: 11,
+                                      color: Color(0xFF9CA3AF))),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  // Dépôt
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Column(
+                        children: [
+                          Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              dropoffCity.isNotEmpty ? dropoffCity : '—',
+                              style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF111827)),
+                            ),
+                            if (dropoffNeighborhood.isNotEmpty)
+                              Text(dropoffNeighborhood,
+                                  style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFF6B7280))),
+                            if (dropoffAddress.isNotEmpty)
+                              Text(dropoffAddress,
+                                  style: const TextStyle(
+                                      fontSize: 11,
+                                      color: Color(0xFF9CA3AF))),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 20),
+          if (booking.passengerDistanceKm > 0 &&
+              booking.tripDistanceKm > 0 &&
+              booking.passengerDistanceKm < booking.tripDistanceKm)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE6F7EF),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.3)),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.check_circle_outline,
+                        size: 14, color: AppColors.primary),
+                    SizedBox(width: 6),
+                    Text('Au prorata',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary)),
+                    SizedBox(width: 4),
+                    Text('· prix selon votre distance',
+                        style: TextStyle(fontSize: 12, color: Color(0xFF374151))),
+                  ],
+                ),
+              ),
+            ),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 18),
@@ -872,39 +1016,83 @@ class _PriceConfirmSheet extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  seats > 1 && confirmedTotal > 0
-                      ? '${_fmt((confirmedTotal / seats).round())} FCFA × $seats places'
-                      : 'pour 1 place',
+                  seats > 1 && booking.calculatedPrice > 0
+                      ? '${_fmt(booking.calculatedPrice)} FCFA × $seats places + frais'
+                      : 'pour 1 place (frais inclus)',
                   style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 14),
-          if (booking.passengerDistanceKm > 0) ...[
-            _DetailRow(
-              icon: Icons.social_distance_rounded,
-              label: 'Votre trajet',
-              value: booking.formattedPassengerDistance,
+          const SizedBox(height: 16),
+          // ── Détail tarifaire ─────────────────────────────────────────
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF9FAFB),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
             ),
-            const SizedBox(height: 8),
-            _DetailRow(
-              icon: Icons.route_rounded,
-              label: 'Trajet total du conducteur',
-              value: booking.formattedTripDistance,
+            child: Column(
+              children: [
+                if (booking.passengerDistanceKm > 0) ...[
+                  _DetailRow(
+                    icon: Icons.social_distance_rounded,
+                    label: 'Votre distance',
+                    value: booking.formattedPassengerDistance,
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                if (booking.calculatedPrice > 0) ...[
+                  _DetailRow(
+                    icon: Icons.confirmation_number_outlined,
+                    label: 'Prix / place',
+                    value: '${_fmt(booking.calculatedPrice)} FCFA',
+                  ),
+                  if (seats > 1) ...[
+                    const SizedBox(height: 8),
+                    _DetailRow(
+                      icon: Icons.group_outlined,
+                      label: '× $seats places',
+                      value: '${_fmt(booking.priceSubtotal > 0 ? booking.priceSubtotal : booking.calculatedPrice * seats)} FCFA',
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                ],
+                _DetailRow(
+                  icon: Icons.receipt_outlined,
+                  label: 'Frais de service (5%)',
+                  value: booking.serviceFee > 0
+                      ? '${_fmt(booking.serviceFee)} FCFA'
+                      : '—',
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 10),
+                  child: Divider(height: 1, color: Color(0xFFE5E7EB)),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('TOTAL À PAYER',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF111827))),
+                    Text(
+                      confirmedTotal > 0
+                          ? '${_fmt(confirmedTotal)} FCFA'
+                          : '—',
+                      style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.primary),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-          ],
-          if (booking.priceTotal > 0 &&
-              confirmedTotal > 0 &&
-              booking.priceTotal != (confirmedTotal / seats).round()) ...[
-            _DetailRow(
-              icon: Icons.receipt_long_rounded,
-              label: 'Prix plein du trajet (référence)',
-              value: '${_fmt(booking.priceTotal)} FCFA',
-              valueColor: Colors.grey[500],
-            ),
-          ],
+          ),
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,

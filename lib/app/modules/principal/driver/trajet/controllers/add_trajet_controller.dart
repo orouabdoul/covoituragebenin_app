@@ -3,6 +3,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
+import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/trips/trips_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/routing/routing_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/api_result.dart';
@@ -641,6 +642,7 @@ class AddTrajetController extends GetxController {
     isPublishing.value = false;
 
     if (result.isSuccess) {
+      AppSync.i.refreshDriver();
       UIHelper().showSnackBar(
         AppStrings.appName,
         isEditMode ? 'Trajet mis à jour avec succès !' : 'Trajet publié avec succès !',

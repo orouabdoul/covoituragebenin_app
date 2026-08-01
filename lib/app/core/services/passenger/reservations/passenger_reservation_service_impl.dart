@@ -89,8 +89,7 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       if (res.statusCode == 404) return ApiResult.failure(AppError.tripNotFound);
       if (res.statusCode == 409) {
         final msg = res.data is Map ? res.data['message'] as String? : null;
-        return ApiResult.failure(AppError.unexpected,
-            message: msg ?? 'Vous avez déjà une réservation pour ce trajet.');
+        return ApiResult.failure(AppError.unexpected, message: msg);
       }
       if (res.statusCode == 422) {
         final msg = res.data is Map ? res.data['message'] as String? : null;
@@ -187,7 +186,7 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
 
   @override
   Future<ApiResult<PaymentInitResult>> initiatePayment(String bookingUuid,
-      {required String phone, required String provider, required int amount}) async {
+      {required String phone, required String provider}) async {
     try {
       final opts = await _authOptions();
       final res = await _dio.post(
@@ -195,7 +194,6 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
         data: {
           'phone_number': phone,
           'provider': provider,
-          'amount': amount,
         },
         options: opts,
       );

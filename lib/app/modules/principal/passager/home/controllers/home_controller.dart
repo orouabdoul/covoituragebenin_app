@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart' hide SearchController;
 import 'package:get/get.dart';
 
+import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
@@ -46,6 +47,7 @@ class HomeController extends GetxController {
   void onInit() {
     super.onInit();
     _loadDashboard();
+    ever(AppSync.i.passengerData, (_) => _loadDashboard());
   }
 
   @override
@@ -240,6 +242,13 @@ class HomeController extends GetxController {
         destination: d.destination,
         originPoint: d.originPoint,
         destinationPoint: d.destinationPoint,
+        pickupCity: d.pickupCity,
+        dropoffCity: d.dropoffCity,
+        pickupNote: d.pickupNote,
+        dropoffNote: d.dropoffNote,
+        proratedPrice: d.proratedPrice,
+        isPending: d.status == 'pending',
+        isAccepted: d.status == 'accepted' || d.status == 'confirmed',
         vehiclePlate: d.vehiclePlate,
         seatsBooked: d.seatsBooked,
         completedStops: d.completedStops,
@@ -401,6 +410,7 @@ class HomeController extends GetxController {
       case UpcomingTripStatus.driverArriving:
         Get.toNamed(AppRoutes.passengerDriverArrival);
       case UpcomingTripStatus.upcoming:
+        // pending + accepted + scheduled all go to the reservations tab
         BottonNavController.goToTab(2);
     }
   }
@@ -506,6 +516,13 @@ class HomeUpcomingTrip {
     required this.destination,
     this.originPoint = '',
     this.destinationPoint = '',
+    this.pickupCity = '',
+    this.dropoffCity = '',
+    this.pickupNote = '',
+    this.dropoffNote = '',
+    this.proratedPrice = 0,
+    this.isPending = false,
+    this.isAccepted = false,
     required this.departureTime,
     required this.departureDate,
     required this.driverName,
@@ -531,6 +548,13 @@ class HomeUpcomingTrip {
   final String destination;
   final String originPoint;
   final String destinationPoint;
+  final String pickupCity;
+  final String dropoffCity;
+  final String pickupNote;
+  final String dropoffNote;
+  final int proratedPrice;
+  final bool isPending;
+  final bool isAccepted;
   final String departureTime;
   final String departureDate;
   final String driverName;

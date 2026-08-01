@@ -71,7 +71,7 @@ class ConfirmationContextModel {
             j['trip'] is Map<String, dynamic>
                 ? j['trip'] as Map<String, dynamic>
                 : const {}),
-        commissionRate: (j['commission_rate'] as num?)?.toInt() ?? 10,
+        commissionRate: (j['commission_rate'] as num?)?.toInt() ?? 5,
         userPhone: (j['user_phone'] ?? '').toString(),
         paymentMethods: (j['payment_methods'] as List? ?? [])
             .whereType<Map<String, dynamic>>()
@@ -86,6 +86,8 @@ class PaymentInitResult {
   const PaymentInitResult({
     required this.paymentUuid,
     required this.bookingUuid,
+    required this.priceSubtotal,
+    required this.serviceFee,
     required this.amount,
     required this.status,
     required this.paymentUrl,
@@ -94,7 +96,9 @@ class PaymentInitResult {
 
   final String paymentUuid;
   final String bookingUuid;
-  final int amount;
+  final int priceSubtotal; // sous-total sans frais
+  final int serviceFee;    // 5% de frais
+  final int amount;        // total débité (priceSubtotal + serviceFee)
   final String status;
   final String paymentUrl;
   final int fedapayId;
@@ -102,6 +106,8 @@ class PaymentInitResult {
   factory PaymentInitResult.fromJson(Map<String, dynamic> j) => PaymentInitResult(
         paymentUuid: (j['payment_uuid'] ?? '').toString(),
         bookingUuid: (j['booking_uuid'] ?? '').toString(),
+        priceSubtotal: (j['price_subtotal'] as num?)?.toInt() ?? 0,
+        serviceFee: (j['service_fee'] as num?)?.toInt() ?? 0,
         amount: (j['amount'] as num?)?.toInt() ?? 0,
         status: (j['status'] ?? 'pending').toString(),
         paymentUrl: (j['payment_url'] ?? '').toString(),
@@ -115,16 +121,20 @@ class CreateBookingResult {
   const CreateBookingResult({
     required this.bookingUuid,
     required this.bookingMode,
-    required this.priceTotal,
     required this.calculatedPrice,
+    required this.priceSubtotal,
+    required this.serviceFee,
+    required this.priceTotal,
     required this.passengerDistanceKm,
     required this.tripDistanceKm,
   });
 
   final String bookingUuid;
   final String bookingMode; // 'approval' | 'instant'
-  final int priceTotal;
-  final int calculatedPrice;
+  final int calculatedPrice;  // prix unitaire proraté (par place)
+  final int priceSubtotal;    // seats × calculatedPrice
+  final int serviceFee;       // 5% du sous-total
+  final int priceTotal;       // price_subtotal + service_fee — montant FedaPay
   final double passengerDistanceKm;
   final double tripDistanceKm;
 
@@ -132,8 +142,10 @@ class CreateBookingResult {
       CreateBookingResult(
         bookingUuid: (j['booking_uuid'] ?? '').toString(),
         bookingMode: (j['booking_mode'] ?? 'approval').toString(),
-        priceTotal: (j['price_total'] as num?)?.toInt() ?? 0,
         calculatedPrice: (j['calculated_price'] as num?)?.toInt() ?? 0,
+        priceSubtotal: (j['price_subtotal'] as num?)?.toInt() ?? 0,
+        serviceFee: (j['service_fee'] as num?)?.toInt() ?? 0,
+        priceTotal: (j['price_total'] as num?)?.toInt() ?? 0,
         passengerDistanceKm:
             (j['passenger_distance_km'] as num?)?.toDouble() ?? 0.0,
         tripDistanceKm: (j['trip_distance_km'] as num?)?.toDouble() ?? 0.0,
@@ -382,10 +394,15 @@ class ReservationApiItem {
     required this.departureNote,
     required this.arrivalCity,
     required this.arrivalNote,
+    required this.pickupCity,
+    required this.dropoffCity,
+    required this.pickupNote,
+    required this.dropoffNote,
     required this.departureTime,
     required this.departureDate,
     required this.vehicle,
     required this.vehiclePlate,
+    this.proratedPrice = 0,
     this.etaMinutes,
     required this.hasRated,
     required this.refundStatus,
@@ -403,10 +420,17 @@ class ReservationApiItem {
   final String reviewCount;
   final String totalPrice;
   final int seatsCount;
+  // Full trip cities (origin/destination of the whole trip)
   final String departureCity;
   final String departureNote;
   final String arrivalCity;
   final String arrivalNote;
+  // Passenger-specific pickup/dropoff cities
+  final String pickupCity;
+  final String dropoffCity;
+  final String pickupNote;
+  final String dropoffNote;
+  final int proratedPrice;
   final String departureTime;
   final String departureDate;
   final String vehicle;
@@ -416,32 +440,51 @@ class ReservationApiItem {
   final String refundStatus;
   final String conversationUuid;
 
-  factory ReservationApiItem.fromJson(Map<String, dynamic> j) =>
-      ReservationApiItem(
-        uuid: (j['uuid'] ?? '').toString(),
-        status: (j['status'] ?? 'pending').toString(),
-        isPaid: j['is_paid'] as bool? ?? false,
-        cancelReason: j['cancel_reason']?.toString(),
-        timeAgo: (j['time_ago'] ?? '').toString(),
-        driverName: (j['driver_name'] ?? '').toString(),
-        driverInitials: (j['driver_initials'] ?? '').toString(),
-        rating: (j['rating'] as num?)?.toDouble() ?? 0,
-        reviewCount: (j['review_count'] ?? '').toString(),
-        totalPrice: (j['total_price'] ?? '').toString(),
-        seatsCount: (j['seats_count'] as num?)?.toInt() ?? 1,
-        departureCity: (j['departure_city'] ?? '').toString(),
-        departureNote: (j['departure_note'] ?? '').toString(),
-        arrivalCity: (j['arrival_city'] ?? '').toString(),
-        arrivalNote: (j['arrival_note'] ?? '').toString(),
-        departureTime: (j['departure_time'] ?? '').toString(),
-        departureDate: (j['departure_date'] ?? '').toString(),
-        vehicle: (j['vehicle'] ?? '').toString(),
-        vehiclePlate: (j['vehicle_plate'] ?? '').toString(),
-        etaMinutes: (j['eta_minutes'] as num?)?.toInt(),
-        hasRated: j['has_rated'] as bool? ?? false,
-        refundStatus: (j['refund_status'] ?? 'none').toString(),
-        conversationUuid: (j['conversation_uuid'] ?? '').toString(),
-      );
+  factory ReservationApiItem.fromJson(Map<String, dynamic> j) {
+    final departureCity = (j['departure_city'] ?? '').toString();
+    final arrivalCity = (j['arrival_city'] ?? '').toString();
+    final departureNote = (j['departure_note'] ?? '').toString();
+    final arrivalNote = (j['arrival_note'] ?? '').toString();
+    return ReservationApiItem(
+      uuid: (j['uuid'] ?? '').toString(),
+      status: (j['status'] ?? 'pending').toString(),
+      isPaid: j['is_paid'] as bool? ?? false,
+      cancelReason: j['cancel_reason']?.toString(),
+      timeAgo: (j['time_ago'] ?? '').toString(),
+      driverName: (j['driver_name'] ?? '').toString(),
+      driverInitials: (j['driver_initials'] ?? '').toString(),
+      rating: (j['rating'] as num?)?.toDouble() ?? 0,
+      reviewCount: (j['review_count'] ?? '').toString(),
+      totalPrice: (j['total_price'] ?? '').toString(),
+      seatsCount: (j['seats_count'] as num?)?.toInt() ?? 1,
+      departureCity: departureCity,
+      departureNote: departureNote,
+      arrivalCity: arrivalCity,
+      arrivalNote: arrivalNote,
+      pickupCity: (j['pickup_city'] as String?)?.isNotEmpty == true
+          ? j['pickup_city'] as String
+          : departureCity,
+      dropoffCity: (j['dropoff_city'] as String?)?.isNotEmpty == true
+          ? j['dropoff_city'] as String
+          : arrivalCity,
+      pickupNote: (j['pickup_note'] as String?)?.isNotEmpty == true
+          ? j['pickup_note'] as String
+          : departureNote,
+      dropoffNote: (j['dropoff_note'] as String?)?.isNotEmpty == true
+          ? j['dropoff_note'] as String
+          : arrivalNote,
+      proratedPrice: (j['calculated_price'] as num?)?.toInt() ??
+          (j['amount_paid'] as num?)?.toInt() ?? 0,
+      departureTime: (j['departure_time'] ?? '').toString(),
+      departureDate: (j['departure_date'] ?? '').toString(),
+      vehicle: (j['vehicle'] ?? '').toString(),
+      vehiclePlate: (j['vehicle_plate'] ?? '').toString(),
+      etaMinutes: (j['eta_minutes'] as num?)?.toInt(),
+      hasRated: j['has_rated'] as bool? ?? false,
+      refundStatus: (j['refund_status'] ?? 'none').toString(),
+      conversationUuid: (j['conversation_uuid'] ?? '').toString(),
+    );
+  }
 }
 
 class ReservationsPageModel {

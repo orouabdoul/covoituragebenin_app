@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
+import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/booking/booking_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/home/dashboard_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/notifications/notifications_service.dart';
@@ -381,6 +382,10 @@ class DriverHomeController extends GetxController {
     super.onInit();
     _loadDashboard();
     _loadNotifications();
+    ever(AppSync.i.driverDashboard, (_) {
+      _loadDashboard();
+      _loadNotifications();
+    });
   }
 
   Future<void> _loadDashboard() async {

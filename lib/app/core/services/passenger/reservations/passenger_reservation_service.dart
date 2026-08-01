@@ -29,7 +29,6 @@ abstract class PassengerReservationService {
     String bookingUuid, {
     required String phone,
     required String provider,
-    required int amount,
   });
 
   Future<ApiResult<ApprovalStatusModel>> fetchApprovalStatus(String bookingUuid);

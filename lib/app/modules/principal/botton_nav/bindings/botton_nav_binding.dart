@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 
+import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import '../../passager/home/bindings/home_binding.dart';
 import '../../driver/home/bindings/home_binding.dart';
 import '../../driver/messager/bindings/messager_binding.dart'
@@ -22,6 +23,7 @@ class BottonNavBinding extends Bindings {
 
   @override
   void dependencies() {
+    Get.put(AppSync(), permanent: true);
     Get.lazyPut<BottonNavController>(() => BottonNavController(role: role));
 
     if (role == BottonNavRole.driver) {

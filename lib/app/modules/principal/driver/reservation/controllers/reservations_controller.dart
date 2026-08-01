@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
+import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/booking/booking_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
@@ -266,6 +267,7 @@ class ReservationsController extends GetxController {
     r.status = ReservationStatus.accepted;
     pendingRequests.remove(r);
     acceptedRequests.insert(0, r);
+    AppSync.i.refreshDriverDashboard();
     UIHelper().showSnackBar('MINIZON', '✅ Réservation de ${r.passengerName} acceptée !', 0);
   }
 
@@ -316,6 +318,7 @@ class ReservationsController extends GetxController {
     r.status = ReservationStatus.rejected;
     pendingRequests.remove(r);
     rejectedRequests.insert(0, r);
+    AppSync.i.refreshDriverDashboard();
     UIHelper().showSnackBar('MINIZON', 'Demande de ${r.passengerName} refusée.', 2);
   }
 

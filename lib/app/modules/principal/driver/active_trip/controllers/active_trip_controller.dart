@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/active_trip/active_trip_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
@@ -93,6 +94,7 @@ class ActiveTripController extends GetxController {
     isStarting.value = false;
 
     if (result.isSuccess) {
+      AppSync.i.refreshDriver();
       // Forcer le rechargement de la liste de trajets
       if (Get.isRegistered<TrajetController>()) {
         Get.find<TrajetController>().selectFilter(TrajetFilterType.active);

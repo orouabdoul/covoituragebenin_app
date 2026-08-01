@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
+import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/end_trip/end_trip_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/safety/safety_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
@@ -63,6 +64,7 @@ class EndTripController extends GetxController {
     isConfirming.value = false;
 
     if (result.isSuccess) {
+      AppSync.i.refreshAll();
       UIHelper().showSnackBar('MINIZON', 'Trajet terminé ! Les passagers ont été notifiés.', 0);
       Get.offAllNamed(AppRoutes.dashboardDriver);
     } else {
