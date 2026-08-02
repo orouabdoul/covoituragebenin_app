@@ -1,15 +1,15 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/messaging/messaging_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
+import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/messenger_model.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/driver/messager/controllers/messager_controller.dart';
 
 class DriverDetailMessagerController extends GetxController with WidgetsBindingObserver {
   MessagingService get _service => Get.find<MessagingService>();
@@ -24,7 +24,6 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
 
   // Edit mode
   final Rxn<int> editingIndex = Rxn<int>();
-
   final RxList<DetailMessage> messages = <DetailMessage>[].obs;
 
   // reactive header fields — pre-populated from args, updated from API
@@ -36,7 +35,7 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
   final Rx<String> displayTripDepartureLabel = ''.obs;
 
   int? _nextBeforeId;
-  late final String _uuid;
+  String _uuid = '';
   int _latestSeenId = 0;
   Timer? _pollingTimer;
   Timer? _presenceTimer;
@@ -53,25 +52,48 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
     WidgetsBinding.instance.addObserver(this);
     final args = Get.arguments as Map<String, dynamic>?;
     _uuid = args?['uuid'] as String? ?? '';
+
+    // Pré-remplir le nom depuis les args (évite une AppBar vide pendant le chargement)
+    final argName = args?['name'] as String?;
+    if (argName != null && argName.isNotEmpty) displayName.value = argName;
+
     final preloaded = args?['thread'] as MessengerThreadModel?;
     if (preloaded != null) {
       displayName.value = preloaded.name;
       displayAvatarUrl.value = preloaded.avatarUrl;
-      // MessengerThreadModel has no route field — displayTripRoute stays empty until API loads
     }
     final bookingUuid = args?['bookingUuid'] as String?;
-    if (_uuid.isEmpty && bookingUuid != null) {
+    logger.d('DetailMessager.onInit uuid=$_uuid bookingUuid=$bookingUuid');
+    if (_uuid.isNotEmpty) {
+      _fetchThread();
+    } else if (bookingUuid != null && bookingUuid.isNotEmpty) {
       _startAndFetch(bookingUuid);
     } else {
-      _fetchThread();
+      logger.e('DetailMessager.onInit: aucun uuid ni bookingUuid dans les args=$args');
+      isLoading.value = false;
+      hasError.value = true;
     }
   }
 
   Future<void> _startAndFetch(String bookingUuid) async {
     isLoading.value = true;
     hasError.value = false;
+
+    // Fallback rapide : chercher dans l'inbox déjà chargée avant d'appeler l'API
+    if (Get.isRegistered<MessagerController>()) {
+      final match = Get.find<MessagerController>().threads.firstWhereOrNull(
+        (t) => t.bookingUuid == bookingUuid,
+      );
+      if (match != null) {
+        _uuid = match.uuid;
+        await _fetchThread();
+        return;
+      }
+    }
+
     final result = await _service.startConversation(bookingUuid);
-    if (!result.isSuccess) {
+    logger.d('startConversation[bookingUuid=$bookingUuid] success=${result.isSuccess} uuid=${result.data} error=${result.error}');
+    if (!result.isSuccess || (result.data?.isEmpty ?? true)) {
       isLoading.value = false;
       hasError.value = true;
       UIHelper().showSnackBar('MINIZON', 'Impossible d\'ouvrir la conversation.', 2);
@@ -98,6 +120,7 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
   Future<void> refresh() => _fetchThread();
 
   Future<void> _fetchThread({bool loadMore = false}) async {
+    if (_uuid.isEmpty) return;
     if (loadMore) {
       if (isLoadingMore.value || !hasMore.value) return;
       isLoadingMore.value = true;
@@ -139,9 +162,13 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
       _nextBeforeId = detail.nextBeforeId;
       _service.markAsRead(_uuid);
     } else {
+      logger.e('_fetchThread[uuid=$_uuid] error=${result.error}');
       if (!loadMore) hasError.value = true;
-      if (result.error != AppError.socket) {
-        UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+      if (result.error != AppError.socket && result.error != null) {
+        final msg = result.error == AppError.userNotFound
+            ? 'Conversation introuvable.'
+            : result.error!.message;
+        UIHelper().showSnackBar('MINIZON', msg, 2);
       }
     }
   }

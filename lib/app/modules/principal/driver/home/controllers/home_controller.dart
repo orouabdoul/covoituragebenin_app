@@ -15,6 +15,7 @@ import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/dashboard_model.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/notification_driver_model.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/driver/reservation/controllers/reservations_controller.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 // ── Quick request (with live countdown) ────────────────────────────────────
@@ -816,7 +817,15 @@ class DriverHomeController extends GetxController {
     }
   }
 
-  void onSeeAllRequests() => Get.toNamed(AppRoutes.driverReservations);
+  void onSeeAllRequests() {
+    if (Get.currentRoute == AppRoutes.driverReservations) {
+      if (Get.isRegistered<ReservationsController>()) {
+        Get.find<ReservationsController>().refresh();
+      }
+    } else {
+      Get.toNamed(AppRoutes.driverReservations);
+    }
+  }
   void onPublishTrip() => Get.toNamed(AppRoutes.driverAddTrip);
 
   void selectWalletMethod(int index) => selectedWalletMethod.value = index;

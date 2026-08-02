@@ -200,7 +200,7 @@ class ReservationController extends GetxController {
 	void rebookTrip(ReservationItem r) =>
 			BottonNavController.goToTab(1);
 
-	void cancelReservation(ReservationItem r) {
+	void cancelReservation(ReservationItem r, {VoidCallback? onSuccess}) {
 		// etaMinutes is only set for in_progress trips; if null, we can't compute the
 		// window precisely — assume free cancellation and let the backend enforce policy.
 		final isFree = r.etaMinutes == null || r.minutesUntilDeparture > 30;
@@ -213,14 +213,14 @@ class ReservationController extends GetxController {
 				isFree: isFree,
 				refundAmount: refundAmount,
 				penaltyAmount: penaltyAmount,
-				onConfirm: () => _performCancellation(r, refundAmount),
+				onConfirm: () => _performCancellation(r, refundAmount, onSuccess: onSuccess),
 			),
 			barrierDismissible: true,
 		);
 	}
 
-	Future<void> _performCancellation(ReservationItem r, int refundAmount) async {
-		Get.back();
+	Future<void> _performCancellation(ReservationItem r, int refundAmount, {VoidCallback? onSuccess}) async {
+		Get.back(); // ferme le dialog de confirmation
 		final result = await _service.cancelBooking(r.id);
 		if (!result.isSuccess) {
 			UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
@@ -242,6 +242,7 @@ class ReservationController extends GetxController {
 			r.isPaid ? 'Remboursement de $formatted en cours.' : 'Réservation annulée.',
 			3,
 		);
+		onSuccess?.call();
 		_fetch();
 	}
 

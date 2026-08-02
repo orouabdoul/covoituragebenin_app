@@ -159,12 +159,13 @@ class DetailReservationController extends GetxController {
   }
 
   void cancelReservation() {
-    if (_existingReservation != null) {
-      // Déléguer l'annulation au ReservationController si disponible
-      if (Get.isRegistered<ReservationController>()) {
-        Get.find<ReservationController>().cancelReservation(_existingReservation!);
-      }
-      Get.back();
+    if (_existingReservation != null &&
+        Get.isRegistered<ReservationController>()) {
+      // onSuccess : fermer la page détail après confirmation + API réussie
+      Get.find<ReservationController>().cancelReservation(
+        _existingReservation!,
+        onSuccess: () => Get.back(),
+      );
     } else {
       Get.back();
     }

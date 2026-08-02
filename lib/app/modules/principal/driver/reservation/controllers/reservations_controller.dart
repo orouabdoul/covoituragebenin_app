@@ -8,6 +8,7 @@ import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/booking/booking_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/driver/messager/controllers/messager_controller.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 // ── Enums ────────────────────────────────────────────────────────────────────
@@ -35,6 +36,7 @@ class LiveReservationRequest {
     required this.expiresInSeconds,
     this.status = ReservationStatus.pending,
     this.phone,
+    this.conversationUuid,
   }) : remainingSeconds = expiresInSeconds.obs;
 
   final String id;
@@ -51,6 +53,7 @@ class LiveReservationRequest {
   final bool paymentConfirmed;
   final int expiresInSeconds;
   final String? phone;
+  final String? conversationUuid;
   ReservationStatus status;
 
   final RxInt remainingSeconds;
@@ -107,6 +110,7 @@ class LiveReservationRequest {
       expiresInSeconds: expiresIn,
       status:           _parseStatus(json['status'] as String? ?? 'pending'),
       phone:            json['passenger_phone'] as String?,
+      conversationUuid: json['conversation_uuid'] as String?,
     );
   }
 
@@ -472,13 +476,28 @@ class ReservationsController extends GetxController {
 
   void onChatPassenger(LiveReservationRequest r) {
     if (Get.isBottomSheetOpen ?? false) Get.back();
+
+    // 1. UUID déjà connu sur la réservation (champ API)
+    String? convUuid = (r.conversationUuid?.isNotEmpty == true)
+        ? r.conversationUuid
+        : null;
+
+    // 2. Chercher dans l'inbox conducteur (MessagerController.threads) par bookingUuid
+    if (convUuid == null && Get.isRegistered<MessagerController>()) {
+      final inbox = Get.find<MessagerController>();
+      final match = inbox.threads.firstWhereOrNull(
+        (t) => t.bookingUuid == r.id,
+      );
+      if (match != null && match.uuid.isNotEmpty) convUuid = match.uuid;
+    }
+
     Get.toNamed(
       AppRoutes.driverMessageDetail,
-      arguments: {
-        'bookingUuid': r.id,   // conversation UUID resolved by detail controller via startConversation
-        'name': r.passengerName,
-        'initial': r.passengerInitial,
-      },
+      arguments: convUuid != null
+          // Thread connu → fetchThread direct, pas de startConversation
+          ? {'uuid': convUuid, 'name': r.passengerName, 'initial': r.passengerInitial}
+          // Thread inconnu → le detail controller appelera startConversation
+          : {'bookingUuid': r.id, 'name': r.passengerName, 'initial': r.passengerInitial},
     );
   }
 

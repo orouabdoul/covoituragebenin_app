@@ -5,6 +5,7 @@ import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/notification_driver_model.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/driver/reservation/controllers/reservations_controller.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 enum NotifFilterType { all, unread, reservations, payments, trips }
@@ -99,7 +100,7 @@ class DriverNotificationsController extends GetxController {
     // préserver la barre de navigation.
     final data = n.actionData;
     if (data.containsKey('booking_uuid')) {
-      Get.toNamed(AppRoutes.driverReservations);
+      _goToReservations();
       return;
     }
     if (data.containsKey('trip_uuid')) {
@@ -108,13 +109,24 @@ class DriverNotificationsController extends GetxController {
     }
     switch (n.type) {
       case DriverNotificationType.reservation:
-        Get.toNamed(AppRoutes.driverReservations);
+        _goToReservations();
       case DriverNotificationType.payment:
         BottonNavController.goToTab(2); // Revenus tab
       case DriverNotificationType.trip:
         BottonNavController.goToTab(1); // Trajets tab
       default:
         break;
+    }
+  }
+
+  // Évite le cycle CLOSE/GOING quand la route est déjà active
+  void _goToReservations() {
+    if (Get.currentRoute == AppRoutes.driverReservations) {
+      if (Get.isRegistered<ReservationsController>()) {
+        Get.find<ReservationsController>().refresh();
+      }
+    } else {
+      Get.toNamed(AppRoutes.driverReservations);
     }
   }
 }
