@@ -640,7 +640,7 @@ class _RouteBlock extends StatelessWidget {
 								color: AppColors.primary,
 							),
 						),
-						Container(width: 2, height: responsive.h(28), color: AppColors.border),
+						Container(width: 2, height: responsive.h(48), color: AppColors.border),
 						Container(
 							width: responsive.w(11),
 							height: responsive.w(11),
@@ -670,14 +670,37 @@ class _RouteBlock extends StatelessWidget {
 							_PlaceLine(
 								title: reservation.displayPickupCity,
 								subtitle: reservation.displayPickupNote,
+								address: reservation.displayPickupAddress,
 								responsive: responsive,
 							),
 							SizedBox(height: responsive.h(14)),
 							_PlaceLine(
 								title: reservation.displayDropoffCity,
 								subtitle: reservation.displayDropoffNote,
+								address: reservation.displayDropoffAddress,
 								responsive: responsive,
 							),
+							if (reservation.tripOrigin.isNotEmpty &&
+									reservation.tripDestination.isNotEmpty) ...[
+								SizedBox(height: responsive.h(6)),
+								Row(
+									children: [
+										Icon(Icons.directions_car_outlined,
+												size: 11, color: AppColors.textHint),
+										SizedBox(width: responsive.w(4)),
+										Flexible(
+											child: Text(
+												'${reservation.tripOrigin} → ${reservation.tripDestination}',
+												style: AppTextStyles.caption(responsive).copyWith(
+													color: AppColors.textHint,
+													fontSize: 11,
+												),
+												overflow: TextOverflow.ellipsis,
+											),
+										),
+									],
+								),
+							],
 						],
 					),
 				),
@@ -705,9 +728,15 @@ class _RouteBlock extends StatelessWidget {
 }
 
 class _PlaceLine extends StatelessWidget {
-	const _PlaceLine({required this.title, required this.subtitle, required this.responsive});
+	const _PlaceLine({
+		required this.title,
+		required this.subtitle,
+		required this.responsive,
+		this.address = '',
+	});
 	final String title;
 	final String subtitle;
+	final String address;
 	final AppResponsive responsive;
 
 	@override
@@ -719,6 +748,16 @@ class _PlaceLine extends StatelessWidget {
 				if (subtitle.isNotEmpty) ...[
 					SizedBox(height: responsive.h(2)),
 					Text(subtitle, style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint)),
+				],
+				if (address.isNotEmpty) ...[
+					SizedBox(height: responsive.h(1)),
+					Text(
+						address,
+						style: AppTextStyles.caption(responsive).copyWith(
+							color: AppColors.textHint,
+							fontSize: 11,
+						),
+					),
 				],
 			],
 		);

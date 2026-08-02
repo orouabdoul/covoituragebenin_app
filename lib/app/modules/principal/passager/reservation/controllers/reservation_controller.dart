@@ -93,7 +93,6 @@ class ReservationController extends GetxController {
 		final totalPriceValue = a.proratedPrice > 0
 				? a.proratedPrice
 				: int.tryParse(a.totalPrice.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
-		// Use prorated price string when backend provides calculated_price/amount_paid
 		final displayPrice = a.proratedPrice > 0
 				? _fmtPrice(a.proratedPrice)
 				: a.totalPrice;
@@ -110,12 +109,12 @@ class ReservationController extends GetxController {
 			totalPriceValue: totalPriceValue,
 			departureCity: a.departureCity,
 			departureNote: a.departureNote,
+			departureAddress: a.departureAddress,
 			arrivalCity: a.arrivalCity,
 			arrivalNote: a.arrivalNote,
-			pickupCity: a.pickupCity,
-			dropoffCity: a.dropoffCity,
-			pickupNote: a.pickupNote,
-			dropoffNote: a.dropoffNote,
+			arrivalAddress: a.arrivalAddress,
+			tripOrigin: a.tripOrigin,
+			tripDestination: a.tripDestination,
 			departureTime: a.departureTime,
 			departureDate: a.departureDate,
 			seatsCount: a.seatsCount,
@@ -645,14 +644,16 @@ class ReservationItem {
 		required this.price,
 		required this.totalPrice,
 		required this.totalPriceValue,
+		// Points passager (prise / dépose)
 		required this.departureCity,
 		required this.departureNote,
+		this.departureAddress = '',
 		required this.arrivalCity,
 		required this.arrivalNote,
-		this.pickupCity = '',
-		this.dropoffCity = '',
-		this.pickupNote = '',
-		this.dropoffNote = '',
+		this.arrivalAddress = '',
+		// Trajet complet conducteur (contexte)
+		this.tripOrigin = '',
+		this.tripDestination = '',
 		required this.departureTime,
 		required this.departureDate,
 		required this.seatsCount,
@@ -678,16 +679,16 @@ class ReservationItem {
 	final String price;
 	final String totalPrice;
 	final int totalPriceValue;
-	// Full trip origin/destination
+	// Points passager — ville, quartier, adresse exacte
 	final String departureCity;
 	final String departureNote;
+	final String departureAddress;
 	final String arrivalCity;
 	final String arrivalNote;
-	// Passenger-specific pickup/dropoff (fallback to full trip if not provided)
-	final String pickupCity;
-	final String dropoffCity;
-	final String pickupNote;
-	final String dropoffNote;
+	final String arrivalAddress;
+	// Trajet complet conducteur (info contextuelle)
+	final String tripOrigin;
+	final String tripDestination;
 	final String departureTime;
 	final String departureDate;
 	final int seatsCount;
@@ -702,15 +703,19 @@ class ReservationItem {
 	final String timeAgo;
 	final String conversationUuid;
 
-	// Effective display cities — passenger's own pickup/dropoff or full trip as fallback
-	String get displayPickupCity =>
-			(pickupCity.isNotEmpty) ? pickupCity : departureCity;
-	String get displayDropoffCity =>
-			(dropoffCity.isNotEmpty) ? dropoffCity : arrivalCity;
-	String get displayPickupNote =>
-			(pickupNote.isNotEmpty) ? pickupNote : departureNote;
-	String get displayDropoffNote =>
-			(dropoffNote.isNotEmpty) ? dropoffNote : arrivalNote;
+	// Alias pour compatibilité avec le code existant
+	String get pickupCity => departureCity;
+	String get dropoffCity => arrivalCity;
+	String get pickupNote => departureNote;
+	String get dropoffNote => arrivalNote;
+
+	// Getters d'affichage (les points passager sont maintenant directs)
+	String get displayPickupCity => departureCity;
+	String get displayDropoffCity => arrivalCity;
+	String get displayPickupNote => departureNote;
+	String get displayDropoffNote => arrivalNote;
+	String get displayPickupAddress => departureAddress;
+	String get displayDropoffAddress => arrivalAddress;
 
 	ReservationItem copyWith({
 		ReservationStatus? status,
@@ -734,12 +739,12 @@ class ReservationItem {
 			totalPriceValue: totalPriceValue,
 			departureCity: departureCity,
 			departureNote: departureNote,
+			departureAddress: departureAddress,
 			arrivalCity: arrivalCity,
 			arrivalNote: arrivalNote,
-			pickupCity: pickupCity,
-			dropoffCity: dropoffCity,
-			pickupNote: pickupNote,
-			dropoffNote: dropoffNote,
+			arrivalAddress: arrivalAddress,
+			tripOrigin: tripOrigin,
+			tripDestination: tripDestination,
 			departureTime: departureTime,
 			departureDate: departureDate,
 			seatsCount: seatsCount,
