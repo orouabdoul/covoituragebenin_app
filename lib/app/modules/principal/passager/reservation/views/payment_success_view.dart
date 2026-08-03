@@ -35,8 +35,12 @@ class PaymentSuccessView extends StatelessWidget {
 								_SuccessHero(responsive: responsive),
 								SizedBox(height: responsive.h(32)),
 								_AmountDisplay(responsive: responsive, controller: controller),
-								SizedBox(height: responsive.h(28)),
+								SizedBox(height: responsive.h(20)),
+								_ItineraryCard(responsive: responsive, controller: controller),
+								SizedBox(height: responsive.h(20)),
 								_TripDetailsCard(responsive: responsive, controller: controller),
+								SizedBox(height: responsive.h(20)),
+								_PaymentBreakdownCard(responsive: responsive, controller: controller),
 								SizedBox(height: responsive.h(20)),
 								_DriverContactCard(responsive: responsive, controller: controller),
 								SizedBox(height: responsive.h(20)),
@@ -238,6 +242,275 @@ class _AmountDisplay extends StatelessWidget {
 				],
 			),
 		));
+	}
+}
+
+// ── Itinerary Card ─────────────────────────────────────────────────────────
+
+class _ItineraryCard extends StatelessWidget {
+	const _ItineraryCard({required this.responsive, required this.controller});
+
+	final AppResponsive responsive;
+	final PaymentSuccessController controller;
+
+	@override
+	Widget build(BuildContext context) {
+		return Obx(() {
+			final pickupCity = controller.pickupCity.value;
+			final pickupAddr = controller.pickupAddress.value;
+			final dropoffCity = controller.dropoffCity.value;
+			final dropoffAddr = controller.dropoffAddress.value;
+
+			if (pickupCity.isEmpty && dropoffCity.isEmpty) return const SizedBox.shrink();
+
+			return Container(
+				width: double.infinity,
+				padding: EdgeInsets.all(responsive.w(20)),
+				decoration: ShapeDecoration(
+					color: AppColors.white,
+					shape: RoundedRectangleBorder(
+						side: const BorderSide(color: AppColors.border),
+						borderRadius: BorderRadius.circular(responsive.radius(16)),
+					),
+					shadows: const [BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 2))],
+				),
+				child: Column(
+					crossAxisAlignment: CrossAxisAlignment.start,
+					children: [
+						Text('Itinéraire', style: AppTextStyles.h6(responsive)),
+						SizedBox(height: responsive.h(16)),
+						_ItineraryStop(
+							responsive: responsive,
+							dotColor: AppColors.primary,
+							city: pickupCity.isNotEmpty ? pickupCity : (controller.ride.value?.origin ?? ''),
+							address: pickupAddr,
+							label: 'Prise en charge',
+						),
+						Padding(
+							padding: EdgeInsets.only(left: responsive.w(11)),
+							child: Container(width: 2, height: responsive.h(20), color: AppColors.border),
+						),
+						_ItineraryStop(
+							responsive: responsive,
+							dotColor: AppColors.danger,
+							city: dropoffCity.isNotEmpty ? dropoffCity : (controller.ride.value?.destination ?? ''),
+							address: dropoffAddr,
+							label: 'Dépose',
+						),
+					],
+				),
+			);
+		});
+	}
+}
+
+class _ItineraryStop extends StatelessWidget {
+	const _ItineraryStop({
+		required this.responsive,
+		required this.dotColor,
+		required this.city,
+		required this.address,
+		required this.label,
+	});
+
+	final AppResponsive responsive;
+	final Color dotColor;
+	final String city;
+	final String address;
+	final String label;
+
+	@override
+	Widget build(BuildContext context) {
+		return Row(
+			crossAxisAlignment: CrossAxisAlignment.start,
+			children: [
+				Column(
+					children: [
+						SizedBox(height: responsive.h(3)),
+						Container(
+							width: responsive.w(10),
+							height: responsive.w(10),
+							decoration: BoxDecoration(shape: BoxShape.circle, color: dotColor),
+						),
+					],
+				),
+				SizedBox(width: responsive.w(12)),
+				Expanded(
+					child: Column(
+						crossAxisAlignment: CrossAxisAlignment.start,
+						children: [
+							Text(label, style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint)),
+							if (city.isNotEmpty)
+								Text(city, style: AppTextStyles.body(responsive).copyWith(fontWeight: FontWeight.w700)),
+							if (address.isNotEmpty)
+								Text(
+									address,
+									style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textSecondary),
+								),
+						],
+					),
+				),
+			],
+		);
+	}
+}
+
+// ── Payment Breakdown Card ─────────────────────────────────────────────────
+
+class _PaymentBreakdownCard extends StatelessWidget {
+	const _PaymentBreakdownCard({required this.responsive, required this.controller});
+
+	final AppResponsive responsive;
+	final PaymentSuccessController controller;
+
+	@override
+	Widget build(BuildContext context) {
+		return Obx(() {
+			final breakdown = controller.priceBreakdown.value;
+			final bookingRef = controller.bookingRef.value;
+			final transRef = controller.transactionRef.value;
+
+			if (breakdown == null && bookingRef.isEmpty) return const SizedBox.shrink();
+
+			return Container(
+				width: double.infinity,
+				padding: EdgeInsets.all(responsive.w(20)),
+				decoration: ShapeDecoration(
+					color: AppColors.white,
+					shape: RoundedRectangleBorder(
+						side: const BorderSide(color: AppColors.border),
+						borderRadius: BorderRadius.circular(responsive.radius(16)),
+					),
+					shadows: const [BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 2))],
+				),
+				child: Column(
+					crossAxisAlignment: CrossAxisAlignment.start,
+					children: [
+						Text('Récapitulatif du paiement', style: AppTextStyles.h6(responsive)),
+						SizedBox(height: responsive.h(16)),
+						if (bookingRef.isNotEmpty) ...[
+							_RefRow(
+								responsive: responsive,
+								label: 'Réf. réservation',
+								value: bookingRef,
+								mono: true,
+							),
+							_Divider(responsive: responsive),
+						],
+						if (transRef.isNotEmpty && !transRef.startsWith('#TXN-')) ...[
+							_RefRow(
+								responsive: responsive,
+								label: 'Réf. transaction',
+								value: transRef,
+								mono: true,
+							),
+							_Divider(responsive: responsive),
+						],
+						if (breakdown != null) ...[
+							_BreakdownRow(
+								responsive: responsive,
+								label: '${breakdown.calculatedPricePerSeatFmt.isNotEmpty ? breakdown.calculatedPricePerSeatFmt : '${breakdown.calculatedPricePerSeat} FCFA'} × ${breakdown.seats} place${breakdown.seats > 1 ? 's' : ''}',
+								value: breakdown.subtotalFmt.isNotEmpty ? breakdown.subtotalFmt : '${breakdown.subtotal} FCFA',
+								isBold: false,
+							),
+							_BreakdownRow(
+								responsive: responsive,
+								label: 'Frais de service (${breakdown.serviceFeePct})',
+								value: breakdown.serviceFeeFmt.isNotEmpty ? breakdown.serviceFeeFmt : '${breakdown.serviceFee} FCFA',
+								isBold: false,
+								valueColor: AppColors.textSecondary,
+							),
+							Container(height: 1, color: AppColors.border, margin: EdgeInsets.symmetric(vertical: responsive.h(8))),
+							_BreakdownRow(
+								responsive: responsive,
+								label: 'Total payé (FedaPay)',
+								value: breakdown.totalFmt.isNotEmpty ? breakdown.totalFmt : '${breakdown.total} FCFA',
+								isBold: true,
+								valueColor: AppColors.primary,
+							),
+						],
+					],
+				),
+			);
+		});
+	}
+}
+
+class _RefRow extends StatelessWidget {
+	const _RefRow({
+		required this.responsive,
+		required this.label,
+		required this.value,
+		this.mono = false,
+	});
+
+	final AppResponsive responsive;
+	final String label;
+	final String value;
+	final bool mono;
+
+	@override
+	Widget build(BuildContext context) {
+		return Padding(
+			padding: EdgeInsets.symmetric(vertical: responsive.h(8)),
+			child: Row(
+				children: [
+					Text(label, style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint)),
+					const Spacer(),
+					Text(
+						value,
+						style: AppTextStyles.caption(responsive).copyWith(
+							fontWeight: FontWeight.w600,
+							fontFamily: mono ? 'monospace' : null,
+							color: AppColors.textPrimary,
+						),
+					),
+				],
+			),
+		);
+	}
+}
+
+class _BreakdownRow extends StatelessWidget {
+	const _BreakdownRow({
+		required this.responsive,
+		required this.label,
+		required this.value,
+		required this.isBold,
+		this.valueColor,
+	});
+
+	final AppResponsive responsive;
+	final String label;
+	final String value;
+	final bool isBold;
+	final Color? valueColor;
+
+	@override
+	Widget build(BuildContext context) {
+		return Padding(
+			padding: EdgeInsets.symmetric(vertical: responsive.h(4)),
+			child: Row(
+				children: [
+					Expanded(
+						child: Text(
+							label,
+							style: AppTextStyles.body(responsive).copyWith(
+								fontWeight: isBold ? FontWeight.w700 : FontWeight.w400,
+								color: isBold ? AppColors.textPrimary : AppColors.textSecondary,
+							),
+						),
+					),
+					Text(
+						value,
+						style: AppTextStyles.body(responsive).copyWith(
+							fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
+							color: valueColor ?? (isBold ? AppColors.textPrimary : AppColors.textSecondary),
+						),
+					),
+				],
+			),
+		);
 	}
 }
 

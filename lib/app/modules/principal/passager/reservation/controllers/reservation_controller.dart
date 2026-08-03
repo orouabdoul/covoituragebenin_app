@@ -90,11 +90,17 @@ class ReservationController extends GetxController {
 	}
 
 	ReservationItem _mapItem(ReservationApiItem a) {
-		final totalPriceValue = a.proratedPrice > 0
-				? a.proratedPrice
-				: int.tryParse(a.totalPrice.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
-		final displayPrice = a.proratedPrice > 0
-				? _fmtPrice(a.proratedPrice)
+		// Priorité : prix par place depuis price_breakdown (API réelle)
+		// Sinon : proratedPrice (ancien champ), sinon parsing du total (fallback 1 place)
+		final bd = a.priceBreakdown;
+		final totalPriceValue = (bd != null && bd.calculatedPricePerSeat > 0)
+				? bd.calculatedPricePerSeat
+				: (a.proratedPrice > 0
+						? a.proratedPrice
+						: int.tryParse(a.totalPrice.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0);
+		// Prix affiché sur la carte = total (tous sièges confondus)
+		final displayPrice = (bd != null && bd.totalFmt.isNotEmpty)
+				? bd.totalFmt
 				: a.totalPrice;
 		return ReservationItem(
 			id: a.uuid,
@@ -127,6 +133,10 @@ class ReservationController extends GetxController {
 			etaMinutes: a.etaMinutes,
 			timeAgo: a.timeAgo,
 			conversationUuid: a.conversationUuid,
+			bookingRef: a.bookingRef,
+			tripUuid: a.tripUuid,
+			passengerDistanceKm: a.passengerDistanceKm,
+			priceBreakdown: a.priceBreakdown,
 		);
 	}
 
@@ -668,6 +678,11 @@ class ReservationItem {
 		this.etaMinutes,
 		required this.timeAgo,
 		this.conversationUuid = '',
+		// Nouveaux champs
+		this.bookingRef = '',
+		this.tripUuid,
+		this.passengerDistanceKm,
+		this.priceBreakdown,
 	});
 
 	final String id;
@@ -703,6 +718,11 @@ class ReservationItem {
 	final int? etaMinutes;
 	final String timeAgo;
 	final String conversationUuid;
+	// Nouveaux champs
+	final String  bookingRef;
+	final String? tripUuid;
+	final double? passengerDistanceKm;
+	final PriceBreakdown? priceBreakdown;
 
 	// Alias pour compatibilité avec le code existant
 	String get pickupCity => departureCity;
@@ -759,6 +779,10 @@ class ReservationItem {
 			etaMinutes: etaMinutes,
 			timeAgo: timeAgo,
 			conversationUuid: conversationUuid ?? this.conversationUuid,
+			bookingRef: bookingRef,
+			tripUuid: tripUuid,
+			passengerDistanceKm: passengerDistanceKm,
+			priceBreakdown: priceBreakdown,
 		);
 	}
 }

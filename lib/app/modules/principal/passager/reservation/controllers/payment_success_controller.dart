@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/passenger_reservation_service.dart';
+import 'package:covoiturage_benin_app/app/data/models/passenger/reservations_model.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/passager/messager/controllers/messager_controller.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/passager/reservation/controllers/reservation_controller.dart';
@@ -22,6 +23,13 @@ class PaymentSuccessController extends GetxController {
   final driverPhone = ''.obs;
   final conversationUuid = ''.obs;
   final formattedAmount = ''.obs;
+  final bookingRef = ''.obs;
+  final pickupCity = ''.obs;
+  final pickupAddress = ''.obs;
+  final dropoffCity = ''.obs;
+  final dropoffAddress = ''.obs;
+  final Rxn<PriceBreakdown> priceBreakdown = Rxn<PriceBreakdown>();
+  final Rxn<double> passengerDistanceKm = Rxn<double>();
 
   String _bookingUuid = '';
 
@@ -60,6 +68,13 @@ class PaymentSuccessController extends GetxController {
     if (data.driverPhone.isNotEmpty) driverPhone.value = data.driverPhone;
     if (data.conversationUuid.isNotEmpty) conversationUuid.value = data.conversationUuid;
     if (data.reservedSeats > 0) reservedSeats.value = data.reservedSeats;
+    if (data.bookingRef.isNotEmpty) bookingRef.value = data.bookingRef;
+    if (data.pickupCity.isNotEmpty) pickupCity.value = data.pickupCity;
+    if (data.pickupAddress.isNotEmpty) pickupAddress.value = data.pickupAddress;
+    if (data.dropoffCity.isNotEmpty) dropoffCity.value = data.dropoffCity;
+    if (data.dropoffAddress.isNotEmpty) dropoffAddress.value = data.dropoffAddress;
+    priceBreakdown.value = data.priceBreakdown;
+    passengerDistanceKm.value = data.passengerDistanceKm;
     ride.value = SearchRide(
       uuid: data.ride.uuid,
       driverName: data.ride.driverName,

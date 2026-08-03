@@ -1,3 +1,60 @@
+// ── Price Breakdown ────────────────────────────────────────────────────────
+
+class PriceBreakdown {
+  const PriceBreakdown({
+    required this.calculatedPricePerSeat,
+    required this.calculatedPricePerSeatFmt,
+    required this.seats,
+    required this.subtotal,
+    required this.subtotalFmt,
+    required this.serviceFee,
+    required this.serviceFeeFmt,
+    required this.serviceFeePct,
+    required this.total,
+    required this.totalFmt,
+    this.driverCommission = 0,
+    this.driverCommissionFmt = '',
+    this.driverCommissionPct = '',
+    this.driverPayout = 0,
+    this.driverPayoutFmt = '',
+  });
+
+  final int    calculatedPricePerSeat;
+  final String calculatedPricePerSeatFmt;
+  final int    seats;
+  final int    subtotal;
+  final String subtotalFmt;
+  final int    serviceFee;
+  final String serviceFeeFmt;
+  final String serviceFeePct;
+  final int    total;
+  final String totalFmt;
+  // Champs internes Minizon (ne pas afficher dans l'UI passager standard)
+  final int    driverCommission;
+  final String driverCommissionFmt;
+  final String driverCommissionPct;
+  final int    driverPayout;
+  final String driverPayoutFmt;
+
+  factory PriceBreakdown.fromJson(Map<String, dynamic> j) => PriceBreakdown(
+        calculatedPricePerSeat:    (j['calculated_price_per_seat'] as num?)?.toInt() ?? 0,
+        calculatedPricePerSeatFmt: (j['calculated_price_per_seat_fmt'] ?? '').toString(),
+        seats:                     (j['seats'] as num?)?.toInt() ?? 1,
+        subtotal:                  (j['subtotal'] as num?)?.toInt() ?? 0,
+        subtotalFmt:               (j['subtotal_fmt'] ?? '').toString(),
+        serviceFee:                (j['service_fee'] as num?)?.toInt() ?? 0,
+        serviceFeeFmt:             (j['service_fee_fmt'] ?? '').toString(),
+        serviceFeePct:             (j['service_fee_pct'] ?? '5%').toString(),
+        total:                     (j['total'] as num?)?.toInt() ?? 0,
+        totalFmt:                  (j['total_fmt'] ?? '').toString(),
+        driverCommission:          (j['driver_commission'] as num?)?.toInt() ?? 0,
+        driverCommissionFmt:       (j['driver_commission_fmt'] ?? '').toString(),
+        driverCommissionPct:       (j['driver_commission_pct'] ?? '').toString(),
+        driverPayout:              (j['driver_payout'] as num?)?.toInt() ?? 0,
+        driverPayoutFmt:           (j['driver_payout_fmt'] ?? '').toString(),
+      );
+}
+
 // ── Confirmation Context ───────────────────────────────────────────────────
 
 class ConfirmationContextTripInfo {
@@ -313,6 +370,14 @@ class PaymentSuccessModel {
     required this.conversationUuid,
     required this.reservedSeats,
     required this.ride,
+    // Nouveaux champs
+    this.bookingRef = '',
+    this.priceBreakdown,
+    this.pickupCity = '',
+    this.pickupAddress = '',
+    this.dropoffCity = '',
+    this.dropoffAddress = '',
+    this.passengerDistanceKm,
   });
 
   final String transactionRef;
@@ -322,6 +387,14 @@ class PaymentSuccessModel {
   final String conversationUuid;
   final int reservedSeats;
   final PaymentSuccessRide ride;
+  // Nouveaux champs
+  final String  bookingRef;
+  final PriceBreakdown? priceBreakdown;
+  final String  pickupCity;
+  final String  pickupAddress;
+  final String  dropoffCity;
+  final String  dropoffAddress;
+  final double? passengerDistanceKm;
 
   factory PaymentSuccessModel.fromJson(Map<String, dynamic> j) =>
       PaymentSuccessModel(
@@ -335,6 +408,16 @@ class PaymentSuccessModel {
             j['ride'] is Map<String, dynamic>
                 ? j['ride'] as Map<String, dynamic>
                 : const {}),
+        // Nouveaux champs
+        bookingRef:          (j['booking_ref'] ?? '').toString(),
+        priceBreakdown:      j['price_breakdown'] is Map<String, dynamic>
+            ? PriceBreakdown.fromJson(j['price_breakdown'] as Map<String, dynamic>)
+            : null,
+        pickupCity:          (j['pickup_city'] ?? '').toString(),
+        pickupAddress:       (j['pickup_address'] ?? '').toString(),
+        dropoffCity:         (j['dropoff_city'] ?? '').toString(),
+        dropoffAddress:      (j['dropoff_address'] ?? '').toString(),
+        passengerDistanceKm: (j['passenger_distance_km'] as num?)?.toDouble(),
       );
 }
 
@@ -409,6 +492,18 @@ class ReservationApiItem {
     required this.hasRated,
     required this.refundStatus,
     required this.conversationUuid,
+    // Nouveaux champs
+    this.bookingRef = '',
+    this.tripUuid,
+    this.paymentRef,
+    this.paymentStatus = 'unpaid',
+    this.passengerDistanceKm,
+    this.departureLat,
+    this.departureLng,
+    this.arrivalLat,
+    this.arrivalLng,
+    this.departureDateTime,
+    this.priceBreakdown,
   });
 
   final String uuid;
@@ -441,6 +536,18 @@ class ReservationApiItem {
   final bool hasRated;
   final String refundStatus;
   final String conversationUuid;
+  // Nouveaux champs
+  final String  bookingRef;
+  final String? tripUuid;
+  final String? paymentRef;
+  final String  paymentStatus;
+  final double? passengerDistanceKm;
+  final double? departureLat;
+  final double? departureLng;
+  final double? arrivalLat;
+  final double? arrivalLng;
+  final String? departureDateTime;
+  final PriceBreakdown? priceBreakdown;
 
   // Alias pour la compatibilité avec le code existant
   String get pickupCity => departureCity;
@@ -479,6 +586,20 @@ class ReservationApiItem {
         hasRated: j['has_rated'] as bool? ?? false,
         refundStatus: (j['refund_status'] ?? 'none').toString(),
         conversationUuid: (j['conversation_uuid'] ?? '').toString(),
+        // Nouveaux champs
+        bookingRef:           (j['booking_ref'] ?? '').toString(),
+        tripUuid:             j['trip_uuid']?.toString(),
+        paymentRef:           j['payment_ref']?.toString(),
+        paymentStatus:        (j['payment_status'] ?? 'unpaid').toString(),
+        passengerDistanceKm:  (j['passenger_distance_km'] as num?)?.toDouble(),
+        departureLat:         (j['departure_latitude'] as num?)?.toDouble(),
+        departureLng:         (j['departure_longitude'] as num?)?.toDouble(),
+        arrivalLat:           (j['arrival_latitude'] as num?)?.toDouble(),
+        arrivalLng:           (j['arrival_longitude'] as num?)?.toDouble(),
+        departureDateTime:    j['departure_datetime']?.toString(),
+        priceBreakdown:       j['price_breakdown'] is Map<String, dynamic>
+            ? PriceBreakdown.fromJson(j['price_breakdown'] as Map<String, dynamic>)
+            : null,
       );
 }
 
@@ -615,6 +736,16 @@ class ApprovalStatusRide {
     required this.driverName,
     required this.rating,
     required this.price,
+    // Nouveaux champs
+    this.departureDate = '',
+    this.pickupCity = '',
+    this.pickupNeighborhood = '',
+    this.pickupAddress = '',
+    this.dropoffCity = '',
+    this.dropoffNeighborhood = '',
+    this.dropoffAddress = '',
+    this.passengerDistanceKm,
+    this.priceBreakdown,
   });
 
   final String origin;
@@ -623,6 +754,16 @@ class ApprovalStatusRide {
   final String driverName;
   final String rating;
   final String price;
+  // Nouveaux champs
+  final String  departureDate;
+  final String  pickupCity;
+  final String  pickupNeighborhood;
+  final String  pickupAddress;
+  final String  dropoffCity;
+  final String  dropoffNeighborhood;
+  final String  dropoffAddress;
+  final double? passengerDistanceKm;
+  final PriceBreakdown? priceBreakdown;
 
   factory ApprovalStatusRide.fromJson(Map<String, dynamic> j) =>
       ApprovalStatusRide(
@@ -632,6 +773,18 @@ class ApprovalStatusRide {
         driverName: (j['driver_name'] ?? '').toString(),
         rating: (j['rating'] ?? '').toString(),
         price: (j['price'] ?? '').toString(),
+        // Nouveaux champs
+        departureDate:       (j['departure_date'] ?? '').toString(),
+        pickupCity:          (j['pickup_city'] ?? '').toString(),
+        pickupNeighborhood:  (j['pickup_neighborhood'] ?? '').toString(),
+        pickupAddress:       (j['pickup_address'] ?? '').toString(),
+        dropoffCity:         (j['dropoff_city'] ?? '').toString(),
+        dropoffNeighborhood: (j['dropoff_neighborhood'] ?? '').toString(),
+        dropoffAddress:      (j['dropoff_address'] ?? '').toString(),
+        passengerDistanceKm: (j['passenger_distance_km'] as num?)?.toDouble(),
+        priceBreakdown:      j['price_breakdown'] is Map<String, dynamic>
+            ? PriceBreakdown.fromJson(j['price_breakdown'] as Map<String, dynamic>)
+            : null,
       );
 }
 

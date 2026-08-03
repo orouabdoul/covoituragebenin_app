@@ -63,29 +63,33 @@ class SearchController extends GetxController {
 	final RxList<SearchRide> _allRides = <SearchRide>[].obs;
 
 	List<SearchRide> get filteredSortedRides {
+		// Les trajets complets (0 place) passent le filtre mais s'affichent désactivés en bas
 		var list = _allRides.where((r) {
-			if (r.minutesUntilDeparture < 0) return false; // trajet déjà parti
+			if (r.minutesUntilDeparture < 0) return false;
 			if (verifiedOnly.value && !r.isVerified) return false;
 			if (highRatedOnly.value && (double.tryParse(r.rating) ?? 0.0) < 4.5) return false;
-			if (r.seatsAvailable < minSeatsFilter.value) return false;
+			if (r.seatsAvailable > 0 && r.seatsAvailable < minSeatsFilter.value) return false;
 			if (bagsAllowed.value && !r.allowsBags) return false;
 			if (r.priceValue > maxPrice.value) return false;
 			return true;
 		}).toList();
 
+		final available = list.where((r) => r.seatsAvailable > 0).toList();
+		final fullBooked = list.where((r) => r.seatsAvailable == 0).toList();
+
 		switch (sortOption.value) {
 			case SortOption.priceLow:
-				list.sort((a, b) => a.priceValue.compareTo(b.priceValue));
+				available.sort((a, b) => a.priceValue.compareTo(b.priceValue));
 			case SortOption.priceHigh:
-				list.sort((a, b) => b.priceValue.compareTo(a.priceValue));
+				available.sort((a, b) => b.priceValue.compareTo(a.priceValue));
 			case SortOption.soonest:
-				list.sort((a, b) => a.minutesUntilDeparture.compareTo(b.minutesUntilDeparture));
+				available.sort((a, b) => a.minutesUntilDeparture.compareTo(b.minutesUntilDeparture));
 			case SortOption.bestRated:
-				list.sort((a, b) => (double.tryParse(b.rating) ?? 0.0).compareTo(double.tryParse(a.rating) ?? 0.0));
+				available.sort((a, b) => (double.tryParse(b.rating) ?? 0.0).compareTo(double.tryParse(a.rating) ?? 0.0));
 			case SortOption.relevance:
 				break;
 		}
-		return list;
+		return [...available, ...fullBooked];
 	}
 
 	// ── Location data ─────────────────────────────────────────────────────────

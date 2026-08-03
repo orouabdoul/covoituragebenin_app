@@ -20,7 +20,8 @@ class DetailJourneyView extends StatelessWidget {
     if (!Get.isRegistered<DetailReservationController>()) {
       DetailReservationBinding().dependencies();
     }
-    final DetailReservationController controller = Get.find<DetailReservationController>();
+    final DetailReservationController controller =
+        Get.find<DetailReservationController>();
     final responsive = AppResponsive(context);
 
     return Scaffold(
@@ -28,34 +29,84 @@ class DetailJourneyView extends StatelessWidget {
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: responsive.maxContentWidth),
+            constraints:
+                BoxConstraints(maxWidth: responsive.maxContentWidth),
             child: ListView(
               padding: EdgeInsets.fromLTRB(
-                responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
-                responsive.adaptive(phone: 8, smallPhone: 8, tablet: 12, desktop: 16),
-                responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
-                responsive.adaptive(phone: 24, smallPhone: 20, tablet: 28, desktop: 32),
+                responsive.adaptive(
+                    phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
+                responsive.adaptive(
+                    phone: 8, smallPhone: 8, tablet: 12, desktop: 16),
+                responsive.adaptive(
+                    phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
+                responsive.adaptive(
+                    phone: 24, smallPhone: 20, tablet: 28, desktop: 32),
               ),
               children: [
                 _HeaderBar(responsive: responsive, controller: controller),
                 SizedBox(height: responsive.h(16)),
-                Obx(() => _DriverCard(responsive: responsive, ride: controller.ride.value)),
+
+                // ── Statut réservation (existante seulement) ─────────────
+                Obx(() {
+                  final r = controller.existingReservation;
+                  if (!controller.isExistingReservation.value || r == null) {
+                    return const SizedBox.shrink();
+                  }
+                  return Column(children: [
+                    _BookingStatusCard(responsive: responsive, reservation: r),
+                    SizedBox(height: responsive.h(16)),
+                  ]);
+                }),
+
+                // ── Conducteur ───────────────────────────────────────────
+                Obx(() =>
+                    _DriverCard(responsive: responsive, ride: controller.ride.value)),
                 SizedBox(height: responsive.h(16)),
-                _MetricRow(responsive: responsive),
+
+                // ── Métriques conducteur (réactives) ─────────────────────
+                _MetricRow(responsive: responsive, controller: controller),
                 SizedBox(height: responsive.h(16)),
-                Obx(() => _VehicleCard(responsive: responsive, ride: controller.ride.value)),
+
+                // ── Véhicule ─────────────────────────────────────────────
+                Obx(() =>
+                    _VehicleCard(responsive: responsive, ride: controller.ride.value)),
                 SizedBox(height: responsive.h(16)),
-                Obx(() => _ItineraryCard(responsive: responsive, ride: controller.ride.value)),
+
+                // ── Points passager (prise/dépose avec adresses) ──────────
+                Obx(() {
+                  final r = controller.existingReservation;
+                  if (r == null) return const SizedBox.shrink();
+                  return Column(children: [
+                    _PassengerRouteCard(
+                        responsive: responsive, reservation: r),
+                    SizedBox(height: responsive.h(16)),
+                  ]);
+                }),
+
+                // ── Itinéraire complet du trajet ──────────────────────────
+                Obx(() =>
+                    _ItineraryCard(responsive: responsive, ride: controller.ride.value)),
                 SizedBox(height: responsive.h(16)),
+
+                // ── Conditions ────────────────────────────────────────────
                 _ConditionsCard(responsive: responsive),
                 SizedBox(height: responsive.h(16)),
-                Obx(() => _PriceCard(responsive: responsive, ride: controller.ride.value)),
+
+                // ── Détails prix et commission ────────────────────────────
+                _PriceCard(responsive: responsive, controller: controller),
                 SizedBox(height: responsive.h(16)),
+
+                // ── Avis passagers ────────────────────────────────────────
                 _ReviewsCard(responsive: responsive, controller: controller),
                 SizedBox(height: responsive.h(16)),
+
+                // ── Actions selon contexte ────────────────────────────────
                 Obx(() {
                   if (controller.isExistingReservation.value) {
-                    return _ExistingReservationActions(responsive: responsive, controller: controller);
+                    return _ExistingReservationActions(
+                      responsive: responsive,
+                      controller: controller,
+                    );
                   }
                   return Column(
                     children: [
@@ -73,7 +124,8 @@ class DetailJourneyView extends StatelessWidget {
                         child: Text(
                           AppStrings.reservationAcceptedCancellation,
                           textAlign: TextAlign.center,
-                          style: AppTextStyles.body(responsive).copyWith(color: AppColors.textHint),
+                          style: AppTextStyles.body(responsive)
+                              .copyWith(color: AppColors.textHint),
                         ),
                       ),
                     ],
@@ -88,6 +140,8 @@ class DetailJourneyView extends StatelessWidget {
   }
 }
 
+// ── Header Bar ─────────────────────────────────────────────────────────────
+
 class _HeaderBar extends StatelessWidget {
   const _HeaderBar({required this.responsive, required this.controller});
 
@@ -98,7 +152,8 @@ class _HeaderBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(responsive.adaptive(phone: 16, smallPhone: 14, tablet: 16, desktop: 18)),
+      padding: EdgeInsets.all(responsive.adaptive(
+          phone: 16, smallPhone: 14, tablet: 16, desktop: 18)),
       decoration: const BoxDecoration(
         color: AppColors.surface,
         border: Border(bottom: BorderSide(color: AppColors.border)),
@@ -107,12 +162,17 @@ class _HeaderBar extends StatelessWidget {
         children: [
           _CircleIconButton(icon: Icons.chevron_left_rounded, onTap: Get.back),
           const Spacer(),
-          Text(AppStrings.reservationDetailTitle, style: AppTextStyles.title(responsive)),
+          Text(AppStrings.reservationDetailTitle,
+              style: AppTextStyles.title(responsive)),
           const Spacer(),
           Obx(
             () => _CircleIconButton(
-              icon: controller.isFavorite.value ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-              iconColor: controller.isFavorite.value ? AppColors.primary : AppColors.textPrimary,
+              icon: controller.isFavorite.value
+                  ? Icons.favorite_rounded
+                  : Icons.favorite_border_rounded,
+              iconColor: controller.isFavorite.value
+                  ? AppColors.primary
+                  : AppColors.textPrimary,
               onTap: controller.toggleFavorite,
             ),
           ),
@@ -123,7 +183,8 @@ class _HeaderBar extends StatelessWidget {
 }
 
 class _CircleIconButton extends StatelessWidget {
-  const _CircleIconButton({required this.icon, required this.onTap, this.iconColor});
+  const _CircleIconButton(
+      {required this.icon, required this.onTap, this.iconColor});
 
   final IconData icon;
   final VoidCallback onTap;
@@ -147,12 +208,16 @@ class _CircleIconButton extends StatelessWidget {
               borderRadius: BorderRadius.circular(9999),
             ),
           ),
-          child: Icon(icon, size: responsive.text(22), color: iconColor ?? AppColors.textPrimary),
+          child: Icon(icon,
+              size: responsive.text(22),
+              color: iconColor ?? AppColors.textPrimary),
         ),
       ),
     );
   }
 }
+
+// ── Section Card ──────────────────────────────────────────────────────────
 
 class _SectionCard extends StatelessWidget {
   const _SectionCard({required this.responsive, required this.child});
@@ -164,7 +229,8 @@ class _SectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(responsive.adaptive(phone: 20, smallPhone: 18, tablet: 20, desktop: 20)),
+      padding: EdgeInsets.all(responsive.adaptive(
+          phone: 20, smallPhone: 18, tablet: 20, desktop: 20)),
       decoration: ShapeDecoration(
         color: Colors.white,
         shape: RoundedRectangleBorder(
@@ -172,13 +238,239 @@ class _SectionCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(responsive.radius(24)),
         ),
         shadows: const [
-          BoxShadow(color: Color(0x0C000000), blurRadius: 2, offset: Offset(0, 1)),
+          BoxShadow(
+              color: Color(0x0C000000), blurRadius: 2, offset: Offset(0, 1)),
         ],
       ),
       child: child,
     );
   }
 }
+
+// ── Booking Status Card ────────────────────────────────────────────────────
+
+class _BookingStatusCard extends StatelessWidget {
+  const _BookingStatusCard(
+      {required this.responsive, required this.reservation});
+
+  final AppResponsive responsive;
+  final ReservationItem reservation;
+
+  Color get _statusColor {
+    switch (reservation.status) {
+      case ReservationStatus.pending:
+        return const Color(0xFFF59E0B);
+      case ReservationStatus.confirmed:
+        return reservation.isPaid ? AppColors.primary : const Color(0xFFF59E0B);
+      case ReservationStatus.inProgress:
+        return AppColors.primary;
+      case ReservationStatus.completed:
+        return const Color(0xFF6B7280);
+      case ReservationStatus.cancelled:
+        return const Color(0xFFEF4444);
+    }
+  }
+
+  String get _statusLabel {
+    switch (reservation.status) {
+      case ReservationStatus.pending:
+        return 'En attente de confirmation';
+      case ReservationStatus.confirmed:
+        return reservation.isPaid
+            ? 'Confirmée et payée'
+            : 'Confirmée — Paiement requis';
+      case ReservationStatus.inProgress:
+        return 'Trajet en cours';
+      case ReservationStatus.completed:
+        return 'Trajet terminé';
+      case ReservationStatus.cancelled:
+        return 'Réservation annulée';
+    }
+  }
+
+  IconData get _statusIcon {
+    switch (reservation.status) {
+      case ReservationStatus.pending:
+        return Icons.hourglass_top_rounded;
+      case ReservationStatus.confirmed:
+        return reservation.isPaid
+            ? Icons.check_circle_rounded
+            : Icons.payment_rounded;
+      case ReservationStatus.inProgress:
+        return Icons.directions_car_filled_rounded;
+      case ReservationStatus.completed:
+        return Icons.task_alt_rounded;
+      case ReservationStatus.cancelled:
+        return Icons.cancel_rounded;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _statusColor;
+    final refId = reservation.bookingRef.isNotEmpty
+        ? reservation.bookingRef
+        : '#${reservation.id.length > 8 ? reservation.id.substring(0, 8).toUpperCase() : reservation.id.toUpperCase()}';
+
+    return Container(
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(responsive.radius(16)),
+        border: Border.all(color: color.withValues(alpha: 0.30)),
+      ),
+      child: Column(
+        children: [
+          // Bandeau statut
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(
+                horizontal: responsive.w(16), vertical: responsive.h(10)),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(responsive.radius(16)),
+                topRight: Radius.circular(responsive.radius(16)),
+              ),
+              border: Border(
+                  bottom: BorderSide(color: color.withValues(alpha: 0.20))),
+            ),
+            child: Row(
+              children: [
+                Icon(_statusIcon, size: responsive.text(16), color: color),
+                SizedBox(width: responsive.w(8)),
+                Expanded(
+                  child: Text(_statusLabel,
+                      style: AppTextStyles.subtitle(responsive).copyWith(
+                          color: color, fontWeight: FontWeight.w700)),
+                ),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                      horizontal: responsive.w(8), vertical: responsive.h(3)),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(9999),
+                  ),
+                  child: Text(
+                    reservation.bookingRef.isNotEmpty ? refId : '#$refId',
+                    style: AppTextStyles.caption(responsive).copyWith(
+                        color: color,
+                        fontWeight: FontWeight.w700,
+                        fontFamily: 'monospace'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Infos réservation
+          Padding(
+            padding: EdgeInsets.all(responsive.w(16)),
+            child: Row(
+              children: [
+                _InfoCell(
+                  responsive: responsive,
+                  icon: Icons.event_seat_rounded,
+                  label: 'Places',
+                  value:
+                      '${reservation.seatsCount} place${reservation.seatsCount > 1 ? 's' : ''}',
+                ),
+                _VertDivider(responsive: responsive),
+                _InfoCell(
+                  responsive: responsive,
+                  icon: Icons.calendar_today_outlined,
+                  label: 'Date',
+                  value: reservation.departureDate,
+                ),
+                _VertDivider(responsive: responsive),
+                _InfoCell(
+                  responsive: responsive,
+                  icon: Icons.schedule_rounded,
+                  label: 'Heure',
+                  value: reservation.departureTime,
+                ),
+              ],
+            ),
+          ),
+          // Raison annulation
+          if (reservation.status == ReservationStatus.cancelled &&
+              reservation.cancelReason != null)
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.symmetric(
+                  horizontal: responsive.w(16), vertical: responsive.h(10)),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(responsive.radius(16)),
+                  bottomRight: Radius.circular(responsive.radius(16)),
+                ),
+                border:
+                    const Border(top: BorderSide(color: Color(0xFFFECACA))),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline_rounded,
+                      size: 14, color: Color(0xFFEF4444)),
+                  SizedBox(width: responsive.w(8)),
+                  Expanded(
+                      child: Text(
+                    'Motif : ${reservation.cancelReason}',
+                    style: AppTextStyles.caption(responsive)
+                        .copyWith(color: const Color(0xFF991B1B)),
+                  )),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoCell extends StatelessWidget {
+  const _InfoCell(
+      {required this.responsive,
+      required this.icon,
+      required this.label,
+      required this.value});
+
+  final AppResponsive responsive;
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        children: [
+          Icon(icon, size: responsive.text(16), color: AppColors.textHint),
+          SizedBox(height: responsive.h(4)),
+          Text(label,
+              style: AppTextStyles.caption(responsive)
+                  .copyWith(color: AppColors.textHint, fontSize: 10)),
+          SizedBox(height: responsive.h(2)),
+          Text(value,
+              style: AppTextStyles.caption(responsive)
+                  .copyWith(fontWeight: FontWeight.w700),
+              textAlign: TextAlign.center),
+        ],
+      ),
+    );
+  }
+}
+
+class _VertDivider extends StatelessWidget {
+  const _VertDivider({required this.responsive});
+
+  final AppResponsive responsive;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(width: 1, height: responsive.h(40), color: AppColors.border);
+  }
+}
+
+// ── Driver Card ────────────────────────────────────────────────────────────
 
 class _DriverCard extends StatelessWidget {
   const _DriverCard({required this.responsive, required this.ride});
@@ -188,9 +480,12 @@ class _DriverCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String driverName = ride?.driverName ?? AppStrings.reservationSampleDriver;
-    final String driverRating = ride?.rating ?? AppStrings.passengerProfileRating;
-    final String vehicleName = ride?.vehicle ?? AppStrings.reservationSampleVehicle;
+    final String driverName = ride?.driverName ?? 'Conducteur';
+    final String driverInitials = ride?.driverInitials ?? '';
+    final String driverRating = ride?.rating ?? '—';
+    final String vehicleName = ride?.vehicle ?? '—';
+    final String vehiclePlate = ride?.vehiclePlate ?? '';
+    final String reviewCount = ride?.reviewCount ?? '0';
 
     return _SectionCard(
       responsive: responsive,
@@ -200,7 +495,10 @@ class _DriverCard extends StatelessWidget {
           Stack(
             clipBehavior: Clip.none,
             children: [
-              _LocalAvatar(size: responsive.w(80), label: driverName),
+              _LocalAvatar(
+                  size: responsive.w(80),
+                  label: driverName,
+                  initials: driverInitials),
               Positioned(
                 right: -2,
                 bottom: -2,
@@ -214,7 +512,8 @@ class _DriverCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(9999),
                     ),
                   ),
-                  child: Icon(Icons.verified_rounded, size: responsive.text(12), color: Colors.white),
+                  child: Icon(Icons.verified_rounded,
+                      size: responsive.text(12), color: Colors.white),
                 ),
               ),
             ],
@@ -226,9 +525,13 @@ class _DriverCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Expanded(child: Text(driverName, style: AppTextStyles.h6(responsive))),
+                    Expanded(
+                        child: Text(driverName,
+                            style: AppTextStyles.h6(responsive))),
                     Container(
-                      padding: EdgeInsets.symmetric(horizontal: responsive.w(8), vertical: responsive.h(2)),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: responsive.w(8),
+                          vertical: responsive.h(2)),
                       decoration: ShapeDecoration(
                         color: const Color(0x1900A86B),
                         shape: RoundedRectangleBorder(
@@ -239,25 +542,32 @@ class _DriverCard extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.star_rounded, size: responsive.text(12), color: AppColors.primary),
+                          Icon(Icons.star_rounded,
+                              size: responsive.text(12),
+                              color: AppColors.primary),
                           SizedBox(width: responsive.w(4)),
-                          Text(driverRating, style: AppTextStyles.body(responsive)),
+                          Text(driverRating,
+                              style: AppTextStyles.body(responsive)),
                         ],
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: responsive.h(6)),
-                Text(AppStrings.reservationVerifiedLicense, style: AppTextStyles.caption(responsive)),
                 SizedBox(height: responsive.h(4)),
-                Text(AppStrings.reservationQuickReply, style: AppTextStyles.caption(responsive)),
+                Text(
+                  '$reviewCount avis · Conducteur vérifié',
+                  style: AppTextStyles.caption(responsive)
+                      .copyWith(color: AppColors.textHint),
+                ),
                 SizedBox(height: responsive.h(8)),
                 Wrap(
                   spacing: responsive.w(8),
                   runSpacing: responsive.h(8),
                   children: [
-                    _SmallChip(text: AppStrings.reservationSamplePlate, responsive: responsive),
-                    _SmallChip(text: vehicleName, responsive: responsive),
+                    if (vehiclePlate.isNotEmpty)
+                      _SmallChip(text: vehiclePlate, responsive: responsive),
+                    if (vehicleName.isNotEmpty && vehicleName != '—')
+                      _SmallChip(text: vehicleName, responsive: responsive),
                   ],
                 ),
               ],
@@ -278,7 +588,8 @@ class _SmallChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: responsive.w(12), vertical: responsive.h(6)),
+      padding: EdgeInsets.symmetric(
+          horizontal: responsive.w(12), vertical: responsive.h(6)),
       decoration: ShapeDecoration(
         color: const Color(0xFFF5F5F5),
         shape: RoundedRectangleBorder(
@@ -286,32 +597,55 @@ class _SmallChip extends StatelessWidget {
           borderRadius: BorderRadius.circular(9999),
         ),
       ),
-      child: Text(text, style: AppTextStyles.caption(responsive).copyWith(fontWeight: FontWeight.w600)),
+      child: Text(text,
+          style: AppTextStyles.caption(responsive)
+              .copyWith(fontWeight: FontWeight.w600)),
     );
   }
 }
 
+// ── Metric Row ─────────────────────────────────────────────────────────────
+
 class _MetricRow extends StatelessWidget {
-  const _MetricRow({required this.responsive});
+  const _MetricRow({required this.responsive, required this.controller});
 
   final AppResponsive responsive;
+  final DetailReservationController controller;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(child: _MetricCard(value: '98%', label: 'Taux d\'acceptation', responsive: responsive)),
-        SizedBox(width: responsive.w(12)),
-        Expanded(child: _MetricCard(value: '5 min', label: 'Temps réponse', responsive: responsive)),
-        SizedBox(width: responsive.w(12)),
-        Expanded(child: _MetricCard(value: '3 ans', label: 'Sur MINIZON', responsive: responsive)),
-      ],
-    );
+    return Obx(() {
+      final rate = controller.acceptanceRate.value;
+      final resp = controller.responseTime.value;
+      final since = controller.memberSince.value;
+      return Row(
+        children: [
+          Expanded(
+              child: _MetricCard(
+                  value: rate.isNotEmpty ? rate : '—',
+                  label: "Taux d'acceptation",
+                  responsive: responsive)),
+          SizedBox(width: responsive.w(12)),
+          Expanded(
+              child: _MetricCard(
+                  value: resp.isNotEmpty ? resp : '—',
+                  label: 'Temps réponse',
+                  responsive: responsive)),
+          SizedBox(width: responsive.w(12)),
+          Expanded(
+              child: _MetricCard(
+                  value: since.isNotEmpty ? since : '—',
+                  label: 'Sur MINIZON',
+                  responsive: responsive)),
+        ],
+      );
+    });
   }
 }
 
 class _MetricCard extends StatelessWidget {
-  const _MetricCard({required this.value, required this.label, required this.responsive});
+  const _MetricCard(
+      {required this.value, required this.label, required this.responsive});
 
   final String value;
   final String label;
@@ -320,7 +654,8 @@ class _MetricCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(vertical: responsive.h(12), horizontal: responsive.w(8)),
+      padding: EdgeInsets.symmetric(
+          vertical: responsive.h(12), horizontal: responsive.w(8)),
       decoration: ShapeDecoration(
         color: Colors.white,
         shape: RoundedRectangleBorder(
@@ -330,14 +665,21 @@ class _MetricCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text(value, textAlign: TextAlign.center, style: AppTextStyles.price(responsive).copyWith(fontSize: responsive.text(22))),
+          Text(value,
+              textAlign: TextAlign.center,
+              style: AppTextStyles.price(responsive)
+                  .copyWith(fontSize: responsive.text(20))),
           SizedBox(height: responsive.h(4)),
-          Text(label, textAlign: TextAlign.center, style: AppTextStyles.caption(responsive)),
+          Text(label,
+              textAlign: TextAlign.center,
+              style: AppTextStyles.caption(responsive)),
         ],
       ),
     );
   }
 }
+
+// ── Vehicle Card ───────────────────────────────────────────────────────────
 
 class _VehicleCard extends StatelessWidget {
   const _VehicleCard({required this.responsive, required this.ride});
@@ -347,7 +689,8 @@ class _VehicleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String vehicle = ride?.vehicle ?? AppStrings.reservationSampleVehicle;
+    final String vehicle = ride?.vehicle ?? '—';
+    final String vehiclePlate = ride?.vehiclePlate ?? '';
 
     return _SectionCard(
       responsive: responsive,
@@ -358,15 +701,16 @@ class _VehicleCard extends StatelessWidget {
             children: [
               const Icon(Icons.directions_car_rounded, color: AppColors.primary),
               SizedBox(width: responsive.w(8)),
-              Text(AppStrings.reservationVehicleTitle, style: AppTextStyles.h6(responsive)),
+              Text(AppStrings.reservationVehicleTitle,
+                  style: AppTextStyles.h6(responsive)),
             ],
           ),
           SizedBox(height: responsive.h(16)),
           Row(
             children: [
               Container(
-                width: responsive.w(96),
-                height: responsive.w(96),
+                width: responsive.w(88),
+                height: responsive.w(88),
                 decoration: ShapeDecoration(
                   color: const Color(0xFFF5F5F5),
                   shape: RoundedRectangleBorder(
@@ -374,7 +718,8 @@ class _VehicleCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                child: const Icon(Icons.directions_car_filled_rounded, color: AppColors.primary),
+                child: const Icon(Icons.directions_car_filled_rounded,
+                    color: AppColors.primary, size: 40),
               ),
               SizedBox(width: responsive.w(16)),
               Expanded(
@@ -382,15 +727,21 @@ class _VehicleCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(vehicle, style: AppTextStyles.h6(responsive)),
-                    SizedBox(height: responsive.h(6)),
-                    Text(AppStrings.reservationVehicleCondition, style: AppTextStyles.body(responsive)),
-                    SizedBox(height: responsive.h(8)),
+                    SizedBox(height: responsive.h(4)),
+                    Text(AppStrings.reservationVehicleCondition,
+                        style: AppTextStyles.body(responsive)
+                            .copyWith(color: AppColors.textHint)),
+                    SizedBox(height: responsive.h(10)),
                     Wrap(
                       spacing: responsive.w(8),
-                      runSpacing: responsive.h(8),
+                      runSpacing: responsive.h(6),
                       children: [
-                        _SmallChip(text: AppStrings.reservationSamplePlate, responsive: responsive),
-                        _SmallChip(text: AppStrings.reservationVehicleAttribute, responsive: responsive),
+                        if (vehiclePlate.isNotEmpty)
+                          _SmallChip(
+                              text: vehiclePlate, responsive: responsive),
+                        _SmallChip(
+                            text: AppStrings.reservationVehicleAttribute,
+                            responsive: responsive),
                       ],
                     ),
                   ],
@@ -404,6 +755,181 @@ class _VehicleCard extends StatelessWidget {
   }
 }
 
+// ── Passenger Route Card ───────────────────────────────────────────────────
+
+class _PassengerRouteCard extends StatelessWidget {
+  const _PassengerRouteCard(
+      {required this.responsive, required this.reservation});
+
+  final AppResponsive responsive;
+  final ReservationItem reservation;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasFullTrip = reservation.tripOrigin.isNotEmpty &&
+        reservation.tripDestination.isNotEmpty;
+    final pickupDiffersFromTrip = hasFullTrip &&
+        reservation.displayPickupCity.toLowerCase() !=
+            reservation.tripOrigin.toLowerCase();
+
+    return _SectionCard(
+      responsive: responsive,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.place_rounded, color: AppColors.primary),
+              SizedBox(width: responsive.w(8)),
+              Text('Votre montée & descente',
+                  style: AppTextStyles.h6(responsive)),
+            ],
+          ),
+          SizedBox(height: responsive.h(16)),
+          // Prise en charge
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Column(children: [
+                Container(
+                  width: responsive.w(12),
+                  height: responsive.w(12),
+                  decoration: const BoxDecoration(
+                      color: AppColors.primary, shape: BoxShape.circle),
+                ),
+                Container(
+                    width: 2,
+                    height: responsive.h(52),
+                    color: AppColors.border),
+              ]),
+              SizedBox(width: responsive.w(12)),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Prise en charge',
+                        style: AppTextStyles.caption(responsive).copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600)),
+                    SizedBox(height: responsive.h(2)),
+                    Text(reservation.displayPickupCity,
+                        style: AppTextStyles.subtitle(responsive)),
+                    if (reservation.displayPickupNote.isNotEmpty) ...[
+                      SizedBox(height: responsive.h(2)),
+                      Text(reservation.displayPickupNote,
+                          style: AppTextStyles.caption(responsive)
+                              .copyWith(color: AppColors.textSecondary)),
+                    ],
+                    if (reservation.displayPickupAddress.isNotEmpty) ...[
+                      SizedBox(height: responsive.h(2)),
+                      Row(children: [
+                        const Icon(Icons.location_on_outlined,
+                            size: 11, color: AppColors.textHint),
+                        SizedBox(width: responsive.w(3)),
+                        Flexible(
+                            child: Text(
+                          reservation.displayPickupAddress,
+                          style: AppTextStyles.caption(responsive).copyWith(
+                              color: AppColors.textHint, fontSize: 11),
+                        )),
+                      ]),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          // Dépose
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: responsive.w(12),
+                height: responsive.w(12),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFEF4444), width: 2),
+                  color: Colors.white,
+                ),
+                child: Center(
+                    child: Container(
+                  width: responsive.w(5),
+                  height: responsive.w(5),
+                  decoration: const BoxDecoration(
+                      shape: BoxShape.circle, color: Color(0xFFEF4444)),
+                )),
+              ),
+              SizedBox(width: responsive.w(12)),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Dépose',
+                        style: AppTextStyles.caption(responsive).copyWith(
+                            color: const Color(0xFFEF4444),
+                            fontWeight: FontWeight.w600)),
+                    SizedBox(height: responsive.h(2)),
+                    Text(reservation.displayDropoffCity,
+                        style: AppTextStyles.subtitle(responsive)),
+                    if (reservation.displayDropoffNote.isNotEmpty) ...[
+                      SizedBox(height: responsive.h(2)),
+                      Text(reservation.displayDropoffNote,
+                          style: AppTextStyles.caption(responsive)
+                              .copyWith(color: AppColors.textSecondary)),
+                    ],
+                    if (reservation.displayDropoffAddress.isNotEmpty) ...[
+                      SizedBox(height: responsive.h(2)),
+                      Row(children: [
+                        const Icon(Icons.location_on_outlined,
+                            size: 11, color: AppColors.textHint),
+                        SizedBox(width: responsive.w(3)),
+                        Flexible(
+                            child: Text(
+                          reservation.displayDropoffAddress,
+                          style: AppTextStyles.caption(responsive).copyWith(
+                              color: AppColors.textHint, fontSize: 11),
+                        )),
+                      ]),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          // Contexte trajet complet du conducteur
+          if (hasFullTrip) ...[
+            SizedBox(height: responsive.h(12)),
+            Container(
+              padding: EdgeInsets.symmetric(
+                  horizontal: responsive.w(12), vertical: responsive.h(8)),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceMuted,
+                borderRadius: BorderRadius.circular(responsive.radius(10)),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(children: [
+                const Icon(Icons.directions_car_outlined,
+                    size: 13, color: AppColors.textHint),
+                SizedBox(width: responsive.w(8)),
+                Flexible(
+                    child: Text(
+                  pickupDiffersFromTrip
+                      ? 'Trajet : ${reservation.tripOrigin} → ${reservation.tripDestination}'
+                      : 'Trajet complet : ${reservation.tripOrigin} → ${reservation.tripDestination}',
+                  style: AppTextStyles.caption(responsive)
+                      .copyWith(color: AppColors.textSecondary),
+                )),
+              ]),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ── Itinerary Card ─────────────────────────────────────────────────────────
+
 class _ItineraryCard extends StatelessWidget {
   const _ItineraryCard({required this.responsive, required this.ride});
 
@@ -412,13 +938,18 @@ class _ItineraryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String origin = ride?.origin ?? 'Cotonou';
-    final String destination = ride?.destination ?? 'Abomey-Calavi';
-    final String departureTime = ride?.departureTime ?? '08:00';
-    final String arrivalTime = ride?.arrivalTime ?? '09:30';
-    final String departureNote = ride?.departureNote ?? 'Carrefour Vêdoko';
-    final String arrivalNote = ride?.arrivalNote ?? 'Université d\'Abomey-Calavi';
-    final String duration = ride?.duration ?? '1h 30min';
+    final String origin =
+        (ride?.origin.isNotEmpty ?? false) ? ride!.origin : '—';
+    final String destination =
+        (ride?.destination.isNotEmpty ?? false) ? ride!.destination : '—';
+    final String departureTime = ride?.departureTime ?? '';
+    final String arrivalTime = ride?.arrivalTime ?? '';
+    final String departureNote = ride?.departureNote ?? '';
+    final String arrivalNote = ride?.arrivalNote ?? '';
+    final String duration = ride?.duration ?? '';
+    final String? waypoint =
+        (ride?.waypointCity?.isNotEmpty ?? false) ? ride!.waypointCity : null;
+    final String? waypointNote = ride?.waypointNote;
 
     return _SectionCard(
       responsive: responsive,
@@ -429,7 +960,8 @@ class _ItineraryCard extends StatelessWidget {
             children: [
               const Icon(Icons.route_rounded, color: AppColors.primary),
               SizedBox(width: responsive.w(8)),
-              Text(AppStrings.reservationItineraryTitle, style: AppTextStyles.h6(responsive)),
+              Text(AppStrings.reservationItineraryTitle,
+                  style: AppTextStyles.h6(responsive)),
             ],
           ),
           SizedBox(height: responsive.h(16)),
@@ -440,16 +972,21 @@ class _ItineraryCard extends StatelessWidget {
             time: departureTime,
             title: origin,
             subtitle: departureNote,
+            hasLine: true,
           ),
-          SizedBox(height: responsive.h(12)),
-          _JourneyStop(
-            responsive: responsive,
-            color: Colors.white,
-            outlined: true,
-            label: AppStrings.reservationJourneyStop,
-            title: 'Calavi',
-            subtitle: 'Carrefour PK14',
-          ),
+          if (waypoint != null) ...[
+            SizedBox(height: responsive.h(12)),
+            _JourneyStop(
+              responsive: responsive,
+              color: Colors.white,
+              outlined: true,
+              outlineColor: const Color(0xFFF59E0B),
+              label: AppStrings.reservationJourneyStop,
+              title: waypoint,
+              subtitle: waypointNote ?? '',
+              hasLine: true,
+            ),
+          ],
           SizedBox(height: responsive.h(12)),
           _JourneyStop(
             responsive: responsive,
@@ -458,15 +995,27 @@ class _ItineraryCard extends StatelessWidget {
             time: arrivalTime,
             title: destination,
             subtitle: arrivalNote,
+            hasLine: false,
           ),
-          SizedBox(height: responsive.h(16)),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(AppStrings.reservationDistanceLabel, style: AppTextStyles.body(responsive).copyWith(fontWeight: FontWeight.w600)),
-              Text(duration, style: AppTextStyles.h6(responsive)),
-            ],
-          ),
+          if (duration.isNotEmpty) ...[
+            SizedBox(height: responsive.h(16)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Durée estimée',
+                    style: AppTextStyles.body(responsive)
+                        .copyWith(color: AppColors.textSecondary)),
+                Row(children: [
+                  const Icon(Icons.timelapse_rounded,
+                      size: 16, color: AppColors.primary),
+                  SizedBox(width: responsive.w(6)),
+                  Text(duration,
+                      style: AppTextStyles.subtitle(responsive)
+                          .copyWith(color: AppColors.primary)),
+                ]),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -480,8 +1029,10 @@ class _JourneyStop extends StatelessWidget {
     required this.label,
     required this.title,
     required this.subtitle,
+    required this.hasLine,
     this.time,
     this.outlined = false,
+    this.outlineColor,
   });
 
   final AppResponsive responsive;
@@ -489,11 +1040,14 @@ class _JourneyStop extends StatelessWidget {
   final String label;
   final String title;
   final String subtitle;
+  final bool hasLine;
   final String? time;
   final bool outlined;
+  final Color? outlineColor;
 
   @override
   Widget build(BuildContext context) {
+    final borderColor = outlineColor ?? color;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -505,12 +1059,18 @@ class _JourneyStop extends StatelessWidget {
               decoration: ShapeDecoration(
                 color: outlined ? Colors.white : color,
                 shape: RoundedRectangleBorder(
-                  side: BorderSide(color: outlined ? color : AppColors.border, width: outlined ? 2 : 1),
+                  side: BorderSide(
+                      color: outlined ? borderColor : AppColors.border,
+                      width: outlined ? 2 : 1),
                   borderRadius: BorderRadius.circular(9999),
                 ),
               ),
             ),
-            Container(width: 2, height: responsive.h(36), color: AppColors.border),
+            if (hasLine)
+              Container(
+                  width: 2,
+                  height: responsive.h(44),
+                  color: AppColors.border),
           ],
         ),
         SizedBox(width: responsive.w(12)),
@@ -518,11 +1078,19 @@ class _JourneyStop extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(time == null ? label : '$label • $time', style: AppTextStyles.caption(responsive)),
+              Text(
+                time != null && time!.isNotEmpty ? '$label · $time' : label,
+                style: AppTextStyles.caption(responsive)
+                    .copyWith(color: AppColors.textHint),
+              ),
               SizedBox(height: responsive.h(2)),
               Text(title, style: AppTextStyles.subtitle(responsive)),
-              SizedBox(height: responsive.h(2)),
-              Text(subtitle, style: AppTextStyles.body(responsive).copyWith(color: AppColors.textSecondary)),
+              if (subtitle.isNotEmpty) ...[
+                SizedBox(height: responsive.h(2)),
+                Text(subtitle,
+                    style: AppTextStyles.body(responsive)
+                        .copyWith(color: AppColors.textSecondary)),
+              ],
             ],
           ),
         ),
@@ -530,6 +1098,8 @@ class _JourneyStop extends StatelessWidget {
     );
   }
 }
+
+// ── Conditions Card ────────────────────────────────────────────────────────
 
 class _ConditionsCard extends StatelessWidget {
   const _ConditionsCard({required this.responsive});
@@ -547,17 +1117,30 @@ class _ConditionsCard extends StatelessWidget {
             children: [
               const Icon(Icons.verified_rounded, color: AppColors.primary),
               SizedBox(width: responsive.w(8)),
-              Text(AppStrings.reservationConditionsTitle, style: AppTextStyles.h6(responsive)),
+              Text(AppStrings.reservationConditionsTitle,
+                  style: AppTextStyles.h6(responsive)),
             ],
           ),
           SizedBox(height: responsive.h(16)),
-          _ConditionRow(responsive: responsive, title: AppStrings.reservationAvailableSeats, subtitle: AppStrings.reservationFreeSeatsText),
+          _ConditionRow(
+              responsive: responsive,
+              title: AppStrings.reservationAvailableSeats,
+              subtitle: AppStrings.reservationFreeSeatsText),
           SizedBox(height: responsive.h(12)),
-          _ConditionRow(responsive: responsive, title: AppStrings.reservationLuggage, subtitle: AppStrings.reservationLuggageText),
+          _ConditionRow(
+              responsive: responsive,
+              title: AppStrings.reservationLuggage,
+              subtitle: AppStrings.reservationLuggageText),
           SizedBox(height: responsive.h(12)),
-          _ConditionRow(responsive: responsive, title: AppStrings.reservationNoSmoking, subtitle: AppStrings.reservationSmokingText),
+          _ConditionRow(
+              responsive: responsive,
+              title: AppStrings.reservationNoSmoking,
+              subtitle: AppStrings.reservationSmokingText),
           SizedBox(height: responsive.h(12)),
-          _ConditionRow(responsive: responsive, title: AppStrings.reservationMood, subtitle: AppStrings.reservationMoodText),
+          _ConditionRow(
+              responsive: responsive,
+              title: AppStrings.reservationMood,
+              subtitle: AppStrings.reservationMoodText),
         ],
       ),
     );
@@ -565,7 +1148,8 @@ class _ConditionsCard extends StatelessWidget {
 }
 
 class _ConditionRow extends StatelessWidget {
-  const _ConditionRow({required this.responsive, required this.title, required this.subtitle});
+  const _ConditionRow(
+      {required this.responsive, required this.title, required this.subtitle});
 
   final AppResponsive responsive;
   final String title;
@@ -586,7 +1170,8 @@ class _ConditionRow extends StatelessWidget {
               borderRadius: BorderRadius.circular(9999),
             ),
           ),
-          child: Icon(Icons.check_rounded, size: responsive.text(18), color: AppColors.primary),
+          child: Icon(Icons.check_rounded,
+              size: responsive.text(18), color: AppColors.primary),
         ),
         SizedBox(width: responsive.w(12)),
         Expanded(
@@ -595,7 +1180,9 @@ class _ConditionRow extends StatelessWidget {
             children: [
               Text(title, style: AppTextStyles.subtitle(responsive)),
               SizedBox(height: responsive.h(2)),
-              Text(subtitle, style: AppTextStyles.body(responsive).copyWith(color: AppColors.textSecondary)),
+              Text(subtitle,
+                  style: AppTextStyles.body(responsive)
+                      .copyWith(color: AppColors.textSecondary)),
             ],
           ),
         ),
@@ -604,91 +1191,211 @@ class _ConditionRow extends StatelessWidget {
   }
 }
 
+// ── Price Card ─────────────────────────────────────────────────────────────
+
 class _PriceCard extends StatelessWidget {
-  const _PriceCard({required this.responsive, required this.ride});
+  const _PriceCard({required this.responsive, required this.controller});
 
   final AppResponsive responsive;
-  final SearchRide? ride;
+  final DetailReservationController controller;
 
-  int _extractPrice(String value) {
-    final digits = value.replaceAll(RegExp(r'[^0-9]'), '');
-    return int.tryParse(digits) ?? 2500;
-  }
-
-  String _formatPrice(int value) {
-    final text = value.toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (match) => ',');
+  String _fmt(int value) {
+    final text = value
+        .toString()
+        .replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ' ');
     return '$text FCFA';
   }
 
   @override
   Widget build(BuildContext context) {
-    final int basePrice = _extractPrice(ride?.price ?? '2,500 F');
-    final int serviceFee = (basePrice * 0.05).round();
-    final int total = basePrice + serviceFee;
+    return Obx(() {
+      final r = controller.existingReservation;
+      final ride = controller.ride.value;
 
-    return _SectionCard(
-      responsive: responsive,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.payments_rounded, color: AppColors.primary),
-              SizedBox(width: responsive.w(8)),
-              Text(AppStrings.reservationPriceDetailsTitle, style: AppTextStyles.h6(responsive)),
-            ],
-          ),
-          SizedBox(height: responsive.h(12)),
-          _PriceLine(left: AppStrings.reservationPriceLabel, right: _formatPrice(basePrice), responsive: responsive),
-          SizedBox(height: responsive.h(10)),
-          _PriceLine(left: AppStrings.reservationPerSeat, right: '1', responsive: responsive),
-          SizedBox(height: responsive.h(12)),
-          Container(height: 1, color: const Color(0xFFF3F4F6)),
-          SizedBox(height: responsive.h(12)),
-          _PriceLine(left: AppStrings.reservationServiceFee, right: _formatPrice(serviceFee), responsive: responsive),
-          SizedBox(height: responsive.h(12)),
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.symmetric(horizontal: responsive.w(20), vertical: responsive.h(12)),
-            decoration: ShapeDecoration(
-              color: const Color(0x0C00A86B),
-              shape: RoundedRectangleBorder(
-                side: const BorderSide(color: AppColors.border),
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      int unitPrice, seatsCount, subtotal, serviceFee, total;
+      bool isProrated = false;
+      bool hasBreakdown = false;
+
+      if (r != null) {
+        seatsCount = r.seatsCount;
+        final bd = r.priceBreakdown;
+        if (bd != null && bd.calculatedPricePerSeat > 0) {
+          // Utiliser les champs exacts de l'API
+          unitPrice = bd.calculatedPricePerSeat;
+          subtotal = bd.subtotal;
+          serviceFee = bd.serviceFee;
+          total = bd.total;
+          isProrated = seatsCount > 1;
+          hasBreakdown = true;
+        } else if (r.totalPriceValue > 0) {
+          unitPrice = r.totalPriceValue;
+          subtotal = unitPrice * seatsCount;
+          serviceFee = (subtotal * 0.05).round();
+          total = subtotal + serviceFee;
+          isProrated = seatsCount > 1;
+          hasBreakdown = true;
+        } else {
+          unitPrice = 0;
+          subtotal = 0;
+          serviceFee = 0;
+          total = 0;
+          hasBreakdown = false;
+        }
+      } else {
+        seatsCount = 1;
+        unitPrice = ride?.priceValue ?? 0;
+        subtotal = unitPrice;
+        serviceFee = (unitPrice * 0.05).round();
+        total = subtotal + serviceFee;
+        hasBreakdown = unitPrice > 0;
+      }
+
+      return _SectionCard(
+        responsive: responsive,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Text(AppStrings.reservationTotalToPay, style: AppTextStyles.subtitle(responsive)),
-                Text(_formatPrice(total), style: AppTextStyles.price(responsive)),
+                const Icon(Icons.payments_rounded, color: AppColors.primary),
+                SizedBox(width: responsive.w(8)),
+                Expanded(
+                    child: Text(AppStrings.reservationPriceDetailsTitle,
+                        style: AppTextStyles.h6(responsive))),
+                if (isProrated)
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                        horizontal: responsive.w(8), vertical: responsive.h(3)),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceAccent,
+                      borderRadius: BorderRadius.circular(9999),
+                      border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.30)),
+                    ),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.check_circle_outline,
+                          size: responsive.text(11), color: AppColors.primary),
+                      SizedBox(width: responsive.w(4)),
+                      Text('Au prorata',
+                          style: AppTextStyles.caption(responsive).copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 11)),
+                    ]),
+                  ),
               ],
             ),
-          ),
-        ],
-      ),
-    );
+            SizedBox(height: responsive.h(16)),
+            if (hasBreakdown) ...[
+              _PriceLineRow(
+                  responsive: responsive,
+                  left: 'Prix par place',
+                  right: _fmt(unitPrice)),
+              SizedBox(height: responsive.h(8)),
+              _PriceLineRow(
+                  responsive: responsive,
+                  left: 'Nombre de places',
+                  right: '× $seatsCount'),
+              SizedBox(height: responsive.h(8)),
+              if (seatsCount > 1) ...[
+                _PriceLineRow(
+                    responsive: responsive,
+                    left: 'Sous-total',
+                    right: _fmt(subtotal)),
+                SizedBox(height: responsive.h(8)),
+              ],
+              Container(
+                padding: EdgeInsets.symmetric(
+                    horizontal: responsive.w(12), vertical: responsive.h(8)),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF8E1),
+                  borderRadius: BorderRadius.circular(responsive.radius(10)),
+                  border: Border.all(color: const Color(0xFFFFE082)),
+                ),
+                child: Row(children: [
+                  const Icon(Icons.info_outline_rounded,
+                      size: 13, color: Color(0xFFF59E0B)),
+                  SizedBox(width: responsive.w(8)),
+                  Expanded(
+                      child: Text(
+                    'Frais de service MINIZON (5%) : ${_fmt(serviceFee)}',
+                    style: AppTextStyles.caption(responsive)
+                        .copyWith(color: const Color(0xFF795548)),
+                  )),
+                ]),
+              ),
+              SizedBox(height: responsive.h(12)),
+              Container(height: 1, color: AppColors.border),
+              SizedBox(height: responsive.h(12)),
+            ],
+            // Total
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.symmetric(
+                  horizontal: responsive.w(20), vertical: responsive.h(14)),
+              decoration: ShapeDecoration(
+                color: const Color(0x0C00A86B),
+                shape: RoundedRectangleBorder(
+                  side: const BorderSide(color: AppColors.border),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(AppStrings.reservationTotalToPay,
+                            style: AppTextStyles.subtitle(responsive)),
+                        if (r?.isPaid == true)
+                          Text('Payé',
+                              style: AppTextStyles.caption(responsive).copyWith(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w600)),
+                      ]),
+                  Text(
+                    hasBreakdown
+                        ? _fmt(total)
+                        : (r?.totalPrice ?? ride?.price ?? '—'),
+                    style: AppTextStyles.price(responsive),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    });
   }
 }
 
-class _PriceLine extends StatelessWidget {
-  const _PriceLine({required this.left, required this.right, required this.responsive});
+class _PriceLineRow extends StatelessWidget {
+  const _PriceLineRow(
+      {required this.responsive, required this.left, required this.right});
 
+  final AppResponsive responsive;
   final String left;
   final String right;
-  final AppResponsive responsive;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Flexible(child: Text(left, style: AppTextStyles.body(responsive).copyWith(color: AppColors.textSecondary))),
-        Text(right, style: AppTextStyles.body(responsive).copyWith(fontWeight: FontWeight.w600)),
+        Flexible(
+            child: Text(left,
+                style: AppTextStyles.body(responsive)
+                    .copyWith(color: AppColors.textSecondary))),
+        Text(right,
+            style: AppTextStyles.body(responsive)
+                .copyWith(fontWeight: FontWeight.w600)),
       ],
     );
   }
 }
+
+// ── Reviews Card ───────────────────────────────────────────────────────────
 
 class _ReviewsCard extends StatelessWidget {
   const _ReviewsCard({required this.responsive, required this.controller});
@@ -708,33 +1415,63 @@ class _ReviewsCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.chat_bubble_outline_rounded, color: AppColors.primary),
+                  const Icon(Icons.chat_bubble_outline_rounded,
+                      color: AppColors.primary),
                   SizedBox(width: responsive.w(8)),
-                  Text(AppStrings.reservationReviewsTitle, style: AppTextStyles.h6(responsive)),
+                  Text(AppStrings.reservationReviewsTitle,
+                      style: AppTextStyles.h6(responsive)),
                 ],
               ),
               TextButton(
                 onPressed: controller.onViewAllReviews,
-                child: Text(AppStrings.reservationViewAll, style: AppTextStyles.body(responsive).copyWith(color: AppColors.primary, fontWeight: FontWeight.w600)),
+                child: Text(AppStrings.reservationViewAll,
+                    style: AppTextStyles.body(responsive).copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600)),
               ),
             ],
           ),
           SizedBox(height: responsive.h(12)),
-          _ReviewItem(
-            responsive: responsive,
-            name: 'Marie Kouadio',
-            rating: '5.0',
-            date: 'Il y a 2 jours',
-            body: AppStrings.reservationSampleReview,
-          ),
-          SizedBox(height: responsive.h(16)),
-          _ReviewItem(
-            responsive: responsive,
-            name: 'Jean Akakpo',
-            rating: '4.8',
-            date: 'Il y a 1 semaine',
-            body: 'Excellent trajet, bonne conduite et respect des horaires.',
-          ),
+          Obx(() {
+            final reviews = controller.apiReviews;
+            if (reviews.isNotEmpty) {
+              final shown = reviews.take(2).toList();
+              return Column(
+                children: shown
+                    .asMap()
+                    .entries
+                    .map((e) => Column(
+                          children: [
+                            if (e.key > 0) SizedBox(height: responsive.h(14)),
+                            _ReviewItem(
+                              responsive: responsive,
+                              name: e.value.reviewerName,
+                              rating: e.value.rating.toStringAsFixed(1),
+                              date: e.value.date,
+                              body: e.value.comment,
+                            ),
+                          ],
+                        ))
+                    .toList(),
+              );
+            }
+            return Column(children: [
+              _ReviewItem(
+                  responsive: responsive,
+                  name: 'Marie Kouadio',
+                  rating: '5.0',
+                  date: 'Il y a 2 jours',
+                  body: AppStrings.reservationSampleReview),
+              SizedBox(height: responsive.h(14)),
+              _ReviewItem(
+                  responsive: responsive,
+                  name: 'Jean Akakpo',
+                  rating: '4.8',
+                  date: 'Il y a 1 semaine',
+                  body:
+                      'Excellent trajet, bonne conduite et respect des horaires.'),
+            ]);
+          }),
         ],
       ),
     );
@@ -742,7 +1479,12 @@ class _ReviewsCard extends StatelessWidget {
 }
 
 class _ReviewItem extends StatelessWidget {
-  const _ReviewItem({required this.responsive, required this.name, required this.rating, required this.date, required this.body});
+  const _ReviewItem(
+      {required this.responsive,
+      required this.name,
+      required this.rating,
+      required this.date,
+      required this.body});
 
   final AppResponsive responsive;
   final String name;
@@ -764,20 +1506,27 @@ class _ReviewItem extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(name, style: AppTextStyles.body(responsive).copyWith(fontWeight: FontWeight.w600)),
-                  Row(
-                    children: [
-                      Icon(Icons.star_rounded, size: responsive.text(14), color: AppColors.warning),
-                      SizedBox(width: responsive.w(4)),
-                      Text(rating, style: AppTextStyles.body(responsive).copyWith(fontWeight: FontWeight.w600)),
-                    ],
-                  ),
+                  Text(name,
+                      style: AppTextStyles.body(responsive)
+                          .copyWith(fontWeight: FontWeight.w600)),
+                  Row(children: [
+                    Icon(Icons.star_rounded,
+                        size: responsive.text(14), color: AppColors.warning),
+                    SizedBox(width: responsive.w(4)),
+                    Text(rating,
+                        style: AppTextStyles.body(responsive)
+                            .copyWith(fontWeight: FontWeight.w600)),
+                  ]),
                 ],
               ),
               SizedBox(height: responsive.h(4)),
-              Text(date, style: AppTextStyles.caption(responsive)),
+              Text(date,
+                  style: AppTextStyles.caption(responsive)
+                      .copyWith(color: AppColors.textHint)),
               SizedBox(height: responsive.h(8)),
-              Text(body, style: AppTextStyles.body(responsive).copyWith(color: AppColors.textSecondary, height: 1.6)),
+              Text(body,
+                  style: AppTextStyles.body(responsive).copyWith(
+                      color: AppColors.textSecondary, height: 1.6)),
             ],
           ),
         ),
@@ -786,10 +1535,11 @@ class _ReviewItem extends StatelessWidget {
   }
 }
 
-// ── Boutons selon statut de réservation existante ─────────────────────────
+// ── Existing Reservation Actions ───────────────────────────────────────────
 
 class _ExistingReservationActions extends StatelessWidget {
-  const _ExistingReservationActions({required this.responsive, required this.controller});
+  const _ExistingReservationActions(
+      {required this.responsive, required this.controller});
 
   final AppResponsive responsive;
   final DetailReservationController controller;
@@ -799,59 +1549,90 @@ class _ExistingReservationActions extends StatelessWidget {
     final status = controller.reservationStatus;
 
     if (status == ReservationStatus.pending) {
-      return Column(
-        children: [
-          // Bandeau info attente
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(responsive.w(14)),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF8E1),
-              borderRadius: BorderRadius.circular(responsive.radius(14)),
-              border: Border.all(color: const Color(0xFFFFE082)),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.hourglass_top_rounded,
-                    size: responsive.text(18), color: const Color(0xFFFFA000)),
-                SizedBox(width: responsive.w(10)),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'En attente de confirmation',
-                        style: AppTextStyles.bodyMedium(responsive).copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFFF57F17),
-                        ),
-                      ),
-                      SizedBox(height: responsive.h(4)),
-                      Text(
-                        'Le conducteur doit confirmer votre réservation avant que vous puissiez procéder au paiement.',
-                        style: AppTextStyles.bodySmall(responsive).copyWith(
-                          color: const Color(0xFF795548),
-                          height: 1.4,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: responsive.h(12)),
-          Obx(() => AppPrimaryButton(
+      return Column(children: [
+        _StatusBanner(
+          responsive: responsive,
+          icon: Icons.hourglass_top_rounded,
+          title: 'En attente de confirmation',
+          message:
+              'Le conducteur doit confirmer votre réservation avant que vous puissiez procéder au paiement.',
+          bgColor: const Color(0xFFFFF8E1),
+          borderColor: const Color(0xFFFFE082),
+          iconColor: const Color(0xFFFFA000),
+          textColor: const Color(0xFF795548),
+        ),
+        SizedBox(height: responsive.h(12)),
+        Obx(() => AppPrimaryButton(
+              responsive: responsive,
+              label: controller.isContactingDriver.value
+                  ? 'Connexion…'
+                  : 'Contacter le conducteur',
+              onTap: controller.isContactingDriver.value
+                  ? () {}
+                  : controller.contactDriver,
+              backgroundColor: AppColors.primary,
+              textColor: AppColors.white,
+              borderRadius: responsive.radius(16),
+              height: responsive.h(54),
+            )),
+        SizedBox(height: responsive.h(10)),
+        AppPrimaryButton(
+          responsive: responsive,
+          label: 'Annuler la réservation',
+          onTap: controller.cancelReservation,
+          backgroundColor: const Color(0xFFFEF2F2),
+          textColor: const Color(0xFFEF4444),
+          borderRadius: responsive.radius(16),
+          height: responsive.h(54),
+        ),
+      ]);
+    }
+
+    if (status == ReservationStatus.confirmed) {
+      final isPaid = controller.isPaid;
+      return Column(children: [
+        _StatusBanner(
+          responsive: responsive,
+          icon: Icons.check_circle_rounded,
+          title: isPaid
+              ? 'Réservation confirmée et payée'
+              : 'Confirmée — Paiement requis',
+          message: isPaid
+              ? 'Votre place est réservée. Préparez-vous pour votre trajet !'
+              : "Le conducteur a accepté votre réservation. Procédez au paiement pour confirmer définitivement.",
+          bgColor: const Color(0xFFF1F8F1),
+          borderColor: const Color(0xFFC8E6C9),
+          iconColor: const Color(0xFF43A047),
+          textColor: const Color(0xFF2E7D32),
+        ),
+        SizedBox(height: responsive.h(12)),
+        if (!isPaid) ...[
+          AppPrimaryButton(
             responsive: responsive,
-            label: controller.isContactingDriver.value ? 'Connexion…' : 'Contacter le conducteur',
-            onTap: controller.isContactingDriver.value ? () {} : controller.contactDriver,
+            label: 'Payer maintenant',
+            onTap: controller.payNow,
             backgroundColor: AppColors.primary,
             textColor: AppColors.white,
             borderRadius: responsive.radius(16),
-            height: responsive.h(56),
-          )),
-          SizedBox(height: responsive.h(12)),
+            height: responsive.h(54),
+          ),
+          SizedBox(height: responsive.h(10)),
+        ],
+        Obx(() => AppPrimaryButton(
+              responsive: responsive,
+              label: controller.isContactingDriver.value
+                  ? 'Connexion…'
+                  : 'Contacter le conducteur',
+              onTap: controller.isContactingDriver.value
+                  ? () {}
+                  : controller.contactDriver,
+              backgroundColor: AppColors.surfaceMuted,
+              textColor: AppColors.textPrimary,
+              borderRadius: responsive.radius(16),
+              height: responsive.h(54),
+            )),
+        if (!isPaid) ...[
+          SizedBox(height: responsive.h(10)),
           AppPrimaryButton(
             responsive: responsive,
             label: 'Annuler la réservation',
@@ -859,84 +1640,163 @@ class _ExistingReservationActions extends StatelessWidget {
             backgroundColor: const Color(0xFFFEF2F2),
             textColor: const Color(0xFFEF4444),
             borderRadius: responsive.radius(16),
-            height: responsive.h(56),
+            height: responsive.h(54),
           ),
         ],
-      );
+      ]);
     }
 
-    if (status == ReservationStatus.confirmed) {
-      final isPaid = controller.isPaid;
-      return Column(
-        children: [
-          // Bandeau info confirmé
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(responsive.w(14)),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1F8F1),
-              borderRadius: BorderRadius.circular(responsive.radius(14)),
-              border: Border.all(color: const Color(0xFFC8E6C9)),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.check_circle_rounded,
-                    size: responsive.text(18), color: const Color(0xFF43A047)),
-                SizedBox(width: responsive.w(10)),
-                Expanded(
-                  child: Text(
-                    isPaid
-                        ? 'Réservation confirmée et payée. Votre place est réservée.'
-                        : 'Réservation confirmée par le conducteur. Vous pouvez maintenant procéder au paiement.',
-                    style: AppTextStyles.bodySmall(responsive).copyWith(
-                      color: const Color(0xFF2E7D32),
-                      height: 1.4,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: responsive.h(12)),
-          if (!isPaid)
-            AppPrimaryButton(
+    if (status == ReservationStatus.inProgress) {
+      return Column(children: [
+        _StatusBanner(
+          responsive: responsive,
+          icon: Icons.directions_car_filled_rounded,
+          title: 'Trajet en cours',
+          message: 'Votre conducteur est en route. Profitez de votre trajet !',
+          bgColor: const Color(0xFFE8F5E9),
+          borderColor: const Color(0xFFA5D6A7),
+          iconColor: AppColors.primary,
+          textColor: const Color(0xFF1B5E20),
+        ),
+        SizedBox(height: responsive.h(12)),
+        Obx(() => AppPrimaryButton(
               responsive: responsive,
-              label: 'Payer maintenant',
-              onTap: controller.payNow,
+              label: controller.isContactingDriver.value
+                  ? 'Connexion…'
+                  : 'Contacter le conducteur',
+              onTap: controller.isContactingDriver.value
+                  ? () {}
+                  : controller.contactDriver,
               backgroundColor: AppColors.primary,
               textColor: AppColors.white,
               borderRadius: responsive.radius(16),
-              height: responsive.h(56),
-            ),
-          if (!isPaid) SizedBox(height: responsive.h(12)),
-          Obx(() => AppPrimaryButton(
-            responsive: responsive,
-            label: controller.isContactingDriver.value ? 'Connexion…' : 'Contacter le conducteur',
-            onTap: controller.isContactingDriver.value ? () {} : controller.contactDriver,
-            backgroundColor: AppColors.surfaceMuted,
-            textColor: AppColors.textPrimary,
-            borderRadius: responsive.radius(16),
-            height: responsive.h(56),
-          )),
-        ],
+              height: responsive.h(54),
+            )),
+      ]);
+    }
+
+    if (status == ReservationStatus.completed) {
+      return Column(children: [
+        _StatusBanner(
+          responsive: responsive,
+          icon: Icons.task_alt_rounded,
+          title: 'Trajet terminé',
+          message:
+              "Merci d'avoir voyagé avec MINIZON. N'oubliez pas d'évaluer votre conducteur !",
+          bgColor: AppColors.surfaceMuted,
+          borderColor: AppColors.border,
+          iconColor: AppColors.textSecondary,
+          textColor: AppColors.textSecondary,
+        ),
+        SizedBox(height: responsive.h(12)),
+        Obx(() => AppPrimaryButton(
+              responsive: responsive,
+              label: controller.isContactingDriver.value
+                  ? 'Connexion…'
+                  : 'Contacter le conducteur',
+              onTap: controller.isContactingDriver.value
+                  ? () {}
+                  : controller.contactDriver,
+              backgroundColor: AppColors.surfaceMuted,
+              textColor: AppColors.textPrimary,
+              borderRadius: responsive.radius(16),
+              height: responsive.h(54),
+            )),
+      ]);
+    }
+
+    if (status == ReservationStatus.cancelled) {
+      return _StatusBanner(
+        responsive: responsive,
+        icon: Icons.cancel_rounded,
+        title: 'Réservation annulée',
+        message:
+            'Cette réservation a été annulée. Vous pouvez rechercher un autre trajet.',
+        bgColor: const Color(0xFFFEF2F2),
+        borderColor: const Color(0xFFFECACA),
+        iconColor: const Color(0xFFEF4444),
+        textColor: const Color(0xFF991B1B),
       );
     }
 
-    // completed, cancelled, inProgress → pas d'action
     return const SizedBox.shrink();
   }
 }
 
+class _StatusBanner extends StatelessWidget {
+  const _StatusBanner({
+    required this.responsive,
+    required this.icon,
+    required this.title,
+    required this.message,
+    required this.bgColor,
+    required this.borderColor,
+    required this.iconColor,
+    required this.textColor,
+  });
+
+  final AppResponsive responsive;
+  final IconData icon;
+  final String title;
+  final String message;
+  final Color bgColor;
+  final Color borderColor;
+  final Color iconColor;
+  final Color textColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(responsive.w(14)),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(responsive.radius(14)),
+        border: Border.all(color: borderColor),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: responsive.text(18), color: iconColor),
+          SizedBox(width: responsive.w(10)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: AppTextStyles.bodyMedium(responsive).copyWith(
+                        fontWeight: FontWeight.w700, color: iconColor)),
+                SizedBox(height: responsive.h(4)),
+                Text(message,
+                    style: AppTextStyles.bodySmall(responsive)
+                        .copyWith(color: textColor, height: 1.4)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Avatar ─────────────────────────────────────────────────────────────────
+
 class _LocalAvatar extends StatelessWidget {
-  const _LocalAvatar({required this.size, required this.label, this.circle = false});
+  const _LocalAvatar(
+      {required this.size,
+      required this.label,
+      this.initials,
+      this.circle = false});
 
   final double size;
   final String label;
+  final String? initials;
   final bool circle;
 
   @override
   Widget build(BuildContext context) {
-    final initials = _initials(label);
+    final resolvedInitials =
+        (initials != null && initials!.isNotEmpty) ? initials! : _initials(label);
     return Container(
       width: size,
       height: size,
@@ -949,7 +1809,7 @@ class _LocalAvatar extends StatelessWidget {
       ),
       child: Center(
         child: Text(
-          initials,
+          resolvedInitials,
           style: TextStyle(
             color: AppColors.primary,
             fontSize: size * 0.34,
@@ -964,11 +1824,9 @@ class _LocalAvatar extends StatelessWidget {
 
 String _initials(String name) {
   final parts = name.trim().split(RegExp(r'\s+'));
-  if (parts.isEmpty) {
-    return 'M';
-  }
-
+  if (parts.isEmpty) return 'M';
   final first = parts.first.isNotEmpty ? parts.first[0] : 'M';
-  final second = parts.length > 1 && parts[1].isNotEmpty ? parts[1][0] : '';
+  final second =
+      parts.length > 1 && parts[1].isNotEmpty ? parts[1][0] : '';
   return (first + second).toUpperCase();
 }

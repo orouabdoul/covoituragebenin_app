@@ -788,130 +788,198 @@ class _RideCard extends StatelessWidget {
 	final SearchRide ride;
 	final SearchController controller;
 
-	bool get _isUrgent => ride.seatsAvailable <= 2;
+	bool get _isFullyBooked => ride.seatsAvailable == 0;
+	bool get _isUrgent => !_isFullyBooked && ride.seatsAvailable <= 2;
 	bool get _isLeavingSoon => ride.minutesUntilDeparture <= 30;
 
 	@override
 	Widget build(BuildContext context) {
+		final borderColor = _isFullyBooked
+				? AppColors.border
+				: (_isUrgent ? const Color(0xFFEF4444).withValues(alpha: 0.30) : AppColors.border);
+
 		return InkWell(
-			onTap: () => Get.toNamed(
-				AppRoutes.passengerReservationDetail,
-				arguments: {'ride': ride},
-			),
+			onTap: _isFullyBooked
+					? null
+					: () => Get.toNamed(AppRoutes.passengerReservationDetail, arguments: {'ride': ride}),
 			borderRadius: BorderRadius.circular(responsive.radius(16)),
-			child: Container(
-				decoration: ShapeDecoration(
-					color: AppColors.white,
-					shape: RoundedRectangleBorder(
-						side: BorderSide(
-							color: _isUrgent ? const Color(0xFFEF4444).withValues(alpha: 0.30) : AppColors.border,
+			child: Opacity(
+				opacity: _isFullyBooked ? 0.72 : 1.0,
+				child: Container(
+					decoration: ShapeDecoration(
+						color: _isFullyBooked ? AppColors.surfaceMuted : AppColors.white,
+						shape: RoundedRectangleBorder(
+							side: BorderSide(color: borderColor),
+							borderRadius: BorderRadius.circular(responsive.radius(16)),
 						),
-						borderRadius: BorderRadius.circular(responsive.radius(16)),
+						shadows: const [BoxShadow(color: Color(0x0C000000), blurRadius: 6, offset: Offset(0, 2))],
 					),
-					shadows: const [BoxShadow(color: Color(0x0C000000), blurRadius: 6, offset: Offset(0, 2))],
-				),
-				child: Column(
-					crossAxisAlignment: CrossAxisAlignment.start,
-					children: [
-						// Urgency banner if needed
-						if (_isUrgent || _isLeavingSoon)
-							_UrgencyBanner(responsive: responsive, ride: ride, isUrgent: _isUrgent, isLeavingSoon: _isLeavingSoon),
-						Padding(
-							padding: EdgeInsets.all(responsive.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-							child: Column(
-								crossAxisAlignment: CrossAxisAlignment.start,
-								children: [
-									// Driver + price row
-									Row(
-										children: [
-											_Avatar(responsive: responsive, name: ride.driverName, initials: ride.driverInitials),
-											SizedBox(width: responsive.w(10)),
-											Expanded(
-												child: Column(
-													crossAxisAlignment: CrossAxisAlignment.start,
-													children: [
-														Row(
-															children: [
-																Text(ride.driverName, style: AppTextStyles.subtitle(responsive)),
-																if (ride.isVerified) ...[
-																	SizedBox(width: responsive.w(4)),
-																	Icon(Icons.verified_rounded, size: responsive.text(13), color: AppColors.primary),
+					child: Column(
+						crossAxisAlignment: CrossAxisAlignment.start,
+						children: [
+							// Banner: "Complet" ou urgence
+							if (_isFullyBooked)
+								_FullyBookedBanner(responsive: responsive)
+							else if (_isUrgent || _isLeavingSoon)
+								_UrgencyBanner(responsive: responsive, ride: ride, isUrgent: _isUrgent, isLeavingSoon: _isLeavingSoon),
+							Padding(
+								padding: EdgeInsets.all(responsive.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
+								child: Column(
+									crossAxisAlignment: CrossAxisAlignment.start,
+									children: [
+										// Driver + price row
+										Row(
+											children: [
+												_Avatar(responsive: responsive, name: ride.driverName, initials: ride.driverInitials),
+												SizedBox(width: responsive.w(10)),
+												Expanded(
+													child: Column(
+														crossAxisAlignment: CrossAxisAlignment.start,
+														children: [
+															Row(
+																children: [
+																	Text(ride.driverName, style: AppTextStyles.subtitle(responsive)),
+																	if (ride.isVerified) ...[
+																		SizedBox(width: responsive.w(4)),
+																		Icon(Icons.verified_rounded, size: responsive.text(13), color: AppColors.primary),
+																	],
 																],
-															],
+															),
+															SizedBox(height: responsive.h(2)),
+															Row(
+																children: [
+																	Icon(Icons.star_rounded, size: responsive.text(12), color: AppColors.warning),
+																	SizedBox(width: responsive.w(3)),
+																	Text(
+																		'${ride.rating} · ${ride.reviewCount} avis',
+																		style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint),
+																	),
+																],
+															),
+														],
+													),
+												),
+												Column(
+													crossAxisAlignment: CrossAxisAlignment.end,
+													children: [
+														Text(
+															ride.price,
+															style: AppTextStyles.h6(responsive).copyWith(
+																color: _isFullyBooked ? AppColors.textHint : AppColors.primary,
+																fontWeight: FontWeight.w800,
+															),
 														),
-														SizedBox(height: responsive.h(2)),
-														Row(
-															children: [
-																Icon(Icons.star_rounded, size: responsive.text(12), color: AppColors.warning),
-																SizedBox(width: responsive.w(3)),
-																Text(
-																	'${ride.rating} · ${ride.reviewCount} avis',
-																	style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint),
-																),
-															],
+														Text('/ pers.', style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint)),
+													],
+												),
+											],
+										),
+										SizedBox(height: responsive.h(12)),
+										// Route timeline
+										_RouteTimeline(responsive: responsive, ride: ride),
+										SizedBox(height: responsive.h(12)),
+										// Info pills row
+										Wrap(
+											spacing: responsive.w(6),
+											runSpacing: responsive.h(6),
+											children: [
+												_InfoPill(
+													responsive: responsive,
+													icon: Icons.schedule_rounded,
+													label: controller.formatDeparture(ride.minutesUntilDeparture),
+													color: _isLeavingSoon && !_isFullyBooked ? const Color(0xFFEF4444) : AppColors.textHint,
+												),
+												_InfoPill(
+													responsive: responsive,
+													icon: Icons.timelapse_rounded,
+													label: ride.duration,
+												),
+												_InfoPill(
+													responsive: responsive,
+													icon: Icons.directions_car_outlined,
+													label: ride.vehicle,
+												),
+												_SeatsChip(responsive: responsive, seats: ride.seatsAvailable),
+											],
+										),
+										SizedBox(height: responsive.h(12)),
+										// Bouton réserver ou badge complet
+										if (_isFullyBooked)
+											Container(
+												width: double.infinity,
+												padding: EdgeInsets.symmetric(vertical: responsive.h(13)),
+												decoration: BoxDecoration(
+													color: AppColors.surface,
+													borderRadius: BorderRadius.circular(responsive.radius(12)),
+													border: Border.all(color: AppColors.border),
+												),
+												child: Row(
+													mainAxisAlignment: MainAxisAlignment.center,
+													children: [
+														Icon(Icons.do_not_disturb_on_outlined, size: responsive.text(16), color: AppColors.textHint),
+														SizedBox(width: responsive.w(8)),
+														Text(
+															'Toutes les places sont réservées',
+															style: AppTextStyles.caption(responsive).copyWith(
+																color: AppColors.textHint,
+																fontWeight: FontWeight.w600,
+															),
 														),
 													],
 												),
-											),
-											Column(
-												crossAxisAlignment: CrossAxisAlignment.end,
-												children: [
-													Text(
-														ride.price,
-														style: AppTextStyles.h6(responsive).copyWith(
-															color: AppColors.primary,
-															fontWeight: FontWeight.w800,
-														),
-													),
-													Text('/ pers.', style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint)),
-												],
-											),
-										],
-									),
-									SizedBox(height: responsive.h(12)),
-									// Route timeline
-									_RouteTimeline(responsive: responsive, ride: ride),
-									SizedBox(height: responsive.h(12)),
-									// Info pills row
-									Wrap(
-										spacing: responsive.w(6),
-										runSpacing: responsive.h(6),
-										children: [
-											_InfoPill(
+											)
+										else
+											AppPrimaryButton(
 												responsive: responsive,
-												icon: Icons.schedule_rounded,
-												label: controller.formatDeparture(ride.minutesUntilDeparture),
-												color: _isLeavingSoon ? const Color(0xFFEF4444) : AppColors.textHint,
+												label: 'Réserver cette place',
+												onTap: () => controller.reserveRide(ride),
+												backgroundColor: AppColors.primary,
+												textColor: AppColors.white,
+												height: responsive.h(46),
+												borderRadius: responsive.radius(12),
 											),
-											_InfoPill(
-												responsive: responsive,
-												icon: Icons.timelapse_rounded,
-												label: ride.duration,
-											),
-											_InfoPill(
-												responsive: responsive,
-												icon: Icons.directions_car_outlined,
-												label: ride.vehicle,
-											),
-											_SeatsChip(responsive: responsive, seats: ride.seatsAvailable),
-										],
-									),
-									SizedBox(height: responsive.h(12)),
-									// Reserve button
-									AppPrimaryButton(
-										responsive: responsive,
-										label: 'Réserver cette place',
-										onTap: () => controller.reserveRide(ride),
-										backgroundColor: AppColors.primary,
-										textColor: AppColors.white,
-										height: responsive.h(46),
-										borderRadius: responsive.radius(12),
-									),
-								],
+									],
+								),
 							),
-						),
-					],
+						],
+					),
 				),
+			),
+		);
+	}
+}
+
+// ── Fully Booked Banner ────────────────────────────────────────────────────
+
+class _FullyBookedBanner extends StatelessWidget {
+	const _FullyBookedBanner({required this.responsive});
+	final AppResponsive responsive;
+
+	@override
+	Widget build(BuildContext context) {
+		return Container(
+			width: double.infinity,
+			padding: EdgeInsets.symmetric(horizontal: responsive.w(14), vertical: responsive.h(8)),
+			decoration: BoxDecoration(
+				color: const Color(0xFFF3F4F6),
+				borderRadius: BorderRadius.only(
+					topLeft: Radius.circular(responsive.radius(16)),
+					topRight: Radius.circular(responsive.radius(16)),
+				),
+				border: const Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
+			),
+			child: Row(
+				children: [
+					const Icon(Icons.block_rounded, size: 14, color: Color(0xFF6B7280)),
+					SizedBox(width: responsive.w(6)),
+					Text(
+						'Complet — Aucune place disponible',
+						style: AppTextStyles.caption(responsive).copyWith(
+							color: const Color(0xFF6B7280),
+							fontWeight: FontWeight.w700,
+						),
+					),
+				],
 			),
 		);
 	}
@@ -1140,6 +1208,27 @@ class _SeatsChip extends StatelessWidget {
 
 	@override
 	Widget build(BuildContext context) {
+		if (seats == 0) {
+			return Container(
+				padding: EdgeInsets.symmetric(horizontal: responsive.w(10), vertical: responsive.h(5)),
+				decoration: BoxDecoration(
+					color: const Color(0xFFF3F4F6),
+					borderRadius: BorderRadius.circular(responsive.radius(8)),
+					border: Border.all(color: const Color(0xFFD1D5DB)),
+				),
+				child: Row(
+					mainAxisSize: MainAxisSize.min,
+					children: [
+						Icon(Icons.event_seat_rounded, size: responsive.text(12), color: AppColors.textHint),
+						SizedBox(width: responsive.w(4)),
+						Text(
+							'Complet',
+							style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint, fontWeight: FontWeight.w700),
+						),
+					],
+				),
+			);
+		}
 		final isUrgent = seats <= 2;
 		final color = isUrgent ? const Color(0xFFEF4444) : AppColors.primary;
 		final bg = color.withValues(alpha: 0.08);

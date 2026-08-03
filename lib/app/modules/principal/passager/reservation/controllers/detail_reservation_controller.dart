@@ -25,6 +25,7 @@ class DetailReservationController extends GetxController {
   ReservationItem? _existingReservation;
 
   bool get isPaid => _existingReservation?.isPaid ?? false;
+  ReservationItem? get existingReservation => _existingReservation;
 
   // Driver metrics from API
   final acceptanceRate = ''.obs;
@@ -42,16 +43,15 @@ class DetailReservationController extends GetxController {
       isExistingReservation.value = true;
       reservationStatus = arg.status;
       _existingReservation = arg;
-      // Construire un SearchRide depuis la réservation pour afficher les infos
+      // Pré-remplir le ride depuis la réservation immédiatement
       ride.value = SearchRide(
-        uuid: arg.id,
+        uuid: arg.tripUuid ?? arg.id,
         driverName: arg.driverName,
         driverInitials: arg.driverInitials,
         rating: arg.rating,
         reviewCount: arg.reviewCount,
         price: arg.totalPrice,
         priceValue: arg.totalPriceValue,
-        // Use passenger-specific pickup/dropoff, not full trip origin/destination
         origin: arg.displayPickupCity,
         destination: arg.displayDropoffCity,
         departureTime: arg.departureTime,
@@ -65,6 +65,9 @@ class DetailReservationController extends GetxController {
         minutesUntilDeparture: arg.minutesUntilDeparture,
         isVerified: false,
       );
+      // Charger les métriques conducteur et avis — utiliser trip_uuid pour l'API /passenger/trips/{uuid}/detail
+      final detailUuid = arg.tripUuid ?? arg.id;
+      if (detailUuid.isNotEmpty) _fetchDetail(detailUuid);
     } else if (arg is Map<String, dynamic>) {
       final dynamic selectedRide = arg['ride'];
       if (selectedRide is SearchRide) {
@@ -81,7 +84,7 @@ class DetailReservationController extends GetxController {
     if (!result.isSuccess) return;
     final detail = result.data!;
     isFavorite.value = detail.isFavorite;
-    isExistingReservation.value = detail.isExistingReservation;
+    isExistingReservation.value = detail.isExistingReservation || _existingReservation != null;
     if (detail.reservationStatus != null) {
       reservationStatus = _parseStatus(detail.reservationStatus!);
     }
@@ -89,7 +92,7 @@ class DetailReservationController extends GetxController {
     responseTime.value = detail.driverMetrics.responseTime;
     memberSince.value = detail.driverMetrics.memberSince;
     apiReviews.assignAll(detail.recentReviews);
-    // Update ride from API — keep passenger's price and pickup/dropoff when available
+
     final existing = _existingReservation;
     final passengerPrice = existing != null && existing.totalPriceValue > 0
         ? existing.totalPrice
@@ -109,9 +112,19 @@ class DetailReservationController extends GetxController {
     final passengerArrivalNote = existing != null
         ? existing.displayDropoffNote
         : detail.ride.arrivalNote;
+
+    // Préserver les initiales depuis la réservation si l'API ne les retourne pas
+    final resolvedInitials = detail.ride.driverInitials.isNotEmpty
+        ? detail.ride.driverInitials
+        : (existing?.driverInitials ?? '');
+    final resolvedPlate = detail.ride.vehiclePlate.isNotEmpty
+        ? detail.ride.vehiclePlate
+        : (existing?.vehiclePlate ?? '');
+
     ride.value = SearchRide(
       uuid: detail.ride.uuid,
       driverName: detail.ride.driverName,
+      driverInitials: resolvedInitials,
       rating: detail.ride.rating,
       reviewCount: '${detail.ride.reviewCount}',
       price: passengerPrice,
@@ -124,9 +137,12 @@ class DetailReservationController extends GetxController {
       arrivalNote: passengerArrivalNote,
       duration: detail.ride.duration,
       vehicle: detail.ride.vehicle,
+      vehiclePlate: resolvedPlate,
       seatsAvailable: detail.ride.availableSeats,
       minutesUntilDeparture: 0,
       isVerified: false,
+      waypointCity: detail.ride.waypointCity,
+      waypointNote: detail.ride.waypointNote,
     );
   }
 
@@ -161,7 +177,6 @@ class DetailReservationController extends GetxController {
   void cancelReservation() {
     if (_existingReservation != null &&
         Get.isRegistered<ReservationController>()) {
-      // onSuccess : fermer la page détail après confirmation + API réussie
       Get.find<ReservationController>().cancelReservation(
         _existingReservation!,
         onSuccess: () => Get.back(),
@@ -176,13 +191,11 @@ class DetailReservationController extends GetxController {
   Future<void> contactDriver() async {
     final r = _existingReservation;
     if (r == null) {
-      // Depuis la fiche trajet sans réservation existante
       final driverName = ride.value?.driverName ?? 'Votre conducteur';
       MessagerController.openDriverChat(driverName: driverName);
       return;
     }
 
-    // UUID déjà connu (conversation déjà démarrée)
     if (r.conversationUuid.isNotEmpty) {
       MessagerController.openDriverChat(
         driverName: r.driverName,
@@ -192,7 +205,6 @@ class DetailReservationController extends GetxController {
       return;
     }
 
-    // Pas encore de conversation — on la crée via l'API
     isContactingDriver.value = true;
     final messaging = Get.find<PassengerMessagingService>();
     final result = await messaging.startConversation(r.id);
@@ -205,7 +217,6 @@ class DetailReservationController extends GetxController {
       return;
     }
 
-    // Mémoriser l'UUID pour éviter de créer une nouvelle conversation à chaque appel
     _existingReservation = r.copyWith(conversationUuid: result.data!);
 
     MessagerController.openDriverChat(

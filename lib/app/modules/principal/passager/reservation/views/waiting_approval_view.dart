@@ -421,6 +421,13 @@ class _TripInfoCard extends StatelessWidget {
 			final rating = ride?.rating ?? '4.8';
 			final price = ride?.price ?? '2 500 FCFA';
 			final seats = controller.reservedSeats.value;
+			final pickupCity = controller.pickupCity.value;
+			final pickupAddr = controller.pickupAddress.value;
+			final dropoffCity = controller.dropoffCity.value;
+			final dropoffAddr = controller.dropoffAddress.value;
+			final breakdown = controller.priceBreakdown.value;
+			final hasPickup = pickupCity.isNotEmpty || pickupAddr.isNotEmpty;
+			final hasDropoff = dropoffCity.isNotEmpty || dropoffAddr.isNotEmpty;
 
 			return Container(
 				width: double.infinity,
@@ -520,10 +527,149 @@ class _TripInfoCard extends StatelessWidget {
 								),
 							],
 						),
+						if (hasPickup || hasDropoff) ...[
+							const Divider(height: 24, color: Color(0xFFF3F4F6)),
+							if (hasPickup)
+								_AddressListTile(
+									responsive: responsive,
+									dotColor: AppColors.primary,
+									label: 'Prise en charge',
+									city: pickupCity.isNotEmpty ? pickupCity : origin,
+									address: pickupAddr,
+								),
+							if (hasPickup && hasDropoff)
+								Padding(
+									padding: EdgeInsets.only(left: responsive.w(11)),
+									child: Container(width: 2, height: responsive.h(16), color: AppColors.border),
+								),
+							if (hasDropoff)
+								_AddressListTile(
+									responsive: responsive,
+									dotColor: AppColors.danger,
+									label: 'Dépose',
+									city: dropoffCity.isNotEmpty ? dropoffCity : destination,
+									address: dropoffAddr,
+								),
+						],
+						if (breakdown != null) ...[
+							const Divider(height: 24, color: Color(0xFFF3F4F6)),
+							_WaitingPriceRow(
+								responsive: responsive,
+								label: '${breakdown.calculatedPricePerSeatFmt.isNotEmpty ? breakdown.calculatedPricePerSeatFmt : '${breakdown.calculatedPricePerSeat} FCFA'} × $seats place${seats > 1 ? 's' : ''}',
+								value: breakdown.subtotalFmt.isNotEmpty ? breakdown.subtotalFmt : '${breakdown.subtotal} FCFA',
+								bold: false,
+							),
+							_WaitingPriceRow(
+								responsive: responsive,
+								label: 'Frais de service (${breakdown.serviceFeePct})',
+								value: breakdown.serviceFeeFmt.isNotEmpty ? breakdown.serviceFeeFmt : '${breakdown.serviceFee} FCFA',
+								bold: false,
+								valueColor: AppColors.textSecondary,
+							),
+							Container(height: 1, color: AppColors.border, margin: EdgeInsets.symmetric(vertical: responsive.h(6))),
+							_WaitingPriceRow(
+								responsive: responsive,
+								label: 'Total à payer',
+								value: breakdown.totalFmt.isNotEmpty ? breakdown.totalFmt : '${breakdown.total} FCFA',
+								bold: true,
+								valueColor: AppColors.primary,
+							),
+						],
 					],
 				),
 			);
 		});
+	}
+}
+
+class _AddressListTile extends StatelessWidget {
+	const _AddressListTile({
+		required this.responsive,
+		required this.dotColor,
+		required this.label,
+		required this.city,
+		required this.address,
+	});
+
+	final AppResponsive responsive;
+	final Color dotColor;
+	final String label;
+	final String city;
+	final String address;
+
+	@override
+	Widget build(BuildContext context) {
+		return Row(
+			crossAxisAlignment: CrossAxisAlignment.start,
+			children: [
+				Column(
+					children: [
+						SizedBox(height: responsive.h(4)),
+						Container(
+							width: responsive.w(10),
+							height: responsive.w(10),
+							decoration: BoxDecoration(shape: BoxShape.circle, color: dotColor),
+						),
+					],
+				),
+				SizedBox(width: responsive.w(10)),
+				Expanded(
+					child: Column(
+						crossAxisAlignment: CrossAxisAlignment.start,
+						children: [
+							Text(label, style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint, fontSize: responsive.text(11))),
+							if (city.isNotEmpty)
+								Text(city, style: AppTextStyles.caption(responsive).copyWith(fontWeight: FontWeight.w700)),
+							if (address.isNotEmpty)
+								Text(address, style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textSecondary, fontSize: responsive.text(11))),
+						],
+					),
+				),
+			],
+		);
+	}
+}
+
+class _WaitingPriceRow extends StatelessWidget {
+	const _WaitingPriceRow({
+		required this.responsive,
+		required this.label,
+		required this.value,
+		required this.bold,
+		this.valueColor,
+	});
+
+	final AppResponsive responsive;
+	final String label;
+	final String value;
+	final bool bold;
+	final Color? valueColor;
+
+	@override
+	Widget build(BuildContext context) {
+		return Padding(
+			padding: EdgeInsets.symmetric(vertical: responsive.h(3)),
+			child: Row(
+				children: [
+					Expanded(
+						child: Text(
+							label,
+							style: AppTextStyles.caption(responsive).copyWith(
+								fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
+								color: bold ? AppColors.textPrimary : AppColors.textSecondary,
+							),
+						),
+					),
+					Text(
+						value,
+						style: AppTextStyles.caption(responsive).copyWith(
+							fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+							color: valueColor ?? (bold ? AppColors.textPrimary : AppColors.textSecondary),
+						),
+					),
+				],
+			),
+		);
 	}
 }
 

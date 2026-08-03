@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/passenger_reservation_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
+import 'package:covoiturage_benin_app/app/data/models/passenger/reservations_model.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 import '../../search/controllers/search_controller.dart';
@@ -21,6 +22,12 @@ class WaitingApprovalController extends GetxController {
   final RxInt totalTimeoutSeconds = 300.obs;
   final RxInt reservedSeats = 1.obs;
   final RxInt paymentIndex = 0.obs;
+  final pickupCity = ''.obs;
+  final pickupAddress = ''.obs;
+  final dropoffCity = ''.obs;
+  final dropoffAddress = ''.obs;
+  final Rxn<PriceBreakdown> priceBreakdown = Rxn<PriceBreakdown>();
+  final Rxn<double> passengerDistanceKm = Rxn<double>();
 
   String _bookingUuid = '';
   int _totalAmount = 0;
@@ -87,6 +94,12 @@ class WaitingApprovalController extends GetxController {
     final data = result.data!;
     secondsRemaining.value = data.secondsRemaining;
     totalTimeoutSeconds.value = data.totalTimeoutSeconds;
+    if (data.pickupCity.isNotEmpty) pickupCity.value = data.pickupCity;
+    if (data.pickupAddress.isNotEmpty) pickupAddress.value = data.pickupAddress;
+    if (data.dropoffCity.isNotEmpty) dropoffCity.value = data.dropoffCity;
+    if (data.dropoffAddress.isNotEmpty) dropoffAddress.value = data.dropoffAddress;
+    if (data.priceBreakdown != null) priceBreakdown.value = data.priceBreakdown;
+    passengerDistanceKm.value = data.passengerDistanceKm;
 
     switch (data.status) {
       case 'accepted':
