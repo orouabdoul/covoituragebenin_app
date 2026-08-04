@@ -321,15 +321,15 @@ class _SummaryCard extends StatelessWidget {
 							),
 						),
 					SizedBox(height: responsive.h(24)),
-					Row(
+					Obx(() => Row(
 						children: [
 							Expanded(
 								child: GestureDetector(
 									onTap: controller.openMyReviews,
 									child: _StatCard(
 										responsive: responsive,
-										value: controller.ratingMetric.value,
-										label: controller.ratingMetric.label,
+										value: controller.summaryRating.value,
+										label: 'Note',
 										leadingIcon: Icons.star_rounded,
 										trailingStars: true,
 									),
@@ -341,14 +341,14 @@ class _SummaryCard extends StatelessWidget {
 									onTap: controller.viewAllTrips,
 									child: _StatCard(
 										responsive: responsive,
-										value: controller.tripsMetric.value,
-										label: controller.tripsMetric.label,
+										value: controller.summaryTrips.value,
+										label: 'Trajets',
 										leadingIcon: Icons.route_rounded,
 									),
 								),
 							),
 						],
-					),
+					)),
 				],
 			),
 		);
@@ -376,30 +376,32 @@ class _StatsOverviewRow extends StatelessWidget {
 
 	@override
 	Widget build(BuildContext context) {
-		final loaded = controller.statsLoaded.value;
-		return Row(
-			children: [
-				Expanded(
-					child: _StatCard(
-						responsive: responsive,
-						value: loaded ? '${controller.statsBookingsCompleted.value}' : '—',
-						label: 'Trajets complétés',
-						leadingIcon: Icons.check_circle_outline_rounded,
+		return Obx(() {
+			final loaded = controller.statsLoaded.value;
+			return Row(
+				children: [
+					Expanded(
+						child: _StatCard(
+							responsive: responsive,
+							value: loaded ? '${controller.statsBookingsCompleted.value}' : '—',
+							label: 'Trajets complétés',
+							leadingIcon: Icons.check_circle_outline_rounded,
+						),
 					),
-				),
-				SizedBox(width: responsive.w(16)),
-				Expanded(
-					child: _StatCard(
-						responsive: responsive,
-						value: loaded && controller.statsTotalSpendingFcfa.value > 0
-								? '${_fmtFcfa(controller.statsTotalSpendingFcfa.value)} F'
-								: '—',
-						label: 'Total dépensé',
-						leadingIcon: Icons.account_balance_wallet_outlined,
+					SizedBox(width: responsive.w(16)),
+					Expanded(
+						child: _StatCard(
+							responsive: responsive,
+							value: loaded && controller.statsTotalSpendingFcfa.value > 0
+									? '${_fmtFcfa(controller.statsTotalSpendingFcfa.value)} F'
+									: '—',
+							label: 'Total dépensé',
+							leadingIcon: Icons.account_balance_wallet_outlined,
+						),
 					),
-				),
-			],
-		);
+				],
+			);
+		});
 	}
 }
 

@@ -74,6 +74,7 @@ class DetailJourneyView extends StatelessWidget {
 
                 // ── Points passager (prise/dépose avec adresses) ──────────
                 Obx(() {
+                  if (!controller.isExistingReservation.value) return const SizedBox.shrink();
                   final r = controller.existingReservation;
                   if (r == null) return const SizedBox.shrink();
                   return Column(children: [
@@ -351,7 +352,7 @@ class _BookingStatusCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(9999),
                   ),
                   child: Text(
-                    reservation.bookingRef.isNotEmpty ? refId : '#$refId',
+                    refId,
                     style: AppTextStyles.caption(responsive).copyWith(
                         color: color,
                         fontWeight: FontWeight.w700,
@@ -1434,6 +1435,17 @@ class _ReviewsCard extends StatelessWidget {
           SizedBox(height: responsive.h(12)),
           Obx(() {
             final reviews = controller.apiReviews;
+            if (controller.isLoading.value) {
+              return Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: responsive.h(16)),
+                  child: const CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.primary,
+                  ),
+                ),
+              );
+            }
             if (reviews.isNotEmpty) {
               final shown = reviews.take(2).toList();
               return Column(
@@ -1455,22 +1467,21 @@ class _ReviewsCard extends StatelessWidget {
                     .toList(),
               );
             }
-            return Column(children: [
-              _ReviewItem(
-                  responsive: responsive,
-                  name: 'Marie Kouadio',
-                  rating: '5.0',
-                  date: 'Il y a 2 jours',
-                  body: AppStrings.reservationSampleReview),
-              SizedBox(height: responsive.h(14)),
-              _ReviewItem(
-                  responsive: responsive,
-                  name: 'Jean Akakpo',
-                  rating: '4.8',
-                  date: 'Il y a 1 semaine',
-                  body:
-                      'Excellent trajet, bonne conduite et respect des horaires.'),
-            ]);
+            return Padding(
+              padding: EdgeInsets.symmetric(vertical: responsive.h(8)),
+              child: Row(
+                children: [
+                  Icon(Icons.chat_bubble_outline_rounded,
+                      size: responsive.text(16), color: AppColors.textHint),
+                  SizedBox(width: responsive.w(8)),
+                  Text(
+                    'Aucun avis pour ce conducteur pour l\'instant.',
+                    style: AppTextStyles.body(responsive)
+                        .copyWith(color: AppColors.textHint),
+                  ),
+                ],
+              ),
+            );
           }),
         ],
       ),
@@ -1546,8 +1557,13 @@ class _ExistingReservationActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final status = controller.reservationStatus;
+    return Obx(() {
+      final status = controller.reservationStatus;
+      return _buildContent(context, status);
+    });
+  }
 
+  Widget _buildContent(BuildContext context, ReservationStatus? status) {
     if (status == ReservationStatus.pending) {
       return Column(children: [
         _StatusBanner(
@@ -1589,61 +1605,63 @@ class _ExistingReservationActions extends StatelessWidget {
     }
 
     if (status == ReservationStatus.confirmed) {
-      final isPaid = controller.isPaid;
-      return Column(children: [
-        _StatusBanner(
-          responsive: responsive,
-          icon: Icons.check_circle_rounded,
-          title: isPaid
-              ? 'Réservation confirmée et payée'
-              : 'Confirmée — Paiement requis',
-          message: isPaid
-              ? 'Votre place est réservée. Préparez-vous pour votre trajet !'
-              : "Le conducteur a accepté votre réservation. Procédez au paiement pour confirmer définitivement.",
-          bgColor: const Color(0xFFF1F8F1),
-          borderColor: const Color(0xFFC8E6C9),
-          iconColor: const Color(0xFF43A047),
-          textColor: const Color(0xFF2E7D32),
-        ),
-        SizedBox(height: responsive.h(12)),
-        if (!isPaid) ...[
-          AppPrimaryButton(
+      return Obx(() {
+        final isPaid = controller.isPaid;
+        return Column(children: [
+          _StatusBanner(
             responsive: responsive,
-            label: 'Payer maintenant',
-            onTap: controller.payNow,
-            backgroundColor: AppColors.primary,
-            textColor: AppColors.white,
-            borderRadius: responsive.radius(16),
-            height: responsive.h(54),
+            icon: Icons.check_circle_rounded,
+            title: isPaid
+                ? 'Réservation confirmée et payée'
+                : 'Confirmée — Paiement requis',
+            message: isPaid
+                ? 'Votre place est réservée. Préparez-vous pour votre trajet !'
+                : "Le conducteur a accepté votre réservation. Procédez au paiement pour confirmer définitivement.",
+            bgColor: const Color(0xFFF1F8F1),
+            borderColor: const Color(0xFFC8E6C9),
+            iconColor: const Color(0xFF43A047),
+            textColor: const Color(0xFF2E7D32),
           ),
-          SizedBox(height: responsive.h(10)),
-        ],
-        Obx(() => AppPrimaryButton(
+          SizedBox(height: responsive.h(12)),
+          if (!isPaid) ...[
+            AppPrimaryButton(
               responsive: responsive,
-              label: controller.isContactingDriver.value
-                  ? 'Connexion…'
-                  : 'Contacter le conducteur',
-              onTap: controller.isContactingDriver.value
-                  ? () {}
-                  : controller.contactDriver,
-              backgroundColor: AppColors.surfaceMuted,
-              textColor: AppColors.textPrimary,
+              label: 'Payer maintenant',
+              onTap: controller.payNow,
+              backgroundColor: AppColors.primary,
+              textColor: AppColors.white,
               borderRadius: responsive.radius(16),
               height: responsive.h(54),
-            )),
-        if (!isPaid) ...[
-          SizedBox(height: responsive.h(10)),
-          AppPrimaryButton(
-            responsive: responsive,
-            label: 'Annuler la réservation',
-            onTap: controller.cancelReservation,
-            backgroundColor: const Color(0xFFFEF2F2),
-            textColor: const Color(0xFFEF4444),
-            borderRadius: responsive.radius(16),
-            height: responsive.h(54),
-          ),
-        ],
-      ]);
+            ),
+            SizedBox(height: responsive.h(10)),
+          ],
+          Obx(() => AppPrimaryButton(
+                responsive: responsive,
+                label: controller.isContactingDriver.value
+                    ? 'Connexion…'
+                    : 'Contacter le conducteur',
+                onTap: controller.isContactingDriver.value
+                    ? () {}
+                    : controller.contactDriver,
+                backgroundColor: AppColors.surfaceMuted,
+                textColor: AppColors.textPrimary,
+                borderRadius: responsive.radius(16),
+                height: responsive.h(54),
+              )),
+          if (!isPaid) ...[
+            SizedBox(height: responsive.h(10)),
+            AppPrimaryButton(
+              responsive: responsive,
+              label: 'Annuler la réservation',
+              onTap: controller.cancelReservation,
+              backgroundColor: const Color(0xFFFEF2F2),
+              textColor: const Color(0xFFEF4444),
+              borderRadius: responsive.radius(16),
+              height: responsive.h(54),
+            ),
+          ],
+        ]);
+      });
     }
 
     if (status == ReservationStatus.inProgress) {
@@ -1699,6 +1717,20 @@ class _ExistingReservationActions extends StatelessWidget {
                   : controller.contactDriver,
               backgroundColor: AppColors.surfaceMuted,
               textColor: AppColors.textPrimary,
+              borderRadius: responsive.radius(16),
+              height: responsive.h(54),
+            )),
+        SizedBox(height: responsive.h(10)),
+        Obx(() => AppPrimaryButton(
+              responsive: responsive,
+              label: controller.isDownloadingInvoice.value
+                  ? 'Génération…'
+                  : 'Télécharger la facture',
+              onTap: controller.isDownloadingInvoice.value
+                  ? () {}
+                  : controller.downloadInvoice,
+              backgroundColor: const Color(0xFFECFDF5),
+              textColor: AppColors.primary,
               borderRadius: responsive.radius(16),
               height: responsive.h(54),
             )),

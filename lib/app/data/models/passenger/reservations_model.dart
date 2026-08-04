@@ -642,6 +642,8 @@ class InvoiceModel {
     required this.departureDate,
     required this.seats,
     required this.pricePerSeat,
+    this.priceSubtotal = '',
+    this.serviceFee = '',
     required this.totalAmount,
     required this.paymentMethod,
     required this.transactionRef,
@@ -656,6 +658,8 @@ class InvoiceModel {
   final String departureDate;
   final int seats;
   final String pricePerSeat;
+  final String priceSubtotal;
+  final String serviceFee;
   final String totalAmount;
   final String paymentMethod;
   final String transactionRef;
@@ -670,6 +674,8 @@ class InvoiceModel {
         departureDate: (j['departure_date'] ?? '').toString(),
         seats: (j['seats'] as num?)?.toInt() ?? 1,
         pricePerSeat: (j['price_per_seat'] ?? '').toString(),
+        priceSubtotal: (j['price_subtotal'] ?? '').toString(),
+        serviceFee: (j['service_fee'] ?? '').toString(),
         totalAmount: (j['total_amount'] ?? '').toString(),
         paymentMethod: (j['payment_method'] ?? '').toString(),
         transactionRef: (j['transaction_ref'] ?? '').toString(),

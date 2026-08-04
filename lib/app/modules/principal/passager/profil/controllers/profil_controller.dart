@@ -11,8 +11,11 @@ import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/models/passenger/safety_model.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/profile/passenger_profile_service.dart';
+import 'package:covoiturage_benin_app/app/core/services/passenger/reviews/passenger_reviews_service.dart';
+import 'package:covoiturage_benin_app/app/core/services/passenger/reviews/passenger_reviews_service_impl.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/stats/passenger_stats_service.dart';
 import 'package:covoiturage_benin_app/app/data/models/passenger/profile_model.dart';
+import 'package:covoiturage_benin_app/app/data/models/passenger/reviews_model.dart';
 import 'package:covoiturage_benin_app/app/data/models/passenger/stats_model.dart';
 
 class ProfilController extends GetxController {
@@ -21,6 +24,10 @@ class ProfilController extends GetxController {
   final PassengerProfileService _profileService;
   PassengerStatsService get _statsService => Get.find<PassengerStatsService>();
   PassengerSafetyService get _safetyService => Get.find<PassengerSafetyService>();
+  PassengerReviewsService get _reviewsService =>
+      Get.isRegistered<PassengerReviewsService>()
+          ? Get.find<PassengerReviewsService>()
+          : Get.put(PassengerReviewsServiceImpl());
 
   // ── Reactive state ─────────────────────────────────────────────────────────
   final profileVersion = 0.obs;
@@ -30,6 +37,10 @@ class ProfilController extends GetxController {
   // ── Emergency contacts ─────────────────────────────────────────────────────
   final RxList<EmergencyContact> emergencyContacts = <EmergencyContact>[].obs;
   final RxBool isLoadingContacts = false.obs;
+
+  // ── Métriques du résumé (carte photo/nom) ──────────────────────────────────
+  final summaryRating = '—'.obs;
+  final summaryTrips  = '—'.obs;
 
   // ── Stats from /passenger/stats ────────────────────────────────────────────
   final statsLoaded            = false.obs;
@@ -87,10 +98,12 @@ class ProfilController extends GetxController {
     final results = await Future.wait([
       _profileService.fetchProfile(),
       _statsService.fetchStats(),
+      _reviewsService.fetchReviews(),
     ]);
     isLoading.value = false;
     final profileResult = results[0];
     final statsResult   = results[1];
+    final reviewsResult = results[2];
     if (profileResult.isSuccess) {
       _applyProfile(profileResult.data as PassengerProfileDashboard);
     } else {
@@ -102,6 +115,9 @@ class ProfilController extends GetxController {
     } else {
       logger.e('passengerStats: ${statsResult.error}');
     }
+    if (reviewsResult.isSuccess) {
+      _applyReviews(reviewsResult.data as PassengerReviewsDashboard);
+    }
   }
 
   void _applyStats(PassengerStatsModel data) {
@@ -112,7 +128,13 @@ class ProfilController extends GetxController {
     statsThisMonthSpendingFcfa.value = data.spending.thisMonthFcfa;
     statsMemberSince.value = data.memberSince;
     statsTopDrivers.assignAll(data.topDrivers);
+    summaryTrips.value = '${data.bookings.completed}';
     statsLoaded.value = true;
+  }
+
+  void _applyReviews(PassengerReviewsDashboard data) {
+    final avg = data.formattedAverage;
+    summaryRating.value = avg.isNotEmpty && avg != '0' ? avg : '—';
   }
 
   @override
@@ -181,7 +203,51 @@ class ProfilController extends GetxController {
             ))
         .toList();
 
+    // Fallback : si l'API stats n'a pas encore chargé, on peuple depuis les
+    // metrics du profil (clés variées selon le backend) ou depuis recentTrips.
+    if (!statsLoaded.value) {
+      _applyStatsFallback(data.metrics, data.recentTrips.length);
+    }
+
     profileVersion.value++;
+  }
+
+  /// Extrait les stats depuis les metrics du profil et/ou le nombre de trajets récents.
+  /// N'écrase pas les valeurs déjà chargées par l'API stats.
+  void _applyStatsFallback(
+    List<PassengerProfileMetricData> profileMetrics,
+    int recentCount,
+  ) {
+    bool gotTrips    = false;
+    bool gotSpending = false;
+
+    for (final m in profileMetrics) {
+      final key    = m.key.toLowerCase();
+      final digits = m.value.replaceAll(RegExp(r'[^0-9]'), '');
+      final parsed = int.tryParse(digits);
+
+      if (key == 'trips' || key == 'total_trips' || key == 'trajets' ||
+          key == 'completed' || key == 'trips_count') {
+        if (m.value.isNotEmpty) summaryTrips.value = m.value;
+        if (parsed != null) statsBookingsCompleted.value = parsed;
+        gotTrips = true;
+      } else if (key == 'spending' || key == 'total_spending' ||
+          key == 'depenses' || key == 'depensé') {
+        if (parsed != null) statsTotalSpendingFcfa.value = parsed;
+        gotSpending = true;
+      }
+    }
+
+    // Si aucune metric "trajets" reçue, on compte les trajets récents comme minimum
+    if (!gotTrips && recentCount > 0) {
+      statsBookingsCompleted.value = recentCount;
+      summaryTrips.value           = '$recentCount';
+      gotTrips = true;
+    }
+
+    if (gotTrips || gotSpending) {
+      statsLoaded.value = true;
+    }
   }
 
   // ── Navigation ─────────────────────────────────────────────────────────────

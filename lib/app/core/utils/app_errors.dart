@@ -18,7 +18,8 @@ enum AppError {
   tripDataInvalid,
   tripNotFound,
   refundAlreadySubmitted,
-  paymentProviderError;
+  paymentProviderError,
+  alreadyPaid;
 
   String get message {
     switch (this) {
@@ -49,6 +50,8 @@ enum AppError {
         return 'Une demande de remboursement a déjà été soumise pour cette réservation.';
       case AppError.paymentProviderError:
         return 'Erreur du système de paiement. Vérifiez la configuration FedPay côté serveur.';
+      case AppError.alreadyPaid:
+        return 'Ce paiement a déjà été effectué.';
       default:
         return 'Une erreur inattendue est survenue.';
     }

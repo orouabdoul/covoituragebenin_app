@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -7,7 +9,7 @@ import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/p
 import 'package:covoiturage_benin_app/app/data/models/passenger/reservations_model.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/passager/messager/controllers/messager_controller.dart';
-import 'package:covoiturage_benin_app/app/modules/principal/passager/reservation/controllers/reservation_controller.dart';
+import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import '../../search/controllers/search_controller.dart';
 
 class PaymentSuccessController extends GetxController {
@@ -32,6 +34,7 @@ class PaymentSuccessController extends GetxController {
   final Rxn<double> passengerDistanceKm = Rxn<double>();
 
   String _bookingUuid = '';
+  Timer? _autoRedirectTimer;
 
   @override
   void onInit() {
@@ -56,6 +59,7 @@ class PaymentSuccessController extends GetxController {
       transactionRef.value =
           '#TXN-${(DateTime.now().millisecondsSinceEpoch % 100000).toString().padLeft(5, '0')}';
     }
+    _autoRedirectTimer = Timer(const Duration(seconds: 4), goHome);
   }
 
   Future<void> _fetchSuccess() async {
@@ -75,6 +79,9 @@ class PaymentSuccessController extends GetxController {
     if (data.dropoffAddress.isNotEmpty) dropoffAddress.value = data.dropoffAddress;
     priceBreakdown.value = data.priceBreakdown;
     passengerDistanceKm.value = data.passengerDistanceKm;
+    // Rafraîchit la liste des réservations dès que le paiement est confirmé,
+    // sans attendre que l'utilisateur tape "Mes réservations"
+    AppSync.i.refreshPassenger();
     ride.value = SearchRide(
       uuid: data.ride.uuid,
       driverName: data.ride.driverName,
@@ -137,12 +144,22 @@ class PaymentSuccessController extends GetxController {
   }
 
   void goToReservations() {
+    _autoRedirectTimer?.cancel();
     AppSync.i.refreshPassenger();
+    Get.until((route) => route.settings.name == AppRoutes.dashboardPassenger || route.isFirst);
     BottonNavController.goToTab(2);
   }
 
   void goHome() {
+    _autoRedirectTimer?.cancel();
     AppSync.i.refreshPassenger();
+    Get.until((route) => route.settings.name == AppRoutes.dashboardPassenger || route.isFirst);
     BottonNavController.goToTab(0);
+  }
+
+  @override
+  void onClose() {
+    _autoRedirectTimer?.cancel();
+    super.onClose();
   }
 }

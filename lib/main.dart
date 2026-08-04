@@ -40,6 +40,7 @@ import 'package:covoiturage_benin_app/app/core/services/driver/wallet/wallet_ser
 import 'package:covoiturage_benin_app/app/core/services/driver/wallet/wallet_service_impl.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/withdraw/withdraw_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/withdraw/withdraw_service_impl.dart';
+import 'package:covoiturage_benin_app/app/core/services/app_sync_observer.dart';
 import 'package:covoiturage_benin_app/app/routes/app_pages.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'package:flutter/material.dart';
@@ -96,6 +97,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
+      navigatorObservers: [AppSyncRouteObserver()],
       initialRoute: AppRoutes.splash,
       getPages: AppPages.pages,
     );

@@ -27,7 +27,7 @@ abstract class PassengerReservationService {
 
   Future<ApiResult<PaymentInitResult>> initiatePayment(
     String bookingUuid, {
-    required String phone,
+    String? phone,
     required String provider,
   });
 

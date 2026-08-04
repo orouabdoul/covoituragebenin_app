@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 
+import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/passenger_reservation_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
@@ -126,6 +127,7 @@ class TripConfirmationController extends GetxController {
       }
     }
     tripConfirmed.value = true;
+    AppSync.i.refreshPassenger();
   }
 
   Future<void> submitReview() async {
@@ -152,6 +154,7 @@ class TripConfirmationController extends GetxController {
       isSubmitting.value = false;
     }
     submitted.value = true;
+    AppSync.i.refreshPassenger();
     if (_bookingUuid.isNotEmpty && Get.isRegistered<ReservationController>()) {
       Get.find<ReservationController>().markAsRated(_bookingUuid);
     }

@@ -119,7 +119,9 @@ class ConfirmationReservationController extends GetxController {
       _pricePerSeat.value > 0;
 
   String _bookingUuid = '';
+  String _paymentStatus = ''; // 'escrow_locked' = déjà payé, évite un 2e appel /pay
   bool _priceConfirmed = false;
+  bool _paymentInFlight = false; // guard synchrone anti-double-tap
 
   Timer? _otpCountdownTimer;
 
@@ -173,6 +175,8 @@ class ConfirmationReservationController extends GetxController {
       if (idx is int) selectedPaymentIndex.value = idx;
       final dynamic bUuid = savedArgs['bookingUuid'];
       if (bUuid is String) _bookingUuid = bUuid;
+      final dynamic pStatus = savedArgs['paymentStatus'];
+      if (pStatus is String) _paymentStatus = pStatus;
       // Montant passé par navigation → stocké sans mise à jour réactive
       // (évite un setState-during-build quand le contrôleur est initialisé lazily)
       final dynamic passedTotal = savedArgs['totalAmount'];
@@ -644,6 +648,7 @@ class ConfirmationReservationController extends GetxController {
     final uuid = _bookingUuid;
     _bookingUuid = ''; // reset immédiat pour permettre un nouvel essai
     await _service.cancelBooking(uuid);
+    AppSync.i.refreshPassenger();
   }
 
   void _proceedToNextStep() {
@@ -661,14 +666,16 @@ class ConfirmationReservationController extends GetxController {
         'totalAmount': totalAmount,
       });
     } else {
-      // Mode approbation : retour à l'accueil, le conducteur répondra par notification
+      // Mode approbation : retour direct à l'accueil, la notification push
+      // 'reservation_accepted' ramènera le passager vers le paiement quand
+      // le conducteur valide.
       AppSync.i.refreshPassenger();
+      BottonNavController.goToTab(0);
       UIHelper().showSnackBar(
         'MINIZON',
-        'Demande envoyée ! Vous serez notifié dès que le conducteur confirme.',
-        5,
+        'Réservation envoyée ! Vous serez notifié dès que le conducteur accepte.',
+        0,
       );
-      BottonNavController.goToTab(0);
     }
   }
 
@@ -719,43 +726,75 @@ class ConfirmationReservationController extends GetxController {
   }
 
   Future<void> confirmPayment() async {
-    if (_bookingUuid.isEmpty) {
-      UIHelper().showSnackBar('MINIZON', 'Réservation introuvable. Veuillez recommencer.', 3);
-      return;
-    }
-    final rawPhone = paymentContactController.text.trim().replaceAll(RegExp(r'\s'), '');
-    if (rawPhone.isEmpty) {
-      UIHelper().showSnackBar('MINIZON', 'Veuillez entrer votre numéro de téléphone.', 2);
-      return;
-    }
-    // Envoyer les chiffres locaux tels que saisis (ex : 0159000892)
-    // Le backend gère le préfixe pays pour FedaPay
-    final phone = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
-
-    isProcessingPayment.value = true;
-    final provider = selectedMobileService.value.name;
-    final result = await _service.initiatePayment(
-      _bookingUuid,
-      phone: phone,
-      provider: provider,
-    );
-    isProcessingPayment.value = false;
-    if (!result.isSuccess) {
-      if (result.error != AppError.socket) {
-        UIHelper().showSnackBar('MINIZON', result.displayMessage, 3);
+    if (_paymentInFlight) return;
+    _paymentInFlight = true;
+    try {
+      if (_bookingUuid.isEmpty) {
+        UIHelper().showSnackBar('MINIZON', 'Réservation introuvable. Veuillez recommencer.', 3);
+        return;
       }
-      return;
-    }
+      // Si la réservation est déjà en escrow (paiement précédent validé par FedaPay),
+      // on ne rappelle pas /pay pour éviter de créer une 2e transaction FedaPay.
+      // On va directement à l'écran de succès avec les données disponibles.
+      if (_paymentStatus == 'escrow_locked') {
+        Get.offNamed(AppRoutes.passengerPaymentSuccess, arguments: {
+          'ride': ride.value,
+          'bookingUuid': _bookingUuid,
+          'seats': reservedSeats.value,
+          'amount': totalAmount,
+        });
+        return;
+      }
 
-    // Ouvrir la WebView FedaPay intégrée pour validation MoMo
-    Get.toNamed(AppRoutes.passengerPaymentWebview, arguments: {
-      'paymentUrl': result.data!.paymentUrl,
-      'paymentUuid': result.data!.paymentUuid,
-      'ride': ride.value,
-      'bookingUuid': _bookingUuid,
-      'seats': reservedSeats.value,
-      'amount': totalAmount,
-    });
+      String? phone;
+      String provider;
+
+      if (isCardPayment) {
+        // Carte bancaire : FedaPay gère la saisie des infos sur sa page de paiement
+        provider = 'card';
+      } else {
+        // Mobile Money : téléphone obligatoire
+        final rawPhone = paymentContactController.text.trim().replaceAll(RegExp(r'\s'), '');
+        if (rawPhone.isEmpty) {
+          UIHelper().showSnackBar('MINIZON', 'Veuillez entrer votre numéro de téléphone.', 2);
+          return;
+        }
+        phone = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
+        provider = selectedMobileService.value.name;
+      }
+
+      isProcessingPayment.value = true;
+      final result = await _service.initiatePayment(
+        _bookingUuid,
+        phone: phone,
+        provider: provider,
+      );
+      isProcessingPayment.value = false;
+      if (!result.isSuccess) {
+        if (result.error == AppError.alreadyPaid) {
+          AppSync.i.refreshPassenger();
+          BottonNavController.goToTab(2);
+          return;
+        }
+        if (result.error != AppError.socket) {
+          UIHelper().showSnackBar('MINIZON', result.displayMessage, 3);
+        }
+        return;
+      }
+
+      // Le WebView gère le polling et la navigation vers le succès en interne
+      Get.toNamed(AppRoutes.passengerPaymentWebview, arguments: {
+        'paymentUrl': result.data!.paymentUrl,
+        'paymentUuid': result.data!.paymentUuid,
+        'bookingUuid': _bookingUuid,
+        'ride': ride.value,
+        'seats': reservedSeats.value,
+        'amount': _confirmedPrice > 0 ? _confirmedPrice : totalAmount,
+      });
+    } finally {
+      _paymentInFlight = false;
+      isProcessingPayment.value = false;
+    }
   }
 
   @override

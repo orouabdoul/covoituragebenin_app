@@ -145,9 +145,9 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       if (res.statusCode == 404) return ApiResult.failure(AppError.tripNotFound);
       if (res.statusCode == 200 && res.data is Map && res.data['success'] == true) {
-        final body = res.data['body'];
-        if (body is Map<String, dynamic>) {
-          return ApiResult.success(PaymentStatusModel.fromJson(body));
+        final payload = res.data['body'] ?? res.data['data'];
+        if (payload is Map<String, dynamic>) {
+          return ApiResult.success(PaymentStatusModel.fromJson(payload));
         }
       }
       return ApiResult.failure(AppError.unexpected);
@@ -186,15 +186,14 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
 
   @override
   Future<ApiResult<PaymentInitResult>> initiatePayment(String bookingUuid,
-      {required String phone, required String provider}) async {
+      {String? phone, required String provider}) async {
     try {
       final opts = await _authOptions();
+      final body = <String, dynamic>{'provider': provider};
+      if (phone != null && phone.isNotEmpty) body['phone_number'] = phone;
       final res = await _dio.post(
         AppApi.initiateBookingPayment(bookingUuid),
-        data: {
-          'phone_number': phone,
-          'provider': provider,
-        },
+        data: body,
         options: opts,
       );
       logger.d('initiatePayment[$bookingUuid] [${res.statusCode}]');
@@ -203,17 +202,17 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
           logger.e('initiatePayment failed: ${res.data['message']}');
           return ApiResult.failure(AppError.unexpected);
         }
-        final body = res.data is Map ? res.data['body'] : null;
-        if (body is Map<String, dynamic>) {
-          return ApiResult.success(PaymentInitResult.fromJson(body));
+        // Supporte à la fois 'body' (format actuel) et 'data' (format guide)
+        final payload = res.data is Map ? (res.data['body'] ?? res.data['data']) : null;
+        if (payload is Map<String, dynamic>) {
+          return ApiResult.success(PaymentInitResult.fromJson(payload));
         }
         return ApiResult.failure(AppError.unexpected);
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       if (res.statusCode == 409) {
         logger.d('initiatePayment[$bookingUuid] already paid');
-        return ApiResult.failure(AppError.unexpected,
-            message: 'Ce paiement a déjà été effectué.');
+        return ApiResult.failure(AppError.alreadyPaid);
       }
       if (res.statusCode == 422) {
         final msg = res.data is Map ? res.data['message'] as String? : null;

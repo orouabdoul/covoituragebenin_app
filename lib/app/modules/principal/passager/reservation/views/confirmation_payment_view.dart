@@ -167,34 +167,32 @@ class _TripSummaryCard extends StatelessWidget {
 
 	@override
 	Widget build(BuildContext context) {
-		final ride = controller.ride.value;
-		final origin = ride?.origin ?? 'Cotonou';
-		final destination = ride?.destination ?? 'Porto-Novo';
-		final time = ride?.departureTime ?? 'Aujourd\'hui, 14h30';
+		return Obx(() {
+			final ride = controller.ride.value;
+			final origin = ride?.origin ?? '—';
+			final destination = ride?.destination ?? '—';
+			final time = ride?.departureTime ?? '—';
+			final total = navTotal > 0 ? navTotal : controller.totalAmount;
+			final seats = controller.reservedSeats.value;
 
-		return _SectionCard(
-			responsive: responsive,
-			child: Column(
-				crossAxisAlignment: CrossAxisAlignment.start,
-				children: [
-					Row(
-						mainAxisAlignment: MainAxisAlignment.spaceBetween,
-						children: [
-							Text('Résumé du trajet', style: AppTextStyles.h6(responsive)),
-							_StatusBadge(label: 'Accepté ✓', color: AppColors.primary, responsive: responsive),
-						],
-					),
-					SizedBox(height: responsive.h(16)),
-					_RouteRow(responsive: responsive, origin: origin, destination: destination, time: time),
-					SizedBox(height: responsive.h(16)),
-					Container(height: 1, color: AppColors.border),
-					SizedBox(height: responsive.h(16)),
-					Obx(() {
-						// navTotal : transmis depuis la page confirmation (source principale)
-						// controller.totalAmount : fallback si navTotal = 0
-						final total = navTotal > 0 ? navTotal : controller.totalAmount;
-						final seats = controller.reservedSeats.value;
-						return Column(
+			return _SectionCard(
+				responsive: responsive,
+				child: Column(
+					crossAxisAlignment: CrossAxisAlignment.start,
+					children: [
+						Row(
+							mainAxisAlignment: MainAxisAlignment.spaceBetween,
+							children: [
+								Text('Résumé du trajet', style: AppTextStyles.h6(responsive)),
+								_StatusBadge(label: 'Accepté ✓', color: AppColors.primary, responsive: responsive),
+							],
+						),
+						SizedBox(height: responsive.h(16)),
+						_RouteRow(responsive: responsive, origin: origin, destination: destination, time: time),
+						SizedBox(height: responsive.h(16)),
+						Container(height: 1, color: AppColors.border),
+						SizedBox(height: responsive.h(16)),
+						Column(
 							crossAxisAlignment: CrossAxisAlignment.start,
 							children: [
 								_PriceLine(
@@ -216,11 +214,11 @@ class _TripSummaryCard extends StatelessWidget {
 									],
 								),
 							],
-						);
-					}),
-				],
-			),
-		);
+						),
+					],
+				),
+			);
+		});
 	}
 }
 
@@ -690,49 +688,34 @@ class _CardPaymentCard extends StatelessWidget {
 	Widget build(BuildContext context) {
 		return _SectionCard(
 			responsive: responsive,
-			child: Column(
+			child: Row(
 				crossAxisAlignment: CrossAxisAlignment.start,
 				children: [
-					Text('Informations de carte', style: AppTextStyles.h6(responsive)),
-					SizedBox(height: responsive.h(12)),
-					_InputField(
-						responsive: responsive,
-						prefix: '💳',
-						hintText: '**** **** **** 1234',
-						controller: controller.paymentContactController,
-						keyboardType: TextInputType.number,
-						inputFormatters: [CardNumberInputFormatter()],
+					Container(
+						width: responsive.w(44),
+						height: responsive.w(44),
+						decoration: BoxDecoration(
+							color: AppColors.primary.withValues(alpha: 0.08),
+							borderRadius: BorderRadius.circular(responsive.radius(12)),
+						),
+						child: Icon(Icons.credit_card_rounded, color: AppColors.primary, size: responsive.text(22)),
 					),
-					SizedBox(height: responsive.h(12)),
-					Row(
-						children: [
-							Expanded(
-								child: _LabeledInputField(
-									responsive: responsive,
-									label: 'Date d\'expiration',
-									hintText: 'MM/AA',
-									controller: controller.cardExpiryController,
-									keyboardType: TextInputType.number,
-									inputFormatters: [CardExpiryInputFormatter()],
+					SizedBox(width: responsive.w(14)),
+					Expanded(
+						child: Column(
+							crossAxisAlignment: CrossAxisAlignment.start,
+							children: [
+								Text('Carte Visa / MasterCard', style: AppTextStyles.subtitle(responsive)),
+								SizedBox(height: responsive.h(6)),
+								Text(
+									'Vous serez redirigé vers la page sécurisée FedaPay pour saisir vos informations de carte bancaire.',
+									style: AppTextStyles.caption(responsive).copyWith(
+										color: AppColors.textSecondary,
+										height: 1.4,
+									),
 								),
-							),
-							SizedBox(width: responsive.w(12)),
-							SizedBox(
-								width: responsive.w(100),
-								child: _LabeledInputField(
-									responsive: responsive,
-									label: 'CVV',
-									hintText: '123',
-									controller: controller.cardCodeController,
-									keyboardType: TextInputType.number,
-									inputFormatters: [
-										FilteringTextInputFormatter.digitsOnly,
-										LengthLimitingTextInputFormatter(3),
-									],
-									isPassword: true,
-								),
-							),
-						],
+							],
+						),
 					),
 				],
 			),
@@ -909,60 +892,6 @@ class _InputField extends StatelessWidget {
 	}
 }
 
-class _LabeledInputField extends StatelessWidget {
-	const _LabeledInputField({
-		required this.responsive,
-		required this.label,
-		required this.hintText,
-		required this.controller,
-		required this.keyboardType,
-		required this.inputFormatters,
-		this.isPassword = false,
-	});
-
-	final AppResponsive responsive;
-	final String label;
-	final String hintText;
-	final TextEditingController controller;
-	final TextInputType keyboardType;
-	final List<TextInputFormatter> inputFormatters;
-	final bool isPassword;
-
-	@override
-	Widget build(BuildContext context) {
-		return Column(
-			crossAxisAlignment: CrossAxisAlignment.start,
-			children: [
-				Text(label, style: AppTextStyles.caption(responsive).copyWith(fontWeight: FontWeight.w600)),
-				SizedBox(height: responsive.h(6)),
-				Container(
-					padding: EdgeInsets.symmetric(horizontal: responsive.w(12), vertical: responsive.h(12)),
-					decoration: ShapeDecoration(
-						color: AppColors.surfaceMuted,
-						shape: RoundedRectangleBorder(
-							side: const BorderSide(color: AppColors.border),
-							borderRadius: BorderRadius.circular(responsive.radius(12)),
-						),
-					),
-					child: TextField(
-						controller: controller,
-						keyboardType: keyboardType,
-						inputFormatters: inputFormatters,
-						obscureText: isPassword,
-						style: AppTextStyles.subtitle(responsive),
-						decoration: InputDecoration(
-							isDense: true,
-							border: InputBorder.none,
-							hintText: hintText,
-							hintStyle: AppTextStyles.subtitle(responsive).copyWith(color: AppColors.textHint),
-						),
-					),
-				),
-			],
-		);
-	}
-}
-
 class _StatusBadge extends StatelessWidget {
 	const _StatusBadge({required this.label, required this.color, required this.responsive});
 
@@ -995,27 +924,3 @@ String _formatAmount(int value) {
 	return value.toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ' ');
 }
 
-class CardNumberInputFormatter extends TextInputFormatter {
-	@override
-	TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
-		final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
-		final limited = digits.length > 16 ? digits.substring(0, 16) : digits;
-		final buffer = StringBuffer();
-		for (var i = 0; i < limited.length; i++) {
-			if (i > 0 && i % 4 == 0) buffer.write(' ');
-			buffer.write(limited[i]);
-		}
-		final formatted = buffer.toString();
-		return TextEditingValue(text: formatted, selection: TextSelection.collapsed(offset: formatted.length));
-	}
-}
-
-class CardExpiryInputFormatter extends TextInputFormatter {
-	@override
-	TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
-		final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
-		final limited = digits.length > 4 ? digits.substring(0, 4) : digits;
-		final formatted = limited.length <= 2 ? limited : '${limited.substring(0, 2)}/${limited.substring(2)}';
-		return TextEditingValue(text: formatted, selection: TextSelection.collapsed(offset: formatted.length));
-	}
-}

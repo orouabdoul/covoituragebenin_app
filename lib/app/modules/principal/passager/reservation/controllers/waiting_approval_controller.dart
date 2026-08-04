@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:get/get.dart';
 
+import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/passenger_reservation_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
@@ -56,15 +57,15 @@ class WaitingApprovalController extends GetxController {
       if (idx is int) paymentIndex.value = idx;
       final amt = savedArgs['totalAmount'];
       if (amt is int && amt > 0) _totalAmount = amt;
-      final uuid = savedArgs['bookingUuid'];
-      if (uuid is String && uuid.isNotEmpty) {
+      // Supporte 'bookingUuid' (flow normal) et 'bookingUuid' via notification push
+      final rawUuid = savedArgs['bookingUuid'] ?? savedArgs['booking_uuid'];
+      final uuid = rawUuid is String ? rawUuid : null;
+      if (uuid != null && uuid.isNotEmpty) {
         _bookingUuid = uuid;
         _startPolling();
         return;
       }
     }
-    // UUID manquant — démarrer le polling sans UUID (mode dégradé)
-    // On ne redirige pas pour ne pas quitter la page d'attente
     UIHelper().showSnackBar(
       'MINIZON',
       'Réservation en cours de synchronisation…',
@@ -84,7 +85,6 @@ class WaitingApprovalController extends GetxController {
     final result = await _service.fetchApprovalStatus(_bookingUuid);
     if (!result.isSuccess) {
       _consecutiveErrors++;
-      // Afficher un message seulement après 3 erreurs consécutives (réseau instable)
       if (_consecutiveErrors == 3 && result.error != AppError.socket) {
         UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
       }
@@ -94,12 +94,54 @@ class WaitingApprovalController extends GetxController {
     final data = result.data!;
     secondsRemaining.value = data.secondsRemaining;
     totalTimeoutSeconds.value = data.totalTimeoutSeconds;
-    if (data.pickupCity.isNotEmpty) pickupCity.value = data.pickupCity;
-    if (data.pickupAddress.isNotEmpty) pickupAddress.value = data.pickupAddress;
-    if (data.dropoffCity.isNotEmpty) dropoffCity.value = data.dropoffCity;
-    if (data.dropoffAddress.isNotEmpty) dropoffAddress.value = data.dropoffAddress;
-    if (data.priceBreakdown != null) priceBreakdown.value = data.priceBreakdown;
-    passengerDistanceKm.value = data.passengerDistanceKm;
+    if (data.reservedSeats > 0) reservedSeats.value = data.reservedSeats;
+
+    final approvalRide = data.ride;
+    if (approvalRide.pickupCity.isNotEmpty) pickupCity.value = approvalRide.pickupCity;
+    if (approvalRide.pickupAddress.isNotEmpty) pickupAddress.value = approvalRide.pickupAddress;
+    if (approvalRide.dropoffCity.isNotEmpty) dropoffCity.value = approvalRide.dropoffCity;
+    if (approvalRide.dropoffAddress.isNotEmpty) dropoffAddress.value = approvalRide.dropoffAddress;
+    if (approvalRide.priceBreakdown != null) priceBreakdown.value = approvalRide.priceBreakdown;
+    passengerDistanceKm.value = approvalRide.passengerDistanceKm;
+
+    // Reconstruit le SearchRide depuis les données de polling si absent (ouverture via notification)
+    if (ride.value == null && approvalRide.driverName.isNotEmpty) {
+      final bd = approvalRide.priceBreakdown;
+      final priceInt = bd != null && bd.total > 0
+          ? bd.total
+          : int.tryParse(approvalRide.price.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+      ride.value = SearchRide(
+        driverName: approvalRide.driverName,
+        driverInitials: _initials(approvalRide.driverName),
+        rating: approvalRide.rating,
+        reviewCount: '',
+        vehicle: '',
+        vehiclePlate: '',
+        price: approvalRide.price.isNotEmpty ? approvalRide.price : (bd?.totalFmt ?? ''),
+        priceValue: priceInt,
+        origin: approvalRide.origin,
+        destination: approvalRide.destination,
+        departureTime: approvalRide.departureTime,
+        departureNote: approvalRide.pickupCity,
+        arrivalTime: '',
+        arrivalNote: approvalRide.dropoffCity,
+        duration: '',
+        seatsAvailable: data.reservedSeats,
+        minutesUntilDeparture: data.secondsRemaining ~/ 60,
+        isVerified: false,
+      );
+    }
+
+    // Met à jour le montant total depuis le pricing si pas encore connu
+    if (_totalAmount == 0) {
+      final bd = approvalRide.priceBreakdown;
+      if (bd != null && bd.total > 0) {
+        _totalAmount = bd.total;
+      } else {
+        final parsed = int.tryParse(approvalRide.price.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+        if (parsed > 0) _totalAmount = parsed;
+      }
+    }
 
     switch (data.status) {
       case 'accepted':
@@ -116,11 +158,18 @@ class WaitingApprovalController extends GetxController {
     }
   }
 
+  String _initials(String name) {
+    final parts = name.trim().split(' ').where((p) => p.isNotEmpty).toList();
+    if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    return parts.isNotEmpty ? parts[0][0].toUpperCase() : '?';
+  }
+
   // ── Status transitions ─────────────────────────────────────────────────────
 
   void _onAccepted() {
     _cancelTimers();
     status.value = WaitingStatus.accepted;
+    AppSync.i.refreshPassenger();
     Future.delayed(const Duration(milliseconds: 1400), () {
       Get.toNamed(
         AppRoutes.passengerReservationPayment,
@@ -128,13 +177,12 @@ class WaitingApprovalController extends GetxController {
           'ride': ride.value,
           'seats': reservedSeats.value,
           'paymentIndex': paymentIndex.value,
-          if (_bookingUuid.isNotEmpty) 'bookingUuid': _bookingUuid,
-          if (_totalAmount > 0) 'totalAmount': _totalAmount,
+          'bookingUuid': _bookingUuid,
+          'totalAmount': _totalAmount,
         },
       );
     });
   }
-
 
   void cancelRequest() {
     _cancelTimers();

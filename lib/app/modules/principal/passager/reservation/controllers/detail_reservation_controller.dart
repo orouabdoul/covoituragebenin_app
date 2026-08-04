@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/messaging/passenger_messaging_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/passenger_reservation_service.dart';
+import 'package:covoiturage_benin_app/app/core/services/passenger/reviews/passenger_reviews_service.dart';
+import 'package:covoiturage_benin_app/app/core/services/passenger/reviews/passenger_reviews_service_impl.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/models/passenger/reservations_model.dart';
@@ -16,16 +21,20 @@ class DetailReservationController extends GetxController {
   PassengerReservationService get _service =>
       Get.find<PassengerReservationService>();
 
+  // UUIDs that returned a server error — skip retry for the session lifetime
+  static final Set<String> _failedDetailUuids = {};
+
   final Rxn<SearchRide> ride = Rxn<SearchRide>();
   final RxBool isFavorite = false.obs;
   final RxBool isLoading = false.obs;
 
   final RxBool isExistingReservation = false.obs;
-  ReservationStatus? reservationStatus;
-  ReservationItem? _existingReservation;
+  final Rxn<ReservationStatus> _statusRx = Rxn<ReservationStatus>();
+  ReservationStatus? get reservationStatus => _statusRx.value;
+  final Rxn<ReservationItem> _existingReservation = Rxn<ReservationItem>();
 
-  bool get isPaid => _existingReservation?.isPaid ?? false;
-  ReservationItem? get existingReservation => _existingReservation;
+  bool get isPaid => _existingReservation.value?.isPaid ?? false;
+  ReservationItem? get existingReservation => _existingReservation.value;
 
   // Driver metrics from API
   final acceptanceRate = ''.obs;
@@ -41,8 +50,12 @@ class DetailReservationController extends GetxController {
     final arg = Get.arguments;
     if (arg is ReservationItem) {
       isExistingReservation.value = true;
-      reservationStatus = arg.status;
-      _existingReservation = arg;
+      _statusRx.value = arg.status;
+      _existingReservation.value = arg;
+      // Écouter la liste fraîche (se déclenche APRÈS assignAll dans _fetch)
+      if (Get.isRegistered<ReservationController>()) {
+        ever(Get.find<ReservationController>().reservationsList, (_) => _syncFromList());
+      }
       // Pré-remplir le ride depuis la réservation immédiatement
       ride.value = SearchRide(
         uuid: arg.tripUuid ?? arg.id,
@@ -65,9 +78,15 @@ class DetailReservationController extends GetxController {
         minutesUntilDeparture: arg.minutesUntilDeparture,
         isVerified: false,
       );
-      // Charger les métriques conducteur et avis — utiliser trip_uuid pour l'API /passenger/trips/{uuid}/detail
-      final detailUuid = arg.tripUuid ?? arg.id;
-      if (detailUuid.isNotEmpty) _fetchDetail(detailUuid);
+      // Charger les avis immédiatement (ne pas attendre _fetchDetail qui peut échouer)
+      if (arg.driverName.isNotEmpty) _loadPassengerReviewsForDriver(arg.driverName);
+      // Charger le détail pour tous les statuts actifs + completed (pour les avis)
+      // cancelled exclu : l'API peut retourner 500 pour des trajets annulés
+      final shouldFetchDetail = arg.status != ReservationStatus.cancelled;
+      if (shouldFetchDetail) {
+        final detailUuid = arg.tripUuid;
+        if (detailUuid != null && detailUuid.isNotEmpty) _fetchDetail(detailUuid);
+      }
     } else if (arg is Map<String, dynamic>) {
       final dynamic selectedRide = arg['ride'];
       if (selectedRide is SearchRide) {
@@ -78,22 +97,31 @@ class DetailReservationController extends GetxController {
   }
 
   Future<void> _fetchDetail(String tripUuid) async {
+    if (_failedDetailUuids.contains(tripUuid)) return;
     isLoading.value = true;
     final result = await _service.fetchTripDetail(tripUuid);
     isLoading.value = false;
-    if (!result.isSuccess) return;
+    if (!result.isSuccess) {
+      _failedDetailUuids.add(tripUuid);
+      return;
+    }
     final detail = result.data!;
     isFavorite.value = detail.isFavorite;
-    isExistingReservation.value = detail.isExistingReservation || _existingReservation != null;
+    isExistingReservation.value = detail.isExistingReservation || _existingReservation.value != null;
     if (detail.reservationStatus != null) {
-      reservationStatus = _parseStatus(detail.reservationStatus!);
+      _statusRx.value = _parseStatus(detail.reservationStatus!);
     }
     acceptanceRate.value = detail.driverMetrics.acceptanceRate;
     responseTime.value = detail.driverMetrics.responseTime;
     memberSince.value = detail.driverMetrics.memberSince;
-    apiReviews.assignAll(detail.recentReviews);
+    if (detail.recentReviews.isNotEmpty) {
+      apiReviews.assignAll(detail.recentReviews);
+    } else if (apiReviews.isEmpty) {
+      // Fallback si onInit n'a pas encore chargé et que le nom du trajet diffère
+      await _loadPassengerReviewsForDriver(detail.ride.driverName);
+    }
 
-    final existing = _existingReservation;
+    final existing = _existingReservation.value;
     final passengerPrice = existing != null && existing.totalPriceValue > 0
         ? existing.totalPrice
         : detail.ride.price;
@@ -157,6 +185,81 @@ class DetailReservationController extends GetxController {
     }
   }
 
+  // Normalise un nom : minuscules, accents supprimés, espaces normalisés
+  String _normalizeName(String name) {
+    const accents   = 'àáâãäåæçèéêëìíîïðñòóôõöùúûüýÿ';
+    const replaced  = 'aaaaaaeceeeeiiiidnoooooouuuuyy';
+    var s = name.toLowerCase().trim();
+    for (var i = 0; i < accents.length; i++) {
+      s = s.replaceAll(accents[i], replaced[i]);
+    }
+    return s;
+  }
+
+  bool _driverNamesMatch(String a, String b) {
+    final na = _normalizeName(a);
+    final nb = _normalizeName(b);
+    if (na == nb) return true;
+    if (na.contains(nb) || nb.contains(na)) return true;
+    // Un mot significatif en commun suffit
+    final aWords = na.split(RegExp(r'\s+')).where((w) => w.length > 1).toSet();
+    final bWords = nb.split(RegExp(r'\s+')).where((w) => w.length > 1).toSet();
+    return aWords.intersection(bWords).isNotEmpty;
+  }
+
+  // Charge les avis que le passager a donnés à ce conducteur
+  Future<void> _loadPassengerReviewsForDriver(String driverName) async {
+    if (driverName.isEmpty) return;
+    try {
+      final PassengerReviewsService svc = Get.isRegistered<PassengerReviewsService>()
+          ? Get.find<PassengerReviewsService>()
+          : PassengerReviewsServiceImpl();
+      final result = await svc.fetchReviews();
+      if (!result.isSuccess) return;
+      final matched = result.data!.reviews
+          .where((r) => _driverNamesMatch(r.driverName, driverName))
+          .map((r) => TripDetailReview(
+                reviewerName: 'Moi',
+                rating: r.rating.toDouble(),
+                date: r.date,
+                comment: r.comment ?? '',
+              ))
+          .toList();
+      if (matched.isNotEmpty && apiReviews.isEmpty) {
+        apiReviews.assignAll(matched);
+      }
+    } catch (_) {}
+  }
+
+  // Sync statut et isPaid depuis la liste fraîche après un refresh
+  void _syncFromList() {
+    final id = _existingReservation.value?.id;
+    if (id == null) return;
+    if (!Get.isRegistered<ReservationController>()) return;
+    try {
+      final updated = Get.find<ReservationController>()
+          .allReservations
+          .firstWhere((r) => r.id == id);
+      final current = _existingReservation.value!;
+
+      // Synchroniser le statut réactivement (confirmed → inProgress → completed)
+      if (updated.status != _statusRx.value) {
+        _statusRx.value = updated.status;
+      }
+
+      // Ne jamais rétrograder isPaid de true → false : le backend peut retarder
+      // Mettre à jour _existingReservation si paiement confirmé OU statut changé
+      final paidUpgraded = !current.isPaid && updated.isPaid;
+      final statusChanged = updated.status != current.status;
+      if (paidUpgraded || statusChanged) {
+        final safeUpdated = (current.isPaid && !updated.isPaid)
+            ? updated.copyWith(isPaid: true, paymentStatus: 'escrow_locked')
+            : updated;
+        _existingReservation.value = safeUpdated;
+      }
+    } catch (_) {}
+  }
+
   void bookNow() {
     Get.toNamed(
       AppRoutes.passengerReservationConfirmation,
@@ -165,20 +268,68 @@ class DetailReservationController extends GetxController {
   }
 
   void payNow() {
-    if (_existingReservation == null) return;
-    final r = _existingReservation!;
+    if (_existingReservation.value == null) return;
+    final r = _existingReservation.value!;
+    final bd = r.priceBreakdown;
+    final totalAmount = (bd != null && bd.total > 0) ? bd.total : r.totalPriceValue;
+    final current = ride.value;
+    // Reconstruit le ride sans UUID : évite _fetchContext dans ConfirmationReservationController
+    // qui recalculerait le prix via commission et ignorerait _argsTotalAmount
+    final payRide = current != null
+        ? SearchRide(
+            driverName: current.driverName,
+            driverInitials: current.driverInitials,
+            rating: current.rating,
+            reviewCount: current.reviewCount,
+            vehicle: current.vehicle,
+            vehiclePlate: current.vehiclePlate,
+            price: current.price,
+            priceValue: totalAmount,
+            origin: current.origin,
+            destination: current.destination,
+            departureTime: current.departureTime,
+            departureNote: current.departureNote,
+            arrivalTime: current.arrivalTime,
+            arrivalNote: current.arrivalNote,
+            duration: current.duration,
+            seatsAvailable: current.seatsAvailable,
+            minutesUntilDeparture: current.minutesUntilDeparture,
+            isVerified: current.isVerified,
+          )
+        : SearchRide(
+            driverName: r.driverName,
+            driverInitials: r.driverInitials,
+            rating: r.rating,
+            reviewCount: r.reviewCount,
+            vehicle: r.vehicle,
+            vehiclePlate: r.vehiclePlate,
+            price: r.totalPrice,
+            priceValue: totalAmount,
+            origin: r.departureCity.isNotEmpty ? r.departureCity : r.tripOrigin,
+            destination: r.arrivalCity.isNotEmpty ? r.arrivalCity : r.tripDestination,
+            departureTime: r.departureTime,
+            departureNote: r.departureNote,
+            arrivalTime: '',
+            arrivalNote: r.arrivalNote,
+            duration: '',
+            seatsAvailable: r.seatsCount,
+            minutesUntilDeparture: r.minutesUntilDeparture,
+            isVerified: false,
+          );
     Get.toNamed(AppRoutes.passengerReservationPayment, arguments: {
       'bookingUuid': r.id,
       'seats': r.seatsCount,
-      'ride': ride.value,
+      'ride': payRide,
+      'totalAmount': totalAmount,
+      'paymentStatus': r.paymentStatus,
     });
   }
 
   void cancelReservation() {
-    if (_existingReservation != null &&
+    if (_existingReservation.value != null &&
         Get.isRegistered<ReservationController>()) {
       Get.find<ReservationController>().cancelReservation(
-        _existingReservation!,
+        _existingReservation.value!,
         onSuccess: () => Get.back(),
       );
     } else {
@@ -189,7 +340,7 @@ class DetailReservationController extends GetxController {
   final RxBool isContactingDriver = false.obs;
 
   Future<void> contactDriver() async {
-    final r = _existingReservation;
+    final r = _existingReservation.value;
     if (r == null) {
       final driverName = ride.value?.driverName ?? 'Votre conducteur';
       MessagerController.openDriverChat(driverName: driverName);
@@ -217,7 +368,7 @@ class DetailReservationController extends GetxController {
       return;
     }
 
-    _existingReservation = r.copyWith(conversationUuid: result.data!);
+    _existingReservation.value = r.copyWith(conversationUuid: result.data!);
 
     MessagerController.openDriverChat(
       driverName: r.driverName,
@@ -230,22 +381,287 @@ class DetailReservationController extends GetxController {
     isFavorite.value = !isFavorite.value;
   }
 
+  // ── Facture PDF ────────────────────────────────────────────────────────────
+
+  final RxBool isDownloadingInvoice = false.obs;
+
+  Future<void> downloadInvoice() async {
+    final uuid = _existingReservation.value?.id;
+    if (uuid == null || uuid.isEmpty) return;
+    isDownloadingInvoice.value = true;
+    final result = await _service.fetchInvoice(uuid);
+    isDownloadingInvoice.value = false;
+    if (!result.isSuccess) {
+      UIHelper().showSnackBar('MINIZON', 'Impossible de générer la facture.', 3);
+      return;
+    }
+    final invoice = result.data!;
+    final doc = pw.Document();
+    doc.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(40),
+        build: (pw.Context ctx) => _buildInvoicePage(invoice),
+      ),
+    );
+    await Printing.layoutPdf(
+      onLayout: (_) async => doc.save(),
+      name: '${invoice.invoiceRef}.pdf',
+    );
+  }
+
+  pw.Widget _buildInvoicePage(InvoiceModel inv) {
+    final green = PdfColor.fromInt(0xFF00A86B);
+    final grey = PdfColor.fromInt(0xFF6B7280);
+    final black = PdfColor.fromInt(0xFF111827);
+    final lightGrey = PdfColor.fromInt(0xFFF3F4F6);
+
+    pw.Widget divider() => pw.Container(
+          height: 1,
+          color: PdfColor.fromInt(0xFFE5E7EB),
+          margin: const pw.EdgeInsets.symmetric(vertical: 8),
+        );
+
+    pw.Widget row(String left, String right,
+        {bool bold = false, PdfColor? valueColor}) {
+      final style = pw.TextStyle(
+        fontSize: 11,
+        fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
+        color: bold ? black : grey,
+      );
+      return pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(left, style: style),
+          pw.Text(right,
+              style: style.copyWith(
+                  color: valueColor ?? (bold ? black : black),
+                  fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal)),
+        ],
+      );
+    }
+
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        // ── En-tête ───────────────────────────────────────────────────────
+        pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text('MINIZON',
+                    style: pw.TextStyle(
+                        fontSize: 28,
+                        fontWeight: pw.FontWeight.bold,
+                        color: green)),
+                pw.SizedBox(height: 4),
+                pw.Text('Service de covoiturage',
+                    style: pw.TextStyle(fontSize: 11, color: grey)),
+              ],
+            ),
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.end,
+              children: [
+                pw.Text('FACTURE',
+                    style: pw.TextStyle(
+                        fontSize: 22,
+                        fontWeight: pw.FontWeight.bold,
+                        color: black)),
+                pw.SizedBox(height: 4),
+                pw.Text(inv.invoiceRef,
+                    style: pw.TextStyle(
+                        fontSize: 12,
+                        fontWeight: pw.FontWeight.bold,
+                        color: green)),
+                pw.SizedBox(height: 2),
+                pw.Text('Émise le ${inv.issuedAt}',
+                    style: pw.TextStyle(fontSize: 10, color: grey)),
+              ],
+            ),
+          ],
+        ),
+
+        pw.SizedBox(height: 24),
+        divider(),
+        pw.SizedBox(height: 8),
+
+        // ── Parties ───────────────────────────────────────────────────────
+        pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Expanded(
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text('PASSAGER',
+                      style: pw.TextStyle(
+                          fontSize: 9,
+                          fontWeight: pw.FontWeight.bold,
+                          color: grey,
+                          letterSpacing: 1)),
+                  pw.SizedBox(height: 4),
+                  pw.Text(inv.passengerName,
+                      style: pw.TextStyle(
+                          fontSize: 13,
+                          fontWeight: pw.FontWeight.bold,
+                          color: black)),
+                ],
+              ),
+            ),
+            pw.Expanded(
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                children: [
+                  pw.Text('CONDUCTEUR',
+                      style: pw.TextStyle(
+                          fontSize: 9,
+                          fontWeight: pw.FontWeight.bold,
+                          color: grey,
+                          letterSpacing: 1)),
+                  pw.SizedBox(height: 4),
+                  pw.Text(inv.driverName,
+                      style: pw.TextStyle(
+                          fontSize: 13,
+                          fontWeight: pw.FontWeight.bold,
+                          color: black)),
+                ],
+              ),
+            ),
+          ],
+        ),
+
+        pw.SizedBox(height: 20),
+
+        // ── Détails trajet ────────────────────────────────────────────────
+        pw.Container(
+          padding: const pw.EdgeInsets.all(14),
+          decoration: pw.BoxDecoration(
+            color: lightGrey,
+            borderRadius: pw.BorderRadius.circular(8),
+          ),
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text('DÉTAILS DU TRAJET',
+                  style: pw.TextStyle(
+                      fontSize: 9,
+                      fontWeight: pw.FontWeight.bold,
+                      color: grey,
+                      letterSpacing: 1)),
+              pw.SizedBox(height: 10),
+              row('Trajet', inv.route),
+              pw.SizedBox(height: 6),
+              row('Date de départ', inv.departureDate),
+              pw.SizedBox(height: 6),
+              row('Nombre de places', '${inv.seats} place${inv.seats > 1 ? 's' : ''}'),
+            ],
+          ),
+        ),
+
+        pw.SizedBox(height: 20),
+
+        // ── Détails prix ──────────────────────────────────────────────────
+        pw.Text('DÉTAILS DU PAIEMENT',
+            style: pw.TextStyle(
+                fontSize: 9,
+                fontWeight: pw.FontWeight.bold,
+                color: grey,
+                letterSpacing: 1)),
+        pw.SizedBox(height: 10),
+        row('Prix par place', inv.pricePerSeat),
+        pw.SizedBox(height: 6),
+        row('× ${inv.seats} place${inv.seats > 1 ? 's' : ''}',
+            inv.priceSubtotal.isNotEmpty ? inv.priceSubtotal : ''),
+        if (inv.serviceFee.isNotEmpty) ...[
+          pw.SizedBox(height: 6),
+          row('Frais de service MINIZON (5%)', inv.serviceFee),
+        ],
+        divider(),
+
+        // Total
+        pw.Container(
+          padding: const pw.EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: pw.BoxDecoration(
+            color: PdfColor.fromInt(0xFFECFDF5),
+            borderRadius: pw.BorderRadius.circular(8),
+            border: pw.Border.all(color: PdfColor.fromInt(0xFF6EE7B7)),
+          ),
+          child: pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Text('TOTAL PAYÉ',
+                  style: pw.TextStyle(
+                      fontSize: 12,
+                      fontWeight: pw.FontWeight.bold,
+                      color: black)),
+              pw.Text(inv.totalAmount,
+                  style: pw.TextStyle(
+                      fontSize: 14,
+                      fontWeight: pw.FontWeight.bold,
+                      color: green)),
+            ],
+          ),
+        ),
+
+        pw.SizedBox(height: 20),
+
+        // ── Paiement ──────────────────────────────────────────────────────
+        pw.Container(
+          padding: const pw.EdgeInsets.all(14),
+          decoration: pw.BoxDecoration(
+            color: lightGrey,
+            borderRadius: pw.BorderRadius.circular(8),
+          ),
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text('INFORMATIONS DE PAIEMENT',
+                  style: pw.TextStyle(
+                      fontSize: 9,
+                      fontWeight: pw.FontWeight.bold,
+                      color: grey,
+                      letterSpacing: 1)),
+              pw.SizedBox(height: 10),
+              row('Méthode', inv.paymentMethod),
+              pw.SizedBox(height: 6),
+              row('Référence transaction', inv.transactionRef),
+              pw.SizedBox(height: 6),
+              row('Référence réservation', inv.bookingRef),
+            ],
+          ),
+        ),
+
+        pw.Spacer(),
+
+        // ── Pied ──────────────────────────────────────────────────────────
+        divider(),
+        pw.Center(
+          child: pw.Text(
+            'Merci d\'avoir voyagé avec MINIZON — Service de covoiturage au Bénin',
+            style: pw.TextStyle(fontSize: 9, color: grey),
+          ),
+        ),
+      ],
+    );
+  }
+
   void onViewAllReviews() {
     final driverName =
-        ride.value?.driverName ?? _existingReservation?.driverName ?? 'Le conducteur';
-    final reviews = apiReviews.isNotEmpty
-        ? apiReviews
-            .map((r) => _ReviewTileData(
-                  name: r.reviewerName,
-                  initial: r.reviewerName.isNotEmpty
-                      ? r.reviewerName[0].toUpperCase()
-                      : '?',
-                  rating: r.rating.round(),
-                  date: r.date,
-                  comment: r.comment,
-                ))
-            .toList()
-        : _staticReviews;
+        ride.value?.driverName ?? _existingReservation.value?.driverName ?? 'Le conducteur';
+    final reviews = apiReviews
+        .map((r) => _ReviewTileData(
+              name: r.reviewerName,
+              initial: r.reviewerName.isNotEmpty
+                  ? r.reviewerName[0].toUpperCase()
+                  : '?',
+              rating: r.rating.round(),
+              date: r.date,
+              comment: r.comment,
+            ))
+        .toList();
 
     Get.bottomSheet(
       Container(
@@ -287,14 +703,28 @@ class DetailReservationController extends GetxController {
               ),
             ),
             const Divider(height: 1),
-            Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.all(20),
-                itemCount: reviews.length,
-                separatorBuilder: (_, i) => const SizedBox(height: 12),
-                itemBuilder: (_, i) => _ReviewTile(data: reviews[i]),
-              ),
-            ),
+            reviews.isEmpty
+                ? const Expanded(
+                    child: Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(24),
+                        child: Text(
+                          'Aucun avis disponible pour ce conducteur.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              fontSize: 14, color: Color(0xFF6B7280)),
+                        ),
+                      ),
+                    ),
+                  )
+                : Expanded(
+                    child: ListView.separated(
+                      padding: const EdgeInsets.all(20),
+                      itemCount: reviews.length,
+                      separatorBuilder: (_, i) => const SizedBox(height: 12),
+                      itemBuilder: (_, i) => _ReviewTile(data: reviews[i]),
+                    ),
+                  ),
           ],
         ),
       ),
@@ -303,32 +733,6 @@ class DetailReservationController extends GetxController {
     );
   }
 
-  static const List<_ReviewTileData> _staticReviews = [
-    _ReviewTileData(
-        name: 'Aminata K.',
-        initial: 'A',
-        rating: 5,
-        date: 'Il y a 2 jours',
-        comment: 'Excellente conduite, très ponctuel et sympathique !'),
-    _ReviewTileData(
-        name: 'Kwame A.',
-        initial: 'K',
-        rating: 5,
-        date: 'Il y a 1 semaine',
-        comment: 'Trajet confortable, voiture propre. Je recommande.'),
-    _ReviewTileData(
-        name: 'Fatou D.',
-        initial: 'F',
-        rating: 4,
-        date: 'Il y a 2 semaines',
-        comment: 'Bon conducteur, léger retard au départ mais trajet agréable.'),
-    _ReviewTileData(
-        name: 'Mariam Y.',
-        initial: 'M',
-        rating: 5,
-        date: 'Il y a 1 mois',
-        comment: 'Parfait ! Conduite douce et sécurisée.'),
-  ];
 }
 
 class _ReviewTileData {

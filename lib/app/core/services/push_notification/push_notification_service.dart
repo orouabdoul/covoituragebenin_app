@@ -400,7 +400,7 @@ class PushNotificationService {
       case 'reservation_accepted':
         Get.toNamed(
           AppRoutes.passengerWaitingApproval,
-          arguments: bookingUuid != null ? {'booking_uuid': bookingUuid} : null,
+          arguments: bookingUuid != null ? {'bookingUuid': bookingUuid} : null,
         );
 
       case 'reservation_rejected':

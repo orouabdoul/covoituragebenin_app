@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
+import 'package:covoiturage_benin_app/app/core/services/push_notification/push_notification_service.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -62,6 +63,11 @@ class SplashController extends GetxController {
 			Get.offAllNamed(AppRoutes.register);
 			return;
 		}
+
+		// Ré-enregistrer le token FCM à chaque démarrage :
+		// Firebase peut renouveler le token entre deux sessions → le backend
+		// aurait un token périmé et ne pourrait plus envoyer de notifications.
+		PushNotificationService.instance.registerFcmToken();
 
 		final isDriver = uc.role.value == 'driver' || uc.role.value == 'conducteur';
 		Get.offAllNamed(

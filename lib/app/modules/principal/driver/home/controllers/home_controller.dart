@@ -771,6 +771,7 @@ class DriverHomeController extends GetxController {
       UIHelper().showSnackBar('MINIZON', 'Erreur de mise à jour de la disponibilité.', 2);
     } else {
       availabilityMode.value = result.data!.mode;
+      AppSync.i.refreshDriverDashboard();
     }
   }
 

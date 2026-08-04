@@ -1,10 +1,9 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/passenger_reservation_service.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/passager/reservation/controllers/reservation_controller.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
@@ -28,14 +27,13 @@ class PaymentWebviewController extends GetxController {
   int _amount = 0;
   int _seats = 0;
 
-  Timer? _pollingTimer;
-  int _pollCount = 0;
+  // Verrous : un seul polling possible, une seule navigation possible
+  bool _pollingStarted = false;
   bool _navigationDone = false;
+  bool _closed = false;
 
-  // Max 40 polls × 3s = 120s, then show timeout message
-  static const int _maxPolls = 40;
+  static const int _maxPolls = 15; // 15 × 3s = 45s max
 
-  // Chrome mobile user-agent to avoid FedaPay detecting WebView
   static const String _mobileUserAgent =
       'Mozilla/5.0 (Linux; Android 13; Pixel 7) '
       'AppleWebKit/537.36 (KHTML, like Gecko) '
@@ -96,7 +94,7 @@ class PaymentWebviewController extends GetxController {
     super.onInit();
     final dynamic args = Get.arguments;
     if (args is Map<String, dynamic>) {
-      _paymentUrl = (args['paymentUrl'] as String?) ?? '';
+      _paymentUrl  = (args['paymentUrl']  as String?) ?? '';
       _paymentUuid = (args['paymentUuid'] as String?) ?? '';
       _bookingUuid = (args['bookingUuid'] as String?) ?? '';
       final r = args['ride'];
@@ -138,6 +136,16 @@ class PaymentWebviewController extends GetxController {
           },
           onNavigationRequest: (NavigationRequest req) {
             final url = req.url;
+            if (url.contains('/payment/return')) {
+              final uri = Uri.tryParse(url);
+              final status = uri?.queryParameters['status']?.toLowerCase() ?? '';
+              if (status == 'approved' || status == 'success') {
+                _onFedapayComplete(fromUrlRedirect: true);
+              } else {
+                _onFedapayFailed();
+              }
+              return NavigationDecision.prevent;
+            }
             if (url.startsWith('http://') || url.startsWith('https://')) {
               _detectResult(url);
               return NavigationDecision.navigate;
@@ -168,13 +176,14 @@ class PaymentWebviewController extends GetxController {
         lower.contains('status=success') ||
         lower.contains('transaction=success') ||
         lower.contains('payment=success')) {
-      _onFedapayComplete();
+      _onFedapayComplete(fromUrlRedirect: true);
       return;
     }
     if (lower.contains('/payment/failed') ||
         lower.contains('/checkout/failed') ||
         lower.contains('/pay/failed') ||
         lower.contains('status=failed') ||
+        lower.contains('status=declined') ||
         lower.contains('status=cancelled') ||
         lower.contains('status=canceled') ||
         lower.contains('payment=failed') ||
@@ -183,80 +192,91 @@ class PaymentWebviewController extends GetxController {
     }
   }
 
-  // ── Step 4: Poll payment status until backend confirms ────────────────────
+  // ── FedaPay completion handlers ───────────────────────────────────────────
 
-  void _onFedapayComplete() {
+  /// [fromUrlRedirect] = true quand FedaPay a redirigé vers /payment/return?status=approved
+  /// → confirmation directe FedaPay, prioritaire sur le polling en cours
+  void _onFedapayComplete({bool fromUrlRedirect = false}) {
     if (_navigationDone) return;
-    if (_paymentUuid.isNotEmpty) {
-      _startPolling();
-    } else {
-      // No paymentUuid — navigate directly (fallback)
+    if (fromUrlRedirect) {
+      // FedaPay confirme le paiement via URL → succès immédiat, annule tout polling
+      isPolling.value = false;
       _doNavigateSuccess();
+    } else if (!_pollingStarted) {
+      if (_paymentUuid.isNotEmpty) {
+        _startPolling();
+      } else {
+        _doNavigateSuccess();
+      }
     }
   }
 
   void _onFedapayFailed() {
-    _cancelPolling();
+    if (_navigationDone) return;
+    _navigationDone = true;
     Get.back();
   }
 
+  // ── Polling for-loop : 15 × 3s = 45s max ─────────────────────────────────
+
   void _startPolling() {
-    if (_navigationDone) return;
-    if (_pollingTimer?.isActive ?? false) return;
+    if (_pollingStarted) return;
+    _pollingStarted = true;
     isPolling.value = true;
-    _pollCount = 0;
-    _pollingTimer =
-        Timer.periodic(const Duration(seconds: 3), (_) => _pollOnce());
-    _pollOnce(); // immediate first poll
+    _runPollLoop();
   }
 
-  Future<void> _pollOnce() async {
-    if (_navigationDone) {
-      _cancelPolling();
-      return;
+  Future<void> _runPollLoop() async {
+    for (int i = 0; i < _maxPolls; i++) {
+      await Future.delayed(const Duration(seconds: 3));
+      if (_closed || _navigationDone) return;
+
+      logger.d('paymentPolling[${i + 1}/$_maxPolls] uuid=$_paymentUuid');
+      final result = await _service.fetchPaymentStatus(_paymentUuid);
+      if (_closed || _navigationDone) return;
+      if (!result.isSuccess) continue;
+
+      final data = result.data!;
+      logger.d('paymentPolling status=${data.status}');
+
+      switch (data.status) {
+        case 'locked':
+        case 'success':
+          isPolling.value = false;
+          _doNavigateSuccess(
+            transactionRef: data.transactionRef.isNotEmpty ? data.transactionRef : null,
+            amount: data.grossAmount > 0 ? data.grossAmount : null,
+          );
+          return;
+        case 'failed':
+          isPolling.value = false;
+          UIHelper().showSnackBar('MINIZON', 'Paiement refusé. Veuillez réessayer.', 3);
+          _navigationDone = true;
+          Get.back();
+          return;
+        default:
+          continue; // pending → continuer
+      }
     }
-    _pollCount++;
-    if (_pollCount > _maxPolls) {
-      _cancelPolling();
-      logger.w('paymentPolling: timeout after ${_maxPolls * 3}s');
+
+    // Timeout après 45s
+    isPolling.value = false;
+    if (!_closed && !_navigationDone) {
       UIHelper().showSnackBar(
         'MINIZON',
         'En attente de confirmation du paiement. Vérifiez vos réservations dans quelques instants.',
         5,
       );
-      return;
     }
-
-    logger.d('paymentPolling[$_pollCount] uuid=$_paymentUuid');
-    final result = await _service.fetchPaymentStatus(_paymentUuid);
-    if (!result.isSuccess) return; // network error — keep polling
-
-    final data = result.data!;
-    logger.d('paymentPolling status=${data.status}');
-
-    if (data.status == 'locked' || data.status == 'success') {
-      _cancelPolling();
-      _doNavigateSuccess(
-        transactionRef: data.transactionRef.isNotEmpty ? data.transactionRef : null,
-        amount: data.grossAmount > 0 ? data.grossAmount : null,
-      );
-    } else if (data.status == 'failed') {
-      _cancelPolling();
-      UIHelper().showSnackBar(
-          'MINIZON', 'Paiement échoué. Veuillez réessayer.', 3);
-    }
-    // 'pending' → keep polling
-  }
-
-  void _cancelPolling() {
-    _pollingTimer?.cancel();
-    isPolling.value = false;
   }
 
   void _doNavigateSuccess({String? transactionRef, int? amount}) {
     if (_navigationDone) return;
     _navigationDone = true;
-    _cancelPolling();
+    // Mise à jour optimiste : marque la réservation comme payée immédiatement
+    if (_bookingUuid.isNotEmpty && Get.isRegistered<ReservationController>()) {
+      Get.find<ReservationController>().markBookingAsPaid(_bookingUuid);
+    }
     Get.offNamed(AppRoutes.passengerPaymentSuccess, arguments: {
       'ride': _ride,
       'bookingUuid': _bookingUuid,
@@ -268,7 +288,7 @@ class PaymentWebviewController extends GetxController {
 
   void reload() {
     hasError.value = false;
-    _cancelPolling();
+    _pollingStarted = false;
     _navigationDone = false;
     if (_paymentUrl.isNotEmpty) {
       webViewController.loadRequest(Uri.parse(_paymentUrl));
@@ -277,7 +297,8 @@ class PaymentWebviewController extends GetxController {
 
   @override
   void onClose() {
-    _cancelPolling();
+    _closed = true;
+    isPolling.value = false;
     super.onClose();
   }
 }

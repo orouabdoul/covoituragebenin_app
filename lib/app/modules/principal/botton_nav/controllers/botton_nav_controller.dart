@@ -5,10 +5,10 @@ import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
+import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import 'package:covoiturage_benin_app/app/core/services/auth/auth_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
-import 'package:covoiturage_benin_app/app/modules/principal/driver/home/controllers/home_controller.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/driver/home/views/home_view.dart'
     as driver_home;
 import 'package:covoiturage_benin_app/app/modules/principal/driver/messager/views/messager_view.dart'
@@ -31,7 +31,7 @@ import 'package:covoiturage_benin_app/app/modules/principal/passager/profil/view
     as passenger_profile;
 import 'botton_nav_role.dart';
 
-class BottonNavController extends GetxController {
+class BottonNavController extends GetxController with WidgetsBindingObserver {
   BottonNavController({required this.role});
 
   final BottonNavRole role;
@@ -109,8 +109,18 @@ class BottonNavController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    WidgetsBinding.instance.addObserver(this);
     currentIndex.value = _resolveInitialIndex();
     _initialStatusCheck();
+  }
+
+  /// Déclenché quand l'app revient au premier plan (swipe depuis l'écran d'accueil,
+  /// retour depuis une autre app, verrouillage/déverrouillage).
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refreshCurrentRole();
+    }
   }
 
   Future<void> _initialStatusCheck() async {
@@ -143,10 +153,34 @@ class BottonNavController extends GetxController {
   void onTabSelected(int index) {
     if (currentIndex.value == index) return;
     currentIndex.value = index;
-    if (role == BottonNavRole.driver && index == 0) {
-      if (Get.isRegistered<DriverHomeController>()) {
-        Get.find<DriverHomeController>().refresh();
+    _refreshForTab(index);
+  }
+
+  /// Rafraîchit l'onglet actuellement visible (appelé par AppSyncRouteObserver).
+  void refreshCurrentTab() => _refreshForTab(currentIndex.value);
+
+  /// Déclenche la synchronisation appropriée selon le rôle et l'onglet sélectionné.
+  void _refreshForTab(int index) {
+    if (role == BottonNavRole.driver) {
+      switch (index) {
+        case 0: AppSync.i.refreshDriverDashboard(); break; // Accueil conducteur
+        case 1: AppSync.i.refreshDriverTrips();     break; // Mes trajets
+        case 2: AppSync.i.refreshDriverDashboard(); break; // Revenus (lié au dashboard)
       }
+    } else {
+      switch (index) {
+        case 0: AppSync.i.refreshPassenger(); break; // Accueil passager
+        case 2: AppSync.i.refreshPassenger(); break; // Mes réservations
+      }
+    }
+  }
+
+  /// Rafraîchit toutes les données du rôle actuel (utilisé au resume).
+  void _refreshCurrentRole() {
+    if (role == BottonNavRole.driver) {
+      AppSync.i.refreshDriver();
+    } else {
+      AppSync.i.refreshPassenger();
     }
   }
 
@@ -236,6 +270,7 @@ class BottonNavController extends GetxController {
 
   @override
   void onClose() {
+    WidgetsBinding.instance.removeObserver(this);
     _verificationTimer?.cancel();
     super.onClose();
   }

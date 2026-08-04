@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
@@ -11,6 +12,7 @@ import 'package:covoiturage_benin_app/app/data/models/passenger/reservations_mod
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/passager/messager/controllers/messager_controller.dart';
+import '../../search/controllers/search_controller.dart';
 
 enum ReservationStatus { pending, confirmed, inProgress, completed, cancelled }
 
@@ -31,10 +33,21 @@ class ReservationController extends GetxController {
 
 	final RxList<ReservationItem> _allReservations = <ReservationItem>[].obs;
 
+	// UUIDs des réservations confirmées payées localement — survit aux refetchs ET aux redémarrages
+	final Set<String> _confirmedPaidIds = {};
+	static const _kPaidIdsKey = 'confirmed_paid_booking_ids';
+	// Bloque _fetch() via ever() jusqu'à ce que les IDs persistés soient chargés
+	bool _idsLoaded = false;
+
 	String? activeTripUuid;
 
+	List<ReservationItem> get allReservations => List.unmodifiable(_allReservations);
+	RxList<ReservationItem> get reservationsList => _allReservations;
+
 	List<ReservationItem> get filteredReservations {
-		final selected = statusTabs[selectedStatusIndex.value].status;
+		if (statusTabs.isEmpty) return [];
+		final idx = selectedStatusIndex.value.clamp(0, statusTabs.length - 1);
+		final selected = statusTabs[idx].status;
 		return _allReservations.where((r) => r.status == selected).toList();
 	}
 
@@ -49,8 +62,34 @@ class ReservationController extends GetxController {
 	@override
 	void onInit() {
 		super.onInit();
-		_fetch();
-		ever(AppSync.i.passengerData, (_) => _fetch());
+		// Charger les IDs persistés AVANT le premier fetch pour éviter la race condition
+		_loadPersistedPaidIds().then((_) {
+			_idsLoaded = true;
+			_fetch();
+		});
+		// ever() peut se déclencher avant _loadPersistedPaidIds() — on attend le flag
+		ever(AppSync.i.passengerData, (_) {
+			if (_idsLoaded) _fetch();
+		});
+	}
+
+	Future<void> _loadPersistedPaidIds() async {
+		try {
+			final prefs = await SharedPreferences.getInstance();
+			final ids = prefs.getStringList(_kPaidIdsKey) ?? [];
+			_confirmedPaidIds.addAll(ids);
+		} catch (_) {}
+	}
+
+	Future<void> _persistPaidIds() async {
+		try {
+			final prefs = await SharedPreferences.getInstance();
+			if (_confirmedPaidIds.isEmpty) {
+				await prefs.remove(_kPaidIdsKey);
+			} else {
+				await prefs.setStringList(_kPaidIdsKey, _confirmedPaidIds.toList());
+			}
+		} catch (_) {}
 	}
 
 	@override
@@ -63,9 +102,12 @@ class ReservationController extends GetxController {
 		isLoading.value = false;
 		if (result.isSuccess) {
 			final page = result.data!;
+			debugPrint('📋 reservations: ${page.items.length} items, statuses=${page.items.map((i) => i.status).toList()}');
+			debugPrint('📋 status_tabs=${page.statusTabs.map((t) => "${t.status}(${t.count})").toList()}');
 			activeTripUuid = page.activeTrip?.uuid;
 			_applyStatusTabs(page.statusTabs);
 			_allReservations.assignAll(page.items.map(_mapItem).toList());
+			_updateTabCounts();
 		} else {
 			hasError.value = true;
 			if (result.error != AppError.socket) {
@@ -74,19 +116,57 @@ class ReservationController extends GetxController {
 		}
 	}
 
+	// Garantit que les 5 statuts sont toujours représentés, même si l'API n'en retourne pas.
 	void _applyStatusTabs(List<ReservationStatusTabApi> apiTabs) {
-		if (apiTabs.isEmpty) return;
-		final mapped = apiTabs.map((t) => ReservationStatusTab(
-			label: t.count > 0 ? '${t.label} (${t.count})' : t.label,
-			status: _parseStatus(t.status),
-		)).toList();
-		statusTabs.assignAll(mapped);
+		final apiByStatus = <ReservationStatus, ReservationStatusTabApi>{};
+		for (final t in apiTabs) {
+			apiByStatus.putIfAbsent(_parseStatus(t.status), () => t);
+		}
+
+		const defaults = <(ReservationStatus, String)>[
+			(ReservationStatus.pending,    'En attente'),
+			(ReservationStatus.confirmed,  'Confirmé'),
+			(ReservationStatus.inProgress, 'En cours'),
+			(ReservationStatus.completed,  'Terminé'),
+			(ReservationStatus.cancelled,  'Annulé'),
+		];
+
+		final merged = defaults.map((entry) {
+			final status = entry.$1;
+			final defaultLabel = entry.$2;
+			final api = apiByStatus[status];
+			if (api != null) {
+				return ReservationStatusTab(
+					label: api.count > 0 ? '${api.label} (${api.count})' : api.label,
+					status: status,
+				);
+			}
+			return ReservationStatusTab(label: defaultLabel, status: status);
+		}).toList();
+
+		statusTabs.assignAll(merged);
+
+		if (selectedStatusIndex.value >= merged.length) {
+			selectedStatusIndex.value = 0;
+		}
 	}
 
-	static String _fmtPrice(int value) {
-		final s = value.toString().replaceAllMapped(
-			RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ' ');
-		return '$s FCFA';
+	// Recalcule les comptes par statut depuis les items réels pour corriger l'affichage.
+	void _updateTabCounts() {
+		final counts = <ReservationStatus, int>{};
+		for (final item in _allReservations) {
+			counts[item.status] = (counts[item.status] ?? 0) + 1;
+		}
+		final updated = statusTabs.map((tab) {
+			final n = counts[tab.status] ?? 0;
+			// Extraire le label sans le count existant pour le reformater
+			final baseLabel = tab.label.replaceAll(RegExp(r' \(\d+\)$'), '');
+			return ReservationStatusTab(
+				label: n > 0 ? '$baseLabel ($n)' : baseLabel,
+				status: tab.status,
+			);
+		}).toList();
+		statusTabs.assignAll(updated);
 	}
 
 	ReservationItem _mapItem(ReservationApiItem a) {
@@ -102,6 +182,13 @@ class ReservationController extends GetxController {
 		final displayPrice = (bd != null && bd.totalFmt.isNotEmpty)
 				? bd.totalFmt
 				: a.totalPrice;
+		final locallyPaid = _confirmedPaidIds.contains(a.uuid);
+		final backendPaid = a.isPaid || a.paymentStatus == 'escrow_locked';
+		if (locallyPaid && backendPaid) {
+			_confirmedPaidIds.remove(a.uuid);
+			_persistPaidIds(); // nettoyage du stockage une fois le backend à jour
+		}
+		final effectivelyPaid = locallyPaid || backendPaid;
 		return ReservationItem(
 			id: a.uuid,
 			driverName: a.driverName,
@@ -126,7 +213,7 @@ class ReservationController extends GetxController {
 			seatsCount: a.seatsCount,
 			minutesUntilDeparture: a.etaMinutes ?? 0,
 			status: _parseStatus(a.status),
-			isPaid: a.isPaid,
+			isPaid: effectivelyPaid,
 			hasRated: a.hasRated,
 			cancelReason: a.cancelReason,
 			refundStatus: _parseRefundStatus(a.refundStatus),
@@ -137,6 +224,7 @@ class ReservationController extends GetxController {
 			tripUuid: a.tripUuid,
 			passengerDistanceKm: a.passengerDistanceKm,
 			priceBreakdown: a.priceBreakdown,
+			paymentStatus: effectivelyPaid ? 'escrow_locked' : a.paymentStatus,
 		);
 	}
 
@@ -163,6 +251,18 @@ class ReservationController extends GetxController {
 
 	void selectStatus(int index) => selectedStatusIndex.value = index;
 
+	void markBookingAsPaid(String bookingUuid) {
+		_confirmedPaidIds.add(bookingUuid);
+		_persistPaidIds(); // persister immédiatement pour survivre au redémarrage
+		final idx = _allReservations.indexWhere((item) => item.id == bookingUuid);
+		if (idx >= 0) {
+			_allReservations[idx] = _allReservations[idx].copyWith(
+				isPaid: true,
+				paymentStatus: 'escrow_locked',
+			);
+		}
+	}
+
 	void markAsRated(String bookingUuid) {
 		final idx = _allReservations.indexWhere((item) => item.id == bookingUuid);
 		if (idx >= 0) {
@@ -173,11 +273,39 @@ class ReservationController extends GetxController {
 	void viewDetails(ReservationItem r) =>
 			Get.toNamed(AppRoutes.passengerReservationDetail, arguments: r);
 
-	void payNow(ReservationItem r) =>
-			Get.toNamed(AppRoutes.passengerReservationPayment, arguments: {
-				'bookingUuid': r.id,
-				'seats': r.seatsCount,
-			})?.then((_) => _fetch());
+	void payNow(ReservationItem r) {
+		final bd = r.priceBreakdown;
+		final totalAmount = (bd != null && bd.total > 0) ? bd.total : r.totalPriceValue;
+		final ride = SearchRide(
+			// uuid vide intentionnellement : évite _fetchContext qui recalcule
+			// le prix via commission et écrase _argsTotalAmount
+			driverName: r.driverName,
+			driverInitials: r.driverInitials,
+			rating: r.rating,
+			reviewCount: r.reviewCount,
+			vehicle: r.vehicle,
+			vehiclePlate: r.vehiclePlate,
+			price: r.totalPrice,
+			priceValue: totalAmount,
+			origin: r.departureCity.isNotEmpty ? r.departureCity : r.tripOrigin,
+			destination: r.arrivalCity.isNotEmpty ? r.arrivalCity : r.tripDestination,
+			departureTime: r.departureTime,
+			departureNote: r.departureNote,
+			arrivalTime: '',
+			arrivalNote: r.arrivalNote,
+			duration: '',
+			seatsAvailable: r.seatsCount,
+			minutesUntilDeparture: r.minutesUntilDeparture,
+			isVerified: false,
+		);
+		Get.toNamed(AppRoutes.passengerReservationPayment, arguments: {
+			'ride': ride,
+			'seats': r.seatsCount,
+			'bookingUuid': r.id,
+			'totalAmount': totalAmount,
+			'paymentStatus': r.paymentStatus,
+		})?.then((_) => _fetch());
+	}
 
 	void contactDriver(ReservationItem r) =>
 			MessagerController.openDriverChat(
@@ -253,7 +381,7 @@ class ReservationController extends GetxController {
 			3,
 		);
 		onSuccess?.call();
-		_fetch();
+		AppSync.i.refreshPassenger();
 	}
 
 	String _formatPrice(int value) {
@@ -683,6 +811,7 @@ class ReservationItem {
 		this.tripUuid,
 		this.passengerDistanceKm,
 		this.priceBreakdown,
+		this.paymentStatus = 'unpaid',
 	});
 
 	final String id;
@@ -723,6 +852,7 @@ class ReservationItem {
 	final String? tripUuid;
 	final double? passengerDistanceKm;
 	final PriceBreakdown? priceBreakdown;
+	final String  paymentStatus; // 'unpaid' | 'escrow_locked' | 'released'
 
 	// Alias pour compatibilité avec le code existant
 	String get pickupCity => departureCity;
@@ -746,6 +876,7 @@ class ReservationItem {
 		String? cancelReason,
 		RefundStatus? refundStatus,
 		String? conversationUuid,
+		String? paymentStatus,
 	}) {
 		return ReservationItem(
 			id: id,
@@ -783,6 +914,7 @@ class ReservationItem {
 			tripUuid: tripUuid,
 			passengerDistanceKm: passengerDistanceKm,
 			priceBreakdown: priceBreakdown,
+			paymentStatus: paymentStatus ?? this.paymentStatus,
 		);
 	}
 }
