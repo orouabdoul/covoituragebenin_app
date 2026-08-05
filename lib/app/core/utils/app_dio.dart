@@ -13,6 +13,7 @@ class AppDio {
       receiveTimeout: const Duration(seconds: 30),
       headers: {'Accept': 'application/json'},
     ));
+    dio.transformer = BackgroundTransformer();
     dio.interceptors.add(_AccountStatusInterceptor());
     return dio;
   }

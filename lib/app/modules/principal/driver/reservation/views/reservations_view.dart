@@ -351,7 +351,24 @@ class _ReservationCard extends StatelessWidget {
 
                   SizedBox(height: r.h(12)),
                   Divider(color: AppColors.border, height: 1),
-                  SizedBox(height: r.h(12)),
+                  SizedBox(height: r.h(10)),
+
+                  // ── Date du trajet ───────────────────────────────────
+                  if (request.departureDate.isNotEmpty)
+                    Padding(
+                      padding: EdgeInsets.only(bottom: r.h(10)),
+                      child: Row(
+                        children: [
+                          Icon(Icons.calendar_today_rounded,
+                              size: r.text(13), color: AppColors.textMuted),
+                          SizedBox(width: r.w(5)),
+                          Text(request.departureDate,
+                              style: AppTextStyles.bodySmall(r).copyWith(
+                                  color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ),
 
                   // ── Route info ───────────────────────────────────────
                   _RouteRow(r: r, request: request),

@@ -34,6 +34,7 @@ class LiveReservationRequest {
     required this.amount,
     required this.paymentConfirmed,
     required this.expiresInSeconds,
+    required this.departureDate,
     this.status = ReservationStatus.pending,
     this.phone,
     this.conversationUuid,
@@ -52,6 +53,7 @@ class LiveReservationRequest {
   final double amount;
   final bool paymentConfirmed;
   final int expiresInSeconds;
+  final String departureDate;
   final String? phone;
   final String? conversationUuid;
   ReservationStatus status;
@@ -94,6 +96,11 @@ class LiveReservationRequest {
       } catch (_) {}
     }
 
+    final rawPaymentStatus = json['payment_status']?.toString() ?? '';
+    final paymentConfirmed = (json['is_paid'] as bool? ?? false) ||
+        rawPaymentStatus == 'escrow_locked' ||
+        rawPaymentStatus == 'released_to_driver';
+
     return LiveReservationRequest(
       id:               json['uuid'] as String? ?? json['id'].toString(),
       passengerName:    name,
@@ -106,12 +113,31 @@ class LiveReservationRequest {
       dropoffPoint:     dropoffPoint,
       seats:            seats,
       amount:           calculatedPrice,
-      paymentConfirmed: json['payment_status'] == 'escrow_locked',
+      paymentConfirmed: paymentConfirmed,
       expiresInSeconds: expiresIn,
+      departureDate:    _formatDate(
+                          json['departure_time'] as String? ??
+                          json['departure_date'] as String? ??
+                          json['created_at']     as String? ?? ''),
       status:           _parseStatus(json['status'] as String? ?? 'pending'),
       phone:            json['passenger_phone'] as String?,
       conversationUuid: json['conversation_uuid'] as String?,
     );
+  }
+
+  static String _formatDate(String raw) {
+    if (raw.isEmpty) return '';
+    try {
+      final dt = DateTime.parse(raw).toLocal();
+      const jours = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+      const mois  = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin',
+                     'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+      final h = dt.hour.toString().padLeft(2, '0');
+      final m = dt.minute.toString().padLeft(2, '0');
+      return '${jours[dt.weekday - 1]}. ${dt.day} ${mois[dt.month - 1]} · $h:$m';
+    } catch (_) {
+      return '';
+    }
   }
 
   static String _resolvePoint(String? point, String? neighborhood, String city) {
