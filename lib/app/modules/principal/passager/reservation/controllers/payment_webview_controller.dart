@@ -282,7 +282,7 @@ class PaymentWebviewController extends GetxController {
       'bookingUuid': _bookingUuid,
       'seats': _seats,
       'amount': amount ?? _amount,
-      if (transactionRef != null) 'ref': transactionRef,
+      'ref': ?transactionRef,
     });
   }
 

@@ -1180,13 +1180,11 @@ class _DetailRow extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.value,
-    this.valueColor,
   });
 
   final IconData icon;
   final String label;
   final String value;
-  final Color? valueColor;
 
   @override
   Widget build(BuildContext context) {
@@ -1203,7 +1201,7 @@ class _DetailRow extends StatelessWidget {
           style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: valueColor ?? const Color(0xFF111827)),
+              color: const Color(0xFF111827)),
         ),
       ],
     );

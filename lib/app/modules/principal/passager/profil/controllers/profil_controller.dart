@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
@@ -474,7 +475,7 @@ class _AddContactSheetState extends State<_AddContactSheet> {
                         color: AppColors.textSecondary)),
                 SizedBox(height: responsive.h(6)),
                 DropdownButtonFormField<String>(
-                  value: _selectedRelation,
+                  initialValue: _selectedRelation,
                   isDense: true,
                   style: AppTextStyles.body(responsive)
                       .copyWith(color: AppColors.textPrimary),
@@ -584,13 +585,11 @@ class _Field extends StatelessWidget {
   const _Field({
     required this.label, required this.controller,
     required this.hint, required this.responsive,
-    this.keyboardType = TextInputType.text,
   });
   final String label;
   final TextEditingController controller;
   final String hint;
   final AppResponsive responsive;
-  final TextInputType keyboardType;
 
   @override
   Widget build(BuildContext context) {
@@ -604,7 +603,6 @@ class _Field extends StatelessWidget {
         SizedBox(height: responsive.h(6)),
         TextField(
           controller: controller,
-          keyboardType: keyboardType,
           style: AppTextStyles.body(responsive),
           decoration: InputDecoration(
             hintText: hint,

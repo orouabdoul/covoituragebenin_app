@@ -25,7 +25,7 @@ class PassengerSearchServiceImpl implements PassengerSearchService {
       final params = <String, dynamic>{
         if (origin.isNotEmpty) 'origin': origin,
         if (destination.isNotEmpty) 'destination': destination,
-        if (date != null) 'date': date,
+        'date': ?date,
         if (passengers != null && passengers > 0) 'passengers': passengers,
         if (maxPrice != null && maxPrice < 999999) 'max_price': maxPrice,
       };

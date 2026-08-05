@@ -4,6 +4,7 @@ import 'package:flutter/material.dart' hide SearchController;
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
+import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
@@ -75,6 +76,10 @@ class HomeController extends GetxController {
     if (result.isSuccess) {
       _applyDashboard(result.data!);
     } else {
+      if (result.error == AppError.unAuthenticated) {
+        await Get.find<BottonNavController>().logoutAndRedirect();
+        return;
+      }
       hasLoadError.value = true;
       logger.e('passengerHome: ${result.error}');
     }

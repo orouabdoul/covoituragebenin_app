@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
@@ -23,6 +25,11 @@ class AppDio {
       case DioExceptionType.sendTimeout:
       case DioExceptionType.connectionError:
         return AppError.socket;
+      case DioExceptionType.unknown:
+        if (e.error is SocketException || e.error is HttpException) {
+          return AppError.socket;
+        }
+        return AppError.unexpected;
       default:
         return AppError.unexpected;
     }
