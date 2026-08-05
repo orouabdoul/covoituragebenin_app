@@ -248,23 +248,28 @@ class _FilterChip extends StatelessWidget {
 									),
 								),
 							),
-							SizedBox(width: responsive.w(6)),
+							SizedBox(width: responsive.w(4)),
 							Opacity(
 								opacity: selected ? 0.75 : 1,
 								child: Container(
-									padding: EdgeInsets.symmetric(horizontal: responsive.w(6), vertical: responsive.h(2)),
+									constraints: BoxConstraints(maxWidth: responsive.w(44)),
+									padding: EdgeInsets.symmetric(horizontal: responsive.w(5), vertical: responsive.h(2)),
 									decoration: ShapeDecoration(
 										shape: RoundedRectangleBorder(
 											side: const BorderSide(color: AppColors.border),
 											borderRadius: BorderRadius.circular(9999),
 										),
 									),
-									child: Text(
-										summary.count,
-										style: AppTextStyles.caption(responsive).copyWith(
-											color: chipTextColor,
-											fontSize: responsive.text(12),
-											fontWeight: FontWeight.w600,
+									child: FittedBox(
+										fit: BoxFit.scaleDown,
+										child: Text(
+											summary.count,
+											maxLines: 1,
+											style: AppTextStyles.caption(responsive).copyWith(
+												color: chipTextColor,
+												fontSize: responsive.text(12),
+												fontWeight: FontWeight.w600,
+											),
 										),
 									),
 								),
@@ -535,7 +540,7 @@ class _TripCard extends StatelessWidget {
 					),
 				],
 			),
-		),
+			),
 		);
 	}
 }

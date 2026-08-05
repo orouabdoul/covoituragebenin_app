@@ -111,6 +111,7 @@ class MessagerController extends GetxController {
     String tripRoute = '',
     String conversationUuid = '',
     String bookingUuid = '',
+    String prefilledMessage = '',
   }) {
     final preview = MessengerThreadModel(
       uuid: conversationUuid,
@@ -135,6 +136,7 @@ class MessagerController extends GetxController {
         'uuid': conversationUuid,
         'booking_uuid': bookingUuid,
         'thread': preview,
+        if (prefilledMessage.isNotEmpty) 'pending_message': prefilledMessage,
       },
     );
   }

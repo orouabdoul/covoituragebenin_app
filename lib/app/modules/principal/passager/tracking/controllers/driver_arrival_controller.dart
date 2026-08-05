@@ -5,7 +5,11 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:get/get.dart';
 import 'package:latlong2/latlong.dart';
 
+import 'package:covoiturage_benin_app/app/core/services/passenger/messaging/passenger_messaging_service.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
+import '../../messager/controllers/messager_controller.dart';
+import '../../reservation/controllers/reservation_controller.dart'
+    show ReservationController, ReservationItem, ReservationStatus;
 import '../../search/controllers/search_controller.dart';
 
 enum DriverArrivalStatus { onTheWay, arriving, arrived }
@@ -55,21 +59,35 @@ class DriverArrivalController extends GetxController {
   ];
 
   Timer? _etaTimer;
+  String _bookingUuid      = '';
+  String _conversationUuid = '';
+  String _driverName       = '';
+  String _tripRoute        = '';
+  bool   _isSendingMsg     = false;
 
   @override
   void onInit() {
     super.onInit();
     final dynamic savedArgs = Get.arguments;
 
-    // Extraire ville départ/arrivée depuis les arguments (synchrone)
+    // Extraire ville départ/arrivée + infos booking depuis les arguments
     String origin      = 'Cotonou';
     String destination = 'Porto-Novo';
     if (savedArgs is Map<String, dynamic>) {
       final r = savedArgs['ride'];
       if (r is SearchRide) {
-        origin      = r.origin;
-        destination = r.destination;
+        origin          = r.origin;
+        destination     = r.destination;
+        _driverName     = r.driverName;
       }
+      final bu = savedArgs['bookingUuid'];
+      if (bu is String && bu.isNotEmpty) _bookingUuid = bu;
+      final cu = savedArgs['conversationUuid'];
+      if (cu is String && cu.isNotEmpty) _conversationUuid = cu;
+      final dn = savedArgs['driverName'];
+      if (dn is String && dn.isNotEmpty) _driverName = dn;
+      final tr = savedArgs['tripRoute'];
+      if (tr is String && tr.isNotEmpty) _tripRoute = tr;
     }
 
     // Calculer les coordonnées
@@ -91,7 +109,11 @@ class DriverArrivalController extends GetxController {
     SchedulerBinding.instance.addPostFrameCallback((_) {
       if (savedArgs is Map<String, dynamic>) {
         final r = savedArgs['ride'];
-        if (r is SearchRide) ride.value = r;
+        if (r is SearchRide) {
+          ride.value = r;
+          if (_driverName.isEmpty) _driverName = r.driverName;
+          if (_tripRoute.isEmpty) _tripRoute = '${r.origin} → ${r.destination}';
+        }
       }
     });
   }
@@ -179,14 +201,92 @@ class DriverArrivalController extends GetxController {
         duration: const Duration(seconds: 2), snackPosition: SnackPosition.TOP);
   }
 
-  void sendMessage(String msg) {
-    Get.snackbar('Message envoyé', msg,
-        duration: const Duration(seconds: 2), snackPosition: SnackPosition.TOP);
+  Future<void> sendMessage(String msg) async {
+    if (_isSendingMsg) return;
+    _isSendingMsg = true;
+    try {
+      await _sendDirectMessage(msg);
+    } finally {
+      _isSendingMsg = false;
+    }
+  }
+
+  Future<void> _sendDirectMessage(String text) async {
+    // Fallback : chercher une réservation active si on n'a pas de bookingUuid
+    if (_bookingUuid.isEmpty) _resolveFromReservations();
+
+    if (_conversationUuid.isEmpty) {
+      if (_bookingUuid.isEmpty) {
+        Get.snackbar('Erreur', 'Impossible d\'envoyer le message.',
+            snackPosition: SnackPosition.TOP,
+            duration: const Duration(seconds: 2));
+        return;
+      }
+      final start = await Get.find<PassengerMessagingService>()
+          .startConversation(_bookingUuid);
+      if (!start.isSuccess) {
+        Get.snackbar('Erreur', 'Impossible d\'établir la conversation.',
+            snackPosition: SnackPosition.TOP,
+            duration: const Duration(seconds: 2));
+        return;
+      }
+      _conversationUuid = start.data!;
+    }
+
+    final result = await Get.find<PassengerMessagingService>()
+        .sendMessage(_conversationUuid, text);
+    if (result.isSuccess) {
+      Get.snackbar('Message envoyé', text,
+          snackPosition: SnackPosition.TOP,
+          duration: const Duration(seconds: 2));
+    } else {
+      Get.snackbar('Erreur', 'Message non envoyé. Réessayez.',
+          snackPosition: SnackPosition.TOP,
+          duration: const Duration(seconds: 2));
+    }
+  }
+
+  void _resolveFromReservations() {
+    if (!Get.isRegistered<ReservationController>()) return;
+    final rc = Get.find<ReservationController>();
+    ReservationItem? active;
+    for (final r in rc.allReservations) {
+      if (r.status == ReservationStatus.inProgress ||
+          r.status == ReservationStatus.confirmed) {
+        active = r;
+        break;
+      }
+    }
+    if (active == null) return;
+    _bookingUuid      = active.id;
+    _conversationUuid = active.conversationUuid;
+    if (_driverName.isEmpty) _driverName = active.driverName;
+    if (_tripRoute.isEmpty) {
+      _tripRoute = '${active.departureCity} → ${active.arrivalCity}';
+    }
+  }
+
+  void openChat() {
+    final r = ride.value;
+    MessagerController.openDriverChat(
+      driverName: _driverName.isNotEmpty
+          ? _driverName
+          : (r?.driverName ?? 'Conducteur'),
+      tripRoute: _tripRoute.isNotEmpty
+          ? _tripRoute
+          : (r != null ? '${r.origin} → ${r.destination}' : ''),
+      conversationUuid: _conversationUuid,
+      bookingUuid: _bookingUuid,
+    );
   }
 
   void goToLiveTracking() {
     _etaTimer?.cancel();
-    Get.toNamed(AppRoutes.passengerLiveTracking, arguments: {'ride': ride.value});
+    Get.toNamed(AppRoutes.passengerLiveTracking, arguments: {
+      'ride': ride.value,
+      if (_bookingUuid.isNotEmpty) 'bookingUuid': _bookingUuid,
+      if (_conversationUuid.isNotEmpty) 'conversationUuid': _conversationUuid,
+    });
   }
 
   @override

@@ -85,16 +85,38 @@ class PassengerStatsModel {
   final List<PassengerTopDriver> topDrivers;
   final String memberSince;
 
-  factory PassengerStatsModel.fromJson(Map<String, dynamic> j) =>
-      PassengerStatsModel(
-        bookings: PassengerStatsBookings.fromJson(
-            (j['bookings'] as Map<String, dynamic>?) ?? {}),
-        spending: PassengerStatsSpending.fromJson(
-            (j['spending'] as Map<String, dynamic>?) ?? {}),
-        topDrivers: (j['top_drivers'] as List? ?? [])
-            .whereType<Map<String, dynamic>>()
-            .map((e) => PassengerTopDriver.fromJson(e))
-            .toList(),
-        memberSince: (j['member_since'] ?? '').toString(),
+  factory PassengerStatsModel.fromJson(Map<String, dynamic> j) {
+    PassengerStatsBookings bookings;
+    if (j['bookings'] is Map<String, dynamic>) {
+      bookings = PassengerStatsBookings.fromJson(j['bookings'] as Map<String, dynamic>);
+    } else {
+      bookings = PassengerStatsBookings(
+        total:     _i(j['total_bookings'] ?? j['total']),
+        accepted:  _i(j['accepted_bookings'] ?? j['accepted']),
+        completed: _i(j['completed_bookings'] ?? j['completed']),
+        cancelled: _i(j['cancelled_bookings'] ?? j['cancelled']),
+        rejected:  _i(j['rejected_bookings'] ?? j['rejected']),
       );
+    }
+    PassengerStatsSpending spending;
+    if (j['spending'] is Map<String, dynamic>) {
+      spending = PassengerStatsSpending.fromJson(j['spending'] as Map<String, dynamic>);
+    } else {
+      spending = PassengerStatsSpending(
+        totalFcfa:    _i(j['total_spent'] ?? j['total_fcfa'] ?? j['total_spending']),
+        thisMonthFcfa: _i(j['this_month_spent'] ?? j['this_month_fcfa']),
+      );
+    }
+    return PassengerStatsModel(
+      bookings: bookings,
+      spending: spending,
+      topDrivers: (j['top_drivers'] as List? ?? [])
+          .whereType<Map<String, dynamic>>()
+          .map((e) => PassengerTopDriver.fromJson(e))
+          .toList(),
+      memberSince: (j['member_since'] ?? '').toString(),
+    );
+  }
+
+  static int _i(dynamic v) => (v as num?)?.toInt() ?? 0;
 }

@@ -58,7 +58,7 @@ class ConfirmationReservationController extends GetxController {
   // ── Dropoff — adresse libre ────────────────────────────────────────────────
   final TextEditingController dropoffController = TextEditingController();
 
-  // ── GPS coordinates ────────────────────────────────────────────────────────
+  // ── GPS coordinates ────s───────────────────────────────────────────────────
   final Rx<double?> pickupLat = Rx<double?>(null);
   final Rx<double?> pickupLng = Rx<double?>(null);
   final Rx<double?> dropoffLat = Rx<double?>(null);
@@ -223,11 +223,15 @@ class ConfirmationReservationController extends GetxController {
     pickupCityController.text = city;
     pickupSelectedNeighborhood.value = null;
     pickupNeighborhoodController.text = '';
-    // GPS réel (position actuelle) > coords base de données (centre-ville)
-    if (_gpsPosition == null) {
-      final coords = BeninLocations.getCityCoords(city);
-      pickupLat.value = coords?.lat;
-      pickupLng.value = coords?.lng;
+    // Toujours utiliser les coords centre-ville quand l'utilisateur choisit
+    // explicitement une ville. Le GPS ne doit pas bloquer cette mise à jour.
+    final coords = BeninLocations.getCityCoords(city);
+    if (coords != null) {
+      pickupLat.value = coords.lat;
+      pickupLng.value = coords.lng;
+    } else if (_gpsPosition != null) {
+      pickupLat.value = _gpsPosition!.latitude;
+      pickupLng.value = _gpsPosition!.longitude;
     }
     unawaited(_updatePassengerDistance());
   }
@@ -291,8 +295,11 @@ class ConfirmationReservationController extends GetxController {
       final pos = await _getPosition();
       if (pos != null && _isInBenin(pos.latitude, pos.longitude)) {
         _gpsPosition = pos;
-        pickupLat.value = pos.latitude;
-        pickupLng.value = pos.longitude;
+        // Ne pas écraser les coords si l'utilisateur a déjà sélectionné une ville.
+        if (pickupSelectedCity.value == null) {
+          pickupLat.value = pos.latitude;
+          pickupLng.value = pos.longitude;
+        }
         logger.d('GPS Bénin: (${pos.latitude}, ${pos.longitude})');
       } else if (pos != null) {
         // Position hors Bénin (émulateur) → ignorée, les coords de ville seront utilisées

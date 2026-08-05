@@ -156,77 +156,265 @@ class _TripCard extends StatelessWidget {
 
 	@override
 	Widget build(BuildContext context) {
+		return Obx(() {
+			if (!controller.hasPreselectedTrip.value) {
+				return _TripPickerCard(responsive: responsive, controller: controller);
+			}
+			return _Card(
+				responsive: responsive,
+				child: Column(
+					crossAxisAlignment: CrossAxisAlignment.start,
+					children: [
+						Text('Trajet concerné', style: AppTextStyles.h6(responsive)),
+						SizedBox(height: responsive.h(14)),
+						Container(
+							padding: EdgeInsets.all(responsive.w(14)),
+							decoration: BoxDecoration(
+								color: AppColors.surfaceMuted,
+								borderRadius: BorderRadius.circular(12),
+								border: Border.all(color: AppColors.border),
+							),
+							child: Column(
+								children: [
+									Obx(() => Row(
+										children: [
+											const _RouteDot(color: AppColors.primary, filled: true),
+											SizedBox(width: responsive.w(10)),
+											Expanded(
+												child: Text(
+													controller.tripRoute.value.split('→').first.trim(),
+													style: AppTextStyles.subtitle(responsive),
+												),
+											),
+										],
+									)),
+									Padding(
+										padding: EdgeInsets.only(left: responsive.w(6)),
+										child: Container(
+											width: 2,
+											height: responsive.h(18),
+											color: AppColors.border,
+										),
+									),
+									Obx(() => Row(
+										children: [
+											const _RouteDot(color: Color(0xFFEF4444), filled: false),
+											SizedBox(width: responsive.w(10)),
+											Expanded(
+												child: Text(
+													controller.tripRoute.value.contains('→')
+															? controller.tripRoute.value.split('→').last.trim()
+															: 'Destination',
+													style: AppTextStyles.subtitle(responsive),
+												),
+											),
+										],
+									)),
+									SizedBox(height: responsive.h(12)),
+									Divider(color: AppColors.border, height: 1),
+									SizedBox(height: responsive.h(12)),
+									Obx(() => Row(
+										children: [
+											Flexible(
+												child: _InfoPill(
+													icon: Icons.calendar_today_rounded,
+													label: controller.tripDate.value,
+													responsive: responsive,
+												),
+											),
+											SizedBox(width: responsive.w(8)),
+											Flexible(
+												child: _InfoPill(
+													icon: Icons.tag_rounded,
+													label: controller.tripRef.value,
+													responsive: responsive,
+												),
+											),
+										],
+									)),
+								],
+							),
+						),
+					],
+				),
+			);
+		});
+	}
+}
+
+class _TripPickerCard extends StatelessWidget {
+	const _TripPickerCard({required this.responsive, required this.controller});
+	final AppResponsive responsive;
+	final RefundRequestController controller;
+
+	void _openPicker(BuildContext context) {
+		showModalBottomSheet(
+			context: context,
+			isScrollControlled: true,
+			backgroundColor: Colors.transparent,
+			builder: (_) => _ReservationPickerSheet(
+				responsive: responsive,
+				controller: controller,
+			),
+		);
+	}
+
+	@override
+	Widget build(BuildContext context) {
 		return _Card(
 			responsive: responsive,
 			child: Column(
 				crossAxisAlignment: CrossAxisAlignment.start,
 				children: [
 					Text('Trajet concerné', style: AppTextStyles.h6(responsive)),
+					SizedBox(height: responsive.h(6)),
+					Text(
+						'Sélectionnez la réservation pour laquelle vous souhaitez un remboursement.',
+						style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textSecondary),
+					),
 					SizedBox(height: responsive.h(14)),
-					Container(
-						padding: EdgeInsets.all(responsive.w(14)),
-						decoration: BoxDecoration(
-							color: AppColors.surfaceMuted,
-							borderRadius: BorderRadius.circular(12),
-							border: Border.all(color: AppColors.border),
-						),
-						child: Column(
-							children: [
-								Obx(() => Row(
-									children: [
-										const _RouteDot(color: AppColors.primary, filled: true),
-										SizedBox(width: responsive.w(10)),
-										Expanded(
-											child: Text(
-												controller.tripRoute.value.split('→').first.trim(),
-												style: AppTextStyles.subtitle(responsive),
-											),
+					GestureDetector(
+						onTap: () => _openPicker(context),
+						child: Container(
+							padding: EdgeInsets.symmetric(
+								horizontal: responsive.w(14),
+								vertical: responsive.h(14),
+							),
+							decoration: BoxDecoration(
+								color: AppColors.surfaceMuted,
+								borderRadius: BorderRadius.circular(12),
+								border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
+							),
+							child: Row(
+								children: [
+									Icon(Icons.route_rounded, color: AppColors.primary, size: responsive.text(20)),
+									SizedBox(width: responsive.w(12)),
+									Expanded(
+										child: Text(
+											'Choisir un trajet',
+											style: AppTextStyles.subtitle(responsive).copyWith(color: AppColors.primary),
 										),
-									],
-								)),
-								Padding(
-									padding: EdgeInsets.only(left: responsive.w(6)),
-									child: Container(
-										width: 2,
-										height: responsive.h(18),
-										color: AppColors.border,
 									),
+									Icon(Icons.expand_more_rounded, color: AppColors.primary, size: responsive.text(20)),
+								],
+							),
+						),
+					),
+				],
+			),
+		);
+	}
+}
+
+class _ReservationPickerSheet extends StatelessWidget {
+	const _ReservationPickerSheet({required this.responsive, required this.controller});
+	final AppResponsive responsive;
+	final RefundRequestController controller;
+
+	@override
+	Widget build(BuildContext context) {
+		return Container(
+			decoration: const BoxDecoration(
+				color: Colors.white,
+				borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+			),
+			padding: EdgeInsets.only(
+				top: responsive.h(12),
+				bottom: MediaQuery.of(context).viewInsets.bottom + responsive.h(24),
+			),
+			child: Column(
+				mainAxisSize: MainAxisSize.min,
+				children: [
+					Container(
+						width: responsive.w(40),
+						height: 4,
+						decoration: BoxDecoration(
+							color: AppColors.border,
+							borderRadius: BorderRadius.circular(2),
+						),
+					),
+					SizedBox(height: responsive.h(16)),
+					Padding(
+						padding: EdgeInsets.symmetric(horizontal: responsive.w(20)),
+						child: Row(
+							children: [
+								Text('Sélectionner un trajet', style: AppTextStyles.h6(responsive)),
+								const Spacer(),
+								GestureDetector(
+									onTap: Get.back,
+									child: const Icon(Icons.close_rounded, size: 20),
 								),
-								Obx(() => Row(
-									children: [
-										const _RouteDot(color: Color(0xFFEF4444), filled: false),
-										SizedBox(width: responsive.w(10)),
-										Expanded(
-											child: Text(
-												controller.tripRoute.value.contains('→')
-														? controller.tripRoute.value.split('→').last.trim()
-														: 'Destination',
-												style: AppTextStyles.subtitle(responsive),
-											),
-										),
-									],
-								)),
-								SizedBox(height: responsive.h(12)),
-								Divider(color: AppColors.border, height: 1),
-								SizedBox(height: responsive.h(12)),
-								Obx(() => Row(
-									children: [
-										_InfoPill(
-											icon: Icons.calendar_today_rounded,
-											label: controller.tripDate.value,
-											responsive: responsive,
-										),
-										SizedBox(width: responsive.w(8)),
-										_InfoPill(
-											icon: Icons.tag_rounded,
-											label: controller.tripRef.value,
-											responsive: responsive,
-										),
-									],
-								)),
 							],
 						),
 					),
+					SizedBox(height: responsive.h(12)),
+					Obx(() {
+						final items = controller.availableReservations;
+						if (items.isEmpty) {
+							return Padding(
+								padding: EdgeInsets.symmetric(vertical: responsive.h(32), horizontal: responsive.w(20)),
+								child: Column(
+									children: [
+										Icon(Icons.receipt_long_rounded, size: responsive.text(40), color: AppColors.textHint),
+										SizedBox(height: responsive.h(12)),
+										Text(
+											'Aucune réservation disponible.',
+											style: AppTextStyles.body(responsive).copyWith(color: AppColors.textSecondary),
+											textAlign: TextAlign.center,
+										),
+									],
+								),
+							);
+						}
+						return ConstrainedBox(
+							constraints: BoxConstraints(maxHeight: responsive.h(360)),
+							child: ListView.separated(
+								shrinkWrap: true,
+								padding: EdgeInsets.symmetric(horizontal: responsive.w(16)),
+								itemCount: items.length,
+								separatorBuilder: (ctx, i2) => const Divider(color: AppColors.border, height: 1),
+								itemBuilder: (_, i) {
+									final r = items[i];
+									return ListTile(
+										contentPadding: EdgeInsets.symmetric(
+											horizontal: responsive.w(4),
+											vertical: responsive.h(6),
+										),
+										leading: Container(
+											width: responsive.w(40),
+											height: responsive.w(40),
+											decoration: BoxDecoration(
+												color: AppColors.primary.withValues(alpha: 0.08),
+												shape: BoxShape.circle,
+											),
+											child: Icon(Icons.directions_car_rounded, color: AppColors.primary, size: responsive.text(18)),
+										),
+										title: Text(
+											'${r.departureCity} → ${r.arrivalCity}',
+											style: AppTextStyles.subtitle(responsive),
+											maxLines: 1,
+											overflow: TextOverflow.ellipsis,
+										),
+										subtitle: Text(
+											r.departureDate,
+											style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textSecondary),
+										),
+										trailing: Text(
+											r.totalPrice,
+											style: AppTextStyles.caption(responsive).copyWith(
+												color: AppColors.primary,
+												fontWeight: FontWeight.w700,
+											),
+										),
+										onTap: () {
+											Get.back();
+											controller.selectReservation(r);
+										},
+									);
+								},
+							),
+						);
+					}),
 				],
 			),
 		);
@@ -272,7 +460,13 @@ class _InfoPill extends StatelessWidget {
 				children: [
 					Icon(icon, size: responsive.text(12), color: AppColors.textHint),
 					SizedBox(width: responsive.w(4)),
-					Text(label, style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textSecondary)),
+					Flexible(
+						child: Text(
+							label,
+							style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textSecondary),
+							overflow: TextOverflow.ellipsis,
+						),
+					),
 				],
 			),
 		);

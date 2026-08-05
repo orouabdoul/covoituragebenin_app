@@ -121,7 +121,8 @@ class HomeController extends GetxController {
     for (var i = 0; i < data.availableRides.length; i++) {
       final r = data.availableRides[i];
       final bookable = _isRideBookable(r);
-      logger.d('  ride[$i] uuid=${r.uuid.substring(0, 8)}… '
+      final shortId = r.uuid.length > 8 ? r.uuid.substring(0, 8) : r.uuid;
+      logger.d('  ride[$i] uuid=$shortId… '
           'status="${r.status}" '
           'departureTimeRaw="${r.departureTimeRaw}" '
           'schedule="${r.schedule}" '
@@ -406,11 +407,27 @@ class HomeController extends GetxController {
   void onUpcomingTripTap(HomeUpcomingTrip trip) {
     switch (trip.status) {
       case UpcomingTripStatus.inProgress:
-        Get.toNamed(AppRoutes.passengerLiveTracking);
+        Get.toNamed(AppRoutes.passengerLiveTracking,
+            arguments: {
+              'bookingUuid':      trip.bookingUuid,
+              'tripUuid':         trip.tripUuid,
+              'tripRoute':        '${trip.origin} → ${trip.destination}',
+              'pickupCity':       trip.pickupCity.isNotEmpty  ? trip.pickupCity  : trip.origin,
+              'dropoffCity':      trip.dropoffCity.isNotEmpty ? trip.dropoffCity : trip.destination,
+              'pickupNote':       trip.pickupNote,
+              'dropoffNote':      trip.dropoffNote,
+              'originPoint':      trip.originPoint,
+              'destinationPoint': trip.destinationPoint,
+              'driverName':       trip.driverName,
+            });
       case UpcomingTripStatus.driverArriving:
-        Get.toNamed(AppRoutes.passengerDriverArrival);
+        Get.toNamed(AppRoutes.passengerDriverArrival,
+            arguments: {
+              'bookingUuid': trip.bookingUuid,
+              'driverName': trip.driverName,
+              'tripRoute': '${trip.origin} → ${trip.destination}',
+            });
       case UpcomingTripStatus.upcoming:
-        // pending + accepted + scheduled all go to the reservations tab
         BottonNavController.goToTab(2);
     }
   }

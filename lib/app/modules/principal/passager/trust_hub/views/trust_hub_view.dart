@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
@@ -73,6 +73,10 @@ class TrustHubView extends StatelessWidget {
 															title: 'Paiements 100% sécurisés',
 															body: 'Votre argent est sécurisé jusqu\'à la confirmation du trajet. En cas de problème, il vous est restitué immédiatement.',
 														),
+														SizedBox(height: responsive.h(28)),
+														_SectionTitle(responsive: responsive, title: 'Mon statut de vérification'),
+														SizedBox(height: responsive.h(12)),
+														_UserTrustStatus(responsive: responsive, controller: controller),
 														SizedBox(height: responsive.h(28)),
 														_SectionTitle(responsive: responsive, title: 'Vos droits en tant que passager'),
 														SizedBox(height: responsive.h(12)),
@@ -765,6 +769,170 @@ class _EngagementFooter extends StatelessWidget {
 	}
 }
 
+
+// ── User Trust Status ─────────────────────────────────────────────────────────
+
+class _UserTrustStatus extends StatelessWidget {
+	const _UserTrustStatus({required this.responsive, required this.controller});
+	final AppResponsive responsive;
+	final TrustHubController controller;
+
+	static IconData _iconForKey(String key) {
+		switch (key) {
+			case 'phone':    return Icons.phone_rounded;
+			case 'identity': return Icons.badge_rounded;
+			case 'email':    return Icons.email_rounded;
+			default:         return Icons.verified_rounded;
+		}
+	}
+
+	@override
+	Widget build(BuildContext context) {
+		return Obx(() {
+			if (controller.isLoadingTrust.value) {
+				return Container(
+					padding: EdgeInsets.all(responsive.w(20)),
+					decoration: ShapeDecoration(
+						color: AppColors.white,
+						shape: RoundedRectangleBorder(
+							side: const BorderSide(color: AppColors.border),
+							borderRadius: BorderRadius.circular(responsive.radius(16)),
+						),
+					),
+					child: Center(
+						child: Padding(
+							padding: EdgeInsets.symmetric(vertical: responsive.h(12)),
+							child: const CircularProgressIndicator(
+								color: AppColors.primary,
+								strokeWidth: 2.5,
+							),
+						),
+					),
+				);
+			}
+			final trust = controller.trustData.value;
+			if (trust == null || trust.items.isEmpty) {
+				return Container(
+					padding: EdgeInsets.all(responsive.w(16)),
+					decoration: ShapeDecoration(
+						color: AppColors.white,
+						shape: RoundedRectangleBorder(
+							side: const BorderSide(color: AppColors.border),
+							borderRadius: BorderRadius.circular(responsive.radius(16)),
+						),
+					),
+					child: Row(
+						children: [
+							Icon(Icons.info_outline, color: AppColors.textHint, size: responsive.text(18)),
+							SizedBox(width: responsive.w(10)),
+							Expanded(
+								child: Text(
+									'Données de vérification non disponibles.',
+									style: AppTextStyles.body(responsive).copyWith(color: AppColors.textHint),
+								),
+							),
+						],
+					),
+				);
+			}
+			return Container(
+				padding: EdgeInsets.all(responsive.w(16)),
+				decoration: ShapeDecoration(
+					color: AppColors.white,
+					shape: RoundedRectangleBorder(
+						side: const BorderSide(color: AppColors.border),
+						borderRadius: BorderRadius.circular(responsive.radius(16)),
+					),
+					shadows: const [BoxShadow(color: Color(0x08000000), blurRadius: 6, offset: Offset(0, 2))],
+				),
+				child: Column(
+					children: [
+						Row(
+							children: [
+								Expanded(
+									child: Text(
+										'Votre niveau de vérification',
+										style: AppTextStyles.subtitle(responsive).copyWith(fontWeight: FontWeight.w600),
+									),
+								),
+								Container(
+									padding: EdgeInsets.symmetric(horizontal: responsive.w(10), vertical: responsive.h(4)),
+									decoration: BoxDecoration(
+										color: AppColors.primary.withValues(alpha: 0.12),
+										borderRadius: BorderRadius.circular(9999),
+									),
+									child: Text(
+										trust.level,
+										style: AppTextStyles.caption(responsive).copyWith(
+											color: AppColors.primary,
+											fontWeight: FontWeight.w700,
+										),
+									),
+								),
+							],
+						),
+						SizedBox(height: responsive.h(14)),
+						const Divider(color: AppColors.border, height: 1),
+						SizedBox(height: responsive.h(12)),
+						...trust.items.asMap().entries.map((e) {
+							final item = e.value;
+							final isLast = e.key == trust.items.length - 1;
+							final iconData = _iconForKey(item.key);
+							final color = item.verified ? AppColors.primary : AppColors.textHint;
+							return Column(
+								children: [
+									Row(
+										children: [
+											Container(
+												width: responsive.w(36),
+												height: responsive.w(36),
+												decoration: BoxDecoration(
+													color: color.withValues(alpha: 0.10),
+													borderRadius: BorderRadius.circular(9),
+												),
+												child: Icon(iconData, color: color, size: responsive.text(17)),
+											),
+											SizedBox(width: responsive.w(12)),
+											Expanded(
+												child: Column(
+													crossAxisAlignment: CrossAxisAlignment.start,
+													children: [
+														Text(
+															item.title,
+															style: AppTextStyles.body(responsive).copyWith(fontWeight: FontWeight.w600),
+														),
+														Text(
+															item.status,
+															style: AppTextStyles.caption(responsive).copyWith(
+																color: item.verified ? AppColors.primary : AppColors.textHint,
+															),
+														),
+													],
+												),
+											),
+											Icon(
+												item.verified
+													? Icons.check_circle_rounded
+													: Icons.radio_button_unchecked_rounded,
+												color: color,
+												size: responsive.text(20),
+											),
+										],
+									),
+									if (!isLast) ...[
+										SizedBox(height: responsive.h(10)),
+										const Divider(color: AppColors.border, height: 1),
+										SizedBox(height: responsive.h(10)),
+									],
+								],
+							);
+						}),
+					],
+				),
+			);
+		});
+	}
+}
 // ── Shared ─────────────────────────────────────────────────────────────────
 
 class _RoundBtn extends StatelessWidget {

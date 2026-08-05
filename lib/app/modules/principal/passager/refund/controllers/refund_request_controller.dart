@@ -6,24 +6,31 @@ import 'package:covoiturage_benin_app/app/core/services/passenger/refund/passeng
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/data/models/passenger/refund_model.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/passager/reservation/controllers/reservation_controller.dart'
+    show ReservationController, ReservationItem, ReservationStatus;
 
 export 'package:covoiturage_benin_app/app/data/models/passenger/refund_model.dart'
     show RefundReason;
+export 'package:covoiturage_benin_app/app/modules/principal/passager/reservation/controllers/reservation_controller.dart'
+    show ReservationItem;
 
 class RefundRequestController extends GetxController {
   PassengerRefundService get _service => Get.find<PassengerRefundService>();
 
-  final selectedReason   = Rxn<String>(); // holds reason key
-  final isSubmitting     = false.obs;
-  final submitted        = false.obs;
-  final isLoadingContext = false.obs;
-  final alreadyRefunded  = false.obs;
-  final noteController   = TextEditingController();
+  final selectedReason        = Rxn<String>();
+  final isSubmitting          = false.obs;
+  final submitted             = false.obs;
+  final isLoadingContext      = false.obs;
+  final alreadyRefunded       = false.obs;
+  final hasPreselectedTrip    = false.obs;
+  final isLoadingReservations = false.obs;
+  final noteController        = TextEditingController();
 
-  final refundAmount = 0.obs;
-  final tripRef      = ''.obs;
-  final tripRoute    = ''.obs;
-  final tripDate     = ''.obs;
+  final refundAmount        = 0.obs;
+  final tripRef             = ''.obs;
+  final tripRoute           = ''.obs;
+  final tripDate            = ''.obs;
+  final availableReservations = <ReservationItem>[].obs;
 
   // Pre-populated with fallback labels; replaced by API data on success
   final RxList<RefundReason> reasons = <RefundReason>[
@@ -45,14 +52,48 @@ class RefundRequestController extends GetxController {
 
   void _initFromArgs() {
     final args = Get.arguments;
-    if (args is Map) {
-      _bookingUuid = (args['bookingUuid'] as String?) ?? '';
+    if (args is ReservationItem) {
+      hasPreselectedTrip.value = true;
+      _applyReservation(args);
+    } else if (args is Map) {
+      hasPreselectedTrip.value = true;
+      _bookingUuid       = (args['bookingUuid'] as String?) ?? '';
       refundAmount.value = (args['amount'] as num?)?.toInt() ?? 0;
       tripRef.value      = (args['ref'] as String?) ?? '';
       tripRoute.value    = (args['route'] as String?) ?? '';
       tripDate.value     = (args['date'] as String?) ?? '';
+    } else {
+      // Arrivé sans réservation pré-sélectionnée (ex. trust hub) → charger la liste
+      _loadAvailableReservations();
     }
     if (_bookingUuid.isNotEmpty) _fetchContext();
+  }
+
+  void _applyReservation(ReservationItem r) {
+    _bookingUuid       = r.id;
+    refundAmount.value = r.priceBreakdown?.total ?? r.totalPriceValue;
+    tripRef.value      = r.bookingRef.isNotEmpty ? r.bookingRef : r.id;
+    tripRoute.value    = '${r.departureCity} → ${r.arrivalCity}';
+    tripDate.value     = r.departureDate;
+  }
+
+  void selectReservation(ReservationItem r) {
+    hasPreselectedTrip.value = true;
+    alreadyRefunded.value    = false;
+    selectedReason.value     = null;
+    _applyReservation(r);
+    _fetchContext();
+  }
+
+  Future<void> _loadAvailableReservations() async {
+    if (Get.isRegistered<ReservationController>()) {
+      final rc = Get.find<ReservationController>();
+      final items = rc.allReservations.where((r) =>
+          r.status == ReservationStatus.completed ||
+          r.status == ReservationStatus.confirmed ||
+          r.status == ReservationStatus.inProgress).toList();
+      availableReservations.assignAll(items);
+    }
   }
 
   Future<void> _fetchContext() async {
@@ -98,9 +139,9 @@ class RefundRequestController extends GetxController {
     }
     if (_bookingUuid.isEmpty) {
       Get.snackbar(
-        'Erreur',
-        'Référence de réservation introuvable.',
-        backgroundColor: const Color(0xFFEF4444),
+        'Aucun trajet sélectionné',
+        'Veuillez d\'abord sélectionner le trajet concerné.',
+        backgroundColor: AppColors.warning,
         colorText: Colors.white,
       );
       return;

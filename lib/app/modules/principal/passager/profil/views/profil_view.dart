@@ -392,8 +392,10 @@ class _StatsOverviewRow extends StatelessWidget {
 					Expanded(
 						child: _StatCard(
 							responsive: responsive,
-							value: loaded && controller.statsTotalSpendingFcfa.value > 0
-									? '${_fmtFcfa(controller.statsTotalSpendingFcfa.value)} F'
+							value: loaded
+									? (controller.statsTotalSpendingFcfa.value > 0
+											? '${_fmtFcfa(controller.statsTotalSpendingFcfa.value)} F'
+											: '0 F')
 									: '—',
 							label: 'Total dépensé',
 							leadingIcon: Icons.account_balance_wallet_outlined,

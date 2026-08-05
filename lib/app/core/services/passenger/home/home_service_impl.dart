@@ -24,10 +24,13 @@ class PassengerHomeServiceImpl implements PassengerHomeService {
     try {
       final opts = await _authOptions();
       final response = await _dio.get(AppApi.passengerHome, options: opts);
-      logger.d('passengerHome [${response.statusCode}] ${response.data}');
+      logger.d('passengerHome [${response.statusCode}]');
       if (response.statusCode == 200 && response.data['success'] == true) {
-        final body = response.data['body'] as Map<String, dynamic>;
-        return ApiResult.success(PassengerHomeDashboard.fromJson(body));
+        final rawBody = response.data['body'];
+        if (rawBody is! Map<String, dynamic>) {
+          return ApiResult.failure(AppError.unexpected);
+        }
+        return ApiResult.success(PassengerHomeDashboard.fromJson(rawBody));
       }
       if (response.statusCode == 401) {
         return ApiResult.failure(AppError.unAuthenticated);

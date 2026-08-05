@@ -67,6 +67,11 @@ class PassengerDetailMessagerController extends GetxController with WidgetsBindi
     } else if (_bookingUuid.isNotEmpty) {
       _startAndFetch();
     }
+    final pending = args?['pending_message'] as String? ?? '';
+    if (pending.isNotEmpty) {
+      messageController.text = pending;
+      messageController.selection = TextSelection.collapsed(offset: pending.length);
+    }
   }
 
   @override

@@ -13,8 +13,10 @@ import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/profile/passenger_profile_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/reviews/passenger_reviews_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/reviews/passenger_reviews_service_impl.dart';
+import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/passenger_reservation_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/stats/passenger_stats_service.dart';
 import 'package:covoiturage_benin_app/app/data/models/passenger/profile_model.dart';
+import 'package:covoiturage_benin_app/app/data/models/passenger/reservations_model.dart';
 import 'package:covoiturage_benin_app/app/data/models/passenger/reviews_model.dart';
 import 'package:covoiturage_benin_app/app/data/models/passenger/stats_model.dart';
 
@@ -23,6 +25,7 @@ class ProfilController extends GetxController {
 
   final PassengerProfileService _profileService;
   PassengerStatsService get _statsService => Get.find<PassengerStatsService>();
+  PassengerReservationService get _reservationService => Get.find<PassengerReservationService>();
   PassengerSafetyService get _safetyService => Get.find<PassengerSafetyService>();
   PassengerReviewsService get _reviewsService =>
       Get.isRegistered<PassengerReviewsService>()
@@ -99,25 +102,72 @@ class ProfilController extends GetxController {
       _profileService.fetchProfile(),
       _statsService.fetchStats(),
       _reviewsService.fetchReviews(),
+      _reservationService.fetchReservations(),
     ]);
     isLoading.value = false;
-    final profileResult = results[0];
-    final statsResult   = results[1];
-    final reviewsResult = results[2];
+    final profileResult      = results[0];
+    final statsResult        = results[1];
+    final reviewsResult      = results[2];
+    final reservationsResult = results[3];
+
     if (profileResult.isSuccess) {
       _applyProfile(profileResult.data as PassengerProfileDashboard);
     } else {
       hasLoadError.value = true;
       logger.e('passengerProfile: ${profileResult.error}');
     }
-    if (statsResult.isSuccess) {
-      _applyStats(statsResult.data as PassengerStatsModel);
+
+    // Source primaire : /passenger/reservations (toujours fiable)
+    if (reservationsResult.isSuccess) {
+      _applyStatsFromReservations(reservationsResult.data as ReservationsPageModel);
     } else {
-      logger.e('passengerStats: ${statsResult.error}');
+      logger.w('reservations échoué: ${reservationsResult.error}');
     }
+
+    // Source secondaire : /passenger/stats — écrase seulement si données non nulles
+    if (statsResult.isSuccess) {
+      final stats = statsResult.data as PassengerStatsModel;
+      if (stats.bookings.completed > 0 || stats.spending.totalFcfa > 0) {
+        _applyStats(stats);
+        logger.d('Stats API override: completed=${stats.bookings.completed}, spent=${stats.spending.totalFcfa}');
+      } else {
+        logger.d('Stats API: données vides, réservations gardées comme source');
+      }
+    } else {
+      logger.w('passengerStats échoué: ${statsResult.error}');
+    }
+
     if (reviewsResult.isSuccess) {
       _applyReviews(reviewsResult.data as PassengerReviewsDashboard);
     }
+
+    if (!statsLoaded.value) {
+      statsLoaded.value = true;
+      if (summaryTrips.value == '—') summaryTrips.value = '0';
+    }
+  }
+
+  void _applyStatsFromReservations(ReservationsPageModel data) {
+    int completed = 0;
+    int cancelled = 0;
+    int total = 0;
+    for (final tab in data.statusTabs) {
+      total += tab.count;
+      if (tab.status == 'completed') completed = tab.count;
+      if (tab.status == 'cancelled') cancelled = tab.count;
+    }
+    statsBookingsCompleted.value = completed;
+    statsBookingsCancelled.value = cancelled;
+    statsBookingsTotal.value = total;
+
+    final spent = data.items
+        .where((r) => r.status == 'completed' && r.priceBreakdown != null)
+        .fold<int>(0, (sum, r) => sum + r.priceBreakdown!.total);
+    statsTotalSpendingFcfa.value = spent;
+
+    summaryTrips.value = '$completed';
+    statsLoaded.value = true;
+    logger.d('Stats from reservations: completed=$completed, spent=$spent');
   }
 
   void _applyStats(PassengerStatsModel data) {

@@ -225,6 +225,10 @@ class ReservationController extends GetxController {
 			passengerDistanceKm: a.passengerDistanceKm,
 			priceBreakdown: a.priceBreakdown,
 			paymentStatus: effectivelyPaid ? 'escrow_locked' : a.paymentStatus,
+			pickupLat: a.departureLat,
+			pickupLng: a.departureLng,
+			dropoffLat: a.arrivalLat,
+			dropoffLng: a.arrivalLng,
 		);
 	}
 
@@ -812,6 +816,10 @@ class ReservationItem {
 		this.passengerDistanceKm,
 		this.priceBreakdown,
 		this.paymentStatus = 'unpaid',
+		this.pickupLat,
+		this.pickupLng,
+		this.dropoffLat,
+		this.dropoffLng,
 	});
 
 	final String id;
@@ -853,6 +861,10 @@ class ReservationItem {
 	final double? passengerDistanceKm;
 	final PriceBreakdown? priceBreakdown;
 	final String  paymentStatus; // 'unpaid' | 'escrow_locked' | 'released'
+	final double? pickupLat;
+	final double? pickupLng;
+	final double? dropoffLat;
+	final double? dropoffLng;
 
 	// Alias pour compatibilité avec le code existant
 	String get pickupCity => departureCity;
@@ -915,6 +927,10 @@ class ReservationItem {
 			passengerDistanceKm: passengerDistanceKm,
 			priceBreakdown: priceBreakdown,
 			paymentStatus: paymentStatus ?? this.paymentStatus,
+			pickupLat: pickupLat,
+			pickupLng: pickupLng,
+			dropoffLat: dropoffLat,
+			dropoffLng: dropoffLng,
 		);
 	}
 }

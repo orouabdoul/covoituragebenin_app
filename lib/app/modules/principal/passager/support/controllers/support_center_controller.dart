@@ -169,11 +169,16 @@ class SupportCenterController extends GetxController {
         colorText: Colors.white,
       );
     } else if (result.error == AppError.validationError) {
+      // Affiche le vrai message renvoyé par l'API (champ manquant, format incorrect…)
+      final apiMsg = (_service as dynamic).lastValidationMessage as String?;
       Get.snackbar(
         'Formulaire invalide',
-        'Vérifiez les informations saisies.',
+        (apiMsg != null && apiMsg.isNotEmpty && apiMsg != 'Données invalides.')
+            ? apiMsg
+            : 'Vérifiez l\'objet et la description du ticket.',
         backgroundColor: AppColors.warning,
         colorText: Colors.white,
+        duration: const Duration(seconds: 4),
       );
     } else if (result.error != AppError.socket) {
       Get.snackbar(
