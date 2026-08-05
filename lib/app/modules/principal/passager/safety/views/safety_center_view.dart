@@ -438,13 +438,48 @@ class _EmergencyContactsCard extends StatelessWidget {
 								child: Center(child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2)),
 							);
 						}
+						if (controller.hasErrorContacts.value) {
+							return Padding(
+								padding: EdgeInsets.symmetric(vertical: responsive.h(12)),
+								child: Column(
+									children: [
+										Icon(Icons.wifi_off_rounded, color: AppColors.textHint, size: responsive.text(32)),
+										SizedBox(height: responsive.h(8)),
+										Text(
+											'Impossible de charger les contacts',
+											style: AppTextStyles.body(responsive).copyWith(color: AppColors.textHint),
+											textAlign: TextAlign.center,
+										),
+										SizedBox(height: responsive.h(10)),
+										TextButton.icon(
+											onPressed: controller.retryLoadContacts,
+											icon: const Icon(Icons.refresh_rounded, size: 16),
+											label: const Text('Réessayer'),
+											style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+										),
+									],
+								),
+							);
+						}
 						if (controller.emergencyContacts.isEmpty) {
 							return Padding(
 								padding: EdgeInsets.symmetric(vertical: responsive.h(12)),
-								child: Text(
-									'Aucun contact d\'urgence ajouté',
-									style: AppTextStyles.body(responsive).copyWith(color: AppColors.textHint),
-									textAlign: TextAlign.center,
+								child: Column(
+									children: [
+										Icon(Icons.people_outline_rounded, color: AppColors.textHint, size: responsive.text(32)),
+										SizedBox(height: responsive.h(8)),
+										Text(
+											'Aucun contact d\'urgence ajouté',
+											style: AppTextStyles.body(responsive).copyWith(color: AppColors.textHint),
+											textAlign: TextAlign.center,
+										),
+										SizedBox(height: responsive.h(4)),
+										Text(
+											'Appuyez sur "Ajouter" pour en créer un',
+											style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint),
+											textAlign: TextAlign.center,
+										),
+									],
 								),
 							);
 						}

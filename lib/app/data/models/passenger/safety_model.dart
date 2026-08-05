@@ -44,15 +44,31 @@ class SafetyContext {
   });
 
   factory SafetyContext.fromJson(Map<String, dynamic> j) {
-    final share = j['trip_share'] as Map?;
+    final share = (j['trip_share'] ?? j['tripShare']) as Map?;
+
+    // sos_active peut être bool ou int
+    final sosRaw = j['sos_active'] ?? j['sosActive'] ?? j['sos'];
+    final sosActive = sosRaw == true || sosRaw == 1;
+
+    final shareActiveRaw = share?['active'];
+    final shareActive = shareActiveRaw == true || shareActiveRaw == 1;
+
+    // contacts peut être sous plusieurs clés
+    final rawList = j['emergency_contacts']
+        ?? j['emergencyContacts']
+        ?? j['contacts']
+        ?? [];
+    final contacts = (rawList is List ? rawList : [])
+        .whereType<Map>()
+        .map((e) => EmergencyContact.fromJson(
+            e is Map<String, dynamic> ? e : Map<String, dynamic>.from(e)))
+        .toList();
+
     return SafetyContext(
-      sosActive: j['sos_active'] as bool? ?? false,
-      tripShareActive: share?['active'] as bool? ?? false,
+      sosActive: sosActive,
+      tripShareActive: shareActive,
       tripShareCode: share?['code']?.toString(),
-      contacts: ((j['emergency_contacts'] as List?) ?? [])
-          .whereType<Map<String, dynamic>>()
-          .map((e) => EmergencyContact.fromJson(e))
-          .toList(),
+      contacts: contacts,
     );
   }
 }

@@ -401,29 +401,29 @@ class _AddContactSheet extends StatefulWidget {
 }
 
 class _AddContactSheetState extends State<_AddContactSheet> {
-  final _nameCtrl     = TextEditingController();
-  final _phoneCtrl    = TextEditingController();
-  final _relationCtrl = TextEditingController();
+  static const _relations = ['Famille', 'Ami·e', 'Collègue', 'Autre'];
+
+  final _nameCtrl  = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  String _selectedRelation = 'Famille';
   bool _isSaving = false;
 
   @override
   void dispose() {
     _nameCtrl.dispose();
     _phoneCtrl.dispose();
-    _relationCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     final name     = _nameCtrl.text.trim();
-    final phone    = _phoneCtrl.text.trim();
-    final relation = _relationCtrl.text.trim();
-    if (name.isEmpty || phone.isEmpty || relation.isEmpty) {
+    final rawPhone = _phoneCtrl.text.trim();
+    if (name.isEmpty || rawPhone.isEmpty) {
       UIHelper().showSnackBar('MINIZON', 'Veuillez remplir tous les champs.', 2);
       return;
     }
     setState(() => _isSaving = true);
-    await widget.onAdd(name, phone, relation);
+    await widget.onAdd(name, '+22901$rawPhone', _selectedRelation);
     if (mounted) setState(() => _isSaving = false);
   }
 
@@ -464,12 +464,93 @@ class _AddContactSheetState extends State<_AddContactSheet> {
             _Field(label: 'Nom complet', controller: _nameCtrl,
                 hint: 'Ex: Mama Adèle', responsive: responsive),
             SizedBox(height: responsive.h(12)),
-            _Field(label: 'Lien de parenté', controller: _relationCtrl,
-                hint: 'Ex: maman, ami, frère', responsive: responsive),
+            // Lien de parenté — dropdown
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Lien de parenté',
+                    style: AppTextStyles.caption(responsive).copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary)),
+                SizedBox(height: responsive.h(6)),
+                DropdownButtonFormField<String>(
+                  value: _selectedRelation,
+                  isDense: true,
+                  style: AppTextStyles.body(responsive)
+                      .copyWith(color: AppColors.textPrimary),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: AppColors.surfaceMuted,
+                    contentPadding: EdgeInsets.symmetric(
+                        horizontal: responsive.w(14),
+                        vertical: responsive.h(12)),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.border)),
+                    enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.border)),
+                    focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                            color: AppColors.primary, width: 1.5)),
+                  ),
+                  items: _relations
+                      .map((r) => DropdownMenuItem(
+                            value: r,
+                            child: Text(r,
+                                style: AppTextStyles.body(responsive)),
+                          ))
+                      .toList(),
+                  onChanged: (v) {
+                    if (v != null) setState(() => _selectedRelation = v);
+                  },
+                ),
+              ],
+            ),
             SizedBox(height: responsive.h(12)),
-            _Field(label: 'Numéro de téléphone', controller: _phoneCtrl,
-                hint: '+229 01 XX XX XX XX',
-                keyboardType: TextInputType.phone, responsive: responsive),
+            // Téléphone — préfixe +22901 fixe, 8 chiffres max
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Numéro de téléphone',
+                    style: AppTextStyles.caption(responsive).copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary)),
+                SizedBox(height: responsive.h(6)),
+                TextField(
+                  controller: _phoneCtrl,
+                  keyboardType: TextInputType.number,
+                  maxLength: 8,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  style: AppTextStyles.body(responsive),
+                  decoration: InputDecoration(
+                    hintText: 'XX XX XX XX',
+                    prefixText: '+229 01 ',
+                    prefixStyle: AppTextStyles.body(responsive)
+                        .copyWith(color: AppColors.textPrimary),
+                    counterText: '',
+                    hintStyle: AppTextStyles.body(responsive)
+                        .copyWith(color: AppColors.textHint),
+                    filled: true,
+                    fillColor: AppColors.surfaceMuted,
+                    contentPadding: EdgeInsets.symmetric(
+                        horizontal: responsive.w(14),
+                        vertical: responsive.h(12)),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.border)),
+                    enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.border)),
+                    focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                            color: AppColors.primary, width: 1.5)),
+                  ),
+                ),
+              ],
+            ),
             SizedBox(height: responsive.h(24)),
             SizedBox(
               width: double.infinity,

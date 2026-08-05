@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
@@ -21,6 +22,7 @@ class SafetyCenterController extends GetxController {
 
   final emergencyContacts  = <EmergencyContact>[].obs;
   final isLoadingContext   = true.obs;
+  final hasErrorContacts   = false.obs;
 
   // Add contact form
   final addNameController  = TextEditingController();
@@ -38,6 +40,7 @@ class SafetyCenterController extends GetxController {
 
   Future<void> _loadContext() async {
     isLoadingContext.value = true;
+    hasErrorContacts.value = false;
     final result = await _service.fetchContext();
     isLoadingContext.value = false;
     if (result.isSuccess) {
@@ -46,10 +49,29 @@ class SafetyCenterController extends GetxController {
       isSharingTrip.value = ctx.tripShareActive;
       shareCode.value     = ctx.tripShareCode ?? '';
       emergencyContacts.assignAll(ctx.contacts);
+      // Si le contexte ne renvoie pas les contacts, charger séparément
+      if (ctx.contacts.isEmpty) await _loadContactsFallback();
     } else {
       logger.e('passengerSafety context: ${result.error}');
+      // Fallback : charger les contacts séparément
+      await _loadContactsFallback();
     }
   }
+
+  Future<void> _loadContactsFallback() async {
+    final result = await _service.fetchContacts();
+    if (result.isSuccess) {
+      emergencyContacts.assignAll(result.data!);
+      hasErrorContacts.value = false;
+    } else {
+      logger.e('passengerSafety contacts fallback: ${result.error}');
+      if (result.error != AppError.socket) {
+        hasErrorContacts.value = true;
+      }
+    }
+  }
+
+  void retryLoadContacts() => _loadContext();
 
   // ── SOS ──────────────────────────────────────────────────────────────────
 
@@ -213,10 +235,11 @@ class SafetyCenterController extends GetxController {
 
   Future<void> _submitNewContact() async {
     final name     = addNameController.text.trim();
-    final phone    = addPhoneController.text.trim();
+    final digits   = addPhoneController.text.trim();
+    final phone    = '+22901$digits';
     final relation = selectedRelation.value;
 
-    if (name.isEmpty || phone.isEmpty) {
+    if (name.isEmpty || digits.isEmpty) {
       Get.snackbar('Champs requis', 'Veuillez remplir le nom et le téléphone.', backgroundColor: AppColors.warning, colorText: Colors.white);
       return;
     }
@@ -328,47 +351,44 @@ class _AddContactSheet extends StatelessWidget {
                   decoration: _inputDecoration('Ex: Jean Dupont', responsive),
                 ),
                 SizedBox(height: responsive.h(14)),
-                // Phone
+                // Phone — préfixe +229 01 fixe + 8 chiffres max
                 Text('Numéro de téléphone', style: AppTextStyles.caption(responsive).copyWith(fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
                 SizedBox(height: responsive.h(8)),
                 TextField(
                   controller: controller.addPhoneController,
                   style: AppTextStyles.body(responsive),
-                  keyboardType: TextInputType.phone,
-                  decoration: _inputDecoration('+229 97 00 00 00', responsive),
+                  keyboardType: TextInputType.number,
+                  maxLength: 8,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  decoration: _inputDecoration('XX XX XX XX', responsive).copyWith(
+                    prefixText: '+229 01 ',
+                    prefixStyle: AppTextStyles.body(responsive),
+                    counterText: '',
+                  ),
                 ),
                 SizedBox(height: responsive.h(14)),
-                // Relation
-                Text('Relation', style: AppTextStyles.caption(responsive).copyWith(fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+                // Lien de parenté — dropdown
+                Text('Lien de parenté', style: AppTextStyles.caption(responsive).copyWith(fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
                 SizedBox(height: responsive.h(8)),
-                Obx(() => SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: relations.asMap().entries.map((e) {
-                      final selected = controller.selectedRelation.value == e.value;
-                      return Padding(
-                        padding: EdgeInsets.only(right: e.key < relations.length - 1 ? responsive.w(8) : 0),
-                        child: GestureDetector(
-                          onTap: () => controller.selectedRelation.value = e.value,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 180),
-                            padding: EdgeInsets.symmetric(horizontal: responsive.w(14), vertical: responsive.h(7)),
-                            decoration: BoxDecoration(
-                              color: selected ? AppColors.primary : AppColors.surfaceMuted,
-                              borderRadius: BorderRadius.circular(9999),
-                              border: Border.all(color: selected ? AppColors.primary : AppColors.border),
-                            ),
-                            child: Text(
-                              e.value,
-                              style: AppTextStyles.caption(responsive).copyWith(
-                                color: selected ? Colors.white : AppColors.textSecondary,
-                                fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
+                Obx(() => Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceMuted,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: responsive.w(14)),
+                  child: DropdownButton<String>(
+                    value: controller.selectedRelation.value,
+                    isExpanded: true,
+                    underline: const SizedBox.shrink(),
+                    style: AppTextStyles.body(responsive).copyWith(color: AppColors.textPrimary),
+                    icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textSecondary),
+                    items: relations
+                        .map((r) => DropdownMenuItem(value: r, child: Text(r)))
+                        .toList(),
+                    onChanged: (v) {
+                      if (v != null) controller.selectedRelation.value = v;
+                    },
                   ),
                 )),
                 SizedBox(height: responsive.h(20)),
