@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/messaging/messaging_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
@@ -45,9 +47,9 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
 
   final ScrollController scrollController = ScrollController();
 
-  // Overrides locaux — persistants pendant la vie du controller
   final _deletedIds = <int>{};
   final _localEdits = <int, String>{};
+  bool _persistLoaded = false;
 
   @override
   void onInit() {
@@ -124,6 +126,10 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
 
   Future<void> _fetchThread({bool loadMore = false}) async {
     if (_uuid.isEmpty) return;
+    if (!_persistLoaded && !loadMore) {
+      _persistLoaded = true;
+      await _loadPersistedOverrides();
+    }
     if (loadMore) {
       if (isLoadingMore.value || !hasMore.value) return;
       isLoadingMore.value = true;
@@ -197,8 +203,11 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
     final detail = result.data!;
     _applyThreadContext(detail.thread);
 
+    // Réappliquer suppressions/modifications locales pour corriger tout écart
+    _applyLocalOverridesToExisting();
+
     final newApiMessages = detail.messages
-        .where((m) => m.id > 0 && m.id > _latestSeenId)
+        .where((m) => m.id > 0 && m.id > _latestSeenId && !_deletedIds.contains(m.id))
         .toList();
 
     // Fallback : si l'autre envoie un message et que Firebase n'est pas configuré
@@ -352,6 +361,58 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
     );
   }
 
+  Future<void> _loadPersistedOverrides() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final deletedJson = prefs.getString('del_$_uuid');
+      if (deletedJson != null) {
+        final list = List<dynamic>.from(jsonDecode(deletedJson) as List);
+        _deletedIds.addAll(list.whereType<int>());
+      }
+      final editsJson = prefs.getString('edt_$_uuid');
+      if (editsJson != null) {
+        final map = Map<String, dynamic>.from(jsonDecode(editsJson) as Map);
+        _localEdits.addAll(map.map((k, v) => MapEntry(int.parse(k), v as String)));
+      }
+    } catch (_) {}
+  }
+
+  void _saveDeletedIds() async {
+    if (_uuid.isEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('del_$_uuid', jsonEncode(_deletedIds.toList()));
+    } catch (_) {}
+  }
+
+  void _saveLocalEdits() async {
+    if (_uuid.isEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        'edt_$_uuid',
+        jsonEncode(_localEdits.map((k, v) => MapEntry('$k', v))),
+      );
+    } catch (_) {}
+  }
+
+  void _applyLocalOverridesToExisting() {
+    if (_deletedIds.isEmpty && _localEdits.isEmpty) return;
+    if (_deletedIds.isNotEmpty) {
+      messages.removeWhere((m) => m.messageId > 0 && _deletedIds.contains(m.messageId));
+    }
+    if (_localEdits.isNotEmpty) {
+      for (var i = 0; i < messages.length; i++) {
+        final m = messages[i];
+        if (m.messageId <= 0) continue;
+        final edit = _localEdits[m.messageId];
+        if (edit != null && m.message != edit) {
+          messages[i] = m.copyWith(message: edit, isEdited: true);
+        }
+      }
+    }
+  }
+
   List<DetailMessage> _withLocalOverrides(List<DetailMessage> msgs) {
     final result = <DetailMessage>[];
     for (final m in msgs) {
@@ -413,7 +474,10 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
       if (idx < 0 || idx >= messages.length) return;
 
       final msg = messages[idx];
-      if (msg.messageId > 0) _localEdits[msg.messageId] = text;
+      if (msg.messageId > 0) {
+        _localEdits[msg.messageId] = text;
+        _saveLocalEdits();
+      }
       messages[idx] = msg.copyWith(message: text, isEdited: true);
       if (msg.messageUuid.isNotEmpty) {
         _service.editMessage(msg.messageUuid, text);
@@ -645,7 +709,10 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
                               ? messages.indexWhere((m) => m.messageId == msg.messageId)
                               : index < messages.length ? index : -1;
                           if (actualIdx < 0) return;
-                          if (msg.messageId > 0) _deletedIds.add(msg.messageId);
+                          if (msg.messageId > 0) {
+                            _deletedIds.add(msg.messageId);
+                            _saveDeletedIds();
+                          }
                           messages.removeAt(actualIdx);
                           if (msg.messageUuid.isNotEmpty) {
                             _service.deleteMessage(msg.messageUuid);
