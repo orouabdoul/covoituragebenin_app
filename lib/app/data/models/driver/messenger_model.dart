@@ -142,21 +142,26 @@ class ConversationThreadContext {
   const ConversationThreadContext({
     required this.uuid,
     required this.bookingUuid,
+    required this.isAdminConversation,
     required this.otherUser,
     required this.trip,
   });
 
   final String uuid;
   final String bookingUuid;
+  final bool isAdminConversation;
   final ConversationUser otherUser;
-  final ConversationTripInfo trip;
+  final ConversationTripInfo? trip; // null pour les conversations admin
 
   factory ConversationThreadContext.fromJson(Map<String, dynamic> j) =>
       ConversationThreadContext(
         uuid: j['uuid'] as String? ?? '',
         bookingUuid: j['booking_uuid'] as String? ?? '',
+        isAdminConversation: j['is_admin_conversation'] == true,
         otherUser: ConversationUser.fromJson(Map<String, dynamic>.from(j['other_user'] as Map? ?? {})),
-        trip: ConversationTripInfo.fromJson(Map<String, dynamic>.from(j['trip'] as Map? ?? {})),
+        trip: j['trip'] != null
+            ? ConversationTripInfo.fromJson(Map<String, dynamic>.from(j['trip'] as Map))
+            : null,
       );
 }
 
@@ -168,6 +173,8 @@ class ConversationApiMessage {
     required this.message,
     required this.time,
     required this.rawDate,
+    required this.isRead,
+    required this.isEdited,
     this.title,
     this.subtitle,
     this.actionLabel,
@@ -181,6 +188,8 @@ class ConversationApiMessage {
   final String message;
   final String time;
   final String rawDate; // ISO date "2026-07-14", used for date separators
+  final bool isRead;
+  final bool isEdited;
   final String? title;
   final String? subtitle;
   final String? actionLabel;
@@ -197,6 +206,8 @@ class ConversationApiMessage {
       message: j['body'] as String? ?? j['message'] as String? ?? '',
       time: j['time'] as String? ?? '',
       rawDate: j['raw_date'] as String? ?? j['date'] as String? ?? '',
+      isRead: j['is_read'] == true || j['is_read'] == 1,
+      isEdited: j['is_edited'] == true || j['is_edited'] == 1,
       title: j['title'] as String?,
       subtitle: j['subtitle'] as String?,
       actionLabel: j['action_label'] as String?,

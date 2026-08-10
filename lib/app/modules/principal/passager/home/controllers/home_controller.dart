@@ -42,18 +42,23 @@ class HomeController extends GetxController {
   }
 
   Timer? _refreshTimer;
+  Worker? _syncWorker;
+  // Bloque les retries automatiques si le endpoint home retourne 401.
+  // Un 401 ici est un bug backend (search fonctionne avec le même token).
+  bool _homeEndpointFailed = false;
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
   @override
   void onInit() {
     super.onInit();
     _loadDashboard();
-    ever(AppSync.i.passengerData, (_) => _loadDashboard());
+    _syncWorker = ever(AppSync.i.passengerData, (_) => _loadDashboard());
   }
 
   @override
   void onClose() {
     _refreshTimer?.cancel();
+    _syncWorker?.dispose();
     super.onClose();
   }
 
@@ -69,24 +74,29 @@ class HomeController extends GetxController {
 
   // ── API ────────────────────────────────────────────────────────────────────
   Future<void> _loadDashboard() async {
+    if (_homeEndpointFailed) return;
     isLoadingDashboard.value = true;
     hasLoadError.value = false;
     final result = await _homeService.fetchDashboard();
     isLoadingDashboard.value = false;
     if (result.isSuccess) {
+      _homeEndpointFailed = false;
       _applyDashboard(result.data!);
     } else {
-      if (result.error == AppError.unAuthenticated) {
-        await Get.find<BottonNavController>().logoutAndRedirect();
-        return;
-      }
       hasLoadError.value = true;
       logger.e('passengerHome: ${result.error}');
+      if (result.error == AppError.unAuthenticated) {
+        _homeEndpointFailed = true;
+        _refreshTimer?.cancel();
+      }
     }
   }
 
   @override
-  Future<void> refresh() => _loadDashboard();
+  Future<void> refresh() {
+    _homeEndpointFailed = false;
+    return _loadDashboard();
+  }
 
   // Statuts qui indiquent qu'un trajet ou une réservation est définitivement terminé
   static const _terminalStatuses = {

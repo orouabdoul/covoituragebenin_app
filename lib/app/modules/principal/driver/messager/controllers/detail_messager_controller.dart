@@ -33,9 +33,12 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
   final Rx<String> displayPhone = ''.obs;
   final Rx<String> displayTripRoute = ''.obs;
   final Rx<String> displayTripDepartureLabel = ''.obs;
+  final RxBool isAdminConversation = false.obs;
 
   int? _nextBeforeId;
   String _uuid = '';
+
+  String get conversationUuid => _uuid;
   int _latestSeenId = 0;
   Timer? _pollingTimer;
   Timer? _presenceTimer;
@@ -203,6 +206,9 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
       _markOtherUserActive();
     }
 
+    // Sync des accusés de lecture indépendamment des nouveaux messages
+    _syncReadStatus(detail.messages);
+
     if (newApiMessages.isEmpty) return;
 
     _updateLatestSeenId(detail.messages);
@@ -247,17 +253,64 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
   }
 
   void _applyThreadContext(ConversationThreadContext ctx) {
-    displayName.value = ctx.otherUser.name;
-    displayAvatarUrl.value = ctx.otherUser.avatarUrl;
+    isAdminConversation.value = ctx.isAdminConversation;
+    if (ctx.isAdminConversation) {
+      displayName.value = 'Admin Minizon';
+      displayAvatarUrl.value = null;
+    } else {
+      displayName.value = ctx.otherUser.name;
+      displayAvatarUrl.value = ctx.otherUser.avatarUrl;
+    }
     displayPhone.value = ctx.otherUser.phone;
-    displayTripRoute.value = ctx.trip.route;
-    displayTripDepartureLabel.value = ctx.trip.departureTimeLabel;
-    // API is_online comme signal supplémentaire (si le backend l'implémente)
+    if (ctx.trip != null) {
+      displayTripRoute.value = ctx.trip!.route;
+      displayTripDepartureLabel.value = ctx.trip!.departureTimeLabel;
+    }
     if (ctx.otherUser.isOnline) {
       _markOtherUserActive();
     } else if (!(_presenceTimer?.isActive ?? false)) {
       displayIsOnline.value = false;
     }
+  }
+
+  void _syncReadStatus(List<ConversationApiMessage> apiMessages) {
+    final readIds = <int>{};
+    for (final m in apiMessages) {
+      if (m.isRead && m.id > 0) readIds.add(m.id);
+    }
+    if (readIds.isEmpty) return;
+    for (var i = 0; i < messages.length; i++) {
+      final m = messages[i];
+      if (m.kind == DetailMessageKind.outgoing && !m.isRead && readIds.contains(m.messageId)) {
+        messages[i] = m.copyWith(isRead: true);
+      }
+    }
+  }
+
+  // ── Handlers FCM silencieux ─────────────────────────────────────────────────
+
+  void handleMessagesRead(String convUuid) {
+    if (convUuid != _uuid) return;
+    for (var i = 0; i < messages.length; i++) {
+      if (messages[i].kind == DetailMessageKind.outgoing && !messages[i].isRead) {
+        messages[i] = messages[i].copyWith(isRead: true);
+      }
+    }
+  }
+
+  void handleMessageEdited(String convUuid, String messageUuid, String newBody) {
+    if (convUuid != _uuid) return;
+    for (var i = 0; i < messages.length; i++) {
+      if (messages[i].messageUuid == messageUuid) {
+        messages[i] = messages[i].copyWith(message: newBody, isEdited: true);
+        break;
+      }
+    }
+  }
+
+  void handleMessageDeleted(String convUuid, String messageUuid) {
+    if (convUuid != _uuid) return;
+    messages.removeWhere((m) => m.messageUuid == messageUuid);
   }
 
   void _markOtherUserActive() {
@@ -289,6 +342,8 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
       rawDate: m.rawDate,
       messageId: m.id,
       messageUuid: m.messageUuid,
+      isRead: m.isRead,
+      isEdited: m.isEdited,
       title: m.title ?? '',
       subtitle: m.subtitle ?? '',
       actionLabel: m.actionLabel ?? '',
@@ -355,7 +410,7 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
       final idx = editingIndex.value!;
       messageController.clear();
       editingIndex.value = null;
-      if (idx >= messages.length) return;
+      if (idx < 0 || idx >= messages.length) return;
 
       final msg = messages[idx];
       if (msg.messageId > 0) _localEdits[msg.messageId] = text;
@@ -548,7 +603,9 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
                 color: AppColors.primary,
                 onTap: () {
                   Get.back();
-                  editingIndex.value = index;
+                  editingIndex.value = msg.messageId > 0
+                      ? messages.indexWhere((m) => m.messageId == msg.messageId)
+                      : index;
                   messageController.text = msg.message;
                   messageController.selection = TextSelection.fromPosition(
                     TextPosition(offset: msg.message.length),
@@ -584,12 +641,14 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
                       TextButton(
                         onPressed: () {
                           Get.back();
-                          if (index >= messages.length) return;
-                          final m = messages[index];
-                          if (m.messageId > 0) _deletedIds.add(m.messageId);
-                          messages.removeAt(index);
-                          if (m.messageUuid.isNotEmpty) {
-                            _service.deleteMessage(m.messageUuid);
+                          final actualIdx = msg.messageId > 0
+                              ? messages.indexWhere((m) => m.messageId == msg.messageId)
+                              : index < messages.length ? index : -1;
+                          if (actualIdx < 0) return;
+                          if (msg.messageId > 0) _deletedIds.add(msg.messageId);
+                          messages.removeAt(actualIdx);
+                          if (msg.messageUuid.isNotEmpty) {
+                            _service.deleteMessage(msg.messageUuid);
                           }
                         },
                         child: const Text(
@@ -873,6 +932,7 @@ class DetailMessage {
     this.dateLabel = '',
     this.messageId = 0,
     this.messageUuid = '',
+    this.isRead = false,
     this.isEdited = false,
     this.title = '',
     this.subtitle = '',
@@ -888,6 +948,7 @@ class DetailMessage {
   final String dateLabel;
   final int messageId;
   final String messageUuid;
+  final bool isRead;
   final bool isEdited;
   final String title;
   final String subtitle;
@@ -899,7 +960,7 @@ class DetailMessage {
       attachmentUrl != null && attachmentUrl!.isNotEmpty;
   bool get isImageAttachment => attachmentType == 'image';
 
-  DetailMessage copyWith({String? message, bool? isEdited}) =>
+  DetailMessage copyWith({String? message, bool? isRead, bool? isEdited}) =>
       DetailMessage(
         kind: kind,
         message: message ?? this.message,
@@ -908,6 +969,7 @@ class DetailMessage {
         dateLabel: dateLabel,
         messageId: messageId,
         messageUuid: messageUuid,
+        isRead: isRead ?? this.isRead,
         isEdited: isEdited ?? this.isEdited,
         title: title,
         subtitle: subtitle,

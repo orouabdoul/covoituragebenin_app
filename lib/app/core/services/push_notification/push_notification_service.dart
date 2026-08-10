@@ -12,6 +12,10 @@ import '../../controller/user_controller.dart';
 import '../../utils/app_dio.dart';
 import '../../utils/logger.dart';
 import '../../../routes/app_routes.dart';
+import '../../../modules/principal/driver/messager/controllers/detail_messager_controller.dart'
+    show DriverDetailMessagerController;
+import '../../../modules/principal/passager/messager/controllers/detail_messager_controller.dart'
+    show PassengerDetailMessagerController;
 
 // ── Canaux Android ─────────────────────────────────────────────────────────────
 // Un canal distinct par catégorie → l'utilisateur peut régler son/vibration
@@ -310,12 +314,72 @@ class PushNotificationService {
   // ── Foreground ──────────────────────────────────────────────────────────────
   // Android n'affiche pas les notifications FCM au premier plan → on les montre
   // via flutter_local_notifications avec le bon canal et la bonne couleur.
+  // Les silents (messages_read, message_edited, message_deleted) sont routés
+  // directement vers le controller actif sans afficher de notification.
 
   void _listenForeground() {
     FirebaseMessaging.onMessage.listen((message) {
-      logger.d('FCM foreground: type=${message.data['type']}');
+      final type = message.data['type'] as String? ?? '';
+      if (_handleSilentPush(type, message.data)) return;
+      logger.d('FCM foreground: type=$type');
       _showLocalNotification(message);
     });
+  }
+
+  bool _handleSilentPush(String type, Map<String, dynamic> data) {
+    final convUuid = data['conversation_uuid'] as String? ?? '';
+    switch (type) {
+      case 'messages_read':
+        if (convUuid.isNotEmpty) {
+          _routeToActiveChat(convUuid, _SilentAction.read, null, null);
+        }
+        return true;
+      case 'message_edited':
+        final msgUuid = data['message_uuid'] as String? ?? '';
+        final newBody = data['new_body'] as String? ?? '';
+        if (convUuid.isNotEmpty && msgUuid.isNotEmpty) {
+          _routeToActiveChat(convUuid, _SilentAction.edit, msgUuid, newBody);
+        }
+        return true;
+      case 'message_deleted':
+        final msgUuid = data['message_uuid'] as String? ?? '';
+        if (convUuid.isNotEmpty && msgUuid.isNotEmpty) {
+          _routeToActiveChat(convUuid, _SilentAction.delete, msgUuid, null);
+        }
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  void _routeToActiveChat(
+    String convUuid,
+    _SilentAction action,
+    String? messageUuid,
+    String? newBody,
+  ) {
+    void apply(dynamic c) {
+      switch (action) {
+        case _SilentAction.read:
+          c.handleMessagesRead(convUuid);
+        case _SilentAction.edit:
+          c.handleMessageEdited(convUuid, messageUuid!, newBody!);
+        case _SilentAction.delete:
+          c.handleMessageDeleted(convUuid, messageUuid!);
+      }
+    }
+
+    if (Get.isRegistered<DriverDetailMessagerController>()) {
+      final c = Get.find<DriverDetailMessagerController>();
+      if (c.conversationUuid == convUuid) {
+        apply(c);
+        return;
+      }
+    }
+    if (Get.isRegistered<PassengerDetailMessagerController>()) {
+      final c = Get.find<PassengerDetailMessagerController>();
+      if (c.conversationUuid == convUuid) apply(c);
+    }
   }
 
   // ── Tap sur notification ────────────────────────────────────────────────────
@@ -550,3 +614,5 @@ class PushNotificationService {
     return result;
   }
 }
+
+enum _SilentAction { read, edit, delete }

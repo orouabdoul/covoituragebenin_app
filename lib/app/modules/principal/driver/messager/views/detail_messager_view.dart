@@ -41,6 +41,7 @@ class DetailMessagerView extends GetView<DriverDetailMessagerController> {
                     controller.displayName.value;
                     controller.displayTripRoute.value;
                     controller.displayTripDepartureLabel.value;
+                    controller.isAdminConversation.value;
                     return _ConversationHeader(
                         responsive: responsive, controller: controller);
                   }),
@@ -110,6 +111,8 @@ class DetailMessagerView extends GetView<DriverDetailMessagerController> {
                                 message: message.message,
                                 time: message.time,
                                 isEdited: message.isEdited,
+                                isRead: message.isRead,
+                                isPending: message.messageId == 0,
                                 attachmentUrl: message.attachmentUrl,
                                 isImageAttachment: message.isImageAttachment,
                               ),
@@ -272,7 +275,8 @@ class _ConversationHeader extends StatelessWidget {
                                 Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    if (controller.displayIsOnline.value) ...[
+                                    if (!controller.isAdminConversation.value &&
+                                        controller.displayIsOnline.value) ...[
                                       Container(
                                         width: responsive.w(8),
                                         height: responsive.w(8),
@@ -283,9 +287,11 @@ class _ConversationHeader extends StatelessWidget {
                                       SizedBox(width: responsive.w(8)),
                                     ],
                                     Text(
-                                      controller.displayIsOnline.value
-                                          ? 'En ligne'
-                                          : 'Hors ligne',
+                                      controller.isAdminConversation.value
+                                          ? 'Support Minizon'
+                                          : (controller.displayIsOnline.value
+                                              ? 'En ligne'
+                                              : 'Hors ligne'),
                                       style: AppTextStyles.caption(responsive)
                                           .copyWith(
                                               color: AppColors.textSecondary),
@@ -304,15 +310,17 @@ class _ConversationHeader extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _HeaderActionButton(
-                    responsive: responsive,
-                    backgroundColor: const Color(0x1900A86B),
-                    icon: Icons.call_rounded,
-                    iconSize: 18,
-                    iconColor: AppColors.primary,
-                    onTap: controller.onCall,
-                  ),
-                  SizedBox(width: responsive.w(8)),
+                  if (!controller.isAdminConversation.value) ...[
+                    _HeaderActionButton(
+                      responsive: responsive,
+                      backgroundColor: const Color(0x1900A86B),
+                      icon: Icons.call_rounded,
+                      iconSize: 18,
+                      iconColor: AppColors.primary,
+                      onTap: controller.onCall,
+                    ),
+                    SizedBox(width: responsive.w(8)),
+                  ],
                   _HeaderActionButton(
                     responsive: responsive,
                     backgroundColor: const Color(0xFFF9FAFB),
@@ -326,86 +334,88 @@ class _ConversationHeader extends StatelessWidget {
             ],
           ),
         ),
-        SizedBox(height: responsive.h(12)),
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.symmetric(
-            horizontal: responsive.adaptive(
-                phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
-            vertical: responsive.adaptive(
-                phone: 12, smallPhone: 12, tablet: 14, desktop: 16),
-          ),
-          decoration: ShapeDecoration(
-            color: const Color(0x0C00A86B),
-            shape: RoundedRectangleBorder(
-              side: const BorderSide(color: Color(0x3300A86B)),
-              borderRadius: BorderRadius.circular(responsive.radius(16)),
+        if (!controller.isAdminConversation.value) ...[
+          SizedBox(height: responsive.h(12)),
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(
+              horizontal: responsive.adaptive(
+                  phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
+              vertical: responsive.adaptive(
+                  phone: 12, smallPhone: 12, tablet: 14, desktop: 16),
+            ),
+            decoration: ShapeDecoration(
+              color: const Color(0x0C00A86B),
+              shape: RoundedRectangleBorder(
+                side: const BorderSide(color: Color(0x3300A86B)),
+                borderRadius: BorderRadius.circular(responsive.radius(16)),
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: responsive.w(40),
+                  height: responsive.w(40),
+                  padding: EdgeInsets.symmetric(
+                      horizontal: responsive.w(12), vertical: responsive.h(8)),
+                  decoration: ShapeDecoration(
+                    color: const Color(0x3300A86B),
+                    shape: RoundedRectangleBorder(
+                      side: const BorderSide(color: Color(0xFFE5E7EB)),
+                      borderRadius: BorderRadius.circular(9999),
+                    ),
+                  ),
+                  child: const Icon(Icons.route_rounded,
+                      color: AppColors.primary, size: 18),
+                ),
+                SizedBox(width: responsive.w(12)),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        controller.displayTripRoute.value.isNotEmpty
+                            ? controller.displayTripRoute.value
+                            : 'Trajet',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.caption(responsive).copyWith(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w500),
+                      ),
+                      SizedBox(height: responsive.h(2)),
+                      Text(
+                        controller.displayTripDepartureLabel.value.isNotEmpty
+                            ? controller.displayTripDepartureLabel.value
+                            : '–',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.caption(responsive)
+                            .copyWith(color: AppColors.textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: responsive.w(8)),
+                InkWell(
+                  onTap: controller.openMap,
+                  borderRadius: BorderRadius.circular(responsive.radius(10)),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                        horizontal: responsive.w(2), vertical: responsive.h(4)),
+                    child: Text(
+                      'Voir détails',
+                      style: AppTextStyles.caption(responsive).copyWith(
+                          color: AppColors.primary, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                width: responsive.w(40),
-                height: responsive.w(40),
-                padding: EdgeInsets.symmetric(
-                    horizontal: responsive.w(12), vertical: responsive.h(8)),
-                decoration: ShapeDecoration(
-                  color: const Color(0x3300A86B),
-                  shape: RoundedRectangleBorder(
-                    side: const BorderSide(color: Color(0xFFE5E7EB)),
-                    borderRadius: BorderRadius.circular(9999),
-                  ),
-                ),
-                child: const Icon(Icons.route_rounded,
-                    color: AppColors.primary, size: 18),
-              ),
-              SizedBox(width: responsive.w(12)),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      controller.displayTripRoute.value.isNotEmpty
-                          ? controller.displayTripRoute.value
-                          : 'Trajet',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.caption(responsive).copyWith(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w500),
-                    ),
-                    SizedBox(height: responsive.h(2)),
-                    Text(
-                      controller.displayTripDepartureLabel.value.isNotEmpty
-                          ? controller.displayTripDepartureLabel.value
-                          : '–',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.caption(responsive)
-                          .copyWith(color: AppColors.textSecondary),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(width: responsive.w(8)),
-              InkWell(
-                onTap: controller.openMap,
-                borderRadius: BorderRadius.circular(responsive.radius(10)),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: responsive.w(2), vertical: responsive.h(4)),
-                  child: Text(
-                    'Voir détails',
-                    style: AppTextStyles.caption(responsive).copyWith(
-                        color: AppColors.primary, fontWeight: FontWeight.w500),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+        ],
       ],
     );
   }
@@ -632,6 +642,8 @@ class _OutgoingMessage extends StatelessWidget {
     required this.message,
     required this.time,
     this.isEdited = false,
+    this.isRead = false,
+    this.isPending = false,
     this.attachmentUrl,
     this.isImageAttachment = false,
   });
@@ -640,6 +652,8 @@ class _OutgoingMessage extends StatelessWidget {
   final String message;
   final String time;
   final bool isEdited;
+  final bool isRead;
+  final bool isPending;
   final String? attachmentUrl;
   final bool isImageAttachment;
 
@@ -705,6 +719,7 @@ class _OutgoingMessage extends StatelessWidget {
             SizedBox(height: responsive.h(4)),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 if (isEdited) ...[
                   Text(
@@ -717,6 +732,16 @@ class _OutgoingMessage extends StatelessWidget {
                   ),
                 ],
                 Text(time, style: AppTextStyles.caption(responsive)),
+                if (!isPending) ...[
+                  SizedBox(width: responsive.w(3)),
+                  Icon(
+                    isRead ? Icons.done_all_rounded : Icons.done_rounded,
+                    size: responsive.text(13),
+                    color: isRead
+                        ? const Color(0xFF3B82F6)
+                        : AppColors.textGhost,
+                  ),
+                ],
               ],
             ),
           ],

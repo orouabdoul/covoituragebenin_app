@@ -594,8 +594,11 @@ class _GpsStatusBadge extends StatelessWidget {
 }
 
 // ── Champ autocomplete ville/quartier ─────────────────────────────────────
+//
+// Implémentation via bottom-sheet pour éviter que le dropdown inline soit
+// masqué par le clavier logiciel sur téléphone physique.
 
-class _LocationAutocompleteField extends StatefulWidget {
+class _LocationAutocompleteField extends StatelessWidget {
 	const _LocationAutocompleteField({
 		super.key,
 		required this.responsive,
@@ -606,7 +609,7 @@ class _LocationAutocompleteField extends StatefulWidget {
 		required this.items,
 		required this.isSelected,
 		required this.onSelected,
-		required this.onTextChanged,
+		this.onTextChanged,
 		this.enabled = true,
 		this.emptyHint,
 	});
@@ -619,200 +622,269 @@ class _LocationAutocompleteField extends StatefulWidget {
 	final List<String> items;
 	final bool isSelected;
 	final ValueChanged<String> onSelected;
-	final VoidCallback onTextChanged;
+	final VoidCallback? onTextChanged;
 	final bool enabled;
 	final String? emptyHint;
 
+	void _openPicker(BuildContext context) {
+		if (!enabled || items.isEmpty) return;
+		showModalBottomSheet<void>(
+			context: context,
+			isScrollControlled: true,
+			backgroundColor: Colors.transparent,
+			builder: (_) => _LocationPickerSheet(
+				label: label,
+				items: items,
+				responsive: responsive,
+				onSelected: (item) {
+					controller.text = item;
+					onSelected(item);
+				},
+			),
+		);
+	}
+
 	@override
-	State<_LocationAutocompleteField> createState() =>
-			_LocationAutocompleteFieldState();
+	Widget build(BuildContext context) {
+		final bool hasValue = controller.text.isNotEmpty;
+		final Color borderColor = isSelected ? iconColor : AppColors.border;
+		final Color effectiveIconColor =
+				isSelected ? iconColor : AppColors.textHint;
+
+		return GestureDetector(
+			onTap: enabled ? () => _openPicker(context) : null,
+			child: Container(
+				decoration: BoxDecoration(
+					color: enabled ? AppColors.surfaceMuted : AppColors.surface,
+					borderRadius: BorderRadius.circular(responsive.radius(10)),
+					border: Border.all(color: borderColor),
+				),
+				child: Row(
+					children: [
+						Padding(
+							padding: EdgeInsets.symmetric(horizontal: responsive.w(12)),
+							child: Icon(
+								isSelected ? Icons.check_circle_rounded : icon,
+								size: responsive.text(16),
+								color: effectiveIconColor,
+							),
+						),
+						Expanded(
+							child: Padding(
+								padding: EdgeInsets.symmetric(vertical: responsive.h(10)),
+								child: Column(
+									crossAxisAlignment: CrossAxisAlignment.start,
+									children: [
+										Text(
+											label,
+											style: AppTextStyles.caption(responsive).copyWith(
+												color: AppColors.textHint,
+												fontSize: responsive.text(10),
+											),
+										),
+										SizedBox(height: responsive.h(2)),
+										Text(
+											hasValue
+													? controller.text
+													: (emptyHint ?? 'Appuyer pour choisir…'),
+											style: hasValue
+													? AppTextStyles.subtitle(responsive)
+													: AppTextStyles.caption(responsive)
+															.copyWith(color: AppColors.textHint),
+										),
+									],
+								),
+							),
+						),
+						if (hasValue && enabled)
+							GestureDetector(
+								onTap: () {
+									controller.clear();
+									onTextChanged?.call();
+								},
+								child: Padding(
+									padding: EdgeInsets.only(right: responsive.w(12)),
+									child: Icon(
+										Icons.close_rounded,
+										size: responsive.text(16),
+										color: AppColors.textHint,
+									),
+								),
+							)
+						else
+							Padding(
+								padding: EdgeInsets.only(right: responsive.w(12)),
+								child: Icon(
+									Icons.arrow_drop_down_rounded,
+									size: responsive.text(20),
+									color: AppColors.textHint,
+								),
+							),
+					],
+				),
+			),
+		);
+	}
 }
 
-class _LocationAutocompleteFieldState
-		extends State<_LocationAutocompleteField> {
-	late FocusNode _focusNode;
-	bool _showList = false;
-	List<String> _filtered = [];
+class _LocationPickerSheet extends StatefulWidget {
+	const _LocationPickerSheet({
+		required this.label,
+		required this.items,
+		required this.responsive,
+		required this.onSelected,
+	});
+
+	final String label;
+	final List<String> items;
+	final AppResponsive responsive;
+	final ValueChanged<String> onSelected;
+
+	@override
+	State<_LocationPickerSheet> createState() => _LocationPickerSheetState();
+}
+
+class _LocationPickerSheetState extends State<_LocationPickerSheet> {
+	late List<String> _filtered;
+	final TextEditingController _searchCtrl = TextEditingController();
 
 	@override
 	void initState() {
 		super.initState();
-		_focusNode = FocusNode();
-		_focusNode.addListener(_onFocusChange);
-		widget.controller.addListener(_onControllerChange);
 		_filtered = widget.items;
-	}
-
-	@override
-	void didUpdateWidget(_LocationAutocompleteField old) {
-		super.didUpdateWidget(old);
-		if (old.items != widget.items) {
-			setState(() {
-				_filtered = _filterItems(widget.controller.text);
-				_showList = false;
-			});
-		}
+		_searchCtrl.addListener(_onSearch);
 	}
 
 	@override
 	void dispose() {
-		_focusNode.removeListener(_onFocusChange);
-		_focusNode.dispose();
-		widget.controller.removeListener(_onControllerChange);
+		_searchCtrl.removeListener(_onSearch);
+		_searchCtrl.dispose();
 		super.dispose();
 	}
 
-	void _onFocusChange() {
-		if (_focusNode.hasFocus) {
-			setState(() {
-				_filtered = _filterItems(widget.controller.text);
-				_showList = widget.items.isNotEmpty;
-			});
-		} else {
-			Future.delayed(const Duration(milliseconds: 150), () {
-				if (mounted) setState(() => _showList = false);
-			});
-		}
-	}
-
-	void _onControllerChange() {
-		if (!_focusNode.hasFocus) return;
+	void _onSearch() {
+		final q = _searchCtrl.text.toLowerCase();
 		setState(() {
-			_filtered = _filterItems(widget.controller.text);
-			_showList = _filtered.isNotEmpty;
+			_filtered = q.isEmpty
+					? widget.items
+					: widget.items
+							.where((item) => item.toLowerCase().contains(q))
+							.toList();
 		});
-	}
-
-	List<String> _filterItems(String text) {
-		if (text.isEmpty) return widget.items;
-		final q = text.toLowerCase();
-		return widget.items
-				.where((item) => item.toLowerCase().contains(q))
-				.toList();
-	}
-
-	void _onUserTyped(String text) {
-		setState(() {
-			_filtered = _filterItems(text);
-			_showList = _filtered.isNotEmpty;
-		});
-		widget.onTextChanged();
-	}
-
-	void _selectItem(String item) {
-		widget.controller.text = item;
-		widget.onSelected(item);
-		setState(() => _showList = false);
-		_focusNode.unfocus();
 	}
 
 	@override
 	Widget build(BuildContext context) {
 		final responsive = widget.responsive;
-		final bool isSelected = widget.isSelected;
+		final double bottomInset = MediaQuery.viewInsetsOf(context).bottom;
 
-		final Color borderColor = isSelected
-				? widget.iconColor
-				: AppColors.border;
-		final Color effectiveIconColor =
-				isSelected ? widget.iconColor : AppColors.textHint;
-
-		return Column(
-			crossAxisAlignment: CrossAxisAlignment.start,
-			children: [
-				Container(
-					decoration: BoxDecoration(
-						color: widget.enabled
-								? AppColors.surfaceMuted
-								: AppColors.surface,
-						borderRadius: BorderRadius.circular(responsive.radius(10)),
-						border: Border.all(color: borderColor),
-					),
-					child: Row(
-						children: [
-							Padding(
-								padding: EdgeInsets.symmetric(
-										horizontal: responsive.w(12)),
-								child: Icon(
-									isSelected ? Icons.check_circle_rounded : widget.icon,
-									size: responsive.text(16),
-									color: effectiveIconColor,
-								),
-							),
-							Expanded(
-								child: Column(
-									crossAxisAlignment: CrossAxisAlignment.start,
-									children: [
-										Padding(
-											padding: EdgeInsets.only(top: responsive.h(8)),
-											child: Text(
-												widget.label,
-												style: AppTextStyles.caption(responsive).copyWith(
-													color: AppColors.textHint,
-													fontSize: responsive.text(10),
-												),
-											),
-										),
-										TextField(
-											controller: widget.controller,
-											focusNode: _focusNode,
-											enabled: widget.enabled,
-											onChanged: _onUserTyped,
-											style: AppTextStyles.subtitle(responsive),
-											textCapitalization: TextCapitalization.words,
-											decoration: InputDecoration(
-												hintText: widget.emptyHint ?? 'Rechercher…',
-												hintStyle: AppTextStyles.caption(responsive)
-														.copyWith(color: AppColors.textHint),
-												isDense: true,
-												contentPadding: EdgeInsets.only(
-													bottom: responsive.h(8),
-													right: responsive.w(12),
-												),
-												border: InputBorder.none,
-											),
-										),
-									],
-								),
-							),
-						],
-					),
-				),
-				if (_showList && _filtered.isNotEmpty)
+		return Container(
+			padding: EdgeInsets.only(
+				bottom: bottomInset > 0 ? bottomInset : responsive.h(24),
+			),
+			constraints: BoxConstraints(
+				maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+			),
+			decoration: const BoxDecoration(
+				color: Colors.white,
+				borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+			),
+			child: Column(
+				mainAxisSize: MainAxisSize.min,
+				children: [
 					Container(
-						margin: EdgeInsets.only(top: responsive.h(2)),
-						constraints: BoxConstraints(maxHeight: responsive.h(180)),
+						width: 40,
+						height: 4,
+						margin: EdgeInsets.symmetric(vertical: responsive.h(10)),
 						decoration: BoxDecoration(
-							color: AppColors.white,
-							borderRadius: BorderRadius.circular(responsive.radius(10)),
-							border: Border.all(color: AppColors.border),
-							boxShadow: const [
-								BoxShadow(
-										color: Color(0x14000000),
-										blurRadius: 10,
-										offset: Offset(0, 3)),
-							],
-						),
-						child: ListView.builder(
-							shrinkWrap: true,
-							padding: EdgeInsets.symmetric(vertical: responsive.h(4)),
-							itemCount: _filtered.length,
-							itemBuilder: (_, i) {
-								final item = _filtered[i];
-								return InkWell(
-									onTap: () => _selectItem(item),
-									child: Padding(
-										padding: EdgeInsets.symmetric(
-												horizontal: responsive.w(14),
-												vertical: responsive.h(11)),
-										child:
-												Text(item, style: AppTextStyles.body(responsive)),
-									),
-								);
-							},
+							color: AppColors.border,
+							borderRadius: BorderRadius.circular(2),
 						),
 					),
-			],
+					Padding(
+						padding: EdgeInsets.symmetric(horizontal: responsive.w(16)),
+						child: Align(
+							alignment: Alignment.centerLeft,
+							child: Text(widget.label, style: AppTextStyles.h6(responsive)),
+						),
+					),
+					SizedBox(height: responsive.h(12)),
+					Padding(
+						padding: EdgeInsets.symmetric(horizontal: responsive.w(16)),
+						child: TextField(
+							controller: _searchCtrl,
+							autofocus: true,
+							style: AppTextStyles.body(responsive),
+							decoration: InputDecoration(
+								hintText: 'Rechercher…',
+								hintStyle: AppTextStyles.caption(responsive)
+										.copyWith(color: AppColors.textHint),
+								prefixIcon: Icon(
+									Icons.search_rounded,
+									size: responsive.text(18),
+									color: AppColors.textHint,
+								),
+								filled: true,
+								fillColor: AppColors.surfaceMuted,
+								border: OutlineInputBorder(
+									borderRadius:
+											BorderRadius.circular(responsive.radius(10)),
+									borderSide: BorderSide.none,
+								),
+								contentPadding: EdgeInsets.symmetric(
+									horizontal: responsive.w(12),
+									vertical: responsive.h(10),
+								),
+								isDense: true,
+							),
+						),
+					),
+					SizedBox(height: responsive.h(8)),
+					Flexible(
+						child: _filtered.isEmpty
+								? Padding(
+										padding: EdgeInsets.symmetric(vertical: responsive.h(32)),
+										child: Text(
+											'Aucun résultat',
+											style: AppTextStyles.caption(responsive)
+													.copyWith(color: AppColors.textHint),
+										),
+									)
+								: ListView.builder(
+										shrinkWrap: true,
+										itemCount: _filtered.length,
+										itemBuilder: (_, i) {
+											final item = _filtered[i];
+											return InkWell(
+												onTap: () => widget.onSelected(item),
+												child: Padding(
+													padding: EdgeInsets.symmetric(
+														horizontal: responsive.w(16),
+														vertical: responsive.h(13),
+													),
+													child: Row(
+														children: [
+															Icon(
+																Icons.place_rounded,
+																size: responsive.text(15),
+																color: AppColors.textHint,
+															),
+															SizedBox(width: responsive.w(10)),
+															Expanded(
+																child: Text(
+																	item,
+																	style: AppTextStyles.body(responsive),
+																),
+															),
+														],
+													),
+												),
+											);
+										},
+									),
+					),
+				],
+			),
 		);
 	}
 }
