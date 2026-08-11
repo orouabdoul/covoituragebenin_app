@@ -531,22 +531,13 @@ class _TopBar extends StatelessWidget {
         ),
         Row(
           children: [
-            Container(
-              width: responsive.w(32),
-              height: responsive.w(32),
-              alignment: Alignment.center,
-              decoration: ShapeDecoration(
-                color: AppColors.primary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(responsive.radius(8)),
-                ),
-              ),
-              child: Text(
-                'M',
-                style: AppTextStyles.profileSectionTitle(responsive).copyWith(
-                  color: AppColors.white,
-                  fontSize: responsive.text(16),
-                ),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(responsive.radius(8)),
+              child: Image.asset(
+                'assets/minizon/icon.png',
+                width: responsive.w(32),
+                height: responsive.w(32),
+                fit: BoxFit.cover,
               ),
             ),
             SizedBox(width: responsive.w(8)),

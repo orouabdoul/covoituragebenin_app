@@ -2,6 +2,7 @@ import 'package:covoiturage_benin_app/app/core/controller/loading_controller.dar
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/services/push_notification/push_notification_service.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:covoiturage_benin_app/app/core/services/auth/auth_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/auth/auth_service_impl.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/active_trip/active_trip_service.dart';
@@ -49,6 +50,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Doit être enregistré AVANT Firebase.initializeApp() pour que l'OS puisse
+  // réveiller l'isolate background quand l'app est fermée.
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   await Firebase.initializeApp();
 

@@ -38,13 +38,19 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT"/>
             </intent-filter>
         </service>
-        <!-- Icône et couleur des notifications -->
+        <!-- Icône monochrome blanche pour le statut bar (obligatoire Android 5+) -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
-            android:resource="@mipmap/ic_launcher"/>
+            android:resource="@drawable/ic_notification"/>
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_color"
             android:resource="@color/notification_color"/>
+        <!-- Canal par défaut utilisé quand l'app est fermée et que le serveur
+             envoie un message "notification" (sans data-only).
+             Doit correspondre à un canal créé dans le code Flutter. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="ch_trip"/>
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />

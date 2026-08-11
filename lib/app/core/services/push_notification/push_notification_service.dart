@@ -18,8 +18,8 @@ import '../../../modules/principal/passager/messager/controllers/detail_messager
     show PassengerDetailMessagerController;
 
 // ── Canaux Android ─────────────────────────────────────────────────────────────
-// Un canal distinct par catégorie → l'utilisateur peut régler son/vibration
-// de chaque type séparément dans les paramètres Android.
+// Un canal par catégorie → l'utilisateur peut gérer son/vibration séparément
+// dans les paramètres Android.
 
 const _chTrip    = 'ch_trip';
 const _chPayment = 'ch_payment';
@@ -50,7 +50,7 @@ const _allChannels = [
   AndroidNotificationChannel(
     _chMessage,
     'Messagerie',
-    description: 'Nouveaux messages de passagers',
+    description: 'Nouveaux messages',
     importance: Importance.high,
     playSound: true,
     enableVibration: true,
@@ -128,29 +128,29 @@ Color _colorForType(String type) {
     case 'reservation_accepted':
     case 'trip_published':
     case 'trip_reminder':
-      return const Color(0xFF1565C0); // bleu conducteur
+      return const Color(0xFF1565C0);
     case 'trip_started':
     case 'trip_proximity':
-      return const Color(0xFF2E7D32); // vert — trajet en cours
+      return const Color(0xFF2E7D32);
     case 'trip_ended':
       return const Color(0xFF1565C0);
     case 'reservation_rejected':
     case 'booking_cancelled':
     case 'trip_cancelled':
     case 'account_blocked':
-      return const Color(0xFFB71C1C); // rouge — annulation
+      return const Color(0xFFB71C1C);
     case 'payment_success':
     case 'withdrawal_approved':
     case 'refund_approved':
-      return const Color(0xFF1B5E20); // vert foncé — argent
+      return const Color(0xFF1B5E20);
     case 'withdrawal_rejected':
     case 'refund_rejected':
-      return const Color(0xFFE65100); // orange — refus
+      return const Color(0xFFE65100);
     case 'message_new':
-      return const Color(0xFF4527A0); // violet — messagerie
+      return const Color(0xFF4527A0);
     case 'review_new':
     case 'review_reply':
-      return const Color(0xFFF57F17); // ambre — avis
+      return const Color(0xFFF57F17);
     case 'account_verified':
       return const Color(0xFF2E7D32);
     case 'sos_triggered':
@@ -169,27 +169,45 @@ String? _groupKeyForType(String type, Map<String, dynamic> data) {
 String _buildPayload(Map<String, dynamic> data) =>
     data.entries.map((e) => '${e.key}=${e.value}').join('&');
 
+// ID unique par notification : timestamp en secondes → évite la collision de hashCode.
+int _notifId() => DateTime.now().millisecondsSinceEpoch ~/ 1000 % 100000;
+
 // ── Handler background (isolate séparé) ───────────────────────────────────────
-// Appelé quand l'app est en arrière-plan ou fermée.
-// Doit être top-level et annoté @pragma.
+// Appelé quand l'app est en arrière-plan ou fermée ET que le message est data-only.
+// Si le message a un champ notification, FCM l'affiche automatiquement —
+// le handler n'est alors PAS appelé (comportement FCM Android standard).
+
+const _silentTypes = {'messages_read', 'message_edited', 'message_deleted'};
 
 @pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
 
-  final data  = message.data;
-  final notif = message.notification;
-  final title = notif?.title ?? data['title'] as String? ?? 'Covoiturage Bénin';
-  final body  = notif?.body  ?? data['body']  as String? ?? '';
+  // FIX 1 : si FCM a déjà affiché la notification (message notification+data),
+  // ne pas en afficher une deuxième.
+  if (message.notification != null) return;
+
+  final data = message.data;
+  final type = data['type'] as String? ?? '';
+
+  if (_silentTypes.contains(type)) return;
+
+  final title = data['title'] as String? ?? 'Covoiturage Bénin';
+  final body  = data['body']  as String? ?? '';
   if (body.isEmpty && title == 'Covoiturage Bénin') return;
 
-  final type      = data['type'] as String? ?? '';
   final channelId = _channelForType(type);
   final chName    = _channelNameForId(channelId);
   final color     = _colorForType(type);
   final groupKey  = _groupKeyForType(type, data);
 
   final plugin = FlutterLocalNotificationsPlugin();
+
+  // FIX 3 : initialiser le plugin AVANT de créer les canaux
+  await plugin.initialize(const InitializationSettings(
+    android: AndroidInitializationSettings('@drawable/ic_notification'),
+    iOS: DarwinInitializationSettings(),
+  ));
 
   if (Platform.isAndroid) {
     final impl = plugin.resolvePlatformSpecificImplementation<
@@ -199,13 +217,9 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     }
   }
 
-  await plugin.initialize(const InitializationSettings(
-    android: AndroidInitializationSettings('@drawable/ic_notification'),
-    iOS: DarwinInitializationSettings(),
-  ));
-
+  // FIX 4 : ID basé sur le timestamp pour éviter les collisions
   await plugin.show(
-    message.hashCode,
+    _notifId(),
     title,
     body,
     NotificationDetails(
@@ -241,13 +255,16 @@ class PushNotificationService {
   final _localNotifications = FlutterLocalNotificationsPlugin();
 
   Future<void> initialize() async {
-    // 1. Créer tous les canaux Android
-    await _createAllChannels();
+    // FIX 3 : initialiser le plugin d'abord, PUIS créer les canaux
+    // (resolvePlatformSpecificImplementation peut retourner null avant initialize)
 
-    // 2. Initialiser le plugin local (foreground + tap)
+    // 1. Initialiser le plugin local
     await _initLocalPlugin();
 
-    // 3. Permissions (Android 13+ / iOS)
+    // 2. Créer les canaux Android (après init du plugin)
+    await _createAllChannels();
+
+    // 3. Permissions FCM (iOS + Android 13+)
     await _requestPermission();
 
     // 4. iOS : afficher les notifications même en premier plan
@@ -260,24 +277,13 @@ class PushNotificationService {
     // 5. Listeners
     _listenForeground();
     _listenOnTap();
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    // onBackgroundMessage est enregistré dans main.dart avant Firebase.initializeApp()
 
     // 6. Token
     _logToken();
   }
 
-  // ── Canaux Android ──────────────────────────────────────────────────────────
-
-  Future<void> _createAllChannels() async {
-    if (!Platform.isAndroid) return;
-    final impl = _localNotifications.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
-    for (final ch in _allChannels) {
-      await impl?.createNotificationChannel(ch);
-    }
-  }
-
-  // ── Initialisation plugin local ─────────────────────────────────────────────
+  // ── Plugin local ────────────────────────────────────────────────────────────
 
   Future<void> _initLocalPlugin() async {
     await _localNotifications.initialize(
@@ -291,11 +297,19 @@ class PushNotificationService {
       ),
       onDidReceiveNotificationResponse: _onNotificationTap,
     );
-    if (Platform.isAndroid) {
-      await _localNotifications
-          .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
-          ?.requestNotificationsPermission();
+    // FIX 2 : NE PAS appeler requestNotificationsPermission() ici —
+    // _requestPermission() via _fcm.requestPermission() s'en charge sur Android 13+.
+    // Demander deux fois déclenchait la boîte de dialogue deux fois.
+  }
+
+  // ── Canaux Android ──────────────────────────────────────────────────────────
+
+  Future<void> _createAllChannels() async {
+    if (!Platform.isAndroid) return;
+    final impl = _localNotifications.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    for (final ch in _allChannels) {
+      await impl?.createNotificationChannel(ch);
     }
   }
 
@@ -312,10 +326,6 @@ class PushNotificationService {
   }
 
   // ── Foreground ──────────────────────────────────────────────────────────────
-  // Android n'affiche pas les notifications FCM au premier plan → on les montre
-  // via flutter_local_notifications avec le bon canal et la bonne couleur.
-  // Les silents (messages_read, message_edited, message_deleted) sont routés
-  // directement vers le controller actif sans afficher de notification.
 
   void _listenForeground() {
     FirebaseMessaging.onMessage.listen((message) {
@@ -410,8 +420,9 @@ class PushNotificationService {
     final color     = _colorForType(type);
     final groupKey  = _groupKeyForType(type, data);
 
+    // FIX 4 : ID unique basé sur le timestamp
     _localNotifications.show(
-      message.hashCode,
+      _notifId(),
       title,
       body,
       NotificationDetails(
@@ -449,58 +460,78 @@ class PushNotificationService {
 
   void _navigate(Map<String, dynamic> data) {
     final type        = data['type'] as String? ?? '';
-    final role        = data['role'] as String? ?? '';
     final tripUuid    = data['trip_uuid']        as String?;
     final bookingUuid = data['booking_uuid']      as String?;
     final convUuid    = data['conversation_uuid'] as String?;
 
-    switch (type) {
-      case 'trip_published':
-        Get.toNamed(AppRoutes.passengerHome);
+    // Rôle depuis la notification (source primaire envoyée par le serveur).
+    // Fallback sur le rôle local si le serveur ne l'inclut pas.
+    final fcmRole   = data['role'] as String? ?? '';
+    final localRole = UserController.instance.role.value;
+    final role      = fcmRole.isNotEmpty ? fcmRole : localRole;
+    final isDriver  = role == 'driver' || role == 'conducteur';
 
+    switch (type) {
+
+      // ── Trajet publié → passagers uniquement ─────────────────────────────
+      case 'trip_published':
+        if (!isDriver) Get.toNamed(AppRoutes.passengerHome);
+
+      // ── Réservations ──────────────────────────────────────────────────────
       case 'reservation_new':
-        Get.toNamed(AppRoutes.driverReservations);
+        if (isDriver) Get.toNamed(AppRoutes.driverReservations);
 
       case 'reservation_accepted':
-        Get.toNamed(
-          AppRoutes.passengerWaitingApproval,
-          arguments: bookingUuid != null ? {'bookingUuid': bookingUuid} : null,
-        );
+        if (!isDriver) {
+          Get.toNamed(
+            AppRoutes.passengerWaitingApproval,
+            arguments: bookingUuid != null ? {'bookingUuid': bookingUuid} : null,
+          );
+        }
 
       case 'reservation_rejected':
-        Get.toNamed(AppRoutes.passengerReservations);
+        if (!isDriver) Get.toNamed(AppRoutes.passengerReservations);
 
       case 'booking_cancelled':
-        Get.toNamed(AppRoutes.driverReservations);
+        if (isDriver) Get.toNamed(AppRoutes.driverReservations);
 
       case 'trip_cancelled':
-        Get.toNamed(AppRoutes.passengerReservations);
+        if (!isDriver) Get.toNamed(AppRoutes.passengerReservations);
 
+      // ── Trajet en cours → passagers uniquement ────────────────────────────
       case 'trip_started':
-        Get.toNamed(
-          AppRoutes.passengerLiveTracking,
-          arguments: {'tripUuid': tripUuid, 'bookingUuid': bookingUuid},
-        );
+        if (!isDriver) {
+          Get.toNamed(
+            AppRoutes.passengerLiveTracking,
+            arguments: {'tripUuid': tripUuid, 'bookingUuid': bookingUuid},
+          );
+        }
 
       case 'trip_proximity':
-        Get.toNamed(
-          AppRoutes.passengerDriverArrival,
-          arguments: {'tripUuid': tripUuid, 'bookingUuid': bookingUuid},
-        );
+        if (!isDriver) {
+          Get.toNamed(
+            AppRoutes.passengerDriverArrival,
+            arguments: {'tripUuid': tripUuid, 'bookingUuid': bookingUuid},
+          );
+        }
 
       case 'trip_ended':
-        Get.toNamed(
-          AppRoutes.passengerTripConfirmation,
-          arguments: {'tripUuid': tripUuid, 'bookingUuid': bookingUuid},
-        );
+        if (!isDriver) {
+          Get.toNamed(
+            AppRoutes.passengerTripConfirmation,
+            arguments: {'tripUuid': tripUuid, 'bookingUuid': bookingUuid},
+          );
+        }
 
+      // ── Rappel trajet → les deux rôles ────────────────────────────────────
       case 'trip_reminder':
         Get.toNamed(
-          role == 'driver' ? AppRoutes.driverActiveTrip : AppRoutes.passengerReservations,
+          isDriver ? AppRoutes.driverActiveTrip : AppRoutes.passengerReservations,
         );
 
+      // ── Messagerie → les deux rôles ───────────────────────────────────────
       case 'message_new':
-        if (role == 'driver') {
+        if (isDriver) {
           Get.toNamed(
             convUuid != null ? AppRoutes.driverMessageDetail : AppRoutes.driverMessages,
             arguments: convUuid != null ? {'uuid': convUuid} : null,
@@ -512,43 +543,48 @@ class PushNotificationService {
           );
         }
 
+      // ── Paiements ─────────────────────────────────────────────────────────
       case 'payment_success':
         Get.toNamed(
-          role == 'driver' ? AppRoutes.driverPaymentHistory : AppRoutes.passengerReservations,
+          isDriver ? AppRoutes.driverPaymentHistory : AppRoutes.passengerReservations,
         );
 
       case 'withdrawal_approved':
       case 'withdrawal_rejected':
-        Get.toNamed(AppRoutes.driverWithdraw);
+        if (isDriver) Get.toNamed(AppRoutes.driverWithdraw);
 
       case 'refund_approved':
       case 'refund_rejected':
-        Get.toNamed(AppRoutes.passengerRefundHistory);
+        if (!isDriver) Get.toNamed(AppRoutes.passengerRefundHistory);
 
+      // ── Avis ──────────────────────────────────────────────────────────────
       case 'review_new':
-        Get.toNamed(AppRoutes.driverReviews);
+        if (isDriver) Get.toNamed(AppRoutes.driverReviews);
 
       case 'review_reply':
-        Get.toNamed(AppRoutes.passengerMyReviews);
+        if (!isDriver) Get.toNamed(AppRoutes.passengerMyReviews);
 
+      // ── Compte → les deux rôles ───────────────────────────────────────────
       case 'account_verified':
         Get.toNamed(
-          role == 'driver' ? AppRoutes.dashboardDriver : AppRoutes.dashboardPassenger,
+          isDriver ? AppRoutes.dashboardDriver : AppRoutes.dashboardPassenger,
         );
 
       case 'account_blocked':
         break;
 
+      // ── SOS → les deux rôles ─────────────────────────────────────────────
       case 'sos_triggered':
         Get.toNamed(
-          role == 'driver' ? AppRoutes.driverSafetyCenter : AppRoutes.passengerSafetyCenter,
+          isDriver ? AppRoutes.driverSafetyCenter : AppRoutes.passengerSafetyCenter,
         );
 
+      // ── Notifications générales ───────────────────────────────────────────
       case 'driver_notifications':
-        Get.toNamed(AppRoutes.driverNotifications);
+        if (isDriver) Get.toNamed(AppRoutes.driverNotifications);
 
       case 'passenger_notifications':
-        Get.toNamed(AppRoutes.passengerNotifications);
+        if (!isDriver) Get.toNamed(AppRoutes.passengerNotifications);
 
       default:
         break;
@@ -570,12 +606,17 @@ class PushNotificationService {
     try {
       final token = await _fcm.getToken();
       if (token == null) return;
-      final sessionToken = await UserController.instance.getSessionToken();
+      final uc = UserController.instance;
+      final sessionToken = await uc.getSessionToken();
       if (sessionToken.isEmpty) return;
+      final role = uc.role.value;
       final dio = AppDio.create();
       final res = await dio.post(
         AppApi.fcmToken,
-        data: {'fcm_token': token},
+        data: {
+          'fcm_token': token,
+          if (role.isNotEmpty) 'role': role,
+        },
         options: Options(
           validateStatus: (_) => true,
           headers: {'Authorization': 'Bearer $sessionToken'},

@@ -102,31 +102,13 @@ class _LogoBlock extends StatelessWidget {
             child: Stack(
               clipBehavior: Clip.none,
               children: [
-                Container(
-                  width: responsive.w(128),
-                  height: responsive.h(128),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: responsive.w(41),
-                    vertical: responsive.h(40),
-                  ),
-                  decoration: ShapeDecoration(
-                        color: AppColors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(responsive.radius(24)),
-                    ),
-                    shadows: const [
-                      BoxShadow(
-                        color: AppColors.shadow,
-                        blurRadius: 50,
-                        offset: Offset(0, 25),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Text(
-                      'M',
-                      style: AppTextStyles.splashBrand(responsive).copyWith(color: AppColors.primary, fontSize: responsive.text(48)),
-                    ),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(responsive.radius(24)),
+                  child: Image.asset(
+                    'assets/minizon/icon.png',
+                    width: responsive.w(128),
+                    height: responsive.h(128),
+                    fit: BoxFit.cover,
                   ),
                 ),
                 Positioned(

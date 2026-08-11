@@ -37,21 +37,13 @@ class InputPhoneView extends GetView<InputPhoneController> {
 									),
 									child: Column(
 										children: [
-											Container(
-												width: responsive.w(80),
-												height: responsive.w(80),
-												decoration: ShapeDecoration(
-													color: AppColors.white,
-													shape: RoundedRectangleBorder(
-														borderRadius: BorderRadius.circular(responsive.radius(16)),
-													),
-													shadows: const [
-														BoxShadow(color: AppColors.shadow, blurRadius: 15, offset: Offset(0, 10)),
-														BoxShadow(color: AppColors.shadow, blurRadius: 6, offset: Offset(0, 4)),
-													],
-												),
-												child: Center(
-													child: Text('MZ', style: AppTextStyles.registerSectionTitle(responsive).copyWith(color: AppColors.primary)),
+											ClipRRect(
+												borderRadius: BorderRadius.circular(responsive.radius(16)),
+												child: Image.asset(
+													'assets/minizon/icon.png',
+													width: responsive.w(80),
+													height: responsive.w(80),
+													fit: BoxFit.cover,
 												),
 											),
 											SizedBox(height: responsive.h(16)),
