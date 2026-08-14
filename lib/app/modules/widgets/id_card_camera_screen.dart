@@ -142,7 +142,7 @@ class _IdCardCameraScreenState extends State<IdCardCameraScreen>
         height: cardH,
       );
 
-      const pad = 10.0;
+      final pad = cardH * 0.048;
       final faceRect = Rect.fromLTWH(
         cardRect.left + pad,
         cardRect.top + pad,
@@ -421,7 +421,7 @@ class _CardOverlayPainter extends CustomPainter {
   }
 
   void _drawFaceZone(Canvas canvas, Rect card) {
-    const pad = 10.0;
+    final pad = card.height * 0.048;
     final zone = Rect.fromLTWH(
       card.left + pad,
       card.top + pad,

@@ -45,6 +45,7 @@ import 'package:covoiturage_benin_app/app/core/services/app_sync_observer.dart';
 import 'package:covoiturage_benin_app/app/routes/app_pages.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -63,6 +64,18 @@ void main() async {
   await SharedPreferences.getInstance();
 
   await PushNotificationService.instance.initialize();
+
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarBrightness: Brightness.light,
+    statusBarIconBrightness: Brightness.dark,
+  ));
+
+  // Verrouille l'app en mode portrait uniquement (pas conçue pour le paysage)
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
 
   Get.put(LoadingController());
   Get.put(UserController());
@@ -100,8 +113,23 @@ class MyApp extends StatelessWidget {
       title: 'MINIZON',
       smartManagement: SmartManagement.keepFactory,
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF00A86B),
+        ),
       ),
+      // Empêche la grande police système (accessibilité) de casser les layouts
+      builder: (context, child) {
+        final mq = MediaQuery.of(context);
+        return MediaQuery(
+          data: mq.copyWith(
+            textScaler: mq.textScaler.clamp(
+              minScaleFactor: 0.85,
+              maxScaleFactor: 1.2,
+            ),
+          ),
+          child: child!,
+        );
+      },
       navigatorObservers: [AppSyncRouteObserver()],
       initialRoute: AppRoutes.splash,
       getPages: AppPages.pages,

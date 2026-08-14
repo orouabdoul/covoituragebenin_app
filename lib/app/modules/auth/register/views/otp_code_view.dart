@@ -147,22 +147,16 @@ class OtpCodeView extends GetView<OtpCodeController> {
                                   ),
                                 ),
                                 SizedBox(height: responsive.h(24)),
-                                SizedBox(
-                                  width: responsive.w(335),
-                                  child: Text(
-                                    AppStrings.otpTitle,
-                                    textAlign: TextAlign.center,
-                                    style: AppTextStyles.otpTitle(responsive),
-                                  ),
+                                Text(
+                                  AppStrings.otpTitle,
+                                  textAlign: TextAlign.center,
+                                  style: AppTextStyles.otpTitle(responsive),
                                 ),
                                 SizedBox(height: responsive.h(12)),
-                                SizedBox(
-                                  width: responsive.w(303),
-                                  child: Text(
-                                    AppStrings.otpSubtitle,
-                                    textAlign: TextAlign.center,
-                                    style: AppTextStyles.otpBody(responsive),
-                                  ),
+                                Text(
+                                  AppStrings.otpSubtitle,
+                                  textAlign: TextAlign.center,
+                                  style: AppTextStyles.otpBody(responsive),
                                 ),
                                 SizedBox(height: responsive.h(6)),
                                 Text(

@@ -2,12 +2,15 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- Optimisation fluidité 120 Hz ProMotion -->
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+
+	<!-- Identité de l'app -->
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Covoiturage Benin App</string>
+	<string>MINIZON</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +18,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>covoiturage_benin_app</string>
+	<string>MINIZON</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -26,6 +29,50 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+
+	<!-- ═══════════════════════════════════════════════════════════
+	     PERMISSIONS — obligatoires sur iOS (refus = crash au runtime)
+	     ═══════════════════════════════════════════════════════════ -->
+
+	<!-- Caméra : capture selfie + photo carte d'identité -->
+	<key>NSCameraUsageDescription</key>
+	<string>MINIZON utilise la caméra pour prendre votre selfie et photographier votre pièce d'identité lors de la vérification du compte.</string>
+
+	<!-- Microphone : requis par le plugin camera même en mode photo -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>MINIZON utilise le microphone pour enregistrer des messages vocaux dans la messagerie.</string>
+
+	<!-- Galerie photo — lecture -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>MINIZON accède à votre galerie pour vous permettre de choisir une photo de profil ou une pièce d'identité.</string>
+
+	<!-- Galerie photo — écriture (sauvegarder une photo) -->
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>MINIZON peut enregistrer des photos dans votre galerie.</string>
+
+	<!-- Localisation en cours d'utilisation — suivi trajet -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>MINIZON utilise votre position pour afficher les trajets disponibles à proximité et suivre votre course en temps réel.</string>
+
+	<!-- Localisation en arrière-plan — conducteur actif -->
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>MINIZON utilise votre position en arrière-plan lorsque vous êtes conducteur actif, pour mettre à jour votre position en temps réel.</string>
+
+	<!-- ═══════════════════════════════════════════════════════════
+	     FIREBASE — modes d'exécution en arrière-plan
+	     Requis pour recevoir les notifications push quand l'app est fermée
+	     ═══════════════════════════════════════════════════════════ -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
+
+	<!-- ═══════════════════════════════════════════════════════════
+	     INTERFACE
+	     ═══════════════════════════════════════════════════════════ -->
+
+	<!-- Scènes -->
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -47,24 +94,25 @@
 			</array>
 		</dict>
 	</dict>
+
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+
+	<!-- Écran de lancement -->
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
+
+	<!-- Portrait uniquement (cohérent avec SystemChrome.setPreferredOrientations) -->
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 </dict>
 </plist>

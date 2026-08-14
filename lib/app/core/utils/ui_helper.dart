@@ -149,7 +149,7 @@ class UIHelper {
                     style: TextStyle(
                       color: const Color(0xFF121212),
                       fontSize: 14,
-                      fontFamily: 'Montserrat',
+                      fontFamily: 'Inter',
                       fontWeight: FontWeight.w700,
                     ),
                   ),

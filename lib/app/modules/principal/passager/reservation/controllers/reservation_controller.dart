@@ -102,8 +102,6 @@ class ReservationController extends GetxController {
 		isLoading.value = false;
 		if (result.isSuccess) {
 			final page = result.data!;
-			debugPrint('📋 reservations: ${page.items.length} items, statuses=${page.items.map((i) => i.status).toList()}');
-			debugPrint('📋 status_tabs=${page.statusTabs.map((t) => "${t.status}(${t.count})").toList()}');
 			activeTripUuid = page.activeTrip?.uuid;
 			_applyStatusTabs(page.statusTabs);
 			_allReservations.assignAll(page.items.map(_mapItem).toList());
