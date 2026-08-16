@@ -137,7 +137,7 @@ class _HeroSection extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment(0, 0),
           end: Alignment(1, 1),
-          colors: [Color(0xFF00A86B), Color(0xFF008F5A)],
+          colors: [Color(0xFF7C3AED), Color(0xFF6D28D9)],
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(responsive.radius(24)),
@@ -845,7 +845,7 @@ class _ColorSelector extends StatelessWidget {
                       width: isSelected ? 2.5 : 1,
                     ),
                     boxShadow: isSelected
-                        ? [const BoxShadow(color: Color(0x3300A86B), blurRadius: 6)]
+                        ? [const BoxShadow(color: Color(0x337C3AED), blurRadius: 6)]
                         : null,
                   ),
                   child: isSelected
@@ -1219,7 +1219,7 @@ class _DocumentsSection extends StatelessWidget {
 
   static const _docColors = <String, Color>{
     'registration_doc':      Color(0x192563EB),
-    'insurance_doc':         Color(0x1900A86B),
+    'insurance_doc':         Color(0x197C3AED),
     'tvm_doc':               Color(0x19F4B400),
     'technical_control_doc': Color(0x19E53935),
   };
@@ -1465,7 +1465,7 @@ class _SecuritySection extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment(-0, 0.5),
           end: Alignment(1, 0.5),
-          colors: [Color(0x0C2563EB), Color(0x0C00A86B)],
+          colors: [Color(0x0C2563EB), Color(0x0C7C3AED)],
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(responsive.radius(24)),

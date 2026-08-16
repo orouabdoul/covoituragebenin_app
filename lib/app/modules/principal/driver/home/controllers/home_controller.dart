@@ -146,11 +146,11 @@ class DriverTripCard {
 
   Color get statusColor => switch (statusLabel) {
     'En attente' => const Color(0xFFF4B400),
-    'Confirmé'   => const Color(0xFF00A86B),
+    'Confirmé'   => const Color(0xFF7C3AED),
     'En cours'   => const Color(0xFF3B82F6),
     'Terminé'    => const Color(0xFF6B7280),
     'Annulé'     => const Color(0xFFE53935),
-    _            => const Color(0xFF00A86B),
+    _            => const Color(0xFF7C3AED),
   };
 
   Color get statusBg => statusColor.withValues(alpha: 0.12);
@@ -282,8 +282,8 @@ class DriverHomeController extends GetxController {
       title: 'Trajets effectués',
       value: '—',
       icon: Icons.route_rounded,
-      color: Color(0x1900A86B),
-      iconColor: Color(0xFF00A86B),
+      color: Color(0x197C3AED),
+      iconColor: Color(0xFF7C3AED),
     ),
     const DriverMetric(
       title: 'Passagers transportés',
@@ -316,8 +316,8 @@ class DriverHomeController extends GetxController {
     DriverAction(
       label: 'Publier',
       icon: Icons.add_road_rounded,
-      backgroundColor: Color(0x1900A86B),
-      iconColor: Color(0xFF00A86B),
+      backgroundColor: Color(0x197C3AED),
+      iconColor: Color(0xFF7C3AED),
       route: 'driverAddTrip',
     ),
     DriverAction(
@@ -330,8 +330,8 @@ class DriverHomeController extends GetxController {
     DriverAction(
       label: 'Retirer',
       icon: Icons.account_balance_wallet_outlined,
-      backgroundColor: Color(0x1900A86B),
-      iconColor: Color(0xFF00A86B),
+      backgroundColor: Color(0x197C3AED),
+      iconColor: Color(0xFF7C3AED),
       route: 'driverWithdraw',
     ),
     DriverAction(
@@ -686,8 +686,8 @@ class DriverHomeController extends GetxController {
           title: m.label,
           value: displayValue,
           icon: Icons.route_rounded,
-          color: const Color(0x1900A86B),
-          iconColor: const Color(0xFF00A86B),
+          color: const Color(0x197C3AED),
+          iconColor: const Color(0xFF7C3AED),
           progress: progress,
         ),
       'passengers' => DriverMetric(
@@ -728,9 +728,9 @@ class DriverHomeController extends GetxController {
   DriverBadge _badgeFromApi(DashboardBadgeData b) => switch (b.key) {
         'top_rated' => DriverBadge(
             label: b.label,
-            color: const Color(0x3300A86B),
+            color: const Color(0x337C3AED),
             icon: Icons.verified_rounded,
-            iconColor: const Color(0xFF00A86B),
+            iconColor: const Color(0xFF7C3AED),
           ),
         'top_driver' || 'top_10' => DriverBadge(
             label: b.label,

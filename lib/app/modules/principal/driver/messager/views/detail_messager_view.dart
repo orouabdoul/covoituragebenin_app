@@ -1,5 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:record/record.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
@@ -215,7 +219,7 @@ class _ConversationHeader extends StatelessWidget {
                                   color: AppColors.surface,
                                   shape: RoundedRectangleBorder(
                                     side: const BorderSide(
-                                        width: 2, color: Color(0xFF00A86B)),
+                                        width: 2, color: Color(0xFF7C3AED)),
                                     borderRadius: BorderRadius.circular(9999),
                                   ),
                                 ),
@@ -239,7 +243,7 @@ class _ConversationHeader extends StatelessWidget {
                                     width: responsive.w(16),
                                     height: responsive.w(16),
                                     decoration: ShapeDecoration(
-                                      color: const Color(0xFF00A86B),
+                                      color: const Color(0xFF7C3AED),
                                       shape: RoundedRectangleBorder(
                                         side: const BorderSide(
                                             width: 2, color: Colors.white),
@@ -281,7 +285,7 @@ class _ConversationHeader extends StatelessWidget {
                                         width: responsive.w(8),
                                         height: responsive.w(8),
                                         decoration: const BoxDecoration(
-                                            color: Color(0xFF00A86B),
+                                            color: Color(0xFF7C3AED),
                                             shape: BoxShape.circle),
                                       ),
                                       SizedBox(width: responsive.w(8)),
@@ -313,7 +317,7 @@ class _ConversationHeader extends StatelessWidget {
                   if (!controller.isAdminConversation.value) ...[
                     _HeaderActionButton(
                       responsive: responsive,
-                      backgroundColor: const Color(0x1900A86B),
+                      backgroundColor: const Color(0x197C3AED),
                       icon: Icons.call_rounded,
                       iconSize: 18,
                       iconColor: AppColors.primary,
@@ -345,9 +349,9 @@ class _ConversationHeader extends StatelessWidget {
                   phone: 12, smallPhone: 12, tablet: 14, desktop: 16),
             ),
             decoration: ShapeDecoration(
-              color: const Color(0x0C00A86B),
+              color: const Color(0x0C7C3AED),
               shape: RoundedRectangleBorder(
-                side: const BorderSide(color: Color(0x3300A86B)),
+                side: const BorderSide(color: Color(0x337C3AED)),
                 borderRadius: BorderRadius.circular(responsive.radius(16)),
               ),
             ),
@@ -360,7 +364,7 @@ class _ConversationHeader extends StatelessWidget {
                   padding: EdgeInsets.symmetric(
                       horizontal: responsive.w(12), vertical: responsive.h(8)),
                   decoration: ShapeDecoration(
-                    color: const Color(0x3300A86B),
+                    color: const Color(0x337C3AED),
                     shape: RoundedRectangleBorder(
                       side: const BorderSide(color: Color(0xFFE5E7EB)),
                       borderRadius: BorderRadius.circular(9999),
@@ -797,7 +801,7 @@ class _LocationCard extends StatelessWidget {
                     padding: EdgeInsets.symmetric(
                         horizontal: responsive.w(14), vertical: responsive.h(8)),
                     decoration: ShapeDecoration(
-                      color: const Color(0x1900A86B),
+                      color: const Color(0x197C3AED),
                       shape: RoundedRectangleBorder(
                         side: const BorderSide(color: AppColors.border),
                         borderRadius:
@@ -827,9 +831,9 @@ class _LocationCard extends StatelessWidget {
                     ? actionLabel
                     : AppStrings.messengerDetailMapAction,
                 onTap: onTap,
-                backgroundColor: const Color(0x1900A86B),
+                backgroundColor: const Color(0x197C3AED),
                 textColor: AppColors.primary,
-                borderColor: const Color(0x3300A86B),
+                borderColor: const Color(0x337C3AED),
                 borderRadius: responsive.radius(8),
                 height: responsive.h(40),
               ),
@@ -883,14 +887,46 @@ class _ReminderCard extends StatelessWidget {
   }
 }
 
-class _Composer extends StatelessWidget {
+class _Composer extends StatefulWidget {
   const _Composer({required this.responsive, required this.controller});
 
   final AppResponsive responsive;
   final DriverDetailMessagerController controller;
 
   @override
+  State<_Composer> createState() => _ComposerState();
+}
+
+class _ComposerState extends State<_Composer> {
+  final _recorder = AudioRecorder();
+  bool _isRecording = false;
+
+  Future<void> _startRecording() async {
+    if (!await _recorder.hasPermission()) return;
+    final dir = await getTemporaryDirectory();
+    final path = '${dir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
+    await _recorder.start(const RecordConfig(encoder: AudioEncoder.aacLc), path: path);
+    if (mounted) setState(() => _isRecording = true);
+  }
+
+  Future<void> _stopAndSend() async {
+    final path = await _recorder.stop();
+    if (mounted) setState(() => _isRecording = false);
+    if (path != null && File(path).existsSync()) {
+      await widget.controller.sendAudio(path);
+    }
+  }
+
+  @override
+  void dispose() {
+    _recorder.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final responsive = widget.responsive;
+    final controller = widget.controller;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -941,15 +977,50 @@ class _Composer extends StatelessWidget {
               ),
             ),
             SizedBox(width: responsive.w(12)),
-            Obx(() => AppCircularButton(
-              responsive: responsive,
-              icon: controller.editingIndex.value != null
-                  ? Icons.check_rounded
-                  : Icons.send_rounded,
-              onTap: controller.sendMessage,
-              filled: true,
-              size: responsive.w(40),
-            )),
+            Obx(() {
+              final isEditing = controller.editingIndex.value != null;
+              if (isEditing) {
+                return AppCircularButton(
+                  responsive: responsive,
+                  icon: Icons.check_rounded,
+                  onTap: controller.sendMessage,
+                  filled: true,
+                  size: responsive.w(40),
+                );
+              }
+              return ValueListenableBuilder<TextEditingValue>(
+                valueListenable: controller.messageController,
+                builder: (_, value, _) {
+                  if (value.text.trim().isNotEmpty) {
+                    return AppCircularButton(
+                      responsive: responsive,
+                      icon: Icons.send_rounded,
+                      onTap: controller.sendMessage,
+                      filled: true,
+                      size: responsive.w(40),
+                    );
+                  }
+                  return GestureDetector(
+                    onLongPressStart: (_) => _startRecording(),
+                    onLongPressEnd: (_) => _stopAndSend(),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: responsive.w(40),
+                      height: responsive.w(40),
+                      decoration: BoxDecoration(
+                        color: _isRecording ? AppColors.danger : AppColors.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        _isRecording ? Icons.stop_rounded : Icons.mic_rounded,
+                        color: Colors.white,
+                        size: responsive.w(20),
+                      ),
+                    ),
+                  );
+                },
+              );
+            }),
           ],
         ),
       ],

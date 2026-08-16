@@ -327,7 +327,7 @@ class _ContactBanner extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: const Color(0xFFF0FDF8),
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: Color(0x3300A86B)),
+					side: const BorderSide(color: Color(0x337C3AED)),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
 			),

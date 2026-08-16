@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart' hide SearchController;
+import 'package:flutter/material.dart' hide SearchController;
 import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
@@ -280,7 +280,7 @@ class _SearchPanel extends StatelessWidget {
 								decoration: BoxDecoration(
 									color: AppColors.surfaceAccent,
 									shape: BoxShape.circle,
-									border: Border.all(color: const Color(0x3300A86B)),
+									border: Border.all(color: const Color(0x337C3AED)),
 								),
 								child: Icon(
 									Icons.swap_vert_rounded,
@@ -478,10 +478,17 @@ class _SearchAutocompleteFieldState extends State<_SearchAutocompleteField> {
 	}
 
 	void _selectItem(String item) {
-		widget.controller.text = item;
-		widget.onSelected(item);
-		setState(() => _showList = false);
+		// Masquer la liste immédiatement avant tout autre changement
+		setState(() {
+			_filtered = [];
+			_showList = false;
+		});
+		widget.controller.value = TextEditingValue(
+			text: item,
+			selection: TextSelection.collapsed(offset: item.length),
+		);
 		_focusNode.unfocus();
+		widget.onSelected(item);
 	}
 
 	bool get _hasText => widget.controller.text.isNotEmpty;
@@ -1278,7 +1285,7 @@ class _Avatar extends StatelessWidget {
 			width: responsive.w(44),
 			height: responsive.w(44),
 			decoration: BoxDecoration(
-				gradient: const LinearGradient(colors: [Color(0xFF00A86B), Color(0xFF10B981)]),
+				gradient: const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFF10B981)]),
 				shape: BoxShape.circle,
 				border: Border.all(color: AppColors.border),
 			),

@@ -411,7 +411,7 @@ class DetailReservationController extends GetxController {
   }
 
   pw.Widget _buildInvoicePage(InvoiceModel inv) {
-    final green = PdfColor.fromInt(0xFF00A86B);
+    final green = PdfColor.fromInt(0xFF7C3AED);
     final grey = PdfColor.fromInt(0xFF6B7280);
     final black = PdfColor.fromInt(0xFF111827);
     final lightGrey = PdfColor.fromInt(0xFFF3F4F6);

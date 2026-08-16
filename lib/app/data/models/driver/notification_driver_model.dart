@@ -107,7 +107,7 @@ class DriverNotificationModel {
   static Color _defaultBg(DriverNotificationType type) {
     return switch (type) {
       DriverNotificationType.reservation => const Color(0xFF3B82F6),
-      DriverNotificationType.payment => const Color(0xFF00A86B),
+      DriverNotificationType.payment => const Color(0xFF7C3AED),
       DriverNotificationType.trip => const Color(0xFF6366F1),
       DriverNotificationType.alert => const Color(0xFFF59E0B),
       DriverNotificationType.promotion => const Color(0xFFF4B400),

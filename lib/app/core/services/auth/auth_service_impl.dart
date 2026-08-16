@@ -48,7 +48,13 @@ class AuthServiceImpl implements AuthService {
         return ApiResult.success(OtpSendResult(resendIn: resendIn ?? 60, alreadyActive: true));
       }
 
-      if (response.statusCode == 422) return ApiResult.failure(AppError.validationError);
+      if (response.statusCode == 422) {
+        final code = response.data?['body']?['code'] as String? ?? '';
+        if (code == 'INVALID_PHONE_FORMAT') {
+          return ApiResult.failure(AppError.invalidPhoneFormat);
+        }
+        return ApiResult.failure(AppError.validationError);
+      }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('sendOtp: $e');

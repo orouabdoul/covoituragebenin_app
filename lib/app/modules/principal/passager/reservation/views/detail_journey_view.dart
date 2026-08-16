@@ -507,7 +507,7 @@ class _DriverCard extends StatelessWidget {
                   width: responsive.w(20),
                   height: responsive.w(20),
                   decoration: ShapeDecoration(
-                    color: const Color(0xFF00A86B),
+                    color: const Color(0xFF7C3AED),
                     shape: RoundedRectangleBorder(
                       side: const BorderSide(color: AppColors.border),
                       borderRadius: BorderRadius.circular(9999),
@@ -534,7 +534,7 @@ class _DriverCard extends StatelessWidget {
                           horizontal: responsive.w(8),
                           vertical: responsive.h(2)),
                       decoration: ShapeDecoration(
-                        color: const Color(0x1900A86B),
+                        color: const Color(0x197C3AED),
                         shape: RoundedRectangleBorder(
                           side: const BorderSide(color: AppColors.border),
                           borderRadius: BorderRadius.circular(9999),
@@ -968,7 +968,7 @@ class _ItineraryCard extends StatelessWidget {
           SizedBox(height: responsive.h(16)),
           _JourneyStop(
             responsive: responsive,
-            color: const Color(0xFF00A86B),
+            color: const Color(0xFF7C3AED),
             label: AppStrings.reservationJourneyDeparture,
             time: departureTime,
             title: origin,
@@ -1165,7 +1165,7 @@ class _ConditionRow extends StatelessWidget {
           width: responsive.w(32),
           height: responsive.w(32),
           decoration: ShapeDecoration(
-            color: const Color(0x1900A86B),
+            color: const Color(0x197C3AED),
             shape: RoundedRectangleBorder(
               side: const BorderSide(color: AppColors.border),
               borderRadius: BorderRadius.circular(9999),
@@ -1335,7 +1335,7 @@ class _PriceCard extends StatelessWidget {
               padding: EdgeInsets.symmetric(
                   horizontal: responsive.w(20), vertical: responsive.h(14)),
               decoration: ShapeDecoration(
-                color: const Color(0x0C00A86B),
+                color: const Color(0x0C7C3AED),
                 shape: RoundedRectangleBorder(
                   side: const BorderSide(color: AppColors.border),
                   borderRadius: BorderRadius.circular(16),

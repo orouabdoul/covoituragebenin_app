@@ -119,7 +119,7 @@ String _channelNameForId(String id) {
   for (final ch in _allChannels) {
     if (ch.id == id) return ch.name;
   }
-  return 'Covoiturage Bénin';
+  return 'MINIZON';
 }
 
 Color _colorForType(String type) {
@@ -192,9 +192,9 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
   if (_silentTypes.contains(type)) return;
 
-  final title = data['title'] as String? ?? 'Covoiturage Bénin';
+  final title = data['title'] as String? ?? 'MINIZON';
   final body  = data['body']  as String? ?? '';
-  if (body.isEmpty && title == 'Covoiturage Bénin') return;
+  if (body.isEmpty && title == 'MINIZON') return;
 
   final channelId = _channelForType(type);
   final chName    = _channelNameForId(channelId);
@@ -410,9 +410,9 @@ class PushNotificationService {
   void _showLocalNotification(RemoteMessage message) {
     final data  = message.data;
     final notif = message.notification;
-    final title = notif?.title ?? data['title'] as String? ?? 'Covoiturage Bénin';
+    final title = notif?.title ?? data['title'] as String? ?? 'MINIZON';
     final body  = notif?.body  ?? data['body']  as String? ?? '';
-    if (body.isEmpty && title == 'Covoiturage Bénin') return;
+    if (body.isEmpty && title == 'MINIZON') return;
 
     final type      = data['type'] as String? ?? '';
     final channelId = _channelForType(type);

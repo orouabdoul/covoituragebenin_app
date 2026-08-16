@@ -80,7 +80,7 @@ class ActiveTripController extends GetxController {
               onPressed: () => Get.back(result: true),
               child: const Text('Démarrer',
                   style: TextStyle(
-                      color: Color(0xFF00A86B),
+                      color: Color(0xFF7C3AED),
                       fontWeight: FontWeight.w700)),
             ),
           ],

@@ -64,7 +64,7 @@ class PaymentHistoryController extends GetxController {
       AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(children: [
-          Icon(Icons.download_rounded, color: Color(0xFF00A86B), size: 22),
+          Icon(Icons.download_rounded, color: Color(0xFF7C3AED), size: 22),
           SizedBox(width: 10),
           Text('Télécharger le relevé', style: TextStyle(fontSize: 16)),
         ]),
@@ -80,7 +80,7 @@ class PaymentHistoryController extends GetxController {
               UIHelper().showSnackBar('MINIZON', 'Relevé envoyé par e-mail.', 0);
             },
             child: const Text('Envoyer par e-mail',
-                style: TextStyle(color: Color(0xFF00A86B), fontWeight: FontWeight.w700)),
+                style: TextStyle(color: Color(0xFF7C3AED), fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -143,7 +143,7 @@ class _TransactionDetailSheet extends StatelessWidget {
                   ),
                   child: Icon(transaction.icon,
                       color: transaction.isCredit
-                          ? const Color(0xFF00A86B)
+                          ? const Color(0xFF7C3AED)
                           : const Color(0xFFF59E0B),
                       size: 24),
                 ),

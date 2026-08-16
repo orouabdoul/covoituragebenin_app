@@ -77,7 +77,11 @@ class ProfilePassagerController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    phoneController.text = '01';
+    final storedPhone = UserController.instance.user.value?.phone ?? '';
+    final localPhone = storedPhone.startsWith('+229')
+        ? storedPhone.substring(4)
+        : storedPhone;
+    phoneController.text = localPhone.isNotEmpty ? localPhone : '01';
     FaceVerificationService.initialize();
   }
 

@@ -100,7 +100,7 @@ class RevenusController extends GetxController {
     Get.dialog(AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: const Row(children: [
-        Icon(Icons.payments_rounded, color: Color(0xFF00A86B), size: 22),
+        Icon(Icons.payments_rounded, color: Color(0xFF7C3AED), size: 22),
         SizedBox(width: 10),
         Text('Retirer des fonds', style: TextStyle(fontSize: 16)),
       ]),
@@ -115,7 +115,7 @@ class RevenusController extends GetxController {
     Get.dialog(AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: const Row(children: [
-        Icon(Icons.receipt_long_rounded, color: Color(0xFF00A86B), size: 22),
+        Icon(Icons.receipt_long_rounded, color: Color(0xFF7C3AED), size: 22),
         SizedBox(width: 10),
         Text('Relevé de revenus', style: TextStyle(fontSize: 16)),
       ]),
@@ -128,7 +128,7 @@ class RevenusController extends GetxController {
             UIHelper().showSnackBar(AppStrings.appName, 'Relevé envoyé par e-mail.', 0);
           },
           child: const Text('Envoyer',
-              style: TextStyle(color: Color(0xFF00A86B), fontWeight: FontWeight.w700)),
+              style: TextStyle(color: Color(0xFF7C3AED), fontWeight: FontWeight.w700)),
         ),
       ],
     ));
@@ -324,7 +324,7 @@ class RevenusController extends GetxController {
       ('MTN Mobile Money', Icons.phone_android_rounded,    Color(0xFFF4B400)),
       ('Moov Money',       Icons.phone_android_rounded,    Color(0xFF6366F1)),
       ('Celtiis Cash',     Icons.phone_android_rounded,    Color(0xFFE31E24)),
-      ('Compte Bancaire',  Icons.account_balance_outlined, Color(0xFF00A86B)),
+      ('Compte Bancaire',  Icons.account_balance_outlined, Color(0xFF7C3AED)),
     ];
 
     Get.bottomSheet(
@@ -459,7 +459,7 @@ class RevenueMethod {
     required this.title,
     required this.subtitle,
     required this.icon,
-    this.color = const Color(0xFF00A86B),
+    this.color = const Color(0xFF7C3AED),
   });
 
   final String  title;
@@ -506,9 +506,9 @@ class RevenueTransaction {
       amount:         json['amount_label'] as String? ?? '',
       statusLabel:    json['status_label'] as String? ?? '',
       amountColor:    Color((json['amount_color']          as int?) ?? 0xFF111827),
-      statusColor:    Color((json['status_color']          as int?) ?? 0xFF00A86B),
+      statusColor:    Color((json['status_color']          as int?) ?? 0xFF7C3AED),
       icon:           _iconFromName(json['icon_name'] as String? ?? ''),
-      iconBackground: Color((json['icon_background_color'] as int?) ?? 0x1900A86B),
+      iconBackground: Color((json['icon_background_color'] as int?) ?? 0x197C3AED),
       rawDate:        json['created_at_iso'] != null
           ? DateTime.tryParse(json['created_at_iso'] as String)?.toLocal()
           : null,

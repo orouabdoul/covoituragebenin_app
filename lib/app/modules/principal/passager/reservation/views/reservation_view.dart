@@ -135,12 +135,12 @@ class _ActiveTripBanner extends StatelessWidget {
 				padding: EdgeInsets.symmetric(horizontal: responsive.w(16), vertical: responsive.h(12)),
 				decoration: BoxDecoration(
 					gradient: const LinearGradient(
-						colors: [Color(0xFF00A86B), Color(0xFF059669)],
+						colors: [Color(0xFF7C3AED), Color(0xFF6D28D9)],
 					),
 					borderRadius: BorderRadius.circular(responsive.radius(14)),
 					boxShadow: [
 						BoxShadow(
-							color: const Color(0xFF00A86B).withValues(alpha: 0.30),
+							color: const Color(0xFF7C3AED).withValues(alpha: 0.30),
 							blurRadius: 12,
 							offset: const Offset(0, 4),
 						),
@@ -924,7 +924,7 @@ class _ActionButtons extends StatelessWidget {
 									icon: Icons.chat_bubble_outline_rounded,
 									color: AppColors.primary,
 									bg: AppColors.surfaceAccent,
-									border: const Color(0x3300A86B),
+									border: const Color(0x337C3AED),
 									onTap: () => controller.contactDriver(reservation),
 								),
 							),
@@ -950,7 +950,7 @@ class _ActionButtons extends StatelessWidget {
 						mainAxisAlignment: MainAxisAlignment.center,
 						children: [
 							const Icon(Icons.check_circle_rounded,
-									color: Color(0xFF059669), size: 16),
+									color: Color(0xFF6D28D9), size: 16),
 							SizedBox(width: responsive.w(6)),
 							const Text(
 								'Payé',
@@ -1267,7 +1267,7 @@ class _Avatar extends StatelessWidget {
 			height: size,
 			decoration: BoxDecoration(
 				gradient: const LinearGradient(
-					colors: [Color(0xFF00A86B), Color(0xFF10B981)],
+					colors: [Color(0xFF7C3AED), Color(0xFF10B981)],
 				),
 				shape: BoxShape.circle,
 				border: Border.all(color: AppColors.border),

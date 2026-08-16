@@ -136,7 +136,10 @@ class OtpCodeController extends GetxController {
     }
 
     // Fallback : cas de reconnexion où le rôle est inconnu localement
-    Get.offAllNamed(AppRoutes.roles, arguments: {'skipAuth': true});
+    Get.offAllNamed(AppRoutes.roles, arguments: {
+      'skipAuth': true,
+      'phone': phoneNumber.value,
+    });
   }
 
   Future<void> resendCode() async {

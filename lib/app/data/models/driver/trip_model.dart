@@ -86,7 +86,7 @@ class TripModel {
 
   Color get statusColor {
     return switch (status) {
-      TripStatus.active => const Color(0xFF00A86B),
+      TripStatus.active => const Color(0xFF7C3AED),
       TripStatus.pending => const Color(0xFFF4B400),
       TripStatus.completed => const Color(0xFF2563EB),
       TripStatus.canceled => const Color(0xFFE53935),
@@ -95,7 +95,7 @@ class TripModel {
 
   Color get statusBackground {
     return switch (status) {
-      TripStatus.active => const Color(0xFF00A86B),
+      TripStatus.active => const Color(0xFF7C3AED),
       TripStatus.pending => const Color(0x33F4B400),
       TripStatus.completed => const Color(0x192563EB),
       TripStatus.canceled => const Color(0x19E53935),

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
@@ -164,7 +164,7 @@ class _HeroCard extends StatelessWidget {
 				gradient: LinearGradient(
 					begin: Alignment.topLeft,
 					end: Alignment.bottomRight,
-					colors: [Color(0xFF00A86B), Color(0xFF007A4E)],
+					colors: [Color(0xFF7C3AED), Color(0xFF007A4E)],
 				),
 			),
 			child: Column(
@@ -355,7 +355,7 @@ class _RightsCard extends StatelessWidget {
 		),
 		_Right(
 			icon: Icons.account_balance_wallet_rounded,
-			color: Color(0xFF00A86B),
+			color: Color(0xFF7C3AED),
 			title: 'Droit au remboursement complet',
 			body: 'Si le conducteur est absent ou annule, vous êtes intégralement remboursé(e), sans démarche complexe.',
 		),
@@ -568,7 +568,7 @@ class _StatsCard extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: const Color(0xFFF0FDF8),
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: Color(0x3300A86B)),
+					side: const BorderSide(color: Color(0x337C3AED)),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
 			),
@@ -640,7 +640,7 @@ class _Stat extends StatelessWidget {
 class _StatDivider extends StatelessWidget {
 	@override
 	Widget build(BuildContext context) {
-		return Container(width: 1, height: 40, color: const Color(0x3300A86B));
+		return Container(width: 1, height: 40, color: const Color(0x337C3AED));
 	}
 }
 

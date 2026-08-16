@@ -114,7 +114,7 @@ class MyApp extends StatelessWidget {
       smartManagement: SmartManagement.keepFactory,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF00A86B),
+          seedColor: const Color(0xFF7C3AED),
         ),
       ),
       // Empêche la grande police système (accessibilité) de casser les layouts

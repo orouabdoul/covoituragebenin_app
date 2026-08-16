@@ -224,7 +224,7 @@ class _PickupCallout extends StatelessWidget {
 						color: _bg,
 						borderRadius: BorderRadius.circular(10),
 						boxShadow: const [
-							BoxShadow(color: Color(0x5500A86B), blurRadius: 10, offset: Offset(0, 4)),
+							BoxShadow(color: Color(0x557C3AED), blurRadius: 10, offset: Offset(0, 4)),
 						],
 					),
 					child: Row(
@@ -258,7 +258,7 @@ class _PickupCallout extends StatelessWidget {
 						color: _bg,
 						shape: BoxShape.circle,
 						border: Border.all(color: Colors.white, width: 2.5),
-						boxShadow: const [BoxShadow(color: Color(0x4500A86B), blurRadius: 6)],
+						boxShadow: const [BoxShadow(color: Color(0x457C3AED), blurRadius: 6)],
 					),
 				),
 			],
@@ -1190,7 +1190,7 @@ class _TripEndedOverlay extends StatelessWidget {
 								width:  responsive.w(72),
 								height: responsive.w(72),
 								decoration: const BoxDecoration(
-										shape: BoxShape.circle, color: Color(0x1900A86B)),
+										shape: BoxShape.circle, color: Color(0x197C3AED)),
 								child: const Icon(Icons.check_circle_rounded,
 										color: AppColors.primary, size: 40),
 							),

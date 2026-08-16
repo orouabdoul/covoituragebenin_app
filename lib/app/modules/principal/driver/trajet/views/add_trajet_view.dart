@@ -966,7 +966,7 @@ class _VehicleSelector extends StatelessWidget {
                       ? const LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
-                          colors: [Color(0x0C00A86B), Color(0x0500A86B)],
+                          colors: [Color(0x0C7C3AED), Color(0x057C3AED)],
                         )
                       : null,
                   color: isSelected ? null : AppColors.white,
@@ -1365,7 +1365,7 @@ class _PreferencesGrid extends StatelessWidget {
             child: Container(
               padding: EdgeInsets.all(responsive.w(12)),
               decoration: ShapeDecoration(
-                color: selected ? const Color(0x0C00A86B) : AppColors.white,
+                color: selected ? const Color(0x0C7C3AED) : AppColors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(responsive.radius(16)),
                   side: BorderSide(
@@ -1443,7 +1443,7 @@ class _BookingModeSelector extends StatelessWidget {
               child: Container(
                 padding: EdgeInsets.all(responsive.w(14)),
                 decoration: ShapeDecoration(
-                  color: isSelected ? const Color(0x0C00A86B) : AppColors.white,
+                  color: isSelected ? const Color(0x0C7C3AED) : AppColors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(responsive.radius(16)),
                     side: BorderSide(

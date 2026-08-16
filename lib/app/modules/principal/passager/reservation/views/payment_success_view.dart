@@ -135,7 +135,7 @@ class _SuccessHeroState extends State<_SuccessHero> with SingleTickerProviderSta
 											height: size,
 											decoration: BoxDecoration(
 												shape: BoxShape.circle,
-												color: const Color(0x1400A86B),
+												color: const Color(0x147C3AED),
 											),
 										),
 										Container(
@@ -143,7 +143,7 @@ class _SuccessHeroState extends State<_SuccessHero> with SingleTickerProviderSta
 											height: size * 0.78,
 											decoration: BoxDecoration(
 												shape: BoxShape.circle,
-												color: const Color(0x2A00A86B),
+												color: const Color(0x2A7C3AED),
 											),
 										),
 										Container(
@@ -197,9 +197,9 @@ class _AmountDisplay extends StatelessWidget {
 			width: double.infinity,
 			padding: EdgeInsets.all(responsive.w(20)),
 			decoration: ShapeDecoration(
-				color: const Color(0x0C00A86B),
+				color: const Color(0x0C7C3AED),
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: Color(0x3300A86B)),
+					side: const BorderSide(color: Color(0x337C3AED)),
 					borderRadius: BorderRadius.circular(responsive.radius(20)),
 				),
 			),
@@ -226,7 +226,7 @@ class _AmountDisplay extends StatelessWidget {
 						decoration: ShapeDecoration(
 							color: AppColors.white,
 							shape: RoundedRectangleBorder(
-								side: const BorderSide(color: Color(0x3300A86B)),
+								side: const BorderSide(color: Color(0x337C3AED)),
 								borderRadius: BorderRadius.circular(9999),
 							),
 						),
@@ -731,7 +731,7 @@ class _ShareArrivalTileState extends State<_ShareArrivalTile> {
 			decoration: ShapeDecoration(
 				color: _sharing ? const Color(0xFFF0FDF8) : AppColors.white,
 				shape: RoundedRectangleBorder(
-					side: BorderSide(color: _sharing ? const Color(0x3300A86B) : AppColors.border),
+					side: BorderSide(color: _sharing ? const Color(0x337C3AED) : AppColors.border),
 					borderRadius: BorderRadius.circular(14),
 				),
 			),
@@ -829,7 +829,7 @@ class _DriverContactCard extends StatelessWidget {
 				decoration: ShapeDecoration(
 					color: const Color(0xFFF0FDF8),
 					shape: RoundedRectangleBorder(
-						side: const BorderSide(color: Color(0x3300A86B)),
+						side: const BorderSide(color: Color(0x337C3AED)),
 						borderRadius: BorderRadius.circular(responsive.radius(16)),
 					),
 				),

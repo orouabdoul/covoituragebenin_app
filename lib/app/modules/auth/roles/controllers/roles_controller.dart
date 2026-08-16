@@ -4,6 +4,7 @@ import 'package:covoiturage_benin_app/app/core/constants/auth_mode.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/services/auth/auth_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
+import 'package:covoiturage_benin_app/app/modules/auth/register/controllers/input_phone_controller.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 enum RoleType {
@@ -14,6 +15,7 @@ enum RoleType {
 class RolesController extends GetxController {
   final Rxn<RoleType> selectedRole = Rxn<RoleType>();
   bool _skipAuth = false;
+  String _storedPhone = '';
 
   bool get hasSelection => selectedRole.value != null;
 
@@ -23,6 +25,10 @@ class RolesController extends GetxController {
     final args = Get.arguments;
     if (args is Map) {
       _skipAuth = args['skipAuth'] == true;
+      _storedPhone = args['phone'] as String? ?? '';
+    }
+    if (_storedPhone.isEmpty && Get.isRegistered<InputPhoneController>()) {
+      _storedPhone = Get.find<InputPhoneController>().phoneController.text.trim();
     }
   }
 
@@ -54,7 +60,11 @@ class RolesController extends GetxController {
 
     Get.toNamed(
       AppRoutes.register,
-      arguments: {'role': selectedRole.value, 'mode': AuthMode.register},
+      arguments: {
+        'role': selectedRole.value,
+        'mode': AuthMode.register,
+        'phone': _storedPhone,
+      },
     );
   }
 

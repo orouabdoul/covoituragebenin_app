@@ -1452,7 +1452,7 @@ class _RequestCard extends StatelessWidget {
         color: AppColors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(responsive.radius(22)),
-          side: const BorderSide(width: 2, color: Color(0x3300A86B)),
+          side: const BorderSide(width: 2, color: Color(0x337C3AED)),
         ),
         shadows: const [
           BoxShadow(color: AppColors.shadowSoft, blurRadius: 2, offset: Offset(0, 1)),

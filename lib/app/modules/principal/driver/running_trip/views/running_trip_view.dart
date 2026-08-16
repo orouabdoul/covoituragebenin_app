@@ -126,7 +126,7 @@ class _HeroBanner extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF00A86B), Color(0xFF007A50)],
+          colors: [Color(0xFF7C3AED), Color(0xFF007A50)],
         ),
         borderRadius: BorderRadius.circular(r.radius(18)),
       ),

@@ -68,7 +68,7 @@ class WithdrawController extends GetxController {
       subtitle: 'UBA, Ecobank…',
       phoneNumber: '',
       icon: Icons.account_balance_outlined,
-      iconBackground: Color(0x1900A86B),
+      iconBackground: Color(0x197C3AED),
     ),
   ].obs;
 
@@ -258,11 +258,11 @@ class WithdrawController extends GetxController {
             Container(
               width: 72, height: 72,
               decoration: const BoxDecoration(
-                color: Color(0x1A00A86B),
+                color: Color(0x1A7C3AED),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.check_circle_rounded,
-                  color: Color(0xFF00A86B), size: 40),
+                  color: Color(0xFF7C3AED), size: 40),
             ),
             const SizedBox(height: 16),
             const Text(

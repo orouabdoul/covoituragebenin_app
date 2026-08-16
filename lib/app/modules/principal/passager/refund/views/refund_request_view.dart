@@ -614,7 +614,7 @@ class _RefundSummaryCard extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: const Color(0xFFF0FDF8),
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: Color(0x3300A86B)),
+					side: const BorderSide(color: Color(0x337C3AED)),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
 			),
@@ -717,7 +717,7 @@ class _SuccessStateState extends State<_SuccessState> with SingleTickerProviderS
 									decoration: const BoxDecoration(
 										shape: BoxShape.circle,
 										color: Color(0xFFF0FDF8),
-										boxShadow: [BoxShadow(color: Color(0x2200A86B), blurRadius: 24, spreadRadius: 8)],
+										boxShadow: [BoxShadow(color: Color(0x227C3AED), blurRadius: 24, spreadRadius: 8)],
 									),
 									child: Icon(Icons.check_circle_rounded, color: AppColors.primary, size: responsive.text(52)),
 								),
@@ -740,7 +740,7 @@ class _SuccessStateState extends State<_SuccessState> with SingleTickerProviderS
 								decoration: ShapeDecoration(
 									color: const Color(0xFFF0FDF8),
 									shape: RoundedRectangleBorder(
-										side: const BorderSide(color: Color(0x3300A86B)),
+										side: const BorderSide(color: Color(0x337C3AED)),
 										borderRadius: BorderRadius.circular(16),
 									),
 								),

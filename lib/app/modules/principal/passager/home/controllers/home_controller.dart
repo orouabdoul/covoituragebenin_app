@@ -11,6 +11,7 @@ import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controlle
 import 'package:covoiturage_benin_app/app/core/services/passenger/home/home_service.dart';
 import 'package:covoiturage_benin_app/app/data/models/passenger/home_model.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/passager/search/controllers/search_controller.dart';
+import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 
 class HomeController extends GetxController {
   HomeController(this._homeService);
@@ -23,7 +24,6 @@ class HomeController extends GetxController {
   final hasLoadError = false.obs;
 
   // ── Mutable view state (set by _applyDashboard) ───────────────────────────
-  String _apiGreeting = '';
   HomeUpcomingTrip? upcomingTrip;
   List<HomeMetric> heroMetrics = [];
   List<HomePopularRoute> popularRoutes = [];
@@ -33,13 +33,10 @@ class HomeController extends GetxController {
   List<HomeActivity> recentActivities = [];
 
   // ── Greeting ───────────────────────────────────────────────────────────────
-  String get greeting {
-    if (_apiGreeting.isNotEmpty) return _apiGreeting;
-    final h = DateTime.now().hour;
-    if (h < 12) return 'Bonjour 👋';
-    if (h < 18) return 'Bon après-midi 👋';
-    return 'Bonsoir 👋';
-  }
+  String get greeting => 'Bienvenue 👋';
+
+  bool get showHeroMetrics =>
+      heroMetrics.isNotEmpty && UserController.instance.profileComplete.value;
 
   Timer? _refreshTimer;
   Worker? _syncWorker;
@@ -105,8 +102,6 @@ class HomeController extends GetxController {
   };
 
   void _applyDashboard(PassengerHomeDashboard data) {
-    _apiGreeting = data.greeting;
-
     // ── LOG : upcomingTrip ─────────────────────────────────────────────────
     if (data.upcomingTrip != null) {
       final t = data.upcomingTrip!;
@@ -301,7 +296,7 @@ class HomeController extends GetxController {
       case 'first_trip':
         return [const Color(0xFFF4B400), const Color(0xFFFBBF24)];
       case 'cashback':
-        return [const Color(0xFF00A86B), const Color(0xFF10B981)];
+        return [const Color(0xFF7C3AED), const Color(0xFF10B981)];
       default:
         return [const Color(0xFF3B82F6), const Color(0xFF6366F1)];
     }
@@ -351,7 +346,7 @@ class HomeController extends GetxController {
         HomeQuickAction(
           label: 'Réservations',
           icon: Icons.event_note_rounded,
-          color: const Color(0xFF00A86B),
+          color: const Color(0xFF7C3AED),
           onTap: openReservations,
         ),
         HomeQuickAction(
@@ -375,6 +370,35 @@ class HomeController extends GetxController {
       ];
 
   // ── Navigation ─────────────────────────────────────────────────────────────
+  void onRideTap(HomeRide ride) {
+    final priceInt = int.tryParse(ride.price.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+    final seatsInt = int.tryParse(ride.seatsLeft.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
+    Get.toNamed(
+      AppRoutes.passengerReservationDetail,
+      arguments: {
+        'ride': SearchRide(
+          uuid: ride.uuid,
+          driverName: ride.driverName,
+          origin: ride.from,
+          destination: ride.to,
+          departureTime: ride.schedule,
+          departureNote: '',
+          arrivalTime: '',
+          arrivalNote: '',
+          duration: '',
+          vehicle: ride.driverVehicle,
+          price: ride.price,
+          priceValue: priceInt,
+          rating: '',
+          reviewCount: '',
+          seatsAvailable: seatsInt,
+          minutesUntilDeparture: 0,
+          isVerified: false,
+        ),
+      },
+    );
+  }
+
   void openNotifications() => Get.toNamed(AppRoutes.passengerNotifications);
   void openTrustHub() => Get.toNamed(AppRoutes.passengerTrustHub);
 

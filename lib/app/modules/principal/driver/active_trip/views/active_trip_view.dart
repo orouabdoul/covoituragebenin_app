@@ -168,7 +168,7 @@ class _ReadinessHero extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF00A86B), Color(0xFF008F5A)],
+          colors: [Color(0xFF7C3AED), Color(0xFF6D28D9)],
         ),
         borderRadius: BorderRadius.circular(r.adaptive(phone: 18, smallPhone: 16, tablet: 20, desktop: 24)),
       ),

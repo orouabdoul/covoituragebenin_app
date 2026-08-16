@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-	static const Color primary = Color(0xFF00A86B);
-	static const Color success = Color(0xFF008F5A);
+	static const Color primary = Color(0xFF7C3AED);
+	static const Color success = Color(0xFF6D28D9);
 	static const Color accent = Color(0xFFF4B400);
 	static const Color warning = Color(0xFFF59E0B);
 	static const Color info = Color(0xFF6366F1);
@@ -27,9 +27,9 @@ class AppColors {
 	static const Color shadowSoft = Color(0x0C000000);
 
 	static const Color surfaceCard = white;
-	static const Color surfaceAccent = Color(0x0C00A86B);
-	static const Color surfaceAccentStrong = Color(0x1900A86B);
-	static const Color surfaceAccentWeak = Color(0x3300A86B);
+	static const Color surfaceAccent = Color(0x0C7C3AED);
+	static const Color surfaceAccentStrong = Color(0x197C3AED);
+	static const Color surfaceAccentWeak = Color(0x337C3AED);
 	static const Color surfaceAccentVeryWeak = surfaceAccent;
 	static const Color surfaceSuccess = Color(0xFFDCFCE7);
 	static const Color surfaceInfo = Color(0xFFDBEAFE);

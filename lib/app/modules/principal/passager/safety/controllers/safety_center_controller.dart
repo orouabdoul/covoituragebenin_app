@@ -5,6 +5,7 @@ import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/safety/passenger_safety_service.dart';
+import 'package:covoiturage_benin_app/app/core/services/passenger/profile/passenger_profile_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/data/models/passenger/safety_model.dart';
@@ -68,6 +69,24 @@ class SafetyCenterController extends GetxController {
       if (result.error != AppError.socket) {
         hasErrorContacts.value = true;
       }
+    }
+    // Si toujours vide, essayer le profil passager
+    if (emergencyContacts.isEmpty) await _loadContactsFromProfile();
+  }
+
+  Future<void> _loadContactsFromProfile() async {
+    if (!Get.isRegistered<PassengerProfileService>()) return;
+    final result = await Get.find<PassengerProfileService>().fetchProfile();
+    if (!result.isSuccess) return;
+    final raw = result.data!.emergencyContacts;
+    if (raw.isEmpty) return;
+    final mapped = raw
+        .map((c) => EmergencyContact.fromJson(c))
+        .where((c) => c.name.isNotEmpty)
+        .toList();
+    if (mapped.isNotEmpty) {
+      emergencyContacts.assignAll(mapped);
+      hasErrorContacts.value = false;
     }
   }
 

@@ -123,11 +123,11 @@ class MessagerController extends GetxController {
       badge: '',
       badgeColor: 0,
       statusLabel: tripRoute.isNotEmpty ? tripRoute : 'Trajet réservé',
-      statusLabelColor: 0xFF00A86B,
-      statusBackgroundColor: 0x1900A86B,
+      statusLabelColor: 0xFF7C3AED,
+      statusBackgroundColor: 0x197C3AED,
       avatarUrl: null,
       roleLabel: 'Conducteur',
-      roleLabelColor: 0xFF00A86B,
+      roleLabelColor: 0xFF7C3AED,
       isUnread: false,
     );
     Get.toNamed(

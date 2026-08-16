@@ -292,7 +292,7 @@ class _RevenueHero extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF00A86B), Color(0xFF008F5A)],
+          colors: [Color(0xFF7C3AED), Color(0xFF6D28D9)],
         ),
         borderRadius: BorderRadius.circular(
             r.adaptive(phone: 18, smallPhone: 16, tablet: 20, desktop: 24)),
@@ -816,7 +816,7 @@ class _BadgesCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final badgeDefs = [
-      (icon: Icons.verified_rounded,          label: 'Fiable',   color: const Color(0xFF00A86B), unlocked: _isReliable),
+      (icon: Icons.verified_rounded,          label: 'Fiable',   color: const Color(0xFF7C3AED), unlocked: _isReliable),
       (icon: Icons.workspace_premium_rounded, label: 'Top 10%',  color: const Color(0xFFF4B400), unlocked: _isTop),
       (icon: Icons.speed_rounded,             label: 'Rapide',   color: const Color(0xFF3B82F6), unlocked: _isFast),
       (icon: Icons.star_rounded,              label: 'Ponctuel', color: const Color(0xFF6366F1), unlocked: _isPunctual),

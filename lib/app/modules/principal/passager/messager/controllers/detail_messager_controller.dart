@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:url_launcher/url_launcher.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/messaging/passenger_messaging_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
@@ -446,6 +447,28 @@ class PassengerDetailMessagerController extends GetxController with WidgetsBindi
 
   Future<void> loadMore() => _fetchThread(loadMore: true);
 
+  Future<void> sendAudio(String filePath) async {
+    final optimistic = DetailMessage(
+      kind: DetailMessageKind.outgoing,
+      message: '🎤 Message vocal…',
+      time: 'maintenant',
+    );
+    messages.add(optimistic);
+    isSending.value = true;
+    final result = await _service.sendAttachment(_uuid, filePath);
+    isSending.value = false;
+    messages.remove(optimistic);
+    if (!result.isSuccess) {
+      if (result.error != null) UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+      return;
+    }
+    final sent = _toDetailMessage(result.data!);
+    messages.add(sent);
+    final newId = result.data!.id;
+    if (newId > _latestSeenId) _latestSeenId = newId;
+    _scrollToBottom();
+  }
+
   void openAttachmentPicker() {
     Get.bottomSheet(
       Container(
@@ -706,47 +729,33 @@ class PassengerDetailMessagerController extends GetxController with WidgetsBindi
     );
   }
 
-  void onCall() {
-    final phone = displayPhone.value.isNotEmpty ? displayPhone.value : '+229 XX XX XX XX';
-    Get.dialog(
-      AlertDialog(
+  Future<void> onCall() async {
+    final phone = displayPhone.value.trim();
+    if (phone.isEmpty || phone.startsWith('+229 XX')) {
+      UIHelper().showSnackBar('MINIZON', 'Numéro non disponible pour le moment.', 2);
+      return;
+    }
+    final uri = Uri(scheme: 'tel', path: phone);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      Get.dialog(AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(children: [
           const Icon(Icons.call_rounded, color: AppColors.primary, size: 22),
           const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'Appeler ${displayName.value}',
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-            ),
+          Expanded(child: Text('Appeler ${displayName.value}',
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700))),
+        ]),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            decoration: BoxDecoration(color: AppColors.surfaceAccent, borderRadius: BorderRadius.circular(12)),
+            child: Text(phone,
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900,
+                    color: AppColors.primary, letterSpacing: 1)),
           ),
         ]),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE6F7EF),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                phone,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.primary,
-                  letterSpacing: 1,
-                ),
-              ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Numéro masqué pour votre sécurité',
-              style: TextStyle(fontSize: 11, color: AppColors.textGhost),
-            ),
-          ],
-        ),
         actions: [
           TextButton(onPressed: Get.back, child: const Text('Fermer')),
           TextButton(
@@ -755,14 +764,12 @@ class PassengerDetailMessagerController extends GetxController with WidgetsBindi
               Get.back();
               UIHelper().showSnackBar('MINIZON', 'Numéro copié.', 0);
             },
-            child: const Text(
-              'Copier',
-              style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700),
-            ),
+            child: const Text('Copier',
+                style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
           ),
         ],
-      ),
-    );
+      ));
+    }
   }
 
   void onOptions() {

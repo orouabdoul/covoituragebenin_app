@@ -359,7 +359,7 @@ class _GuaranteeBanner extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: const Color(0xFFF0FDF8),
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: Color(0x3300A86B)),
+					side: const BorderSide(color: Color(0x337C3AED)),
 					borderRadius: BorderRadius.circular(14),
 				),
 			),
@@ -485,7 +485,7 @@ class _TripInfoCard extends StatelessWidget {
 									height: responsive.w(36),
 									decoration: BoxDecoration(
 										gradient: const LinearGradient(
-											colors: [Color(0xFF00A86B), Color(0xFF10B981)],
+											colors: [Color(0xFF7C3AED), Color(0xFF10B981)],
 											begin: Alignment.topLeft,
 											end: Alignment.bottomRight,
 										),

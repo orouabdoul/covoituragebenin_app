@@ -237,7 +237,7 @@ class _NotificationTile extends StatelessWidget {
 				decoration: ShapeDecoration(
 					color: notif.isRead ? AppColors.white : const Color(0xFFF0FDF8),
 					shape: RoundedRectangleBorder(
-						side: BorderSide(color: notif.isRead ? AppColors.border : const Color(0x3300A86B)),
+						side: BorderSide(color: notif.isRead ? AppColors.border : const Color(0x337C3AED)),
 						borderRadius: BorderRadius.circular(responsive.radius(16)),
 					),
 					shadows: const [BoxShadow(color: Color(0x08000000), blurRadius: 6, offset: Offset(0, 1))],

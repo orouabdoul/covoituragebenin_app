@@ -193,7 +193,7 @@ class DriverSafetyController extends GetxController {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
-            Icon(Icons.headset_mic_rounded, color: Color(0xFF00A86B)),
+            Icon(Icons.headset_mic_rounded, color: Color(0xFF7C3AED)),
             SizedBox(width: 10),
             Text('Support MINIZON', style: TextStyle(fontSize: 16)),
           ],
@@ -214,7 +214,7 @@ class DriverSafetyController extends GetxController {
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
-                  color: Color(0xFF00A86B),
+                  color: Color(0xFF7C3AED),
                   letterSpacing: 1,
                 ),
               ),
@@ -230,7 +230,7 @@ class DriverSafetyController extends GetxController {
               UIHelper().showSnackBar('MINIZON', 'Numéro copié dans le presse-papiers.', 0);
             },
             child: const Text('Copier le numéro',
-                style: TextStyle(color: Color(0xFF00A86B), fontWeight: FontWeight.w700)),
+                style: TextStyle(color: Color(0xFF7C3AED), fontWeight: FontWeight.w700)),
           ),
         ],
       ),

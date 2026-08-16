@@ -8,8 +8,9 @@
     <uses-permission android:name="android.permission.VIBRATE"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <application
-        android:label="covoiturage_benin_app"
+        android:label="MINIZON"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -56,6 +57,10 @@
             android:value="2" />
     </application>
     <queries>
+        <intent>
+            <action android:name="android.intent.action.DIAL"/>
+            <data android:scheme="tel"/>
+        </intent>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>

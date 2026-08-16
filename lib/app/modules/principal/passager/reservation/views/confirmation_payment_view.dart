@@ -100,7 +100,7 @@ class _HeaderBar extends StatelessWidget {
 							AlertDialog(
 								shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
 								title: const Row(children: [
-									Icon(Icons.lock_rounded, color: Color(0xFF00A86B), size: 20),
+									Icon(Icons.lock_rounded, color: Color(0xFF7C3AED), size: 20),
 									SizedBox(width: 8),
 									Text('Paiement sécurisé', style: TextStyle(fontSize: 15)),
 								]),
@@ -334,7 +334,7 @@ class _PaymentMethodCard extends StatelessWidget {
 										child: Container(
 											padding: EdgeInsets.all(responsive.w(14)),
 											decoration: ShapeDecoration(
-												color: selected ? const Color(0x0C00A86B) : Colors.white,
+												color: selected ? const Color(0x0C7C3AED) : Colors.white,
 												shape: RoundedRectangleBorder(
 													side: BorderSide(
 														width: selected ? 2 : 1,
@@ -735,9 +735,9 @@ class _SecurityCard extends StatelessWidget {
 		return Container(
 			padding: EdgeInsets.all(responsive.w(16)),
 			decoration: ShapeDecoration(
-				color: const Color(0x0C00A86B),
+				color: const Color(0x0C7C3AED),
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: Color(0x3300A86B)),
+					side: const BorderSide(color: Color(0x337C3AED)),
 					borderRadius: BorderRadius.circular(responsive.radius(14)),
 				),
 			),

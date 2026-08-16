@@ -93,7 +93,7 @@ class HomeView extends StatelessWidget {
                       ),
                       SizedBox(height: responsive.h(sectionSpacing)),
                     ],
-                    if (controller.heroMetrics.isNotEmpty) ...[
+                    if (controller.showHeroMetrics) ...[
                       _HeroSection(
                         responsive: responsive,
                         metrics: controller.heroMetrics,
@@ -128,6 +128,7 @@ class HomeView extends StatelessWidget {
                       _RideList(
                         responsive: responsive,
                         rides: controller.availableRides,
+                        onRideTap: controller.onRideTap,
                       ),
                       SizedBox(height: sectionSpacing),
                     ],
@@ -242,13 +243,6 @@ class _TopBar extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                controller.greeting,
-                style: AppTextStyles.caption(responsive).copyWith(
-                  color: AppColors.textSecondary,
-                  fontSize: responsive.text(13),
-                ),
-              ),
-              Text(
                 'Où allez-vous ?',
                 style: AppTextStyles.h6(responsive).copyWith(fontWeight: FontWeight.w700),
               ),
@@ -279,7 +273,7 @@ class _TopBar extends StatelessWidget {
             decoration: BoxDecoration(
               color: const Color(0xFFF0FDF8),
               shape: BoxShape.circle,
-              border: Border.all(color: const Color(0x3300A86B)),
+              border: Border.all(color: const Color(0x337C3AED)),
             ),
             child: Icon(Icons.shield_rounded, color: AppColors.primary, size: responsive.text(18)),
           ),
@@ -1146,7 +1140,7 @@ class _HeroSection extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF00A86B), Color(0xFF059669)],
+          colors: [Color(0xFF7C3AED), Color(0xFF6D28D9)],
         ),
         shape: RoundedRectangleBorder(
           side: const BorderSide(color: AppColors.border),
@@ -1329,17 +1323,26 @@ class _PopularRoutesRow extends StatelessWidget {
 }
 
 class _RideList extends StatelessWidget {
-  const _RideList({required this.responsive, required this.rides});
+  const _RideList({
+    required this.responsive,
+    required this.rides,
+    required this.onRideTap,
+  });
 
   final AppResponsive responsive;
   final List<HomeRide> rides;
+  final ValueChanged<HomeRide> onRideTap;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         for (var index = 0; index < rides.length; index++) ...[
-          _RideCard(responsive: responsive, ride: rides[index]),
+          _RideCard(
+            responsive: responsive,
+            ride: rides[index],
+            onTap: () => onRideTap(rides[index]),
+          ),
           if (index != rides.length - 1)
             SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
         ],
@@ -1349,23 +1352,31 @@ class _RideList extends StatelessWidget {
 }
 
 class _RideCard extends StatelessWidget {
-  const _RideCard({required this.responsive, required this.ride});
+  const _RideCard({required this.responsive, required this.ride, required this.onTap});
 
   final AppResponsive responsive;
   final HomeRide ride;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final double cardPadding = responsive.adaptive(phone: 16, smallPhone: 14, tablet: 18, desktop: 20);
+    final radius = BorderRadius.circular(responsive.radius(22));
 
-    return Container(
+    return Material(
+      color: AppColors.white,
+      borderRadius: radius,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: radius,
+        child: Container(
       width: double.infinity,
       padding: EdgeInsets.all(cardPadding),
       decoration: ShapeDecoration(
-        color: AppColors.white,
+        color: Colors.transparent,
         shape: RoundedRectangleBorder(
           side: const BorderSide(color: AppColors.border),
-          borderRadius: BorderRadius.circular(responsive.radius(22)),
+          borderRadius: radius,
         ),
         shadows: const [
           BoxShadow(
@@ -1468,6 +1479,8 @@ class _RideCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+        ),
       ),
     );
   }
@@ -1760,7 +1773,7 @@ class _DriverAvatar extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF00A86B), Color(0xFF10B981)],
+          colors: [Color(0xFF7C3AED), Color(0xFF10B981)],
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(9999),
@@ -1794,7 +1807,7 @@ Color _driverLevelColor(String level) {
     case 'or':
       return const Color(0xFFD4AF37);
     case 'platine':
-      return const Color(0xFF00A86B);
+      return const Color(0xFF7C3AED);
     case 'argent':
       return const Color(0xFF6B7280);
     default:

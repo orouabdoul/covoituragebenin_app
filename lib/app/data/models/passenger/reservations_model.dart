@@ -105,7 +105,7 @@ class ApiPaymentMethod {
         title: (j['title'] ?? '').toString(),
         description: (j['description'] ?? '').toString(),
         iconName: (j['icon'] ?? 'phone_android').toString(),
-        color: (j['color'] as num?)?.toInt() ?? 0xFF00A86B,
+        color: (j['color'] as num?)?.toInt() ?? 0xFF7C3AED,
       );
 }
 

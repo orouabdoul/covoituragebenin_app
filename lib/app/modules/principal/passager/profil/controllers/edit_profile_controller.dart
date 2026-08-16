@@ -100,7 +100,7 @@ class EditProfileController extends GetxController {
       Get.snackbar(
         'Profil mis à jour',
         'Vos informations ont été sauvegardées.',
-        backgroundColor: const Color(0xFF00A86B),
+        backgroundColor: const Color(0xFF7C3AED),
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
         margin: const EdgeInsets.all(16),
@@ -157,7 +157,7 @@ class _AvatarSourceSheet extends StatelessWidget {
             leading: Container(
               padding: const EdgeInsets.all(8),
               decoration: const BoxDecoration(color: Color(0xFFF0FDF8), shape: BoxShape.circle),
-              child: const Icon(Icons.photo_library_rounded, color: Color(0xFF00A86B)),
+              child: const Icon(Icons.photo_library_rounded, color: Color(0xFF7C3AED)),
             ),
             title: const Text('Galerie photo',
                 style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500)),

@@ -172,7 +172,7 @@ class _TripSummary extends StatelessWidget {
 									width: responsive.w(48),
 									height: responsive.w(48),
 									decoration: BoxDecoration(
-										color: const Color(0x1900A86B),
+										color: const Color(0x197C3AED),
 										borderRadius: BorderRadius.circular(12),
 									),
 									child: const Icon(Icons.check_circle_outline_rounded, color: AppColors.primary),
@@ -197,9 +197,9 @@ class _TripSummary extends StatelessWidget {
 								Container(
 									padding: EdgeInsets.symmetric(horizontal: responsive.w(10), vertical: responsive.h(4)),
 									decoration: BoxDecoration(
-										color: const Color(0x1900A86B),
+										color: const Color(0x197C3AED),
 										borderRadius: BorderRadius.circular(9999),
-										border: Border.all(color: const Color(0x3300A86B)),
+										border: Border.all(color: const Color(0x337C3AED)),
 									),
 									child: Text(
 										'Terminé ✓',
@@ -421,7 +421,7 @@ class _QuickTagsCard extends StatelessWidget {
 									duration: AppResponsive.fastDuration,
 									padding: EdgeInsets.symmetric(horizontal: responsive.w(14), vertical: responsive.h(8)),
 									decoration: BoxDecoration(
-										color: selected ? const Color(0x0C00A86B) : AppColors.surfaceMuted,
+										color: selected ? const Color(0x0C7C3AED) : AppColors.surfaceMuted,
 										borderRadius: BorderRadius.circular(9999),
 										border: Border.all(
 											color: selected ? AppColors.primary : AppColors.border,
@@ -625,7 +625,7 @@ class _SuccessCircle extends StatelessWidget {
 			height: size,
 			decoration: BoxDecoration(
 				shape: BoxShape.circle,
-				color: const Color(0x1900A86B),
+				color: const Color(0x197C3AED),
 				boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.15), blurRadius: 20, spreadRadius: 4)],
 			),
 			child: Icon(Icons.favorite_rounded, color: AppColors.primary, size: size * 0.45),

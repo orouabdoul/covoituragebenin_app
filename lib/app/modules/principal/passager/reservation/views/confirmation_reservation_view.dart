@@ -919,7 +919,7 @@ class _TripCard extends StatelessWidget {
 							Container(
 								padding: EdgeInsets.symmetric(horizontal: responsive.w(12), vertical: responsive.h(4)),
 								decoration: ShapeDecoration(
-									color: const Color(0x1900A86B),
+									color: const Color(0x197C3AED),
 									shape: RoundedRectangleBorder(
 										side: const BorderSide(color: AppColors.border),
 										borderRadius: BorderRadius.circular(9999),
@@ -938,7 +938,7 @@ class _TripCard extends StatelessWidget {
 					SizedBox(height: responsive.h(20)),
 					_TimelineRow(
 						responsive: responsive,
-						topColor: const Color(0xFF00A86B),
+						topColor: const Color(0xFF7C3AED),
 						title: departureCity,
 						subtitle: departureNote,
 						meta: departureTime,
@@ -996,7 +996,7 @@ class _TimelineRow extends StatelessWidget {
 							decoration: ShapeDecoration(
 								color: outlinedTop ? Colors.white : topColor,
 								shape: RoundedRectangleBorder(
-									side: BorderSide(color: outlinedTop ? const Color(0xFF00A86B) : AppColors.border, width: outlinedTop ? 2 : 1),
+									side: BorderSide(color: outlinedTop ? const Color(0xFF7C3AED) : AppColors.border, width: outlinedTop ? 2 : 1),
 									borderRadius: BorderRadius.circular(9999),
 								),
 							),
@@ -1007,7 +1007,7 @@ class _TimelineRow extends StatelessWidget {
 								width: responsive.w(12),
 								height: responsive.w(12),
 								decoration: ShapeDecoration(
-									color: const Color(0xFF00A86B),
+									color: const Color(0xFF7C3AED),
 									shape: RoundedRectangleBorder(
 										side: const BorderSide(color: AppColors.border),
 										borderRadius: BorderRadius.circular(9999),
@@ -1081,7 +1081,7 @@ class _DriverCard extends StatelessWidget {
 								Row(
 									children: [
 										Expanded(child: Text(driverName, style: AppTextStyles.h6(responsive))),
-										_Pill(text: '4.9', background: const Color(0x1900A86B), responsive: responsive),
+										_Pill(text: '4.9', background: const Color(0x197C3AED), responsive: responsive),
 									],
 								),
 								SizedBox(height: responsive.h(4)),
@@ -1476,7 +1476,7 @@ class _PaymentCard extends StatelessWidget {
 											width: double.infinity,
 											padding: EdgeInsets.all(responsive.w(16)),
 											decoration: ShapeDecoration(
-												color: selected ? const Color(0x0C00A86B) : Colors.white,
+												color: selected ? const Color(0x0C7C3AED) : Colors.white,
 												shape: RoundedRectangleBorder(
 													side: BorderSide(
 														width: selected ? 2 : 1,
@@ -1592,7 +1592,7 @@ class _SafetyCard extends StatelessWidget {
 						width: responsive.w(40),
 						height: responsive.w(40),
 						decoration: ShapeDecoration(
-							color: const Color(0x3300A86B),
+							color: const Color(0x337C3AED),
 							shape: RoundedRectangleBorder(
 								side: const BorderSide(color: AppColors.border),
 								borderRadius: BorderRadius.circular(9999),

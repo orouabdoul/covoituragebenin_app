@@ -196,13 +196,13 @@ class _AccountSuspendedView extends StatelessWidget {
           _SuspendedContactCard(
             responsive: responsive,
             icon: Icons.chat_rounded,
-            iconColor: const Color(0xFF00A86B),
+            iconColor: const Color(0xFF7C3AED),
             iconBg: const Color(0xFFDCFCE7),
             title: 'WhatsApp',
             subtitle: AppStrings.supportWhatsApp,
             onTap: () => _showContactDialog(
               icon: Icons.chat_rounded,
-              iconColor: const Color(0xFF00A86B),
+              iconColor: const Color(0xFF7C3AED),
               title: 'WhatsApp Support',
               contact: AppStrings.supportWhatsApp,
               hint: 'Numéro copié. Ouvrez WhatsApp pour démarrer.',

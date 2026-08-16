@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/messaging/messaging_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
@@ -462,6 +463,28 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
 
   Future<void> loadMore() => _fetchThread(loadMore: true);
 
+  Future<void> sendAudio(String filePath) async {
+    final optimistic = DetailMessage(
+      kind: DetailMessageKind.outgoing,
+      message: '🎤 Message vocal…',
+      time: 'maintenant',
+    );
+    messages.add(optimistic);
+    _scrollToBottom();
+    isSending.value = true;
+    final result = await _service.sendAttachment(_uuid, filePath);
+    isSending.value = false;
+    messages.remove(optimistic);
+    if (result.isSuccess) {
+      messages.add(_toDetailMessage(result.data!));
+      _scrollToBottom();
+      final newId = result.data!.id;
+      if (newId > _latestSeenId) _latestSeenId = newId;
+    } else if (result.error != null) {
+      UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+    }
+  }
+
   Future<void> sendMessage() async {
     final text = messageController.text.trim();
     if (text.isEmpty) return;
@@ -738,54 +761,62 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
     );
   }
 
-  void onCall() {
-    final phone =
-        displayPhone.value.isNotEmpty ? displayPhone.value : '+229 XX XX XX XX';
-    Get.dialog(AlertDialog(
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: Row(children: [
-        const Icon(Icons.call_rounded, color: AppColors.primary, size: 22),
-        const SizedBox(width: 10),
-        Expanded(
-            child: Text('Appeler ${displayName.value}',
+  Future<void> onCall() async {
+    final phone = displayPhone.value.trim();
+
+    if (phone.isEmpty || phone.startsWith('+229 XX')) {
+      UIHelper().showSnackBar(
+          'MINIZON', 'Numéro non disponible pour le moment.', 2);
+      return;
+    }
+
+    final uri = Uri(scheme: 'tel', path: phone);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      // Fallback : afficher le numéro avec option de copie
+      Get.dialog(AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(children: [
+          const Icon(Icons.call_rounded, color: AppColors.primary, size: 22),
+          const SizedBox(width: 10),
+          Expanded(
+              child: Text('Appeler ${displayName.value}',
+                  style: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w700))),
+        ]),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            decoration: BoxDecoration(
+                color: const Color(0xFFE6F7EF),
+                borderRadius: BorderRadius.circular(12)),
+            child: Text(phone,
                 style: const TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.w700))),
-      ]),
-      content: Column(mainAxisSize: MainAxisSize.min, children: [
-        Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-          decoration: BoxDecoration(
-              color: const Color(0xFFE6F7EF),
-              borderRadius: BorderRadius.circular(12)),
-          child: Text(phone,
-              style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.primary,
-                  letterSpacing: 1)),
-        ),
-        const SizedBox(height: 6),
-        const Text('Numéro masqué pour votre sécurité',
-            style:
-                TextStyle(fontSize: 11, color: AppColors.textGhost)),
-      ]),
-      actions: [
-        TextButton(onPressed: Get.back, child: const Text('Fermer')),
-        TextButton(
-          onPressed: () {
-            Clipboard.setData(ClipboardData(text: phone));
-            Get.back();
-            UIHelper().showSnackBar('MINIZON', 'Numéro copié.', 0);
-          },
-          child: const Text('Copier',
-              style: TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w700)),
-        ),
-      ],
-    ));
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.primary,
+                    letterSpacing: 1)),
+          ),
+          const SizedBox(height: 6),
+          const Text('Appuyez sur "Copier" pour enregistrer le numéro.',
+              style: TextStyle(fontSize: 11, color: AppColors.textGhost)),
+        ]),
+        actions: [
+          TextButton(onPressed: Get.back, child: const Text('Fermer')),
+          TextButton(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: phone));
+              Get.back();
+              UIHelper().showSnackBar('MINIZON', 'Numéro copié.', 0);
+            },
+            child: const Text('Copier',
+                style: TextStyle(
+                    color: AppColors.primary, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ));
+    }
   }
 
   void onOptions() {

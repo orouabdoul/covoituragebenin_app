@@ -167,7 +167,7 @@ class DriverSupportController extends GetxController {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: const [
-            Icon(Icons.chat_rounded, color: Color(0xFF00A86B), size: 22),
+            Icon(Icons.chat_rounded, color: Color(0xFF7C3AED), size: 22),
             SizedBox(width: 10),
             Text('Chat avec le support', style: TextStyle(fontSize: 16)),
           ],
@@ -180,7 +180,7 @@ class DriverSupportController extends GetxController {
             const SizedBox(height: 16),
             _ContactOption(
               icon: Icons.phone_rounded,
-              color: const Color(0xFF00A86B),
+              color: const Color(0xFF7C3AED),
               title: 'WhatsApp / Appel',
               subtitle: whatsapp,
               onTap: () {
@@ -218,7 +218,7 @@ class DriverSupportController extends GetxController {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: const [
-            Icon(Icons.headset_mic_rounded, color: Color(0xFF00A86B), size: 22),
+            Icon(Icons.headset_mic_rounded, color: Color(0xFF7C3AED), size: 22),
             SizedBox(width: 10),
             Text('Appeler le support', style: TextStyle(fontSize: 16)),
           ],
@@ -242,7 +242,7 @@ class DriverSupportController extends GetxController {
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
-                  color: Color(0xFF00A86B),
+                  color: Color(0xFF7C3AED),
                   letterSpacing: 1,
                 ),
               ),
@@ -258,7 +258,7 @@ class DriverSupportController extends GetxController {
               UIHelper().showSnackBar('MINIZON', 'Numéro copié dans le presse-papiers.', 0);
             },
             child: const Text('Copier',
-                style: TextStyle(color: Color(0xFF00A86B), fontWeight: FontWeight.w700)),
+                style: TextStyle(color: Color(0xFF7C3AED), fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -513,7 +513,7 @@ class _NewTicketSheet extends StatelessWidget {
               const SizedBox(height: 8),
               Obx(() => Row(
                     children: [
-                      _PriorityChip(label: 'Faible',  value: 'low',    selected: priority.value == 'low',    color: const Color(0xFF00A86B), onTap: () => priority.value = 'low'),
+                      _PriorityChip(label: 'Faible',  value: 'low',    selected: priority.value == 'low',    color: const Color(0xFF7C3AED), onTap: () => priority.value = 'low'),
                       const SizedBox(width: 8),
                       _PriorityChip(label: 'Moyenne', value: 'medium', selected: priority.value == 'medium', color: const Color(0xFFF59E0B), onTap: () => priority.value = 'medium'),
                       const SizedBox(width: 8),

@@ -49,7 +49,7 @@ class TransactionModel {
 
   Color get amountColor =>
       apiAmountColor ??
-      (isCredit ? const Color(0xFF00A86B) : const Color(0xFF111827));
+      (isCredit ? const Color(0xFF7C3AED) : const Color(0xFF111827));
 
   String get statusLabel =>
       apiStatusLabel ??
@@ -63,7 +63,7 @@ class TransactionModel {
       apiStatusColor ??
       switch (status) {
         TransactionStatus.pending => const Color(0xFFF4B400),
-        TransactionStatus.completed => const Color(0xFF00A86B),
+        TransactionStatus.completed => const Color(0xFF7C3AED),
         TransactionStatus.failed => const Color(0xFFE53935),
       };
 
@@ -81,7 +81,7 @@ class TransactionModel {
       status: TransactionStatus.completed,
       date: j['date'] as String? ?? '',
       icon: _iconFromName(j['icon_name'] as String? ?? ''),
-      iconBackground: Color(j['icon_background_color'] as int? ?? 0x1900A86B),
+      iconBackground: Color(j['icon_background_color'] as int? ?? 0x197C3AED),
       apiAmountLabel: j['amount_label'] as String?,
       apiAmountColor: _colorFromInt(j['amount_color']),
       apiStatusLabel: j['status_label'] as String?,

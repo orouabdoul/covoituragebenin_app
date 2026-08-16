@@ -42,7 +42,7 @@ class _FullBanner extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: const Color(0xFFF0FDF8),
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: Color(0x3300A86B)),
+					side: const BorderSide(color: Color(0x337C3AED)),
 					borderRadius: BorderRadius.circular(14),
 				),
 			),
@@ -118,7 +118,7 @@ class _CompactBadge extends StatelessWidget {
 			decoration: BoxDecoration(
 				color: const Color(0xFFF0FDF8),
 				borderRadius: BorderRadius.circular(9999),
-				border: Border.all(color: const Color(0x3300A86B)),
+				border: Border.all(color: const Color(0x337C3AED)),
 			),
 			child: Row(
 				mainAxisSize: MainAxisSize.min,

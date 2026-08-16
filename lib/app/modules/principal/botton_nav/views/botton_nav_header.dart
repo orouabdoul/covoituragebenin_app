@@ -48,52 +48,59 @@ class BottonNavHeader extends StatelessWidget {
               }
               return Row(
                 children: [
-                  CircleAvatar(
-                    radius: responsive.w(22),
-                    backgroundColor: AppColors.surfaceSoft,
-                    child: ClipOval(
-                      child: avatarUrl.isNotEmpty
-                          ? Image.network(
-                              avatarUrl,
-                              width: responsive.w(44),
-                              height: responsive.w(44),
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) => Icon(
+                  InkWell(
+                    borderRadius: BorderRadius.circular(9999),
+                    onTap: () => BottonNavController.goToTab(4),
+                    child: CircleAvatar(
+                      radius: responsive.w(22),
+                      backgroundColor: AppColors.surfaceSoft,
+                      child: ClipOval(
+                        child: avatarUrl.isNotEmpty
+                            ? Image.network(
+                                avatarUrl,
+                                width: responsive.w(44),
+                                height: responsive.w(44),
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, _, _) => Icon(
+                                  Icons.person_outline_rounded,
+                                  size: responsive.text(22),
+                                  color: AppColors.textGhost,
+                                ),
+                              )
+                            : Icon(
                                 Icons.person_outline_rounded,
                                 size: responsive.text(22),
                                 color: AppColors.textGhost,
                               ),
-                            )
-                          : Icon(
-                              Icons.person_outline_rounded,
-                              size: responsive.text(22),
-                              color: AppColors.textGhost,
-                            ),
+                      ),
                     ),
                   ),
-                  SizedBox(width: responsive.w(12)),
-                  Flexible(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          displayName.isNotEmpty ? 'Bonjour $displayName 👋' : 'Bonjour 👋',
-                          style: AppTextStyles.h6(responsive),
-                        ),
-                        if (displayCity.isNotEmpty) ...[
-                          SizedBox(height: responsive.h(4)),
-                          Row(
-                            children: [
-                              Icon(Icons.location_on_outlined, size: responsive.text(14), color: AppColors.textHint),
-                              SizedBox(width: responsive.w(4)),
-                              Text(displayCity, style: AppTextStyles.caption(responsive)),
-                            ],
+                  if (displayName.isNotEmpty) ...[
+                    SizedBox(width: responsive.w(12)),
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            displayName,
+                            style: AppTextStyles.h6(responsive),
+                            overflow: TextOverflow.ellipsis,
                           ),
+                          if (displayCity.isNotEmpty) ...[
+                            SizedBox(height: responsive.h(4)),
+                            Row(
+                              children: [
+                                Icon(Icons.location_on_outlined, size: responsive.text(14), color: AppColors.textHint),
+                                SizedBox(width: responsive.w(4)),
+                                Text(displayCity, style: AppTextStyles.caption(responsive)),
+                              ],
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               );
             }),

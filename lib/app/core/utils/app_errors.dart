@@ -19,7 +19,8 @@ enum AppError {
   tripNotFound,
   refundAlreadySubmitted,
   paymentProviderError,
-  alreadyPaid;
+  alreadyPaid,
+  invalidPhoneFormat;
 
   String get message {
     switch (this) {
@@ -34,6 +35,8 @@ enum AppError {
         return 'Utilisateur introuvable.';
       case AppError.validationError:
         return 'Numéro de téléphone invalide.';
+      case AppError.invalidPhoneFormat:
+        return 'Numéro invalide. Vérifiez que votre numéro commence par un préfixe béninois valide (ex : 0197, 0160, 0151...).';
       case AppError.phoneAlreadyInUse:
         return 'Ce numéro est déjà utilisé.';
       case AppError.permissionDenied:

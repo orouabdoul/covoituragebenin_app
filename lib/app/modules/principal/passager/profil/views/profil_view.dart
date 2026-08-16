@@ -162,7 +162,7 @@ class _HeaderSection extends StatelessWidget {
 				gradient: LinearGradient(
 					begin: Alignment.topLeft,
 					end: Alignment.bottomRight,
-					colors: [Color(0xFF00A86B), Color(0xFF008F5A)],
+					colors: [Color(0xFF7C3AED), Color(0xFF6D28D9)],
 				),
 				shape: RoundedRectangleBorder(
 					side: BorderSide(color: AppColors.border),
@@ -292,7 +292,7 @@ class _SummaryCard extends StatelessWidget {
 						Container(
 							padding: EdgeInsets.symmetric(horizontal: responsive.w(16), vertical: responsive.h(8)),
 							decoration: ShapeDecoration(
-								color: const Color(0x1900A86B),
+								color: const Color(0x197C3AED),
 								shape: RoundedRectangleBorder(
 									side: const BorderSide(color: AppColors.border),
 									borderRadius: BorderRadius.circular(9999),
@@ -502,7 +502,7 @@ class _TrustCard extends StatelessWidget {
 							Container(
 								padding: EdgeInsets.symmetric(horizontal: responsive.w(12), vertical: responsive.h(4)),
 								decoration: ShapeDecoration(
-									color: const Color(0x1900A86B),
+									color: const Color(0x197C3AED),
 									shape: RoundedRectangleBorder(
 										side: const BorderSide(color: AppColors.border),
 										borderRadius: BorderRadius.circular(9999),
@@ -567,7 +567,7 @@ class _TrustLine extends StatelessWidget {
 						width: responsive.w(32),
 						height: responsive.w(32),
 						decoration: const ShapeDecoration(
-							color: Color(0x1900A86B),
+							color: Color(0x197C3AED),
 							shape: CircleBorder(),
 						),
 						child: const Icon(Icons.verified_rounded, color: AppColors.primary, size: 18),
@@ -669,7 +669,7 @@ class _SettingsTile extends StatelessWidget {
 							width: responsive.w(40),
 							height: responsive.w(40),
 							decoration: const ShapeDecoration(
-								color: Color(0x1900A86B),
+								color: Color(0x197C3AED),
 								shape: CircleBorder(),
 							),
 							child: Icon(icon, color: AppColors.primary, size: responsive.text(18)),
@@ -786,7 +786,7 @@ class _PaymentTile extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: const Color(0x4CF5F5F5),
 				shape: RoundedRectangleBorder(
-					side: BorderSide(color: method.selected ? const Color(0x3300A86B) : AppColors.border),
+					side: BorderSide(color: method.selected ? const Color(0x337C3AED) : AppColors.border),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
 			),

@@ -16,9 +16,15 @@ class InputPhoneController extends GetxController {
   RoleType? _role;
   AuthMode _mode = AuthMode.register;
 
+  // Préfixes ARCEP officiels Bénin (format 10 chiffres depuis nov. 2024)
+  // MTN: 42,46,50-54,56,57,59,61,62,66,67,69,90,91,96,97
+  // Moov: 45,55,58,60,63-65,68,94,95,98,99
+  // Celtiis: 20-24,28,29,40,41,43,44,47-49,92,93
+  static final _beninPhoneRegex = RegExp(r'^01(2[0-4289]|[4-6]\d|9\d)\d{6}$');
+
   bool get canContinue {
     final v = phoneController.text.trim();
-    return v.length == 10 && v.startsWith('01');
+    return _beninPhoneRegex.hasMatch(v);
   }
 
   @override
@@ -30,17 +36,24 @@ class InputPhoneController extends GetxController {
     if (arg is Map) {
       _role = arg['role'] as RoleType?;
       _mode = arg['mode'] as AuthMode? ?? AuthMode.register;
+      final existingPhone = arg['phone'] as String? ?? '';
+      if (existingPhone.length >= 4) {
+        phoneController.text = existingPhone;
+        phoneController.selection =
+            TextSelection.collapsed(offset: existingPhone.length);
+        canContinueRx.value = _beninPhoneRegex.hasMatch(existingPhone);
+      }
     }
   }
 
   void onPhoneChanged(String value) {
-    canContinueRx.value = value.trim().length == 10 && value.trim().startsWith('01');
+    canContinueRx.value = _beninPhoneRegex.hasMatch(value.trim());
   }
 
   Future<void> continueWithPhone() async {
     final rawPhone = phoneController.text.trim();
-    if (rawPhone.length != 10 || !rawPhone.startsWith('01')) {
-      UIHelper().showSnackBar('MINIZON', 'Le numéro doit commencer par 01 et contenir 10 chiffres.', 2);
+    if (!_beninPhoneRegex.hasMatch(rawPhone)) {
+      UIHelper().showSnackBar('MINIZON', 'Numéro invalide. Vérifiez le format (ex: 0197XXXXXX).', 2);
       return;
     }
 
