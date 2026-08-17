@@ -2,6 +2,7 @@ import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
+import 'package:covoiturage_benin_app/app/core/constants/benin_locations.dart';
 import 'package:covoiturage_benin_app/app/modules/auth/complete_profile/controllers/profile_driver_controller.dart';
 import 'package:covoiturage_benin_app/app/modules/auth/complete_profile/controllers/profile_passager_controller.dart'
     show EmergencyContactEntry;
@@ -99,28 +100,42 @@ class ProfileDriverView extends GetView<ProfileDriverController> {
                               Row(
                                 children: [
                                   Expanded(
-                                    child: AppField(
+                                    child: _VehicleSelectField(
                                       responsive: responsive,
                                       label: AppStrings.profileFieldCity,
-                                      labelStyle: AppTextStyles.profileSectionLabel(responsive),
-                                      controller: controller.cityController,
-                                      hintText: AppStrings.profileFieldCityHint,
-                                      textStyle: AppTextStyles.profileFieldValue(responsive),
-                                      hintStyle: AppTextStyles.profileFieldValue(responsive)
-                                          .copyWith(color: AppColors.textGhost),
+                                      hint: AppStrings.profileFieldCityHint,
+                                      value: controller.selectedCity.value,
+                                      onTap: () => _showVehiclePicker(
+                                        context: context,
+                                        responsive: responsive,
+                                        title: AppStrings.profileFieldCity,
+                                        items: BeninLocations.cities,
+                                        selected: controller.selectedCity.value,
+                                        onSelect: controller.selectCity,
+                                      ),
                                     ),
                                   ),
                                   SizedBox(width: responsive.w(12)),
                                   Expanded(
-                                    child: AppField(
+                                    child: _VehicleSelectField(
                                       responsive: responsive,
                                       label: AppStrings.profileFieldNeighborhood,
-                                      labelStyle: AppTextStyles.profileSectionLabel(responsive),
-                                      controller: controller.neighborhoodController,
-                                      hintText: AppStrings.profileFieldNeighborhoodHint,
-                                      textStyle: AppTextStyles.profileFieldValue(responsive),
-                                      hintStyle: AppTextStyles.profileFieldValue(responsive)
-                                          .copyWith(color: AppColors.textGhost),
+                                      hint: controller.selectedCity.value == null
+                                          ? 'Choisir une ville'
+                                          : AppStrings.profileFieldNeighborhoodHint,
+                                      value: controller.selectedNeighborhood.value,
+                                      disabled: controller.selectedCity.value == null,
+                                      onTap: controller.selectedCity.value == null
+                                          ? null
+                                          : () => _showVehiclePicker(
+                                                context: context,
+                                                responsive: responsive,
+                                                title: AppStrings.profileFieldNeighborhood,
+                                                items: BeninLocations.neighborhoods(
+                                                    controller.selectedCity.value!),
+                                                selected: controller.selectedNeighborhood.value,
+                                                onSelect: controller.selectNeighborhood,
+                                              ),
                                     ),
                                   ),
                                 ],
@@ -178,18 +193,18 @@ class ProfileDriverView extends GetView<ProfileDriverController> {
                                 detectionError: controller.idCardDetectionError,
                               ),
                               SizedBox(height: responsive.h(16)),
-                              _DocumentUploadTile(
+                              IdCardPreviewTile(
                                 responsive: responsive,
                                 title: AppStrings.profileIdCardBack,
                                 subtitle: AppStrings.profileIdCardBackHint,
                                 actionLabel: AppStrings.profileUploadPhoto,
-                                icon: Icons.photo_camera_outlined,
+                                optional: true,
                                 onTap: () {
                                   _showImageSourcePicker(context, responsive).then((src) {
                                     if (src != null) controller.pickIdCard(isFront: false, source: src);
                                   });
                                 },
-                                selectedValue: controller.idCardBackName.value,
+                                imageFile: controller.idCardBackFile,
                               ),
                             ],
                           ),

@@ -232,9 +232,10 @@ class BottonNavController extends GetxController with WidgetsBindingObserver {
 
     _consecutiveFailures = 0;
     final auth = result.data!;
+    if (auth.user == null) return; // /me retourne toujours un user
     final uc = UserController.instance;
     await uc.setUserAndToken(
-      auth.user,
+      auth.user!,
       auth.token,
       isProfileComplete: auth.profileComplete,
     );

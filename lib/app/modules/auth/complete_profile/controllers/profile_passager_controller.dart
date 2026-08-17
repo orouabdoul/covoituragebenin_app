@@ -8,9 +8,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/services/face_verification_service.dart';
+import 'package:covoiturage_benin_app/app/core/services/push_notification/push_notification_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_dio.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
+import 'package:covoiturage_benin_app/app/data/models/auth/user_model.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/id_card_camera_screen.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
@@ -19,9 +21,22 @@ class ProfilePassagerController extends GetxController {
   final TextEditingController firstNameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
-  final TextEditingController cityController = TextEditingController();
-  final TextEditingController neighborhoodController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
+
+  // Ville et quartier sélectionnés via listes déroulantes
+  final RxnString selectedCity = RxnString();
+  final RxnString selectedNeighborhood = RxnString();
+
+  void selectCity(String city) {
+    selectedCity.value = city;
+    selectedNeighborhood.value = null;
+    update();
+  }
+
+  void selectNeighborhood(String neighborhood) {
+    selectedNeighborhood.value = neighborhood;
+    update();
+  }
 
   // ── Emergency contacts (max 5) ─────────────────────────────────────────────
   final RxList<EmergencyContactEntry> emergencyContacts =
@@ -58,6 +73,10 @@ class ProfilePassagerController extends GetxController {
 
   final RxBool isSubmitting = false.obs;
 
+  // register_token (nouveau compte) ou null (utilisateur existant avec auth token)
+  String? _registerToken;
+  String _authPhone = '';
+
   // ID card face detection state (for UI overlay)
   Rect? idCardFaceBox;
   Size? idCardImageSize;
@@ -65,6 +84,7 @@ class ProfilePassagerController extends GetxController {
   String? idCardDetectionError;
 
   XFile? get idCardFrontFile => _idCardFrontFile;
+  XFile? get idCardBackFile => _idCardBackFile;
 
   // Face verification
   final verificationStatus = Rx<VerificationStatus>(VerificationStatus.idle);
@@ -77,11 +97,29 @@ class ProfilePassagerController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    final storedPhone = UserController.instance.user.value?.phone ?? '';
-    final localPhone = storedPhone.startsWith('+229')
-        ? storedPhone.substring(4)
-        : storedPhone;
-    phoneController.text = localPhone.isNotEmpty ? localPhone : '01';
+    final args = Get.arguments;
+    if (args is Map) {
+      _registerToken = args['registerToken'] as String?;
+      _authPhone = args['phone'] as String? ?? '';
+    }
+
+    // Pré-remplir le numéro de téléphone
+    if (_registerToken != null && _authPhone.isNotEmpty) {
+      // Nouveau utilisateur : numéro saisi à l'auth (retirer +229)
+      final local = _authPhone.startsWith('+229')
+          ? _authPhone.substring(4)
+          : _authPhone;
+      phoneController.text = local;
+    } else if (_registerToken == null) {
+      // Utilisateur existant : numéro depuis la session
+      final storedPhone = UserController.instance.user.value?.phone ?? '';
+      final local = storedPhone.startsWith('+229')
+          ? storedPhone.substring(4)
+          : storedPhone;
+      phoneController.text = local.isNotEmpty ? local : '01';
+    } else {
+      phoneController.text = '01';
+    }
     FaceVerificationService.initialize();
   }
 
@@ -183,41 +221,49 @@ class ProfilePassagerController extends GetxController {
       return;
     }
 
-    final userUuid = UserController.instance.user.value?.uuid;
-    if (userUuid == null || userUuid.isEmpty) {
-      UIHelper().showSnackBar('MINIZON', 'Session expirée. Reconnectez-vous.', 2);
-      return;
+    // Nouveau compte → register_token requis ; utilisateur existant → auth token
+    final isNewRegistration = _registerToken != null;
+    if (!isNewRegistration) {
+      final userUuid = UserController.instance.user.value?.uuid;
+      if (userUuid == null || userUuid.isEmpty) {
+        UIHelper().showSnackBar('MINIZON', 'Session expirée. Reconnectez-vous.', 2);
+        return;
+      }
     }
 
     isSubmitting.value = true;
     update();
 
     try {
-      final token = await UserController.instance.getSessionToken();
       final dio = AppDio.create();
 
-      // Gender: "Homme" → "M", "Femme" → "F"
       String? genderCode;
       if (selectedGender.value != null) {
         genderCode = (selectedGender.value! == 'Homme' || selectedGender.value! == 'M') ? 'M' : 'F';
       }
 
       final Map<String, dynamic> fields = {
-        'user_uuid': userUuid,
         'role_name': 'passenger',
         'first_name': firstNameController.text.trim(),
         'last_name': lastNameController.text.trim(),
       };
+
+      if (isNewRegistration) {
+        fields['register_token'] = _registerToken!;
+      } else {
+        final userUuid = UserController.instance.user.value?.uuid;
+        if (userUuid != null) fields['user_uuid'] = userUuid;
+      }
+
       if (emailController.text.trim().isNotEmpty) {
         fields['email'] = emailController.text.trim();
       }
       final phone = phoneController.text.trim();
       if (phone.isNotEmpty && phone != '01') fields['phone'] = phone;
-      if (cityController.text.trim().isNotEmpty) fields['city'] = cityController.text.trim();
-      if (neighborhoodController.text.trim().isNotEmpty) fields['neighborhood'] = neighborhoodController.text.trim();
+      if (selectedCity.value != null) fields['city'] = selectedCity.value!;
+      if (selectedNeighborhood.value != null) fields['neighborhood'] = selectedNeighborhood.value!;
       if (addressController.text.trim().isNotEmpty) fields['address_details'] = addressController.text.trim();
       if (genderCode != null) fields['gender'] = genderCode;
-      // emergency_contacts ajoutés en bracket-notation après FormData.fromMap
 
       final formMap = <String, dynamic>{...fields};
       if (selfieFront.value != null) {
@@ -245,23 +291,20 @@ class ProfilePassagerController extends GetxController {
             _avatarFile!.path, filename: 'avatar.jpg');
       }
 
-      logger.d('createProfile → POST ${AppApi.register}');
-      logger.d('createProfile champs texte: $fields');
-      logger.d('createProfile fichiers: {'
-          'selfie_front: ${selfieFront.value?.path}, '
-          'selfie_left: ${selfieLeft.value?.path}, '
-          'selfie_right: ${selfieRight.value?.path}, '
-          'id_card_front: ${_idCardFrontFile?.path}, '
-          'id_card_back: ${_idCardBackFile?.path}, '
-          'avatar: ${_avatarFile?.path}'
-          '}');
-      logger.d('createProfile token présent: ${token.isNotEmpty}');
+      logger.d('createProfile → POST ${AppApi.register} (new=$isNewRegistration)');
+      logger.d('createProfile champs: $fields');
 
       final formData = FormData.fromMap(formMap);
       for (int i = 0; i < emergencyContacts.length; i++) {
         formData.fields.add(MapEntry('emergency_contacts[$i][name]', emergencyContacts[i].name));
         formData.fields.add(MapEntry('emergency_contacts[$i][phone]', emergencyContacts[i].phone));
         formData.fields.add(MapEntry('emergency_contacts[$i][relationship]', emergencyContacts[i].relationship));
+      }
+
+      final headers = <String, dynamic>{};
+      if (!isNewRegistration) {
+        final token = await UserController.instance.getSessionToken();
+        if (token.isNotEmpty) headers['Authorization'] = 'Bearer $token';
       }
 
       final response = await dio.post(
@@ -271,7 +314,7 @@ class ProfilePassagerController extends GetxController {
           validateStatus: (_) => true,
           sendTimeout: const Duration(seconds: 120),
           receiveTimeout: const Duration(seconds: 60),
-          headers: {'Authorization': 'Bearer $token'},
+          headers: headers,
         ),
       );
 
@@ -279,17 +322,41 @@ class ProfilePassagerController extends GetxController {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         logger.i('createProfile → succès, navigation dashboard passager');
-        // Mettre à jour le token retourné par register
-        final body = response.data?['body'] as Map?;
+        final body = response.data?['body'] as Map<String, dynamic>?;
         final newToken = body?['token'] as String?;
+        final uc = UserController.instance;
+
         if (newToken != null && newToken.isNotEmpty) {
-          UserController.instance.token.value = newToken;
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('token', newToken);
+          final userJson = body?['user'] as Map<String, dynamic>?;
+          if (userJson != null) {
+            await uc.setUserAndToken(
+              UserModel.fromJson(userJson),
+              newToken,
+              isProfileComplete: true,
+            );
+          } else {
+            uc.token.value = newToken;
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('token', newToken);
+          }
+          PushNotificationService.instance.registerFcmToken();
         }
-        UserController.instance.setRole('passenger');
-        await UserController.instance.setProfileComplete(true);
+
+        uc.setRole('passenger');
+        await uc.setProfileComplete(true);
         Get.offAllNamed(AppRoutes.dashboardPassenger);
+      } else if (response.statusCode == 401) {
+        UIHelper().showSnackBar(
+          'MINIZON',
+          'Token d\'inscription expiré. Veuillez recommencer.',
+          2,
+        );
+      } else if (response.statusCode == 409) {
+        UIHelper().showSnackBar(
+          'MINIZON',
+          'Un compte existe déjà pour ce numéro.',
+          2,
+        );
       } else {
         final msg = response.data?['message'] as String? ??
             response.data?['error'] as String? ??
@@ -333,8 +400,6 @@ class ProfilePassagerController extends GetxController {
     firstNameController.dispose();
     emailController.dispose();
     phoneController.dispose();
-    cityController.dispose();
-    neighborhoodController.dispose();
     addressController.dispose();
     super.onClose();
   }

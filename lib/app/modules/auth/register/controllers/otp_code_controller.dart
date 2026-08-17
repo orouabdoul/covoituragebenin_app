@@ -2,16 +2,14 @@ import 'dart:async';
 
 import 'package:get/get.dart';
 
-import 'package:covoiturage_benin_app/app/core/constants/auth_mode.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/services/auth/auth_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/push_notification/push_notification_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
-import 'package:covoiturage_benin_app/app/modules/auth/roles/controllers/roles_controller.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 class OtpCodeController extends GetxController {
-  static const int _initialResendSeconds = 210; // 3min 30s
+  static const int _initialResendSeconds = 60;
 
   final RxString phoneNumber = ''.obs;
   final RxString enteredCode = ''.obs;
@@ -20,8 +18,6 @@ class OtpCodeController extends GetxController {
   final RxString testOtpCode = ''.obs;
 
   Timer? _timer;
-  RoleType? _role;
-  AuthMode _mode = AuthMode.register;
 
   bool get canVerify => enteredCode.value.length == 6;
   bool get canResend => resendSeconds.value == 0;
@@ -39,8 +35,6 @@ class OtpCodeController extends GetxController {
     if (arg is Map) {
       final phone = arg['phone'] as String?;
       if (phone != null && phone.isNotEmpty) phoneNumber.value = phone;
-      _role = arg['role'] as RoleType?;
-      _mode = arg['mode'] as AuthMode? ?? AuthMode.register;
       final otp = arg['testOtp'] as String?;
       if (otp != null && otp.isNotEmpty) testOtpCode.value = otp;
       final resendIn = arg['resendIn'] as int?;
@@ -80,38 +74,31 @@ class OtpCodeController extends GetxController {
     }
 
     final auth = result.data!;
+
+    // ── Nouveau compte : auth → rôles → profil → accueil ──────────────────────
+    if (auth.isNewUser) {
+      Get.offAllNamed(AppRoutes.roles, arguments: {
+        'skipAuth': true,
+        'registerToken': auth.registerToken,
+        'phone': phoneNumber.value,
+      });
+      return;
+    }
+
+    // ── Utilisateur existant ───────────────────────────────────────────────────
+    final user = auth.user!;
     final uc = UserController.instance;
 
-    // Déterminer le rôle : préférer le choix local (plus fiable que le serveur
-    // qui assigne "passenger" par défaut lors de la création de compte).
-    final chosenRole = _role == RoleType.driver ? 'driver' : 'passenger';
-    final effectiveRole = (_mode == AuthMode.register && _role != null)
-        ? chosenRole
-        : auth.user.role;
-
     await uc.setUserAndToken(
-      auth.user,
+      user,
       auth.token,
       isProfileComplete: auth.profileComplete,
     );
-    uc.setRole(effectiveRole);
+    uc.setRole(user.role);
 
-    // Enregistre le token FCM pour les notifications push (fire-and-forget)
     PushNotificationService.instance.registerFcmToken();
 
-    // Envoyer le rôle au serveur lors d'une inscription (correction du défaut "passenger")
-    if (_mode == AuthMode.register && _role != null) {
-      // Appel non-bloquant : la navigation ne dépend pas du résultat
-      Get.find<AuthService>()
-          .setUserRole(effectiveRole)
-          .then((r) {
-        if (!r.isSuccess) {
-          // Échec ignoré silencieusement — le rôle local est déjà correct
-        }
-      });
-    }
-
-    _navigateAfterAuth(auth.profileComplete, effectiveRole);
+    _navigateAfterAuth(auth.profileComplete, user.role);
   }
 
   void _navigateAfterAuth(bool profileComplete, String role) {
@@ -124,9 +111,8 @@ class OtpCodeController extends GetxController {
       return;
     }
 
-    // Profil incomplet → aller directement à l'écran de complétion
-    // sans repasser par /roles (le rôle est déjà connu).
-    if (_role != null) {
+    // Profil incomplet → complétion directe (auth token déjà en session)
+    if (role.isNotEmpty) {
       Get.offAllNamed(
         isDriver
             ? AppRoutes.completeProfileDriver
@@ -135,7 +121,7 @@ class OtpCodeController extends GetxController {
       return;
     }
 
-    // Fallback : cas de reconnexion où le rôle est inconnu localement
+    // Rôle inconnu → sélection du rôle
     Get.offAllNamed(AppRoutes.roles, arguments: {
       'skipAuth': true,
       'phone': phoneNumber.value,

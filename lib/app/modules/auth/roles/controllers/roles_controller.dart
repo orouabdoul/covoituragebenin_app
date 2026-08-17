@@ -16,6 +16,8 @@ class RolesController extends GetxController {
   final Rxn<RoleType> selectedRole = Rxn<RoleType>();
   bool _skipAuth = false;
   String _storedPhone = '';
+  String? _registerToken;
+  String _authPhone = '';
 
   bool get hasSelection => selectedRole.value != null;
 
@@ -26,6 +28,8 @@ class RolesController extends GetxController {
     if (args is Map) {
       _skipAuth = args['skipAuth'] == true;
       _storedPhone = args['phone'] as String? ?? '';
+      _registerToken = args['registerToken'] as String?;
+      _authPhone = args['phone'] as String? ?? '';
     }
     if (_storedPhone.isEmpty && Get.isRegistered<InputPhoneController>()) {
       _storedPhone = Get.find<InputPhoneController>().phoneController.text.trim();
@@ -46,15 +50,29 @@ class RolesController extends GetxController {
 
     if (_skipAuth) {
       final isDriver = selectedRole.value == RoleType.driver;
-      final roleString = isDriver ? 'driver' : 'passenger';
-      UserController.instance.setRole(roleString);
-      // Synchroniser le rôle côté serveur (le serveur assigne "passenger" par défaut)
-      Get.find<AuthService>().setUserRole(roleString);
-      Get.offAllNamed(
-        isDriver
-            ? AppRoutes.completeProfileDriver
-            : AppRoutes.completeProfilePassenger,
-      );
+
+      if (_registerToken != null) {
+        // Nouveau compte : transmettre le register_token et le numéro à l'écran de profil
+        Get.offAllNamed(
+          isDriver
+              ? AppRoutes.completeProfileDriver
+              : AppRoutes.completeProfilePassenger,
+          arguments: {
+            'registerToken': _registerToken,
+            'phone': _authPhone,
+          },
+        );
+      } else {
+        // Utilisateur existant avec profil incomplet : corriger le rôle côté serveur
+        final roleString = isDriver ? 'driver' : 'passenger';
+        UserController.instance.setRole(roleString);
+        Get.find<AuthService>().setUserRole(roleString);
+        Get.offAllNamed(
+          isDriver
+              ? AppRoutes.completeProfileDriver
+              : AppRoutes.completeProfilePassenger,
+        );
+      }
       return;
     }
 

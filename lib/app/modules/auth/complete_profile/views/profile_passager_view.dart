@@ -2,6 +2,7 @@ import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
+import 'package:covoiturage_benin_app/app/core/constants/benin_locations.dart';
 import 'package:covoiturage_benin_app/app/modules/auth/complete_profile/controllers/profile_passager_controller.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_field.dart';
@@ -91,19 +92,18 @@ class ProfilePassagerView extends GetView<ProfilePassagerController> {
                                 detectionError: controller.idCardDetectionError,
                               ),
                               SizedBox(height: responsive.h(16)),
-                              _DocumentUploadTile(
+                              IdCardPreviewTile(
                                 responsive: responsive,
                                 title: AppStrings.profileIdCardBack,
                                 subtitle: AppStrings.profileIdCardBackHint,
                                 actionLabel: AppStrings.profileUploadPhoto,
-                                icon: Icons.photo_camera_outlined,
+                                optional: true,
                                 onTap: () {
                                   _showImageSourcePicker(context, responsive).then((src) {
                                     if (src != null) controller.pickIdCard(isFront: false, source: src);
                                   });
                                 },
-                                selectedValue:
-                                    controller.idCardBackName.value,
+                                imageFile: controller.idCardBackFile,
                               ),
                             ],
                           ),
@@ -167,6 +167,31 @@ class ProfilePassagerView extends GetView<ProfilePassagerController> {
       builder: (_) => _ImageSourceSheet(responsive: responsive),
     );
   }
+}
+
+void _showLocationPicker({
+  required BuildContext context,
+  required AppResponsive responsive,
+  required String title,
+  required List<String> items,
+  required String? selected,
+  required void Function(String) onSelect,
+}) {
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    isScrollControlled: true,
+    builder: (_) => _LocationPickerSheet(
+      responsive: responsive,
+      title: title,
+      items: items,
+      selected: selected,
+      onSelect: (value) {
+        onSelect(value);
+        Navigator.of(context).pop();
+      },
+    ),
+  );
 }
 
 class _TopBar extends StatelessWidget {
@@ -431,30 +456,42 @@ class _PersonalCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: AppField(
+                child: _LocationSelectField(
                   responsive: responsive,
                   label: AppStrings.profileFieldCity,
-                  labelStyle: AppTextStyles.profileSectionLabel(responsive),
-                  controller: controller.cityController,
-                  hintText: AppStrings.profileFieldCityHint,
-                  textStyle: AppTextStyles.profileFieldValue(responsive),
-                  hintStyle: AppTextStyles.profileFieldValue(
-                    responsive,
-                  ).copyWith(color: AppColors.textGhost),
+                  hint: AppStrings.profileFieldCityHint,
+                  value: controller.selectedCity.value,
+                  onTap: () => _showLocationPicker(
+                    context: context,
+                    responsive: responsive,
+                    title: AppStrings.profileFieldCity,
+                    items: BeninLocations.cities,
+                    selected: controller.selectedCity.value,
+                    onSelect: controller.selectCity,
+                  ),
                 ),
               ),
               SizedBox(width: responsive.w(12)),
               Expanded(
-                child: AppField(
+                child: _LocationSelectField(
                   responsive: responsive,
                   label: AppStrings.profileFieldNeighborhood,
-                  labelStyle: AppTextStyles.profileSectionLabel(responsive),
-                  controller: controller.neighborhoodController,
-                  hintText: AppStrings.profileFieldNeighborhoodHint,
-                  textStyle: AppTextStyles.profileFieldValue(responsive),
-                  hintStyle: AppTextStyles.profileFieldValue(
-                    responsive,
-                  ).copyWith(color: AppColors.textGhost),
+                  hint: controller.selectedCity.value == null
+                      ? 'Choisir une ville'
+                      : AppStrings.profileFieldNeighborhoodHint,
+                  value: controller.selectedNeighborhood.value,
+                  disabled: controller.selectedCity.value == null,
+                  onTap: controller.selectedCity.value == null
+                      ? null
+                      : () => _showLocationPicker(
+                            context: context,
+                            responsive: responsive,
+                            title: AppStrings.profileFieldNeighborhood,
+                            items: BeninLocations.neighborhoods(
+                                controller.selectedCity.value!),
+                            selected: controller.selectedNeighborhood.value,
+                            onSelect: controller.selectNeighborhood,
+                          ),
                 ),
               ),
             ],
@@ -552,87 +589,208 @@ class _GenderSelector extends StatelessWidget {
   }
 }
 
-class _DocumentUploadTile extends StatelessWidget {
-  const _DocumentUploadTile({
+// ── Location select field ─────────────────────────────────────────────────────
+
+class _LocationSelectField extends StatelessWidget {
+  const _LocationSelectField({
+    required this.responsive,
+    required this.label,
+    required this.hint,
+    required this.value,
+    required this.onTap,
+    this.disabled = false,
+  });
+
+  final AppResponsive responsive;
+  final String label;
+  final String hint;
+  final String? value;
+  final VoidCallback? onTap;
+  final bool disabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasValue = value != null && value!.isNotEmpty;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: AppTextStyles.profileSectionLabel(responsive)),
+        SizedBox(height: responsive.h(8)),
+        GestureDetector(
+          onTap: disabled ? null : onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            height: responsive.h(44),
+            padding: EdgeInsets.symmetric(horizontal: responsive.w(14)),
+            decoration: ShapeDecoration(
+              color: disabled ? AppColors.surfaceMuted : AppColors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(responsive.radius(10)),
+                side: BorderSide(
+                  color: hasValue && !disabled ? AppColors.primary : AppColors.border,
+                  width: hasValue && !disabled ? 1.5 : 1,
+                ),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  hasValue ? Icons.check_circle_rounded : Icons.location_on_outlined,
+                  size: responsive.text(16),
+                  color: hasValue && !disabled ? AppColors.primary : AppColors.textGhost,
+                ),
+                SizedBox(width: responsive.w(8)),
+                Expanded(
+                  child: Text(
+                    hasValue ? value! : hint,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.profileFieldValue(responsive).copyWith(
+                      color: hasValue && !disabled ? AppColors.textPrimary : AppColors.textGhost,
+                      fontWeight: hasValue ? FontWeight.w500 : FontWeight.w400,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  size: responsive.text(20),
+                  color: disabled ? AppColors.textGhost : AppColors.textSecondary,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Location picker bottom sheet ──────────────────────────────────────────────
+
+class _LocationPickerSheet extends StatefulWidget {
+  const _LocationPickerSheet({
     required this.responsive,
     required this.title,
-    required this.subtitle,
-    required this.actionLabel,
-    required this.icon,
-    required this.onTap,
-    required this.selectedValue,
+    required this.items,
+    required this.selected,
+    required this.onSelect,
   });
 
   final AppResponsive responsive;
   final String title;
-  final String subtitle;
-  final String actionLabel;
-  final IconData icon;
-  final VoidCallback onTap;
-  final String selectedValue;
+  final List<String> items;
+  final String? selected;
+  final void Function(String) onSelect;
+
+  @override
+  State<_LocationPickerSheet> createState() => _LocationPickerSheetState();
+}
+
+class _LocationPickerSheetState extends State<_LocationPickerSheet> {
+  late List<String> _filtered;
+  final _searchCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _filtered = widget.items;
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  void _filter(String q) {
+    setState(() {
+      _filtered = q.isEmpty
+          ? widget.items
+          : widget.items
+              .where((e) => e.toLowerCase().contains(q.toLowerCase()))
+              .toList();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return AppField(
-      responsive: responsive,
-      label: title,
-      labelStyle: AppTextStyles.profileSectionLabel(responsive),
-      backgroundColor: AppColors.white,
+    final r = widget.responsive;
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.75,
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(r.radius(24))),
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          SizedBox(height: r.h(12)),
           Container(
-            width: responsive.w(48),
-            height: responsive.w(48),
-            decoration: ShapeDecoration(
-              color: selectedValue.isNotEmpty
-                  ? AppColors.successLight
-                  : AppColors.surfaceAccent,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(responsive.radius(12)),
+            width: r.w(40),
+            height: r.h(4),
+            decoration: BoxDecoration(
+              color: AppColors.border,
+              borderRadius: BorderRadius.circular(r.radius(2)),
+            ),
+          ),
+          SizedBox(height: r.h(16)),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: r.w(16)),
+            child: Text(widget.title,
+                style: AppTextStyles.profileSectionTitle(r)),
+          ),
+          SizedBox(height: r.h(12)),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: r.w(16)),
+            child: TextField(
+              controller: _searchCtrl,
+              onChanged: _filter,
+              decoration: InputDecoration(
+                hintText: 'Rechercher...',
+                prefixIcon: Icon(Icons.search_rounded, size: r.text(18),
+                    color: AppColors.textSecondary),
+                filled: true,
+                fillColor: AppColors.surface,
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: r.w(12), vertical: r.h(10)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(r.radius(10)),
+                  borderSide: const BorderSide(color: AppColors.border),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(r.radius(10)),
+                  borderSide: const BorderSide(color: AppColors.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(r.radius(10)),
+                  borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                ),
               ),
             ),
-            child: Icon(
-              selectedValue.isNotEmpty ? Icons.check_rounded : icon,
-              color: selectedValue.isNotEmpty
-                  ? AppColors.success
-                  : AppColors.primary,
-              size: responsive.text(20),
+          ),
+          SizedBox(height: r.h(8)),
+          Expanded(
+            child: ListView.builder(
+              padding: EdgeInsets.symmetric(horizontal: r.w(8), vertical: r.h(4)),
+              itemCount: _filtered.length,
+              itemBuilder: (_, i) {
+                final item = _filtered[i];
+                final isSelected = item == widget.selected;
+                return ListTile(
+                  dense: true,
+                  title: Text(item,
+                      style: AppTextStyles.profileFieldValue(r).copyWith(
+                        color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                      )),
+                  trailing: isSelected
+                      ? Icon(Icons.check_rounded,
+                          color: AppColors.primary, size: r.text(18))
+                      : null,
+                  onTap: () => widget.onSelect(item),
+                );
+              },
             ),
           ),
-          SizedBox(height: responsive.h(12)),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: AppTextStyles.profileSectionTitle(
-              responsive,
-            ).copyWith(fontSize: responsive.text(15)),
-          ),
-          SizedBox(height: responsive.h(4)),
-          Text(
-            subtitle,
-            textAlign: TextAlign.center,
-            style: AppTextStyles.profileMeta(responsive),
-          ),
-          if (selectedValue.isNotEmpty) ...[
-            SizedBox(height: responsive.h(6)),
-            Text(
-              selectedValue,
-              textAlign: TextAlign.center,
-              style: AppTextStyles.profileMeta(
-                responsive,
-              ).copyWith(
-                color: AppColors.success,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-          SizedBox(height: responsive.h(12)),
-          AppChipButton(
-            responsive: responsive,
-            label: selectedValue.isNotEmpty ? 'Remplacer' : actionLabel,
-            onTap: onTap,
-          ),
+          SizedBox(height: r.h(16)),
         ],
       ),
     );

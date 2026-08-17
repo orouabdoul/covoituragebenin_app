@@ -21,6 +21,7 @@ class IdCardPreviewTile extends StatelessWidget {
     this.imageSize,
     this.isDetecting = false,
     this.detectionError,
+    this.optional = false,
   });
 
   final AppResponsive responsive;
@@ -33,6 +34,7 @@ class IdCardPreviewTile extends StatelessWidget {
   final Size? imageSize;
   final bool isDetecting;
   final String? detectionError;
+  final bool optional;
 
   bool get _hasImage => imageFile != null;
   bool get _faceFound => faceBox != null && imageSize != null && !isDetecting;
@@ -40,10 +42,13 @@ class IdCardPreviewTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final displayTitle = optional ? '$title (optionnel)' : title;
     return AppField(
       responsive: responsive,
-      label: title,
-      labelStyle: AppTextStyles.profileSectionLabel(responsive),
+      label: displayTitle,
+      labelStyle: AppTextStyles.profileSectionLabel(responsive).copyWith(
+        color: optional ? AppColors.textSecondary : null,
+      ),
       backgroundColor: AppColors.white,
       child: _hasImage ? _buildPreview(context) : _buildUpload(),
     );
