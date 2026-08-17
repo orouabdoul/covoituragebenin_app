@@ -15,11 +15,13 @@ class IdCardCaptureResult {
   const IdCardCaptureResult({required this.fullCard, this.faceZone});
 }
 
-/// Écran caméra plein-écran pour la capture du recto CNI.
-/// Caméra arrière + cadre carte (ISO 85.6:54) + zone visage verte.
+/// Écran caméra plein-écran pour la capture CNI (recto ou verso).
+/// [isBack] = true → cadre seul sans zone visage (verso de la carte).
 /// Retourne un [IdCardCaptureResult] via [Navigator.pop], ou null si annulé.
 class IdCardCameraScreen extends StatefulWidget {
-  const IdCardCameraScreen({super.key});
+  const IdCardCameraScreen({super.key, this.isBack = false});
+
+  final bool isBack;
 
   @override
   State<IdCardCameraScreen> createState() => _IdCardCameraScreenState();
@@ -86,11 +88,11 @@ class _IdCardCameraScreenState extends State<IdCardCameraScreen>
   Future<void> _capture() async {
     if (!_initialized || _capturing || _controller == null) return;
     setState(() => _capturing = true);
-    // Capture screen size before the async gap so layout is correct
     final screenSize = MediaQuery.of(context).size;
     try {
       final photo = await _controller!.takePicture();
-      final result = await _extractZones(photo.path, screenSize);
+      final result = await _extractZones(
+          photo.path, screenSize, widget.isBack);
       if (mounted) {
         Navigator.of(context).pop(result);
       }
@@ -106,7 +108,7 @@ class _IdCardCameraScreenState extends State<IdCardCameraScreen>
   /// l'image est zoomée pour remplir l'écran, les bords excédentaires
   /// sont rognés. On inverse ce calcul pour retrouver les pixels exacts.
   Future<IdCardCaptureResult> _extractZones(
-      String imagePath, Size screenSize) async {
+      String imagePath, Size screenSize, bool backSide) async {
     try {
       final bytes = await File(imagePath).readAsBytes();
       final source = img.decodeImage(bytes);
@@ -152,7 +154,6 @@ class _IdCardCameraScreenState extends State<IdCardCameraScreen>
       // ─────────────────────────────────────────────────────────────────────
 
       final cardImg = toImage(cardRect);
-      final faceImg = toImage(faceRect);
 
       final ts = DateTime.now().millisecondsSinceEpoch;
       final tmp = Directory.systemTemp.path;
@@ -168,7 +169,13 @@ class _IdCardCameraScreenState extends State<IdCardCameraScreen>
       final cardPath = '$tmp/card_full_$ts.jpg';
       await File(cardPath).writeAsBytes(img.encodeJpg(cardCrop, quality: 95));
 
-      // Recadrage zone visage (cadre vert)
+      // Verso : pas de zone visage à extraire
+      if (backSide) {
+        return IdCardCaptureResult(fullCard: XFile(cardPath));
+      }
+
+      // Recto : recadrage zone visage (cadre vert)
+      final faceImg = toImage(faceRect);
       final faceCrop = img.copyCrop(
         source,
         x: faceImg.left.round(),
@@ -180,8 +187,8 @@ class _IdCardCameraScreenState extends State<IdCardCameraScreen>
       await File(facePath).writeAsBytes(img.encodeJpg(faceCrop, quality: 95));
 
       return IdCardCaptureResult(
-        fullCard: XFile(cardPath),   // seulement la zone carte (cadre blanc)
-        faceZone: XFile(facePath),   // seulement la zone visage (cadre vert)
+        fullCard: XFile(cardPath),
+        faceZone: XFile(facePath),
       );
     } catch (_) {
       return IdCardCaptureResult(fullCard: XFile(imagePath));
@@ -206,14 +213,16 @@ class _IdCardCameraScreenState extends State<IdCardCameraScreen>
                   color: Colors.white, strokeWidth: 2.5),
             ),
 
-          // ── Overlay : cadre carte + zone visage ────────────────────────────
+          // ── Overlay : cadre carte (+ zone visage si recto) ────────────────
           if (_initialized)
             AnimatedBuilder(
               animation: _pulseAnim,
               builder: (_, _) => CustomPaint(
                 size: size,
-                painter:
-                    _CardOverlayPainter(borderOpacity: _pulseAnim.value),
+                painter: _CardOverlayPainter(
+                  borderOpacity: _pulseAnim.value,
+                  showFaceZone: !widget.isBack,
+                ),
               ),
             ),
 
@@ -235,9 +244,11 @@ class _IdCardCameraScreenState extends State<IdCardCameraScreen>
                           onTap: () => Navigator.of(context).pop(),
                         ),
                         const SizedBox(width: 14),
-                        const Text(
-                          'Photo de la carte d\'identité',
-                          style: TextStyle(
+                        Text(
+                          widget.isBack
+                              ? 'Verso de la carte d\'identité'
+                              : 'Recto de la carte d\'identité',
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -258,11 +269,14 @@ class _IdCardCameraScreenState extends State<IdCardCameraScreen>
                       color: Colors.black.withValues(alpha: 0.55),
                       borderRadius: BorderRadius.circular(24),
                     ),
-                    child: const Text(
-                      'Placez le recto de votre CNI dans le cadre\n'
-                      'La photo du visage doit être dans la zone verte',
+                    child: Text(
+                      widget.isBack
+                          ? 'Placez le verso de votre CNI dans le cadre\n'
+                            'Assurez-vous que les informations sont lisibles'
+                          : 'Placez le recto de votre CNI dans le cadre\n'
+                            'La photo du visage doit être dans la zone verte',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 13,
                         height: 1.5,
@@ -353,9 +367,13 @@ class _FullScreenPreview extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _CardOverlayPainter extends CustomPainter {
-  const _CardOverlayPainter({required this.borderOpacity});
+  const _CardOverlayPainter({
+    required this.borderOpacity,
+    this.showFaceZone = true,
+  });
 
   final double borderOpacity;
+  final bool showFaceZone;
 
   static const _cardRatio = 85.6 / 54.0;
 
@@ -396,8 +414,8 @@ class _CardOverlayPainter extends CustomPainter {
     // Coins de cadrage
     _drawCorners(canvas, card);
 
-    // Zone visage (gauche de la carte)
-    _drawFaceZone(canvas, card);
+    // Zone visage (gauche du recto uniquement)
+    if (showFaceZone) _drawFaceZone(canvas, card);
   }
 
   void _drawCorners(Canvas canvas, Rect card) {
@@ -516,7 +534,7 @@ class _CardOverlayPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _CardOverlayPainter old) =>
-      old.borderOpacity != borderOpacity;
+      old.borderOpacity != borderOpacity || old.showFaceZone != showFaceZone;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

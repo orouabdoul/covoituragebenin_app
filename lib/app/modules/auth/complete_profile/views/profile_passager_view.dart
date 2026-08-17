@@ -446,13 +446,6 @@ class _PersonalCard extends StatelessWidget {
             ).copyWith(color: AppColors.textGhost),
           ),
           SizedBox(height: responsive.h(16)),
-          PhoneFieldWidget(
-            responsive: responsive,
-            controller: controller.phoneController,
-            label: AppStrings.profileFieldPhone,
-            labelStyle: AppTextStyles.profileSectionLabel(responsive),
-          ),
-          SizedBox(height: responsive.h(16)),
           Row(
             children: [
               Expanded(

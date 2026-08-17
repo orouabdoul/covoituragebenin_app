@@ -85,18 +85,6 @@ class ProfileDriverView extends GetView<ProfileDriverController> {
                                 onSelected: controller.selectGender,
                               ),
                               SizedBox(height: responsive.h(16)),
-                              PhoneFieldWidget(
-                                responsive: responsive,
-                                controller: controller.phoneController,
-                                label: AppStrings.profileFieldPhone,
-                                labelStyle: AppTextStyles.profileSectionLabel(responsive),
-                                backgroundColor: AppColors.surfaceAccent,
-                                borderColor: AppColors.primary,
-                                helperText: AppStrings.profileSectionPhoneVerified,
-                                helperStyle: AppTextStyles.profileMeta(responsive)
-                                    .copyWith(color: AppColors.primary),
-                              ),
-                              SizedBox(height: responsive.h(16)),
                               Row(
                                 children: [
                                   Expanded(

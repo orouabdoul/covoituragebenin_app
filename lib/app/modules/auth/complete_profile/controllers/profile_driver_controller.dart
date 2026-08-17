@@ -246,13 +246,13 @@ class ProfileDriverController extends GetxController {
   Future<void> pickIdCard({required bool isFront, required ImageSource source}) async {
     XFile? file;
 
-    // Recto + caméra → écran guidé avec cadre carte + recadrage zone visage
-    if (isFront && source == ImageSource.camera) {
+    // Caméra → écran guidé avec cadre carte (zone visage uniquement pour le recto)
+    if (source == ImageSource.camera) {
       final result = await Get.to<IdCardCaptureResult>(
-          () => const IdCardCameraScreen());
+          () => IdCardCameraScreen(isBack: !isFront));
       if (result == null) return;
       file = result.fullCard;
-      _idCardFaceZoneFile = result.faceZone;
+      if (isFront) _idCardFaceZoneFile = result.faceZone;
     } else {
       file = await ImagePicker().pickImage(source: source, imageQuality: 85);
       if (isFront) _idCardFaceZoneFile = null;
