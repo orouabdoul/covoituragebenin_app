@@ -1,4 +1,4 @@
-const String apiBaseUrl = 'https://minizon-api-iubm.onrender.com/api';
+const String apiBaseUrl = 'https://minizon-api.onrender.com/api';
 
 class AppApi {
   static const String baseUrl = apiBaseUrl;
