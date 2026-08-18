@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/services/driver/notifications/notifications_service.dart';
@@ -53,11 +54,11 @@ class DriverNotificationsController extends GetxController {
   }
 
   String _filterKey(NotifFilterType f) => switch (f) {
-        NotifFilterType.all => 'all',
-        NotifFilterType.unread => 'unread',
+        NotifFilterType.all          => 'all',
+        NotifFilterType.unread       => 'unread',
         NotifFilterType.reservations => 'reservations',
-        NotifFilterType.payments => 'payments',
-        NotifFilterType.trips => 'trips',
+        NotifFilterType.payments     => 'payments',
+        NotifFilterType.trips        => 'trips',
       };
 
   void markAsRead(DriverNotificationModel n) {
@@ -95,31 +96,112 @@ class DriverNotificationsController extends GetxController {
       Get.toNamed(n.actionRoute!);
       return;
     }
-    // Derive destination from action_data keys first, then fall back to type.
-    // Pages qui sont des onglets du bottom nav utilisent goToTab pour
-    // préserver la barre de navigation.
-    final data = n.actionData;
+
+    final data    = n.actionData;
+    final rawType = n.rawType;
+
+    // ── Routing par type précis (nouveau backend) ─────────────────────────
+
+    switch (rawType) {
+
+      // ── Nouvelles réservations ────────────────────────────────────────────
+      case 'new_booking_request':
+      case 'reservation_new':
+      case 'booking_status_changed':
+      case 'reservation_accepted':
+      case 'booking_cancelled':
+      case 'trip_cancelled':
+        _goToReservations();
+        return;
+
+      // ── Trajets ───────────────────────────────────────────────────────────
+      case 'trip_started':
+      case 'trip_completed':
+      case 'trip_ended':
+      case 'trip_reminder':
+        BottonNavController.goToTab(1);
+        return;
+
+      // ── Paiements ─────────────────────────────────────────────────────────
+      case 'payment_success':
+        BottonNavController.goToTab(2);
+        return;
+
+      case 'withdrawal_requested':
+      case 'withdrawal_approved':
+      case 'withdrawal_rejected':
+      case 'withdrawal_processed':
+      case 'payout_paid':
+        Get.toNamed(AppRoutes.driverWithdraw);
+        return;
+
+      // ── Messagerie ────────────────────────────────────────────────────────
+      case 'new_message':
+      case 'message_new':
+        final convUuid = data['conversation_uuid'] as String?;
+        Get.toNamed(
+          convUuid != null
+              ? AppRoutes.driverMessageDetail
+              : AppRoutes.driverMessages,
+          arguments: convUuid != null ? {'uuid': convUuid} : null,
+        );
+        return;
+
+      // ── Code promo ────────────────────────────────────────────────────────
+      case 'promo_code_published':
+        _showPromoSnackbar(
+          data['promo_code'] as String? ?? '',
+          data['discount_value'] as String? ?? '',
+        );
+        return;
+
+      // ── Compte & KYC ─────────────────────────────────────────────────────
+      case 'kyc_status_changed':
+      case 'account_verified':
+        Get.toNamed(AppRoutes.driverProfile);
+        return;
+
+      case 'account_status_changed':
+      case 'account_blocked':
+        final blocked = (data['is_blocked'] ?? '').toString() == 'true';
+        if (blocked) _showAccountSuspendedDialog();
+        return;
+    }
+
+    // ── Fallback : dériver depuis les clés de actionData (ancien format) ──
+
+    if (data.containsKey('conversation_uuid')) {
+      final convUuid = data['conversation_uuid'] as String?;
+      Get.toNamed(
+        convUuid != null ? AppRoutes.driverMessageDetail : AppRoutes.driverMessages,
+        arguments: convUuid != null ? {'uuid': convUuid} : null,
+      );
+      return;
+    }
     if (data.containsKey('booking_uuid')) {
       _goToReservations();
       return;
     }
     if (data.containsKey('trip_uuid')) {
-      BottonNavController.goToTab(1); // Trajets tab
+      BottonNavController.goToTab(1);
       return;
     }
+
+    // ── Fallback final : par type enum ────────────────────────────────────
     switch (n.type) {
       case DriverNotificationType.reservation:
         _goToReservations();
       case DriverNotificationType.payment:
-        BottonNavController.goToTab(2); // Revenus tab
+        BottonNavController.goToTab(2);
       case DriverNotificationType.trip:
-        BottonNavController.goToTab(1); // Trajets tab
+        BottonNavController.goToTab(1);
+      case DriverNotificationType.message:
+        Get.toNamed(AppRoutes.driverMessages);
       default:
         break;
     }
   }
 
-  // Évite le cycle CLOSE/GOING quand la route est déjà active
   void _goToReservations() {
     if (Get.currentRoute == AppRoutes.driverReservations) {
       if (Get.isRegistered<ReservationsController>()) {
@@ -128,5 +210,51 @@ class DriverNotificationsController extends GetxController {
     } else {
       Get.toNamed(AppRoutes.driverReservations);
     }
+  }
+
+  void _showPromoSnackbar(String code, String discount) {
+    Get.snackbar(
+      'Code promo disponible',
+      code.isNotEmpty
+          ? 'Utilisez le code $code${discount.isNotEmpty ? ' pour $discount% de réduction' : ''}.'
+          : 'Un nouveau code promo est disponible.',
+      backgroundColor: const Color(0xFFF59E0B),
+      colorText: Colors.white,
+      snackPosition: SnackPosition.TOP,
+      margin: const EdgeInsets.all(16),
+      borderRadius: 12,
+      icon: const Icon(Icons.local_offer_rounded, color: Colors.white),
+      duration: const Duration(seconds: 5),
+    );
+  }
+
+  void _showAccountSuspendedDialog() {
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(children: [
+          Icon(Icons.block_rounded, color: Color(0xFFE53935), size: 22),
+          SizedBox(width: 10),
+          Text('Compte suspendu',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        ]),
+        content: const Text(
+          'Votre compte a été temporairement suspendu. Contactez le support pour plus d\'informations.',
+          style: TextStyle(fontSize: 14),
+        ),
+        actions: [
+          TextButton(onPressed: Get.back, child: const Text('Fermer')),
+          TextButton(
+            onPressed: () {
+              Get.back();
+              Get.toNamed(AppRoutes.driverSupportCenter);
+            },
+            child: const Text('Support',
+                style: TextStyle(
+                    color: Color(0xFFE53935), fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
   }
 }

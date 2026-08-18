@@ -1,13 +1,16 @@
 import 'dart:io';
-import 'dart:ui';
 
 import 'package:dio/dio.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
 
 import '../../constants/app_api.dart';
+import '../../constants/app_colors.dart';
+import '../../constants/app_text_styles.dart';
+import '../../constants/app_responsive.dart';
 import '../../controller/user_controller.dart';
 import '../../utils/app_dio.dart';
 import '../../utils/logger.dart';
@@ -18,8 +21,6 @@ import '../../../modules/principal/passager/messager/controllers/detail_messager
     show PassengerDetailMessagerController;
 
 // ── Canaux Android ─────────────────────────────────────────────────────────────
-// Un canal par catégorie → l'utilisateur peut gérer son/vibration séparément
-// dans les paramètres Android.
 
 const _chTrip    = 'ch_trip';
 const _chPayment = 'ch_payment';
@@ -80,10 +81,11 @@ const _allChannels = [
   ),
 ];
 
-// ── Helpers top-level (partagés avec l'isolate background) ────────────────────
+// ── Helpers top-level ─────────────────────────────────────────────────────────
 
 String _channelForType(String type) {
   switch (type) {
+    // Trajets & réservations
     case 'reservation_new':
     case 'reservation_accepted':
     case 'reservation_rejected':
@@ -94,22 +96,40 @@ String _channelForType(String type) {
     case 'trip_proximity':
     case 'trip_ended':
     case 'trip_reminder':
+    case 'trip_completed':
+    case 'new_booking_request':
+    case 'booking_status_changed':
+    case 'new_dispute':
       return _chTrip;
+    // Paiements
     case 'payment_success':
+    case 'payment_confirmed':
     case 'withdrawal_approved':
     case 'withdrawal_rejected':
+    case 'withdrawal_requested':
+    case 'withdrawal_processed':
+    case 'payout_paid':
     case 'refund_approved':
     case 'refund_rejected':
+    case 'dispute_status_changed':
       return _chPayment;
+    // Messagerie
     case 'message_new':
+    case 'new_message':
       return _chMessage;
+    // Avis
     case 'review_new':
     case 'review_reply':
       return _chReview;
+    // Compte & Sécurité
     case 'account_verified':
     case 'account_blocked':
+    case 'account_status_changed':
+    case 'kyc_status_changed':
     case 'sos_triggered':
       return _chAccount;
+    // Général (promos, infos)
+    case 'promo_code_published':
     default:
       return _chGeneral;
   }
@@ -128,9 +148,12 @@ Color _colorForType(String type) {
     case 'reservation_accepted':
     case 'trip_published':
     case 'trip_reminder':
+    case 'new_booking_request':
+    case 'trip_completed':
       return const Color(0xFF1565C0);
     case 'trip_started':
     case 'trip_proximity':
+    case 'booking_status_changed':
       return const Color(0xFF2E7D32);
     case 'trip_ended':
       return const Color(0xFF1565C0);
@@ -138,30 +161,42 @@ Color _colorForType(String type) {
     case 'booking_cancelled':
     case 'trip_cancelled':
     case 'account_blocked':
+    case 'account_status_changed':
       return const Color(0xFFB71C1C);
     case 'payment_success':
+    case 'payment_confirmed':
     case 'withdrawal_approved':
     case 'refund_approved':
+    case 'payout_paid':
       return const Color(0xFF1B5E20);
     case 'withdrawal_rejected':
     case 'refund_rejected':
+    case 'dispute_status_changed':
+    case 'new_dispute':
       return const Color(0xFFE65100);
+    case 'withdrawal_requested':
+    case 'withdrawal_processed':
+      return const Color(0xFF4527A0);
     case 'message_new':
+    case 'new_message':
       return const Color(0xFF4527A0);
     case 'review_new':
     case 'review_reply':
       return const Color(0xFFF57F17);
     case 'account_verified':
+    case 'kyc_status_changed':
       return const Color(0xFF2E7D32);
     case 'sos_triggered':
       return const Color(0xFFB71C1C);
+    case 'promo_code_published':
+      return const Color(0xFFF57F17);
     default:
       return const Color(0xFF1565C0);
   }
 }
 
 String? _groupKeyForType(String type, Map<String, dynamic> data) {
-  if (type != 'message_new') return null;
+  if (type != 'message_new' && type != 'new_message') return null;
   final conv = data['conversation_uuid'] as String? ?? '';
   return conv.isNotEmpty ? 'grp_msg_$conv' : 'grp_messages';
 }
@@ -169,13 +204,9 @@ String? _groupKeyForType(String type, Map<String, dynamic> data) {
 String _buildPayload(Map<String, dynamic> data) =>
     data.entries.map((e) => '${e.key}=${e.value}').join('&');
 
-// ID unique par notification : timestamp en secondes → évite la collision de hashCode.
 int _notifId() => DateTime.now().millisecondsSinceEpoch ~/ 1000 % 100000;
 
 // ── Handler background (isolate séparé) ───────────────────────────────────────
-// Appelé quand l'app est en arrière-plan ou fermée ET que le message est data-only.
-// Si le message a un champ notification, FCM l'affiche automatiquement —
-// le handler n'est alors PAS appelé (comportement FCM Android standard).
 
 const _silentTypes = {'messages_read', 'message_edited', 'message_deleted'};
 
@@ -183,8 +214,6 @@ const _silentTypes = {'messages_read', 'message_edited', 'message_deleted'};
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
 
-  // FIX 1 : si FCM a déjà affiché la notification (message notification+data),
-  // ne pas en afficher une deuxième.
   if (message.notification != null) return;
 
   final data = message.data;
@@ -203,7 +232,6 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
   final plugin = FlutterLocalNotificationsPlugin();
 
-  // FIX 3 : initialiser le plugin AVANT de créer les canaux
   await plugin.initialize(const InitializationSettings(
     android: AndroidInitializationSettings('@drawable/ic_notification'),
     iOS: DarwinInitializationSettings(),
@@ -217,7 +245,6 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     }
   }
 
-  // FIX 4 : ID basé sur le timestamp pour éviter les collisions
   await plugin.show(
     _notifId(),
     title,
@@ -255,31 +282,16 @@ class PushNotificationService {
   final _localNotifications = FlutterLocalNotificationsPlugin();
 
   Future<void> initialize() async {
-    // FIX 3 : initialiser le plugin d'abord, PUIS créer les canaux
-    // (resolvePlatformSpecificImplementation peut retourner null avant initialize)
-
-    // 1. Initialiser le plugin local
     await _initLocalPlugin();
-
-    // 2. Créer les canaux Android (après init du plugin)
     await _createAllChannels();
-
-    // 3. Permissions FCM (iOS + Android 13+)
     await _requestPermission();
-
-    // 4. iOS : afficher les notifications même en premier plan
     await _fcm.setForegroundNotificationPresentationOptions(
       alert: true,
       badge: true,
       sound: true,
     );
-
-    // 5. Listeners
     _listenForeground();
     _listenOnTap();
-    // onBackgroundMessage est enregistré dans main.dart avant Firebase.initializeApp()
-
-    // 6. Token
     _logToken();
   }
 
@@ -297,9 +309,6 @@ class PushNotificationService {
       ),
       onDidReceiveNotificationResponse: _onNotificationTap,
     );
-    // FIX 2 : NE PAS appeler requestNotificationsPermission() ici —
-    // _requestPermission() via _fcm.requestPermission() s'en charge sur Android 13+.
-    // Demander deux fois déclenchait la boîte de dialogue deux fois.
   }
 
   // ── Canaux Android ──────────────────────────────────────────────────────────
@@ -420,7 +429,6 @@ class PushNotificationService {
     final color     = _colorForType(type);
     final groupKey  = _groupKeyForType(type, data);
 
-    // FIX 4 : ID unique basé sur le timestamp
     _localNotifications.show(
       _notifId(),
       title,
@@ -464,8 +472,6 @@ class PushNotificationService {
     final bookingUuid = data['booking_uuid']      as String?;
     final convUuid    = data['conversation_uuid'] as String?;
 
-    // Rôle depuis la notification (source primaire envoyée par le serveur).
-    // Fallback sur le rôle local si le serveur ne l'inclut pas.
     final fcmRole   = data['role'] as String? ?? '';
     final localRole = UserController.instance.role.value;
     final role      = fcmRole.isNotEmpty ? fcmRole : localRole;
@@ -473,13 +479,29 @@ class PushNotificationService {
 
     switch (type) {
 
-      // ── Trajet publié → passagers uniquement ─────────────────────────────
+      // ── Trajet publié ─────────────────────────────────────────────────────
       case 'trip_published':
         if (!isDriver) Get.toNamed(AppRoutes.passengerHome);
 
-      // ── Réservations ──────────────────────────────────────────────────────
+      // ── Nouvelle réservation → conducteur ────────────────────────────────
+      case 'new_booking_request':
       case 'reservation_new':
         if (isDriver) Get.toNamed(AppRoutes.driverReservations);
+
+      // ── Changement de statut réservation (les deux rôles) ─────────────────
+      case 'booking_status_changed':
+        if (isDriver) {
+          Get.toNamed(AppRoutes.driverReservations);
+        } else {
+          if (bookingUuid != null) {
+            Get.toNamed(
+              AppRoutes.passengerReservationDetail,
+              arguments: {'bookingUuid': bookingUuid},
+            );
+          } else {
+            Get.toNamed(AppRoutes.passengerReservations);
+          }
+        }
 
       case 'reservation_accepted':
         if (!isDriver) {
@@ -498,7 +520,7 @@ class PushNotificationService {
       case 'trip_cancelled':
         if (!isDriver) Get.toNamed(AppRoutes.passengerReservations);
 
-      // ── Trajet en cours → passagers uniquement ────────────────────────────
+      // ── Trajet démarré → passager (live tracking) ─────────────────────────
       case 'trip_started':
         if (!isDriver) {
           Get.toNamed(
@@ -515,6 +537,7 @@ class PushNotificationService {
           );
         }
 
+      // ── Trajet terminé ───────────────────────────────────────────────────
       case 'trip_ended':
         if (!isDriver) {
           Get.toNamed(
@@ -523,14 +546,22 @@ class PushNotificationService {
           );
         }
 
-      // ── Rappel trajet → les deux rôles ────────────────────────────────────
+      case 'trip_completed':
+        if (isDriver) {
+          Get.toNamed(AppRoutes.driverRevenus);
+        } else {
+          Get.toNamed(AppRoutes.passengerTripHistory);
+        }
+
+      // ── Rappel trajet ─────────────────────────────────────────────────────
       case 'trip_reminder':
         Get.toNamed(
           isDriver ? AppRoutes.driverActiveTrip : AppRoutes.passengerReservations,
         );
 
-      // ── Messagerie → les deux rôles ───────────────────────────────────────
+      // ── Messagerie ────────────────────────────────────────────────────────
       case 'message_new':
+      case 'new_message':
         if (isDriver) {
           Get.toNamed(
             convUuid != null ? AppRoutes.driverMessageDetail : AppRoutes.driverMessages,
@@ -549,13 +580,36 @@ class PushNotificationService {
           isDriver ? AppRoutes.driverPaymentHistory : AppRoutes.passengerReservations,
         );
 
+      case 'payment_confirmed':
+        if (!isDriver) {
+          if (bookingUuid != null) {
+            Get.toNamed(
+              AppRoutes.passengerReservationDetail,
+              arguments: {'bookingUuid': bookingUuid},
+            );
+          } else {
+            Get.toNamed(AppRoutes.passengerReservations);
+          }
+        }
+
+      // ── Retraits conducteur ───────────────────────────────────────────────
+      case 'withdrawal_requested':
       case 'withdrawal_approved':
       case 'withdrawal_rejected':
+      case 'withdrawal_processed':
+      case 'payout_paid':
         if (isDriver) Get.toNamed(AppRoutes.driverWithdraw);
 
+      // ── Remboursements passager ───────────────────────────────────────────
       case 'refund_approved':
       case 'refund_rejected':
+      case 'dispute_status_changed':
         if (!isDriver) Get.toNamed(AppRoutes.passengerRefundHistory);
+
+      // ── Litige (admin) ────────────────────────────────────────────────────
+      case 'new_dispute':
+        // Pas de route admin dans cette app — ignorer
+        break;
 
       // ── Avis ──────────────────────────────────────────────────────────────
       case 'review_new':
@@ -564,22 +618,43 @@ class PushNotificationService {
       case 'review_reply':
         if (!isDriver) Get.toNamed(AppRoutes.passengerMyReviews);
 
-      // ── Compte → les deux rôles ───────────────────────────────────────────
+      // ── KYC ──────────────────────────────────────────────────────────────
+      case 'kyc_status_changed':
+        Get.toNamed(
+          isDriver ? AppRoutes.driverProfile : AppRoutes.passengerProfile,
+        );
+
+      // ── Statut compte ─────────────────────────────────────────────────────
       case 'account_verified':
         Get.toNamed(
           isDriver ? AppRoutes.dashboardDriver : AppRoutes.dashboardPassenger,
         );
 
       case 'account_blocked':
-        break;
+        _showAccountSuspendedDialog();
 
-      // ── SOS → les deux rôles ─────────────────────────────────────────────
+      case 'account_status_changed':
+        final blocked = (data['is_blocked'] ?? '').toString() == 'true';
+        if (blocked) {
+          _showAccountSuspendedDialog();
+        } else {
+          _showAccountRestoredSnackbar();
+        }
+
+      // ── Code promo ────────────────────────────────────────────────────────
+      case 'promo_code_published':
+        _showPromoBottomSheet(
+          data['promo_code'] as String? ?? '',
+          data['discount_value'] as String? ?? '',
+        );
+
+      // ── SOS ──────────────────────────────────────────────────────────────
       case 'sos_triggered':
         Get.toNamed(
           isDriver ? AppRoutes.driverSafetyCenter : AppRoutes.passengerSafetyCenter,
         );
 
-      // ── Notifications générales ───────────────────────────────────────────
+      // ── Listes générales ──────────────────────────────────────────────────
       case 'driver_notifications':
         if (isDriver) Get.toNamed(AppRoutes.driverNotifications);
 
@@ -589,6 +664,58 @@ class PushNotificationService {
       default:
         break;
     }
+  }
+
+  // ── UI helpers ──────────────────────────────────────────────────────────────
+
+  void _showAccountSuspendedDialog() {
+    Get.dialog(
+      _AlertDialogWidget(
+        icon: Icons.block_rounded,
+        iconColor: const Color(0xFFE53935),
+        title: 'Compte suspendu',
+        message:
+            'Votre compte a été temporairement suspendu. Contactez le support pour plus d\'informations.',
+        actionLabel: 'Contacter le support',
+        onAction: () {
+          Get.back();
+          final role = UserController.instance.role.value;
+          if (role == 'driver' || role == 'conducteur') {
+            Get.toNamed(AppRoutes.driverSupportCenter);
+          } else {
+            Get.toNamed(AppRoutes.passengerSupportCenter);
+          }
+        },
+      ),
+      barrierDismissible: false,
+    );
+  }
+
+  void _showAccountRestoredSnackbar() {
+    Get.snackbar(
+      'Compte restauré',
+      'Votre compte a été réactivé. Bienvenue de retour !',
+      backgroundColor: const Color(0xFF2E7D32),
+      colorText: const Color(0xFFFFFFFF),
+      snackPosition: SnackPosition.TOP,
+      margin: const EdgeInsets.all(16),
+      borderRadius: 12,
+      icon: const Icon(Icons.check_circle_rounded, color: Color(0xFFFFFFFF)),
+      duration: const Duration(seconds: 4),
+    );
+  }
+
+  void _showPromoBottomSheet(String promoCode, String discountValue) {
+    if (Get.context == null) return;
+    showModalBottomSheet(
+      context: Get.context!,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _PromoBottomSheet(
+        promoCode: promoCode,
+        discountValue: discountValue,
+      ),
+    );
   }
 
   // ── Token FCM ──────────────────────────────────────────────────────────────
@@ -657,3 +784,196 @@ class PushNotificationService {
 }
 
 enum _SilentAction { read, edit, delete }
+
+// ── Widgets ───────────────────────────────────────────────────────────────────
+
+class _AlertDialogWidget extends StatelessWidget {
+  const _AlertDialogWidget({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.message,
+    required this.actionLabel,
+    required this.onAction,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String message;
+  final String actionLabel;
+  final VoidCallback onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.10),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: iconColor, size: 28),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            style: const TextStyle(fontSize: 14, color: AppColors.textMuted),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: Get.back,
+          child: const Text('Fermer', style: TextStyle(color: AppColors.textHint)),
+        ),
+        TextButton(
+          onPressed: onAction,
+          child: Text(
+            actionLabel,
+            style: TextStyle(
+              color: iconColor,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PromoBottomSheet extends StatelessWidget {
+  const _PromoBottomSheet({
+    required this.promoCode,
+    required this.discountValue,
+  });
+
+  final String promoCode;
+  final String discountValue;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = AppResponsive(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(r.radius(24))),
+      ),
+      padding: EdgeInsets.fromLTRB(r.w(24), r.h(16), r.w(24), r.h(32)),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Center(
+            child: Container(
+              width: r.w(40),
+              height: r.h(4),
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          SizedBox(height: r.h(20)),
+          Container(
+            width: r.w(64),
+            height: r.w(64),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.local_offer_rounded,
+              color: const Color(0xFFF59E0B),
+              size: r.text(30),
+            ),
+          ),
+          SizedBox(height: r.h(16)),
+          Text(
+            'Code promo disponible !',
+            style: AppTextStyles.title(r),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: r.h(8)),
+          if (discountValue.isNotEmpty) ...[
+            Text(
+              '$discountValue% de réduction sur votre prochaine réservation',
+              style: AppTextStyles.body(r).copyWith(color: AppColors.textMuted),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: r.h(16)),
+          ],
+          if (promoCode.isNotEmpty) ...[
+            Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: r.w(24),
+                vertical: r.h(12),
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceMuted,
+                borderRadius: BorderRadius.circular(r.radius(12)),
+                border: Border.all(color: const Color(0xFFF59E0B)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    promoCode,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: r.text(20),
+                      letterSpacing: 2,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: r.h(8)),
+            Text(
+              'Copiez ce code lors de votre réservation',
+              style: AppTextStyles.caption(r).copyWith(color: AppColors.textHint),
+            ),
+          ],
+          SizedBox(height: r.h(24)),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: Get.back,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(r.radius(14)),
+                ),
+                padding: EdgeInsets.symmetric(vertical: r.h(14)),
+              ),
+              child: const Text(
+                'Super, merci !',
+                style: TextStyle(
+                  color: AppColors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

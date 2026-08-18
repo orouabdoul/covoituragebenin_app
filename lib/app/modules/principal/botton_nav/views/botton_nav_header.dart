@@ -7,6 +7,7 @@ import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/driver/home/controllers/home_controller.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/driver/profil/controllers/profil_driver_controller.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/passager/notifications/controllers/notifications_controller.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/passager/profil/controllers/profil_controller.dart';
 import '../controllers/botton_nav_controller.dart';
 import '../controllers/botton_nav_role.dart';
 
@@ -38,6 +39,7 @@ class BottonNavHeader extends StatelessWidget {
               String displayName = '';
               String displayCity = '';
               String avatarUrl = '';
+
               if (controller.role == BottonNavRole.driver &&
                   Get.isRegistered<DriverProfileController>()) {
                 final prof = Get.find<DriverProfileController>();
@@ -45,7 +47,15 @@ class BottonNavHeader extends StatelessWidget {
                 displayName = prof.heroName;
                 displayCity = prof.heroLocation;
                 avatarUrl = prof.heroAvatarUrl;
+              } else if (controller.role == BottonNavRole.passenger &&
+                  Get.isRegistered<ProfilController>()) {
+                final prof = Get.find<ProfilController>();
+                prof.profileVersion.value;
+                displayName = prof.profileSummary.name;
+                displayCity = prof.profileSummary.city;
+                avatarUrl = prof.profileSummary.avatarUrl;
               }
+
               return Row(
                 children: [
                   InkWell(

@@ -326,7 +326,8 @@ class ProfileDriverController extends GetxController {
         genderCode = (selectedGender.value! == 'Homme' || selectedGender.value! == 'M') ? 'M' : 'F';
       }
 
-      final vehicleType = selectedDriverType.value == DriverType.moto ? 'moto' : 'voiture';
+      final isMoto = selectedDriverType.value == DriverType.moto;
+      final vehicleType = isMoto ? 'moto' : 'voiture';
 
       final Map<String, dynamic> fields = {
         'role_name': 'driver',
@@ -347,7 +348,7 @@ class ProfileDriverController extends GetxController {
       if (selectedNeighborhood.value != null) fields['neighborhood'] = selectedNeighborhood.value!;
       if (addressController.text.trim().isNotEmpty) fields['address_details'] = addressController.text.trim();
       if (genderCode != null) fields['gender'] = genderCode;
-      if (licenseNumberController.text.trim().isNotEmpty) {
+      if (!isMoto && licenseNumberController.text.trim().isNotEmpty) {
         fields['driving_license_number'] = licenseNumberController.text.trim();
       }
       if (selectedBrand.value != null) fields['brand'] = selectedBrand.value!;
@@ -380,7 +381,7 @@ class ProfileDriverController extends GetxController {
         formMap['id_card_back'] = await MultipartFile.fromFile(
             _idCardBackFile!.path, filename: 'id_card_back.jpg');
       }
-      if (_licenseDocFile != null) {
+      if (!isMoto && _licenseDocFile != null) {
         final ext = _licenseDocFile!.path.split('.').last.toLowerCase();
         formMap['driving_license_photo'] = await MultipartFile.fromFile(
             _licenseDocFile!.path,

@@ -182,6 +182,7 @@ class _AvatarSection extends StatelessWidget {
 							children: [
 								Obx(() {
 									final file = controller.avatarFile.value;
+									final existingUrl = controller.existingAvatarUrl;
 									return Container(
 										width: responsive.w(96),
 										height: responsive.w(96),
@@ -192,15 +193,21 @@ class _AvatarSection extends StatelessWidget {
 										child: ClipOval(
 											child: file != null
 													? Image.file(File(file.path), fit: BoxFit.cover)
-													: Image.network(
-															'https://placehold.co/96x96.png',
-															fit: BoxFit.cover,
-															errorBuilder: (_, e, s) => const Icon(
-																Icons.person_rounded,
-																color: AppColors.textHint,
-																size: 48,
-															),
-														),
+													: existingUrl.isNotEmpty
+															? Image.network(
+																	existingUrl,
+																	fit: BoxFit.cover,
+																	errorBuilder: (_, __, ___) => const Icon(
+																		Icons.person_rounded,
+																		color: AppColors.textHint,
+																		size: 48,
+																	),
+																)
+															: const Icon(
+																	Icons.person_rounded,
+																	color: AppColors.textHint,
+																	size: 48,
+																),
 										),
 									);
 								}),

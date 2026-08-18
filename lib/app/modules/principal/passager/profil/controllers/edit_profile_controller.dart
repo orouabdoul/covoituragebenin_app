@@ -19,6 +19,9 @@ class EditProfileController extends GetxController {
   final _picker = ImagePicker();
   late final PassengerProfileService _profileService;
 
+  // URL de la photo de profil actuelle (chargée depuis ProfilController)
+  String existingAvatarUrl = '';
+
   @override
   void onInit() {
     super.onInit();
@@ -38,6 +41,7 @@ class EditProfileController extends GetxController {
     if (summary.email.isNotEmpty) emailController.text = summary.email;
     if (summary.city.isNotEmpty) cityController.text = summary.city;
     if (summary.neighborhood.isNotEmpty) neighborhoodController.text = summary.neighborhood;
+    existingAvatarUrl = summary.avatarUrl;
   }
 
   bool get hasAvatar => avatarFile.value != null;

@@ -812,13 +812,12 @@ class _EmergencyContactsRegSectionState
     extends State<_EmergencyContactsRegSection> {
   bool _showForm = false;
   final _nameCtrl = TextEditingController();
-  final _relCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
+  String? _selectedRelation;
 
   @override
   void dispose() {
     _nameCtrl.dispose();
-    _relCtrl.dispose();
     _phoneCtrl.dispose();
     super.dispose();
   }
@@ -826,13 +825,15 @@ class _EmergencyContactsRegSectionState
   void _submit() {
     final name = _nameCtrl.text.trim();
     final phone = _phoneCtrl.text.trim();
-    final rel = _relCtrl.text.trim();
+    final rel = _selectedRelation ?? '';
     if (name.isEmpty || phone.isEmpty || rel.isEmpty) return;
     widget.onAdd(name, phone, rel);
     _nameCtrl.clear();
-    _relCtrl.clear();
     _phoneCtrl.clear();
-    setState(() => _showForm = false);
+    setState(() {
+      _selectedRelation = null;
+      _showForm = false;
+    });
   }
 
   @override
@@ -915,15 +916,10 @@ class _EmergencyContactsRegSectionState
                   .copyWith(color: AppColors.textGhost),
             ),
             SizedBox(height: r.h(10)),
-            AppField(
+            _RelationSelectField(
               responsive: r,
-              label: 'Relation',
-              labelStyle: AppTextStyles.profileSectionLabel(r),
-              controller: _relCtrl,
-              hintText: 'Ex: Père, Mère, Ami...',
-              textStyle: AppTextStyles.profileFieldValue(r),
-              hintStyle: AppTextStyles.profileFieldValue(r)
-                  .copyWith(color: AppColors.textGhost),
+              value: _selectedRelation,
+              onSelected: (v) => setState(() => _selectedRelation = v),
             ),
             SizedBox(height: r.h(10)),
             PhoneFieldWidget(
@@ -1172,6 +1168,145 @@ class _SectionContainer extends StatelessWidget {
   }
 }
 
+// ── Relation select ───────────────────────────────────────────────────────────
+
+const _kRelations = [
+  'Père', 'Mère', 'Frère', 'Sœur',
+  'Époux', 'Épouse', 'Fils', 'Fille',
+  'Grand-père', 'Grand-mère',
+  'Oncle', 'Tante', 'Neveu', 'Nièce',
+  'Cousin', 'Cousine',
+  'Beau-père', 'Belle-mère', 'Beau-frère', 'Belle-sœur',
+  'Ami(e)', 'Collègue', 'Voisin(e)', 'Tuteur/Tutrice', 'Autre',
+];
+
+class _RelationSelectField extends StatelessWidget {
+  const _RelationSelectField({
+    required this.responsive,
+    required this.value,
+    required this.onSelected,
+  });
+
+  final AppResponsive responsive;
+  final String? value;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = responsive;
+    return GestureDetector(
+      onTap: () => showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => _RelationPickerSheet(
+          responsive: r,
+          selected: value,
+          onSelected: onSelected,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Relation', style: AppTextStyles.profileSectionLabel(r)),
+          SizedBox(height: r.h(6)),
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(
+                horizontal: r.w(14), vertical: r.h(14)),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceMuted,
+              borderRadius: BorderRadius.circular(r.radius(10)),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    value ?? 'Sélectionner une relation',
+                    style: AppTextStyles.profileFieldValue(r).copyWith(
+                      color: value != null ? null : AppColors.textGhost,
+                    ),
+                  ),
+                ),
+                Icon(Icons.keyboard_arrow_down_rounded,
+                    size: r.text(18), color: AppColors.textMuted),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RelationPickerSheet extends StatelessWidget {
+  const _RelationPickerSheet({
+    required this.responsive,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final AppResponsive responsive;
+  final String? selected;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = responsive;
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(r.radius(20))),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(height: r.h(12)),
+          Container(
+            width: r.w(40),
+            height: r.h(4),
+            decoration: BoxDecoration(
+              color: AppColors.border,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          SizedBox(height: r.h(16)),
+          Text('Relation avec le contact',
+              style: AppTextStyles.profileSectionLabel(r)),
+          SizedBox(height: r.h(8)),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: r.h(380)),
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: _kRelations.length,
+              itemBuilder: (_, i) {
+                final rel = _kRelations[i];
+                final isSelected = rel == selected;
+                return ListTile(
+                  dense: true,
+                  title: Text(rel,
+                      style: AppTextStyles.profileFieldValue(r)),
+                  trailing: isSelected
+                      ? Icon(Icons.check_rounded,
+                          color: AppColors.primary, size: r.text(18))
+                      : null,
+                  onTap: () {
+                    onSelected(rel);
+                    Navigator.pop(context);
+                  },
+                );
+              },
+            ),
+          ),
+          SizedBox(height: r.h(24)),
+        ],
+      ),
+    );
+  }
+}
+
 // ── Image source picker ───────────────────────────────────────────────────────
 
 class _ImageSourceSheet extends StatelessWidget {
@@ -1286,4 +1421,3 @@ class _SourceTile extends StatelessWidget {
     );
   }
 }
-

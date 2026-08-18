@@ -106,6 +106,7 @@ class ReservationController extends GetxController {
 			_applyStatusTabs(page.statusTabs);
 			_allReservations.assignAll(page.items.map(_mapItem).toList());
 			_updateTabCounts();
+			await _checkAndAutoCancelExpired();
 		} else {
 			hasError.value = true;
 			if (result.error != AppError.socket) {
@@ -227,6 +228,7 @@ class ReservationController extends GetxController {
 			pickupLng: a.departureLng,
 			dropoffLat: a.arrivalLat,
 			dropoffLng: a.arrivalLng,
+			departureDateTime: a.departureDateTime,
 		);
 	}
 
@@ -384,6 +386,48 @@ class ReservationController extends GetxController {
 		);
 		onSuccess?.call();
 		AppSync.i.refreshPassenger();
+	}
+
+	// Annule silencieusement toute réservation pending/confirmée dont le départ
+	// était il y a plus de 3 heures sans que le conducteur ait démarré.
+	Future<void> _checkAndAutoCancelExpired() async {
+		final now = DateTime.now();
+		const grace = Duration(hours: 3);
+
+		final expired = _allReservations.where((r) {
+			if (r.status != ReservationStatus.pending &&
+			    r.status != ReservationStatus.confirmed) return false;
+			final raw = r.departureDateTime;
+			if (raw == null || raw.isEmpty) return false;
+			try {
+				return now.isAfter(DateTime.parse(raw).toLocal().add(grace));
+			} catch (_) {
+				return false;
+			}
+		}).toList();
+
+		for (final r in expired) {
+			final result = await _service.cancelBooking(r.id);
+			if (!result.isSuccess) continue;
+			final idx = _allReservations.indexWhere((item) => item.id == r.id);
+			if (idx >= 0) {
+				_allReservations[idx] = r.copyWith(
+					status: ReservationStatus.cancelled,
+					refundStatus: r.isPaid ? RefundStatus.pending : RefundStatus.none,
+					cancelReason: 'Annulation automatique : conducteur non démarré',
+				);
+			}
+		}
+
+		if (expired.isNotEmpty) {
+			_updateTabCounts();
+			UIHelper().showSnackBar(
+				'Réservation annulée',
+				'Le conducteur n\'a pas démarré dans les 3 heures prévues.',
+				4,
+			);
+			AppSync.i.refreshPassenger();
+		}
 	}
 
 	String _formatPrice(int value) {
@@ -818,6 +862,7 @@ class ReservationItem {
 		this.pickupLng,
 		this.dropoffLat,
 		this.dropoffLng,
+		this.departureDateTime,
 	});
 
 	final String id;
@@ -863,6 +908,7 @@ class ReservationItem {
 	final double? pickupLng;
 	final double? dropoffLat;
 	final double? dropoffLng;
+	final String? departureDateTime;
 
 	// Alias pour compatibilité avec le code existant
 	String get pickupCity => departureCity;
@@ -929,6 +975,7 @@ class ReservationItem {
 			pickupLng: pickupLng,
 			dropoffLat: dropoffLat,
 			dropoffLng: dropoffLng,
+			departureDateTime: departureDateTime,
 		);
 	}
 }
