@@ -395,7 +395,7 @@ class _FilterSheet extends StatelessWidget {
 								child: Text(
 									'Réinitialiser',
 									style: AppTextStyles.caption(responsive).copyWith(
-										color: const Color(0xFFEF4444),
+										color: AppColors.danger,
 										fontWeight: FontWeight.w600,
 									),
 								),

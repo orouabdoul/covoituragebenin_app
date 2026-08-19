@@ -396,6 +396,7 @@ class PassengerDetailMessagerController extends GetxController with WidgetsBindi
     return DetailMessage(
       kind: kind,
       message: m.message,
+      messageType: m.messageType,
       time: m.time,
       rawDate: m.rawDate,
       messageId: m.id,
@@ -450,7 +451,10 @@ class PassengerDetailMessagerController extends GetxController with WidgetsBindi
   Future<void> sendAudio(String filePath) async {
     final optimistic = DetailMessage(
       kind: DetailMessageKind.outgoing,
-      message: '🎤 Message vocal…',
+      message: '',
+      messageType: 'audio',
+      attachmentType: 'audio',
+      attachmentUrl: filePath,
       time: 'maintenant',
     );
     messages.add(optimistic);
@@ -499,7 +503,7 @@ class PassengerDetailMessagerController extends GetxController with WidgetsBindi
             _OptionTile(
               icon: Icons.photo_library_rounded,
               label: 'Galerie photo',
-              color: const Color(0xFF6366F1),
+              color: AppColors.primary,
               onTap: () { Get.back(); _pickAndSend(ImageSource.gallery); },
             ),
           ],
@@ -633,7 +637,7 @@ class PassengerDetailMessagerController extends GetxController with WidgetsBindi
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: const Color(0xFFF3F4F6),
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppColors.border),
               ),
@@ -679,14 +683,14 @@ class PassengerDetailMessagerController extends GetxController with WidgetsBindi
             _OptionTile(
               icon: Icons.delete_outline_rounded,
               label: 'Supprimer le message',
-              color: const Color(0xFFEF4444),
+              color: AppColors.danger,
               onTap: () {
                 Get.back();
                 Get.dialog(
                   AlertDialog(
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     title: const Row(children: [
-                      Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444), size: 20),
+                      Icon(Icons.delete_outline_rounded, color: AppColors.danger, size: 20),
                       SizedBox(width: 8),
                       Expanded(child: Text('Supprimer ce message ?', style: TextStyle(fontSize: 15))),
                     ]),
@@ -712,7 +716,7 @@ class PassengerDetailMessagerController extends GetxController with WidgetsBindi
                         child: const Text(
                           'Supprimer',
                           style: TextStyle(
-                              color: Color(0xFFEF4444),
+                              color: AppColors.danger,
                               fontWeight: FontWeight.w700),
                         ),
                       ),
@@ -807,7 +811,7 @@ class PassengerDetailMessagerController extends GetxController with WidgetsBindi
             _OptionTile(
               icon: Icons.report_rounded,
               label: 'Signaler un problème',
-              color: const Color(0xFFF59E0B),
+              color: AppColors.warning,
               onTap: () {
                 Get.back();
                 UIHelper().showSnackBar(
@@ -818,7 +822,7 @@ class PassengerDetailMessagerController extends GetxController with WidgetsBindi
             _OptionTile(
               icon: Icons.block_rounded,
               label: 'Bloquer ce conducteur',
-              color: const Color(0xFFEF4444),
+              color: AppColors.danger,
               onTap: () {
                 Get.back();
                 Get.dialog(AlertDialog(
@@ -835,7 +839,7 @@ class PassengerDetailMessagerController extends GetxController with WidgetsBindi
                       child: const Text(
                         'Bloquer',
                         style: TextStyle(
-                          color: Color(0xFFEF4444),
+                          color: AppColors.danger,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -848,7 +852,7 @@ class PassengerDetailMessagerController extends GetxController with WidgetsBindi
             _OptionTile(
               icon: Icons.delete_outline_rounded,
               label: 'Supprimer la conversation',
-              color: const Color(0xFF9CA3AF),
+              color: AppColors.textHint,
               onTap: () {
                 Get.back();
                 UIHelper().showSnackBar('MINIZON', 'Conversation supprimée.', 0);
@@ -884,7 +888,7 @@ class PassengerDetailMessagerController extends GetxController with WidgetsBindi
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFE6F7EF),
+                color: AppColors.successSurface,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Row(children: [
@@ -973,6 +977,7 @@ class DetailMessage {
   const DetailMessage({
     required this.kind,
     this.message = '',
+    this.messageType = 'text',
     this.time = '',
     this.rawDate = '',
     this.dateLabel = '',
@@ -989,6 +994,7 @@ class DetailMessage {
 
   final DetailMessageKind kind;
   final String message;
+  final String messageType; // 'text' | 'audio' | 'image' | 'document' | 'mixed'
   final String time;
   final String rawDate;
   final String dateLabel;
@@ -1003,11 +1009,15 @@ class DetailMessage {
   final String? attachmentType;
 
   bool get hasAttachment => attachmentUrl != null && attachmentUrl!.isNotEmpty;
-  bool get isImageAttachment => attachmentType == 'image';
+  bool get isAudioMessage =>
+      messageType == 'audio' || attachmentType == 'audio';
+  bool get isImageAttachment =>
+      messageType == 'image' || attachmentType == 'image';
 
   DetailMessage copyWith({String? message, bool? isRead, bool? isEdited}) => DetailMessage(
     kind: kind,
     message: message ?? this.message,
+    messageType: messageType,
     time: time,
     rawDate: rawDate,
     dateLabel: dateLabel,

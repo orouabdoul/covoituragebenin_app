@@ -79,7 +79,7 @@ class _InteractiveMapViewState extends State<InteractiveMapView> {
     final r = AppResponsive(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFE8EFF8),
+      backgroundColor: AppColors.primarySurface,
       body: Obx(() {
         final loading = _ctrl.isLoading.value;
         final hasError = _ctrl.hasError.value;
@@ -424,8 +424,8 @@ void _showStopDetail(
                     icon: const Icon(Icons.phone_rounded, size: 18),
                     label: const Text('Appeler'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF16A34A),
-                      side: const BorderSide(color: Color(0xFF16A34A)),
+                      foregroundColor: AppColors.success,
+                      side: const BorderSide(color: AppColors.success),
                       padding: EdgeInsets.symmetric(vertical: r.h(12)),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(r.radius(12)),
@@ -468,8 +468,8 @@ void _showStopDetail(
               icon: const Icon(Icons.map_outlined, size: 18),
               label: const Text('Ouvrir dans Google Maps'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF1A73E8),
-                side: const BorderSide(color: Color(0xFF1A73E8)),
+                foregroundColor: AppColors.primary,
+                side: const BorderSide(color: AppColors.primary),
                 padding: EdgeInsets.symmetric(vertical: r.h(12)),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(r.radius(12)),
@@ -581,7 +581,7 @@ class _StopPin extends StatelessWidget {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: isDone ? const Color(0xFFE5E7EB) : color,
+            color: isDone ? AppColors.border : color,
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white, width: 2.5),
             boxShadow: [
@@ -608,13 +608,13 @@ class _StopPin extends StatelessWidget {
         Container(
           width: 2.5,
           height: 10,
-          color: isDone ? const Color(0xFFE5E7EB) : color,
+          color: isDone ? AppColors.border : color,
         ),
         Container(
           width: 6,
           height: 6,
           decoration: BoxDecoration(
-            color: isDone ? const Color(0xFFE5E7EB) : color,
+            color: isDone ? AppColors.border : color,
             shape: BoxShape.circle,
           ),
         ),
@@ -711,7 +711,7 @@ class _TopBar extends StatelessWidget {
                     responsive: responsive,
                     icon: Icons.access_time_rounded,
                     label: controller.routeEta.value,
-                    color: const Color(0xFF3B82F6),
+                    color: AppColors.primary,
                   )),
             ],
           ),
@@ -881,20 +881,20 @@ class _ErrorBanner extends StatelessWidget {
       padding: EdgeInsets.symmetric(
           horizontal: responsive.w(14), vertical: responsive.h(10)),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2),
+        color: AppColors.dangerSurface,
         borderRadius: BorderRadius.circular(responsive.radius(12)),
-        border: Border.all(color: const Color(0xFFFECACA)),
+        border: Border.all(color: AppColors.dangerBorder),
       ),
       child: Row(
         children: [
           const Icon(Icons.warning_rounded,
-              color: Color(0xFFE53935), size: 18),
+              color: AppColors.danger, size: 18),
           SizedBox(width: responsive.w(8)),
           Expanded(
             child: Text(
               message,
               style: AppTextStyles.caption(responsive)
-                  .copyWith(color: const Color(0xFFE53935)),
+                  .copyWith(color: AppColors.danger),
             ),
           ),
           if (canRetry) ...[
@@ -904,7 +904,7 @@ class _ErrorBanner extends StatelessWidget {
               child: Text(
                 'Réessayer',
                 style: AppTextStyles.caption(responsive).copyWith(
-                  color: const Color(0xFFE53935),
+                  color: AppColors.danger,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -930,20 +930,20 @@ class _FallbackBanner extends StatelessWidget {
       padding: EdgeInsets.symmetric(
           horizontal: responsive.w(14), vertical: responsive.h(10)),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFBEB),
+        color: AppColors.warningSurface,
         borderRadius: BorderRadius.circular(responsive.radius(12)),
-        border: Border.all(color: const Color(0xFFFDE68A)),
+        border: Border.all(color: AppColors.warningSurface),
       ),
       child: Row(
         children: [
           const Icon(Icons.info_outline_rounded,
-              color: Color(0xFFD97706), size: 18),
+              color: AppColors.warning, size: 18),
           SizedBox(width: responsive.w(8)),
           Expanded(
             child: Text(
               message,
               style: AppTextStyles.caption(responsive)
-                  .copyWith(color: const Color(0xFFD97706)),
+                  .copyWith(color: AppColors.warning),
             ),
           ),
           GestureDetector(
@@ -951,7 +951,7 @@ class _FallbackBanner extends StatelessWidget {
             child: Text(
               'Actualiser',
               style: AppTextStyles.caption(responsive).copyWith(
-                color: const Color(0xFFD97706),
+                color: AppColors.warning,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -980,12 +980,12 @@ class _ApproachingBanner extends StatelessWidget {
       padding: EdgeInsets.symmetric(
           horizontal: responsive.w(14), vertical: responsive.h(10)),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7ED),
+        color: AppColors.warningSurface,
         borderRadius: BorderRadius.circular(responsive.radius(12)),
-        border: Border.all(color: const Color(0xFFFED7AA)),
+        border: Border.all(color: AppColors.warningSurface),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFF97316).withValues(alpha: 0.20),
+            color: AppColors.accent.withValues(alpha: 0.20),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -997,12 +997,12 @@ class _ApproachingBanner extends StatelessWidget {
             width: responsive.w(32),
             height: responsive.w(32),
             decoration: const BoxDecoration(
-              color: Color(0xFFFED7AA),
+              color: AppColors.warningSurface,
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.person_pin_circle_rounded,
-              color: const Color(0xFFEA580C),
+              color: AppColors.accent,
               size: responsive.text(18),
             ),
           ),
@@ -1014,14 +1014,14 @@ class _ApproachingBanner extends StatelessWidget {
                 Text(
                   '$passengerName à ${distanceM}m',
                   style: AppTextStyles.caption(responsive).copyWith(
-                    color: const Color(0xFF9A3412),
+                    color: AppColors.warningDark,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 Text(
                   'Ralentissez — préparez-vous à vous arrêter',
                   style: AppTextStyles.caption(responsive).copyWith(
-                    color: const Color(0xFFEA580C),
+                    color: AppColors.accent,
                     fontSize: responsive.text(11),
                   ),
                 ),
@@ -1032,7 +1032,7 @@ class _ApproachingBanner extends StatelessWidget {
             padding: EdgeInsets.symmetric(
                 horizontal: responsive.w(8), vertical: responsive.h(4)),
             decoration: BoxDecoration(
-              color: const Color(0xFFEA580C),
+              color: AppColors.accent,
               borderRadius: BorderRadius.circular(9999),
             ),
             child: Text(
@@ -1063,12 +1063,12 @@ class _AllPickedUpBanner extends StatelessWidget {
       padding: EdgeInsets.symmetric(
           horizontal: responsive.w(14), vertical: responsive.h(10)),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0FDF4),
+        color: AppColors.successSurface,
         borderRadius: BorderRadius.circular(responsive.radius(12)),
-        border: Border.all(color: const Color(0xFFBBF7D0)),
+        border: Border.all(color: AppColors.successSurface),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF16A34A).withValues(alpha: 0.16),
+            color: AppColors.success.withValues(alpha: 0.16),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -1080,12 +1080,12 @@ class _AllPickedUpBanner extends StatelessWidget {
             width: responsive.w(32),
             height: responsive.w(32),
             decoration: const BoxDecoration(
-              color: Color(0xFFBBF7D0),
+              color: AppColors.successSurface,
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.groups_rounded,
-              color: const Color(0xFF16A34A),
+              color: AppColors.success,
               size: responsive.text(18),
             ),
           ),
@@ -1097,14 +1097,14 @@ class _AllPickedUpBanner extends StatelessWidget {
                 Text(
                   'Tous les passagers à bord !',
                   style: AppTextStyles.caption(responsive).copyWith(
-                    color: const Color(0xFF14532D),
+                    color: AppColors.successDark,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 Text(
                   'Naviguez vers les points de dépose',
                   style: AppTextStyles.caption(responsive).copyWith(
-                    color: const Color(0xFF16A34A),
+                    color: AppColors.success,
                     fontSize: responsive.text(11),
                   ),
                 ),
@@ -1115,7 +1115,7 @@ class _AllPickedUpBanner extends StatelessWidget {
             padding: EdgeInsets.symmetric(
                 horizontal: responsive.w(8), vertical: responsive.h(4)),
             decoration: BoxDecoration(
-              color: const Color(0xFF16A34A),
+              color: AppColors.success,
               borderRadius: BorderRadius.circular(9999),
             ),
             child: Text(
@@ -1202,7 +1202,7 @@ class _StopsPanel extends StatelessWidget {
                                   'Tous à bord — naviguez vers la dépose',
                                   style: AppTextStyles.caption(responsive)
                                       .copyWith(
-                                    color: const Color(0xFF16A34A),
+                                    color: AppColors.success,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 );
@@ -1214,7 +1214,7 @@ class _StopsPanel extends StatelessWidget {
                                 style: AppTextStyles.caption(responsive)
                                     .copyWith(
                                   color: approaching > 0
-                                      ? const Color(0xFF3B82F6)
+                                      ? AppColors.primary
                                       : AppColors.textHint,
                                 ),
                               );
@@ -1226,7 +1226,7 @@ class _StopsPanel extends StatelessWidget {
                             responsive: responsive,
                             icon: Icons.local_gas_station_rounded,
                             label: controller.routeFuel.value,
-                            color: const Color(0xFFF59E0B),
+                            color: AppColors.warning,
                           )),
                     ],
                   ),
@@ -1318,7 +1318,7 @@ class _StopListTile extends StatelessWidget {
                 width: responsive.w(36),
                 height: responsive.w(36),
                 decoration: BoxDecoration(
-                  color: isDone ? const Color(0xFFE5E7EB) : color,
+                  color: isDone ? AppColors.border : color,
                   shape: BoxShape.circle,
                 ),
                 child: Center(
@@ -1576,11 +1576,11 @@ class _GoogleMapsFab extends StatelessWidget {
           height: responsive.w(48),
           padding: EdgeInsets.symmetric(horizontal: responsive.w(14)),
           decoration: BoxDecoration(
-            color: const Color(0xFF1A73E8),
+            color: AppColors.primary,
             borderRadius: BorderRadius.circular(responsive.radius(24)),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF1A73E8).withValues(alpha: 0.40),
+                color: AppColors.primary.withValues(alpha: 0.40),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),

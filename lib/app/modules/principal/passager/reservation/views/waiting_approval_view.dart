@@ -90,8 +90,8 @@ class _PendingContent extends StatelessWidget {
 					label: 'Annuler la demande',
 					onTap: controller.cancelRequest,
 					backgroundColor: AppColors.white,
-					textColor: const Color(0xFFEF4444),
-					borderColor: const Color(0xFFEF4444),
+					textColor: AppColors.danger,
+					borderColor: AppColors.danger,
 					height: responsive.h(56),
 					borderRadius: responsive.radius(16),
 				),
@@ -165,7 +165,7 @@ class _RejectedContent extends StatelessWidget {
 			children: [
 				_HeaderBar(responsive: responsive, title: 'Demande refusée'),
 				SizedBox(height: responsive.h(48)),
-				Center(child: _PulseCircle(size: responsive.w(120), color: const Color(0xFFEF4444))),
+				Center(child: _PulseCircle(size: responsive.w(120), color: AppColors.danger)),
 				SizedBox(height: responsive.h(32)),
 				Text(
 					'Le conducteur a refusé',
@@ -357,9 +357,9 @@ class _GuaranteeBanner extends StatelessWidget {
 				vertical: responsive.h(12),
 			),
 			decoration: ShapeDecoration(
-				color: const Color(0xFFF0FDF8),
+				color: AppColors.successSurface,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: Color(0x337C3AED)),
+					side: const BorderSide(color: AppColors.primaryMedium),
 					borderRadius: BorderRadius.circular(14),
 				),
 			),
@@ -439,7 +439,7 @@ class _TripInfoCard extends StatelessWidget {
 						borderRadius: BorderRadius.circular(responsive.radius(20)),
 					),
 					shadows: const [
-						BoxShadow(color: Color(0x14000000), blurRadius: 20, offset: Offset(0, 4)),
+						BoxShadow(color: AppColors.shadowSoft, blurRadius: 20, offset: Offset(0, 4)),
 					],
 				),
 				child: Column(
@@ -477,7 +477,7 @@ class _TripInfoCard extends StatelessWidget {
 								),
 							],
 						),
-						const Divider(height: 24, color: Color(0xFFF3F4F6)),
+						const Divider(height: 24, color: AppColors.surface),
 						Row(
 							children: [
 								Container(
@@ -485,7 +485,7 @@ class _TripInfoCard extends StatelessWidget {
 									height: responsive.w(36),
 									decoration: BoxDecoration(
 										gradient: const LinearGradient(
-											colors: [Color(0xFF7C3AED), Color(0xFF10B981)],
+											colors: [AppColors.primary, AppColors.success],
 											begin: Alignment.topLeft,
 											end: Alignment.bottomRight,
 										),
@@ -528,7 +528,7 @@ class _TripInfoCard extends StatelessWidget {
 							],
 						),
 						if (hasPickup || hasDropoff) ...[
-							const Divider(height: 24, color: Color(0xFFF3F4F6)),
+							const Divider(height: 24, color: AppColors.surface),
 							if (hasPickup)
 								_AddressListTile(
 									responsive: responsive,
@@ -552,7 +552,7 @@ class _TripInfoCard extends StatelessWidget {
 								),
 						],
 						if (breakdown != null) ...[
-							const Divider(height: 24, color: Color(0xFFF3F4F6)),
+							const Divider(height: 24, color: AppColors.surface),
 							_WaitingPriceRow(
 								responsive: responsive,
 								label: '${breakdown.calculatedPricePerSeatFmt.isNotEmpty ? breakdown.calculatedPricePerSeatFmt : '${breakdown.calculatedPricePerSeat} FCFA'} × $seats place${seats > 1 ? 's' : ''}',

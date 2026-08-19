@@ -73,10 +73,10 @@ class DriverSafetyController extends GetxController {
     Get.dialog(
       AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        backgroundColor: const Color(0xFFFFF1F2),
+        backgroundColor: AppColors.dangerSurface,
         title: const Text(
           'Envoyer une alerte SOS ?',
-          style: TextStyle(color: Color(0xFFE53935), fontWeight: FontWeight.w800),
+          style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.w800),
         ),
         content: const Text(
           "Cette action contactera immédiatement le support MINIZON et vos contacts d'urgence. Une équipe sera dépêchée dans les plus brefs délais.",
@@ -95,7 +95,7 @@ class DriverSafetyController extends GetxController {
             },
             child: const Text(
               'Confirmer',
-              style: TextStyle(color: Color(0xFFE53935), fontWeight: FontWeight.w700),
+              style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.w700),
             ),
           ),
         ],
@@ -177,7 +177,7 @@ class DriverSafetyController extends GetxController {
               }
             },
             child: const Text('Supprimer',
-                style: TextStyle(color: Color(0xFFEF4444))),
+                style: TextStyle(color: AppColors.danger)),
           ),
         ],
       ),
@@ -193,7 +193,7 @@ class DriverSafetyController extends GetxController {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
-            Icon(Icons.headset_mic_rounded, color: Color(0xFF7C3AED)),
+            Icon(Icons.headset_mic_rounded, color: AppColors.primary),
             SizedBox(width: 10),
             Text('Support MINIZON', style: TextStyle(fontSize: 16)),
           ],
@@ -206,7 +206,7 @@ class DriverSafetyController extends GetxController {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               decoration: BoxDecoration(
-                color: const Color(0xFFE6F7EF),
+                color: AppColors.successSurface,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Text(
@@ -214,7 +214,7 @@ class DriverSafetyController extends GetxController {
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
-                  color: Color(0xFF7C3AED),
+                  color: AppColors.primary,
                   letterSpacing: 1,
                 ),
               ),
@@ -230,7 +230,7 @@ class DriverSafetyController extends GetxController {
               UIHelper().showSnackBar('MINIZON', 'Numéro copié dans le presse-papiers.', 0);
             },
             child: const Text('Copier le numéro',
-                style: TextStyle(color: Color(0xFF7C3AED), fontWeight: FontWeight.w700)),
+                style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -278,7 +278,7 @@ class DriverSafetyController extends GetxController {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF1F2),
+                color: AppColors.dangerSurface,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -286,7 +286,7 @@ class DriverSafetyController extends GetxController {
                 style: const TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w900,
-                  color: Color(0xFFDC2626),
+                  color: AppColors.danger,
                   letterSpacing: 2,
                 ),
               ),
@@ -302,7 +302,7 @@ class DriverSafetyController extends GetxController {
               UIHelper().showSnackBar('MINIZON', 'Numéro $number copié.', 0);
             },
             child: const Text('Copier',
-                style: TextStyle(color: Color(0xFFDC2626), fontWeight: FontWeight.w700)),
+                style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -507,12 +507,12 @@ class _IncidentReportSheetState extends State<_IncidentReportSheet> {
   final _descCtrl = TextEditingController();
 
   static const _categories = [
-    ('Passager agressif',  Icons.person_off_rounded,  Color(0xFFEF4444)),
-    ('Accident de route',  Icons.car_crash_rounded,   Color(0xFFF59E0B)),
-    ('Panne de véhicule',  Icons.car_repair_rounded,  Color(0xFF6366F1)),
-    ('Vol ou tentative',   Icons.warning_rounded,     Color(0xFFDC2626)),
-    ('Harcèlement',        Icons.report_rounded,      Color(0xFFF97316)),
-    ('Autre incident',     Icons.more_horiz_rounded,  Color(0xFF9CA3AF)),
+    ('Passager agressif',  Icons.person_off_rounded,  AppColors.danger),
+    ('Accident de route',  Icons.car_crash_rounded,   AppColors.warning),
+    ('Panne de véhicule',  Icons.car_repair_rounded,  AppColors.primary),
+    ('Vol ou tentative',   Icons.warning_rounded,     AppColors.danger),
+    ('Harcèlement',        Icons.report_rounded,      AppColors.accent),
+    ('Autre incident',     Icons.more_horiz_rounded,  AppColors.textHint),
   ];
 
   @override
@@ -548,7 +548,7 @@ class _IncidentReportSheetState extends State<_IncidentReportSheet> {
               const SizedBox(height: 16),
               const Row(
                 children: [
-                  Icon(Icons.flag_rounded, color: Color(0xFFF59E0B), size: 22),
+                  Icon(Icons.flag_rounded, color: AppColors.warning, size: 22),
                   SizedBox(width: 8),
                   Text('Signaler un incident',
                       style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
@@ -644,7 +644,7 @@ class _IncidentReportSheetState extends State<_IncidentReportSheet> {
                   decoration: BoxDecoration(
                     color: _isSending || _selectedCategory == null
                         ? AppColors.textGhost
-                        : const Color(0xFFF59E0B),
+                        : AppColors.warning,
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Center(

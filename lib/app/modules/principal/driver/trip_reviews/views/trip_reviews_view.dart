@@ -253,14 +253,14 @@ class _SummaryCard extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           const Icon(Icons.pending_actions_rounded,
-                              size: 14, color: Color(0xFFF4B400)),
+                              size: 14, color: AppColors.warning),
                           const SizedBox(width: 6),
                           Text(
                             '$pending réponse${pending > 1 ? 's' : ''} en attente',
                             style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFFF4B400)),
+                                color: AppColors.warning),
                           ),
                         ],
                       ),
@@ -297,7 +297,7 @@ class _ReviewCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: review.needsReply
-              ? const Color(0x33F4B400)
+              ? AppColors.warningLight
               : AppColors.border,
           width: review.needsReply ? 1.5 : 1,
         ),
@@ -374,7 +374,7 @@ class _ReviewCard extends StatelessWidget {
                       style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFFF4B400))),
+                          color: AppColors.warning)),
                 ),
             ],
           ),

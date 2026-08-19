@@ -9,6 +9,7 @@ import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import '../../../../../data/models/driver/trip_detail_model.dart';
 import '../../../../../data/models/driver/trip_model.dart';
+import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 
 class TripDetailController extends GetxController {
   TripDetailService get _service => Get.find<TripDetailService>();
@@ -183,7 +184,7 @@ class TripDetailController extends GetxController {
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE5E7EB),
+                    color: AppColors.border,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -214,7 +215,7 @@ class TripDetailController extends GetxController {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2563EB),
+                    backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
                     padding: const EdgeInsets.symmetric(vertical: 14),
@@ -288,7 +289,7 @@ class TripDetailController extends GetxController {
             onPressed: _confirmCancelTrip,
             child: const Text(
               'Oui, annuler',
-              style: TextStyle(color: Color(0xFFE53935)),
+              style: TextStyle(color: AppColors.danger),
             ),
           ),
         ],
@@ -365,7 +366,7 @@ class _EditField extends StatelessWidget {
           label,
           style: const TextStyle(
             fontSize: 13,
-            color: Color(0xFF6B7280),
+            color: AppColors.textSecondary,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -379,11 +380,11 @@ class _EditField extends StatelessWidget {
                 const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+              borderSide: const BorderSide(color: AppColors.border),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+              borderSide: const BorderSide(color: AppColors.border),
             ),
           ),
         ),

@@ -687,7 +687,7 @@ class DetailReservationController extends GetxController {
               child: Row(
                 children: [
                   const Icon(Icons.star_rounded,
-                      color: Color(0xFFF4B400), size: 20),
+                      color: AppColors.warning, size: 20),
                   const SizedBox(width: 8),
                   Text('Avis sur $driverName',
                       style: const TextStyle(
@@ -712,7 +712,7 @@ class DetailReservationController extends GetxController {
                           'Aucun avis disponible pour ce conducteur.',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                              fontSize: 14, color: Color(0xFF6B7280)),
+                              fontSize: 14, color: AppColors.textSecondary),
                         ),
                       ),
                     ),
@@ -805,7 +805,7 @@ class _ReviewTile extends StatelessWidget {
                               : Icons.star_outline_rounded,
                           size: 14,
                           color: i < data.rating
-                              ? const Color(0xFFF4B400)
+                              ? AppColors.warning
                               : AppColors.textGhost,
                         )),
               ),

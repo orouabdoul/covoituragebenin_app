@@ -162,7 +162,7 @@ class _HeaderSection extends StatelessWidget {
 				gradient: LinearGradient(
 					begin: Alignment.topLeft,
 					end: Alignment.bottomRight,
-					colors: [Color(0xFF7C3AED), Color(0xFF6D28D9)],
+					colors: [AppColors.primary, AppColors.primary],
 				),
 				shape: RoundedRectangleBorder(
 					side: BorderSide(color: AppColors.border),
@@ -217,8 +217,8 @@ class _SummaryCard extends StatelessWidget {
 					borderRadius: BorderRadius.circular(responsive.radius(24)),
 				),
 				shadows: const [
-					BoxShadow(color: Color(0x19000000), blurRadius: 25, offset: Offset(0, 20)),
-					BoxShadow(color: Color(0x19000000), blurRadius: 10, offset: Offset(0, 8)),
+					BoxShadow(color: AppColors.shadow, blurRadius: 25, offset: Offset(0, 20)),
+					BoxShadow(color: AppColors.shadow, blurRadius: 10, offset: Offset(0, 8)),
 				],
 			),
 			child: Column(
@@ -238,8 +238,8 @@ class _SummaryCard extends StatelessWidget {
 										borderRadius: BorderRadius.circular(9999),
 									),
 									shadows: const [
-										BoxShadow(color: Color(0x19000000), blurRadius: 15, offset: Offset(0, 10)),
-										BoxShadow(color: Color(0x19000000), blurRadius: 6, offset: Offset(0, 4)),
+										BoxShadow(color: AppColors.shadow, blurRadius: 15, offset: Offset(0, 10)),
+										BoxShadow(color: AppColors.shadow, blurRadius: 6, offset: Offset(0, 4)),
 									],
 								),
 								child: summary.avatarUrl.isNotEmpty
@@ -269,8 +269,8 @@ class _SummaryCard extends StatelessWidget {
 												borderRadius: BorderRadius.all(Radius.circular(9999)),
 											),
 											shadows: [
-												BoxShadow(color: Color(0x19000000), blurRadius: 15, offset: Offset(0, 10)),
-												BoxShadow(color: Color(0x19000000), blurRadius: 6, offset: Offset(0, 4)),
+												BoxShadow(color: AppColors.shadow, blurRadius: 15, offset: Offset(0, 10)),
+												BoxShadow(color: AppColors.shadow, blurRadius: 6, offset: Offset(0, 4)),
 											],
 										),
 										child: const Icon(Icons.verified_rounded, color: Colors.white, size: 16),
@@ -292,7 +292,7 @@ class _SummaryCard extends StatelessWidget {
 						Container(
 							padding: EdgeInsets.symmetric(horizontal: responsive.w(16), vertical: responsive.h(8)),
 							decoration: ShapeDecoration(
-								color: const Color(0x197C3AED),
+								color: AppColors.primaryLight,
 								shape: RoundedRectangleBorder(
 									side: const BorderSide(color: AppColors.border),
 									borderRadius: BorderRadius.circular(9999),
@@ -428,7 +428,7 @@ class _StatCard extends StatelessWidget {
 			height: responsive.adaptive(phone: 108, smallPhone: 100, tablet: 112, desktop: 120),
 			padding: EdgeInsets.all(responsive.w(16)),
 			decoration: ShapeDecoration(
-				color: const Color(0x7FF5F5F5),
+				color: AppColors.overlayLight,
 				shape: RoundedRectangleBorder(
 					side: const BorderSide(color: AppColors.border),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
@@ -449,7 +449,7 @@ class _StatCard extends StatelessWidget {
 						Row(
 							mainAxisAlignment: MainAxisAlignment.center,
 							children: [
-								Icon(leadingIcon, size: responsive.text(16), color: const Color(0xFFF4B400)),
+								Icon(leadingIcon, size: responsive.text(16), color: AppColors.warning),
 								SizedBox(width: responsive.w(4)),
 								Text(label, style: AppTextStyles.profileMeta(responsive)),
 							],
@@ -485,8 +485,8 @@ class _TrustCard extends StatelessWidget {
 					borderRadius: BorderRadius.circular(responsive.radius(24)),
 				),
 				shadows: const [
-					BoxShadow(color: Color(0x19000000), blurRadius: 15, offset: Offset(0, 10)),
-					BoxShadow(color: Color(0x19000000), blurRadius: 6, offset: Offset(0, 4)),
+					BoxShadow(color: AppColors.shadow, blurRadius: 15, offset: Offset(0, 10)),
+					BoxShadow(color: AppColors.shadow, blurRadius: 6, offset: Offset(0, 4)),
 				],
 			),
 			child: Column(
@@ -502,7 +502,7 @@ class _TrustCard extends StatelessWidget {
 							Container(
 								padding: EdgeInsets.symmetric(horizontal: responsive.w(12), vertical: responsive.h(4)),
 								decoration: ShapeDecoration(
-									color: const Color(0x197C3AED),
+									color: AppColors.primaryLight,
 									shape: RoundedRectangleBorder(
 										side: const BorderSide(color: AppColors.border),
 										borderRadius: BorderRadius.circular(9999),
@@ -555,7 +555,7 @@ class _TrustLine extends StatelessWidget {
 			width: double.infinity,
 			padding: EdgeInsets.all(responsive.w(16)),
 			decoration: ShapeDecoration(
-				color: const Color(0x7FF5F5F5),
+				color: AppColors.overlayLight,
 				shape: RoundedRectangleBorder(
 					side: const BorderSide(color: AppColors.border),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
@@ -567,7 +567,7 @@ class _TrustLine extends StatelessWidget {
 						width: responsive.w(32),
 						height: responsive.w(32),
 						decoration: const ShapeDecoration(
-							color: Color(0x197C3AED),
+							color: AppColors.primaryLight,
 							shape: CircleBorder(),
 						),
 						child: const Icon(Icons.verified_rounded, color: AppColors.primary, size: 18),
@@ -605,8 +605,8 @@ class _SettingsCard extends StatelessWidget {
 					borderRadius: BorderRadius.circular(responsive.radius(24)),
 				),
 				shadows: const [
-					BoxShadow(color: Color(0x19000000), blurRadius: 15, offset: Offset(0, 10)),
-					BoxShadow(color: Color(0x19000000), blurRadius: 6, offset: Offset(0, 4)),
+					BoxShadow(color: AppColors.shadow, blurRadius: 15, offset: Offset(0, 10)),
+					BoxShadow(color: AppColors.shadow, blurRadius: 6, offset: Offset(0, 4)),
 				],
 			),
 			child: Column(
@@ -657,7 +657,7 @@ class _SettingsTile extends StatelessWidget {
 				width: double.infinity,
 				padding: EdgeInsets.all(responsive.w(16)),
 				decoration: ShapeDecoration(
-					color: const Color(0x7FF5F5F5),
+					color: AppColors.overlayLight,
 					shape: RoundedRectangleBorder(
 						side: const BorderSide(color: AppColors.border),
 						borderRadius: BorderRadius.circular(responsive.radius(16)),
@@ -669,7 +669,7 @@ class _SettingsTile extends StatelessWidget {
 							width: responsive.w(40),
 							height: responsive.w(40),
 							decoration: const ShapeDecoration(
-								color: Color(0x197C3AED),
+								color: AppColors.primaryLight,
 								shape: CircleBorder(),
 							),
 							child: Icon(icon, color: AppColors.primary, size: responsive.text(18)),
@@ -735,8 +735,8 @@ class _PaymentMethodsCard extends StatelessWidget {
 					borderRadius: BorderRadius.circular(responsive.radius(24)),
 				),
 				shadows: const [
-					BoxShadow(color: Color(0x19000000), blurRadius: 15, offset: Offset(0, 10)),
-					BoxShadow(color: Color(0x19000000), blurRadius: 6, offset: Offset(0, 4)),
+					BoxShadow(color: AppColors.shadow, blurRadius: 15, offset: Offset(0, 10)),
+					BoxShadow(color: AppColors.shadow, blurRadius: 6, offset: Offset(0, 4)),
 				],
 			),
 			child: Column(
@@ -784,9 +784,9 @@ class _PaymentTile extends StatelessWidget {
 			width: double.infinity,
 			padding: EdgeInsets.all(responsive.w(12)),
 			decoration: ShapeDecoration(
-				color: const Color(0x4CF5F5F5),
+				color: AppColors.overlayMedium,
 				shape: RoundedRectangleBorder(
-					side: BorderSide(color: method.selected ? const Color(0x337C3AED) : AppColors.border),
+					side: BorderSide(color: method.selected ? AppColors.primaryMedium : AppColors.border),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
 			),
@@ -865,8 +865,8 @@ class _RecentTripsCard extends StatelessWidget {
 					borderRadius: BorderRadius.circular(responsive.radius(24)),
 				),
 				shadows: const [
-					BoxShadow(color: Color(0x19000000), blurRadius: 15, offset: Offset(0, 10)),
-					BoxShadow(color: Color(0x19000000), blurRadius: 6, offset: Offset(0, 4)),
+					BoxShadow(color: AppColors.shadow, blurRadius: 15, offset: Offset(0, 10)),
+					BoxShadow(color: AppColors.shadow, blurRadius: 6, offset: Offset(0, 4)),
 				],
 			),
 			child: Column(
@@ -922,7 +922,7 @@ class _RecentTripTile extends StatelessWidget {
 				width: double.infinity,
 				padding: EdgeInsets.all(responsive.w(16)),
 				decoration: ShapeDecoration(
-					color: const Color(0x7FF5F5F5),
+					color: AppColors.overlayLight,
 					shape: RoundedRectangleBorder(
 						side: const BorderSide(color: AppColors.border),
 						borderRadius: BorderRadius.circular(responsive.radius(16)),
@@ -946,7 +946,7 @@ class _RecentTripTile extends StatelessWidget {
 									width: responsive.w(12),
 									height: responsive.w(12),
 									decoration: const ShapeDecoration(
-										color: Color(0xFFE53935),
+										color: AppColors.danger,
 										shape: CircleBorder(),
 									),
 								),
@@ -985,7 +985,7 @@ class _RecentTripTile extends StatelessWidget {
 										children: [
 											Row(
 												children: [
-													Icon(Icons.star_rounded, size: responsive.text(14), color: const Color(0xFFF4B400)),
+													Icon(Icons.star_rounded, size: responsive.text(14), color: AppColors.warning),
 													SizedBox(width: responsive.w(4)),
 													Text(trip.rating, style: AppTextStyles.profileMeta(responsive)),
 												],
@@ -1024,8 +1024,8 @@ class _EmergencyContactsCard extends StatelessWidget {
 					borderRadius: BorderRadius.circular(responsive.radius(24)),
 				),
 				shadows: const [
-					BoxShadow(color: Color(0x19000000), blurRadius: 15, offset: Offset(0, 10)),
-					BoxShadow(color: Color(0x19000000), blurRadius: 6, offset: Offset(0, 4)),
+					BoxShadow(color: AppColors.shadow, blurRadius: 15, offset: Offset(0, 10)),
+					BoxShadow(color: AppColors.shadow, blurRadius: 6, offset: Offset(0, 4)),
 				],
 			),
 			child: Column(
@@ -1040,11 +1040,11 @@ class _EmergencyContactsCard extends StatelessWidget {
 										width: responsive.w(36),
 										height: responsive.w(36),
 										decoration: BoxDecoration(
-											color: const Color(0xFFEF4444).withValues(alpha: 0.10),
+											color: AppColors.danger.withValues(alpha: 0.10),
 											shape: BoxShape.circle,
 										),
 										child: Icon(Icons.shield_rounded,
-												color: const Color(0xFFEF4444),
+												color: AppColors.danger,
 												size: responsive.text(18)),
 									),
 									SizedBox(width: responsive.w(10)),
@@ -1160,14 +1160,14 @@ class _ContactTile extends StatelessWidget {
 					Container(
 						width: responsive.w(38), height: responsive.w(38),
 						decoration: BoxDecoration(
-							color: const Color(0xFFEF4444).withValues(alpha: 0.10),
+							color: AppColors.danger.withValues(alpha: 0.10),
 							shape: BoxShape.circle,
 						),
 						child: Center(
 							child: Text(initials,
 									style: TextStyle(
 										fontWeight: FontWeight.w700,
-										color: const Color(0xFFEF4444),
+										color: AppColors.danger,
 										fontSize: responsive.text(14),
 									)),
 						),
@@ -1191,7 +1191,7 @@ class _ContactTile extends StatelessWidget {
 					IconButton(
 						onPressed: onDelete,
 						icon: Icon(Icons.delete_outline_rounded,
-								color: const Color(0xFFEF4444), size: responsive.text(20)),
+								color: AppColors.danger, size: responsive.text(20)),
 						padding: EdgeInsets.zero,
 						constraints: const BoxConstraints(),
 					),
@@ -1218,21 +1218,21 @@ class _LogoutButton extends StatelessWidget {
 				width: double.infinity,
 				padding: EdgeInsets.all(responsive.w(16)),
 				decoration: ShapeDecoration(
-					color: const Color(0xFFFFF1F0),
+					color: AppColors.dangerSurface,
 					shape: RoundedRectangleBorder(
-						side: const BorderSide(color: Color(0xFFFFCDD2)),
+						side: const BorderSide(color: AppColors.dangerBorder),
 						borderRadius: BorderRadius.circular(responsive.radius(16)),
 					),
 				),
 				child: Row(
 					mainAxisAlignment: MainAxisAlignment.center,
 					children: [
-						Icon(Icons.logout_rounded, color: const Color(0xFFE53935), size: responsive.text(20)),
+						Icon(Icons.logout_rounded, color: AppColors.danger, size: responsive.text(20)),
 						SizedBox(width: responsive.w(10)),
 						Text(
 							'Se déconnecter',
 							style: AppTextStyles.subtitle(responsive).copyWith(
-								color: const Color(0xFFE53935),
+								color: AppColors.danger,
 								fontWeight: FontWeight.w600,
 							),
 						),

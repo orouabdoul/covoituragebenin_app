@@ -124,7 +124,7 @@ class _HeaderBar extends StatelessWidget {
 								responsive: responsive,
 								label: 'Annulés',
 								count: controller.countByStatus('cancelled'),
-								color: const Color(0xFFEF4444),
+								color: AppColors.danger,
 							),
 						],
 					)),
@@ -243,7 +243,7 @@ class _TripCard extends StatelessWidget {
 		switch (trip.status) {
 			case 'upcoming': return AppColors.blue;
 			case 'completed': return AppColors.primary;
-			case 'cancelled': return const Color(0xFFEF4444);
+			case 'cancelled': return AppColors.danger;
 			default: return AppColors.textHint;
 		}
 	}
@@ -276,7 +276,7 @@ class _TripCard extends StatelessWidget {
 					side: BorderSide(color: trip.status == 'upcoming' ? color.withValues(alpha: 0.30) : AppColors.border),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
-				shadows: const [BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 2))],
+				shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 8, offset: Offset(0, 2))],
 			),
 			child: Column(
 				children: [
@@ -338,13 +338,13 @@ class _TripCard extends StatelessWidget {
 													decoration: BoxDecoration(
 														shape: BoxShape.circle,
 														color: Colors.white,
-														border: Border.all(color: const Color(0xFFEF4444), width: 2),
+														border: Border.all(color: AppColors.danger, width: 2),
 													),
 													child: Center(
 														child: Container(
 															width: responsive.w(5),
 															height: responsive.w(5),
-															decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFFEF4444)),
+															decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.danger),
 														),
 													),
 												),
@@ -440,7 +440,7 @@ class _TripCard extends StatelessWidget {
 														responsive: responsive,
 														label: 'Remboursement',
 														icon: Icons.account_balance_wallet_outlined,
-														color: const Color(0xFFEF4444),
+														color: AppColors.danger,
 														onTap: () => controller.requestRefund(trip),
 													),
 												),

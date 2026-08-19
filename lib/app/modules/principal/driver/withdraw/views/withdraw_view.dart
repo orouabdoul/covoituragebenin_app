@@ -133,7 +133,7 @@ class _BalanceCard extends StatelessWidget {
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF7C3AED), Color(0xFF6D28D9)],
+            colors: [AppColors.primary, AppColors.primary],
           ),
           borderRadius: BorderRadius.circular(
               r.adaptive(phone: 18, smallPhone: 16, tablet: 20, desktop: 24)),
@@ -276,7 +276,7 @@ class _AmountSection extends StatelessWidget {
             child: Text(
               controller.errorMessage.value,
               style: AppTextStyles.labelSmall(r)
-                  .copyWith(color: const Color(0xFFE53935)),
+                  .copyWith(color: AppColors.danger),
             ),
           );
         }),
@@ -623,7 +623,7 @@ class _PhoneField extends StatelessWidget {
             child: Text(
               controller.phoneErrorMessage.value,
               style: AppTextStyles.labelSmall(r)
-                  .copyWith(color: const Color(0xFFE53935)),
+                  .copyWith(color: AppColors.danger),
             ),
           );
         }),
@@ -781,7 +781,7 @@ class _BankTextField extends StatelessWidget {
             child: Text(
               errorObs.value,
               style: AppTextStyles.labelSmall(r)
-                  .copyWith(color: const Color(0xFFE53935)),
+                  .copyWith(color: AppColors.danger),
             ),
           );
         }),

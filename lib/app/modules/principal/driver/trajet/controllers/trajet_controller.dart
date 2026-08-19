@@ -441,7 +441,7 @@ class TrajetController extends GetxController {
               padding:
                   const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               decoration: BoxDecoration(
-                  color: const Color(0xFFE6F7EF),
+                  color: AppColors.successSurface,
                   borderRadius: BorderRadius.circular(12)),
               child: Text(p.phone,
                   style: const TextStyle(

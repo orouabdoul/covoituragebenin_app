@@ -686,7 +686,7 @@ class _LocationAutocompleteFieldState
               side: BorderSide(
                 width: 2,
                 color: isInvalid
-                    ? const Color(0xFFEF4444)
+                    ? AppColors.danger
                     : widget.isSelected
                         ? AppColors.primary
                         : widget.enabled
@@ -719,7 +719,7 @@ class _LocationAutocompleteFieldState
                     size: widget.responsive.text(18))
               else if (isInvalid)
                 Icon(Icons.error_outline_rounded,
-                    color: const Color(0xFFEF4444),
+                    color: AppColors.danger,
                     size: widget.responsive.text(18))
               else
                 Icon(Icons.search_rounded,
@@ -733,7 +733,7 @@ class _LocationAutocompleteFieldState
           Text(
             'Sélectionnez une option dans la liste',
             style: AppTextStyles.caption(widget.responsive)
-                .copyWith(color: const Color(0xFFEF4444)),
+                .copyWith(color: AppColors.danger),
           ),
         ],
         if (_showList && widget.enabled) ...[
@@ -966,7 +966,7 @@ class _VehicleSelector extends StatelessWidget {
                       ? const LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
-                          colors: [Color(0x0C7C3AED), Color(0x057C3AED)],
+                          colors: [AppColors.primaryLight, AppColors.primaryLight],
                         )
                       : null,
                   color: isSelected ? null : AppColors.white,
@@ -1112,7 +1112,7 @@ class _SeatsPicker extends StatelessWidget {
                     minHeight: responsive.h(6),
                     backgroundColor: AppColors.surfaceSoft,
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      atMax ? const Color(0xFFEF4444) : AppColors.primary,
+                      atMax ? AppColors.danger : AppColors.primary,
                     ),
                   ),
                 ),
@@ -1122,7 +1122,7 @@ class _SeatsPicker extends StatelessWidget {
                 '$max max',
                 style: AppTextStyles.caption(responsive).copyWith(
                   color: atMax
-                      ? const Color(0xFFEF4444)
+                      ? AppColors.danger
                       : AppColors.textGhost,
                   fontWeight: atMax ? FontWeight.w700 : FontWeight.w400,
                 ),
@@ -1134,13 +1134,13 @@ class _SeatsPicker extends StatelessWidget {
             Row(
               children: [
                 const Icon(Icons.info_outline_rounded,
-                    size: 14, color: Color(0xFFEF4444)),
+                    size: 14, color: AppColors.danger),
                 SizedBox(width: responsive.w(6)),
                 Expanded(
                   child: Text(
                     'Maximum atteint — ${controller.capacityLabel}',
                     style: AppTextStyles.caption(responsive)
-                        .copyWith(color: const Color(0xFFEF4444)),
+                        .copyWith(color: AppColors.danger),
                   ),
                 ),
               ],
@@ -1365,7 +1365,7 @@ class _PreferencesGrid extends StatelessWidget {
             child: Container(
               padding: EdgeInsets.all(responsive.w(12)),
               decoration: ShapeDecoration(
-                color: selected ? const Color(0x0C7C3AED) : AppColors.white,
+                color: selected ? AppColors.primaryLight : AppColors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(responsive.radius(16)),
                   side: BorderSide(
@@ -1443,7 +1443,7 @@ class _BookingModeSelector extends StatelessWidget {
               child: Container(
                 padding: EdgeInsets.all(responsive.w(14)),
                 decoration: ShapeDecoration(
-                  color: isSelected ? const Color(0x0C7C3AED) : AppColors.white,
+                  color: isSelected ? AppColors.primaryLight : AppColors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(responsive.radius(16)),
                     side: BorderSide(
@@ -1676,8 +1676,8 @@ class _CancellationPolicySelector extends StatelessWidget {
           final isSelected = selected == policy.policy;
           final color = switch (policy.policy) {
             'flexible' => AppColors.success,
-            'moderate' => const Color(0xFFF4B400),
-            _ => const Color(0xFFE53935),
+            'moderate' => AppColors.warning,
+            _ => AppColors.danger,
           };
           return Padding(
             padding: EdgeInsets.only(bottom: responsive.h(10)),

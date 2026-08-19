@@ -203,7 +203,7 @@ class _CircleIconButton extends StatelessWidget {
           width: responsive.w(40),
           height: responsive.w(40),
           decoration: ShapeDecoration(
-            color: const Color(0xFFF5F5F5),
+            color: AppColors.surface,
             shape: RoundedRectangleBorder(
               side: const BorderSide(color: AppColors.border),
               borderRadius: BorderRadius.circular(9999),
@@ -240,7 +240,7 @@ class _SectionCard extends StatelessWidget {
         ),
         shadows: const [
           BoxShadow(
-              color: Color(0x0C000000), blurRadius: 2, offset: Offset(0, 1)),
+              color: AppColors.shadowSoft, blurRadius: 2, offset: Offset(0, 1)),
         ],
       ),
       child: child,
@@ -260,15 +260,15 @@ class _BookingStatusCard extends StatelessWidget {
   Color get _statusColor {
     switch (reservation.status) {
       case ReservationStatus.pending:
-        return const Color(0xFFF59E0B);
+        return AppColors.warning;
       case ReservationStatus.confirmed:
-        return reservation.isPaid ? AppColors.primary : const Color(0xFFF59E0B);
+        return reservation.isPaid ? AppColors.primary : AppColors.warning;
       case ReservationStatus.inProgress:
         return AppColors.primary;
       case ReservationStatus.completed:
-        return const Color(0xFF6B7280);
+        return AppColors.textSecondary;
       case ReservationStatus.cancelled:
-        return const Color(0xFFEF4444);
+        return AppColors.danger;
     }
   }
 
@@ -399,24 +399,24 @@ class _BookingStatusCard extends StatelessWidget {
               padding: EdgeInsets.symmetric(
                   horizontal: responsive.w(16), vertical: responsive.h(10)),
               decoration: BoxDecoration(
-                color: const Color(0xFFFEF2F2),
+                color: AppColors.dangerSurface,
                 borderRadius: BorderRadius.only(
                   bottomLeft: Radius.circular(responsive.radius(16)),
                   bottomRight: Radius.circular(responsive.radius(16)),
                 ),
                 border:
-                    const Border(top: BorderSide(color: Color(0xFFFECACA))),
+                    const Border(top: BorderSide(color: AppColors.dangerBorder)),
               ),
               child: Row(
                 children: [
                   const Icon(Icons.info_outline_rounded,
-                      size: 14, color: Color(0xFFEF4444)),
+                      size: 14, color: AppColors.danger),
                   SizedBox(width: responsive.w(8)),
                   Expanded(
                       child: Text(
                     'Motif : ${reservation.cancelReason}',
                     style: AppTextStyles.caption(responsive)
-                        .copyWith(color: const Color(0xFF991B1B)),
+                        .copyWith(color: AppColors.dangerDark),
                   )),
                 ],
               ),
@@ -507,7 +507,7 @@ class _DriverCard extends StatelessWidget {
                   width: responsive.w(20),
                   height: responsive.w(20),
                   decoration: ShapeDecoration(
-                    color: const Color(0xFF7C3AED),
+                    color: AppColors.primary,
                     shape: RoundedRectangleBorder(
                       side: const BorderSide(color: AppColors.border),
                       borderRadius: BorderRadius.circular(9999),
@@ -534,7 +534,7 @@ class _DriverCard extends StatelessWidget {
                           horizontal: responsive.w(8),
                           vertical: responsive.h(2)),
                       decoration: ShapeDecoration(
-                        color: const Color(0x197C3AED),
+                        color: AppColors.primaryLight,
                         shape: RoundedRectangleBorder(
                           side: const BorderSide(color: AppColors.border),
                           borderRadius: BorderRadius.circular(9999),
@@ -592,7 +592,7 @@ class _SmallChip extends StatelessWidget {
       padding: EdgeInsets.symmetric(
           horizontal: responsive.w(12), vertical: responsive.h(6)),
       decoration: ShapeDecoration(
-        color: const Color(0xFFF5F5F5),
+        color: AppColors.surface,
         shape: RoundedRectangleBorder(
           side: const BorderSide(color: AppColors.border),
           borderRadius: BorderRadius.circular(9999),
@@ -713,7 +713,7 @@ class _VehicleCard extends StatelessWidget {
                 width: responsive.w(88),
                 height: responsive.w(88),
                 decoration: ShapeDecoration(
-                  color: const Color(0xFFF5F5F5),
+                  color: AppColors.surface,
                   shape: RoundedRectangleBorder(
                     side: const BorderSide(color: AppColors.border),
                     borderRadius: BorderRadius.circular(16),
@@ -849,7 +849,7 @@ class _PassengerRouteCard extends StatelessWidget {
                 height: responsive.w(12),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFEF4444), width: 2),
+                  border: Border.all(color: AppColors.danger, width: 2),
                   color: Colors.white,
                 ),
                 child: Center(
@@ -857,7 +857,7 @@ class _PassengerRouteCard extends StatelessWidget {
                   width: responsive.w(5),
                   height: responsive.w(5),
                   decoration: const BoxDecoration(
-                      shape: BoxShape.circle, color: Color(0xFFEF4444)),
+                      shape: BoxShape.circle, color: AppColors.danger),
                 )),
               ),
               SizedBox(width: responsive.w(12)),
@@ -867,7 +867,7 @@ class _PassengerRouteCard extends StatelessWidget {
                   children: [
                     Text('Dépose',
                         style: AppTextStyles.caption(responsive).copyWith(
-                            color: const Color(0xFFEF4444),
+                            color: AppColors.danger,
                             fontWeight: FontWeight.w600)),
                     SizedBox(height: responsive.h(2)),
                     Text(reservation.displayDropoffCity,
@@ -968,7 +968,7 @@ class _ItineraryCard extends StatelessWidget {
           SizedBox(height: responsive.h(16)),
           _JourneyStop(
             responsive: responsive,
-            color: const Color(0xFF7C3AED),
+            color: AppColors.primary,
             label: AppStrings.reservationJourneyDeparture,
             time: departureTime,
             title: origin,
@@ -981,7 +981,7 @@ class _ItineraryCard extends StatelessWidget {
               responsive: responsive,
               color: Colors.white,
               outlined: true,
-              outlineColor: const Color(0xFFF59E0B),
+              outlineColor: AppColors.warning,
               label: AppStrings.reservationJourneyStop,
               title: waypoint,
               subtitle: waypointNote ?? '',
@@ -991,7 +991,7 @@ class _ItineraryCard extends StatelessWidget {
           SizedBox(height: responsive.h(12)),
           _JourneyStop(
             responsive: responsive,
-            color: const Color(0xFFE53935),
+            color: AppColors.danger,
             label: AppStrings.reservationJourneyArrival,
             time: arrivalTime,
             title: destination,
@@ -1165,7 +1165,7 @@ class _ConditionRow extends StatelessWidget {
           width: responsive.w(32),
           height: responsive.w(32),
           decoration: ShapeDecoration(
-            color: const Color(0x197C3AED),
+            color: AppColors.primaryLight,
             shape: RoundedRectangleBorder(
               side: const BorderSide(color: AppColors.border),
               borderRadius: BorderRadius.circular(9999),
@@ -1309,19 +1309,19 @@ class _PriceCard extends StatelessWidget {
                 padding: EdgeInsets.symmetric(
                     horizontal: responsive.w(12), vertical: responsive.h(8)),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF8E1),
+                  color: AppColors.warningSurface,
                   borderRadius: BorderRadius.circular(responsive.radius(10)),
-                  border: Border.all(color: const Color(0xFFFFE082)),
+                  border: Border.all(color: AppColors.warningSurface),
                 ),
                 child: Row(children: [
                   const Icon(Icons.info_outline_rounded,
-                      size: 13, color: Color(0xFFF59E0B)),
+                      size: 13, color: AppColors.warning),
                   SizedBox(width: responsive.w(8)),
                   Expanded(
                       child: Text(
                     'Frais de service MINIZON (5%) : ${_fmt(serviceFee)}',
                     style: AppTextStyles.caption(responsive)
-                        .copyWith(color: const Color(0xFF795548)),
+                        .copyWith(color: AppColors.badgeSilver),
                   )),
                 ]),
               ),
@@ -1335,7 +1335,7 @@ class _PriceCard extends StatelessWidget {
               padding: EdgeInsets.symmetric(
                   horizontal: responsive.w(20), vertical: responsive.h(14)),
               decoration: ShapeDecoration(
-                color: const Color(0x0C7C3AED),
+                color: AppColors.primaryLight,
                 shape: RoundedRectangleBorder(
                   side: const BorderSide(color: AppColors.border),
                   borderRadius: BorderRadius.circular(16),
@@ -1572,10 +1572,10 @@ class _ExistingReservationActions extends StatelessWidget {
           title: 'En attente de confirmation',
           message:
               'Le conducteur doit confirmer votre réservation avant que vous puissiez procéder au paiement.',
-          bgColor: const Color(0xFFFFF8E1),
-          borderColor: const Color(0xFFFFE082),
-          iconColor: const Color(0xFFFFA000),
-          textColor: const Color(0xFF795548),
+          bgColor: AppColors.warningSurface,
+          borderColor: AppColors.warningSurface,
+          iconColor: AppColors.warning,
+          textColor: AppColors.badgeSilver,
         ),
         SizedBox(height: responsive.h(12)),
         Obx(() => AppPrimaryButton(
@@ -1596,8 +1596,8 @@ class _ExistingReservationActions extends StatelessWidget {
           responsive: responsive,
           label: 'Annuler la réservation',
           onTap: controller.cancelReservation,
-          backgroundColor: const Color(0xFFFEF2F2),
-          textColor: const Color(0xFFEF4444),
+          backgroundColor: AppColors.dangerSurface,
+          textColor: AppColors.danger,
           borderRadius: responsive.radius(16),
           height: responsive.h(54),
         ),
@@ -1617,10 +1617,10 @@ class _ExistingReservationActions extends StatelessWidget {
             message: isPaid
                 ? 'Votre place est réservée. Préparez-vous pour votre trajet !'
                 : "Le conducteur a accepté votre réservation. Procédez au paiement pour confirmer définitivement.",
-            bgColor: const Color(0xFFF1F8F1),
-            borderColor: const Color(0xFFC8E6C9),
-            iconColor: const Color(0xFF43A047),
-            textColor: const Color(0xFF2E7D32),
+            bgColor: AppColors.successSurface,
+            borderColor: AppColors.successSurface,
+            iconColor: AppColors.success,
+            textColor: AppColors.success,
           ),
           SizedBox(height: responsive.h(12)),
           if (!isPaid) ...[
@@ -1654,8 +1654,8 @@ class _ExistingReservationActions extends StatelessWidget {
               responsive: responsive,
               label: 'Annuler la réservation',
               onTap: controller.cancelReservation,
-              backgroundColor: const Color(0xFFFEF2F2),
-              textColor: const Color(0xFFEF4444),
+              backgroundColor: AppColors.dangerSurface,
+              textColor: AppColors.danger,
               borderRadius: responsive.radius(16),
               height: responsive.h(54),
             ),
@@ -1671,10 +1671,10 @@ class _ExistingReservationActions extends StatelessWidget {
           icon: Icons.directions_car_filled_rounded,
           title: 'Trajet en cours',
           message: 'Votre conducteur est en route. Profitez de votre trajet !',
-          bgColor: const Color(0xFFE8F5E9),
-          borderColor: const Color(0xFFA5D6A7),
+          bgColor: AppColors.successSurface,
+          borderColor: AppColors.successSurface,
           iconColor: AppColors.primary,
-          textColor: const Color(0xFF1B5E20),
+          textColor: AppColors.successDark,
         ),
         SizedBox(height: responsive.h(12)),
         Obx(() => AppPrimaryButton(
@@ -1729,7 +1729,7 @@ class _ExistingReservationActions extends StatelessWidget {
               onTap: controller.isDownloadingInvoice.value
                   ? () {}
                   : controller.downloadInvoice,
-              backgroundColor: const Color(0xFFECFDF5),
+              backgroundColor: AppColors.successSurface,
               textColor: AppColors.primary,
               borderRadius: responsive.radius(16),
               height: responsive.h(54),
@@ -1744,10 +1744,10 @@ class _ExistingReservationActions extends StatelessWidget {
         title: 'Réservation annulée',
         message:
             'Cette réservation a été annulée. Vous pouvez rechercher un autre trajet.',
-        bgColor: const Color(0xFFFEF2F2),
-        borderColor: const Color(0xFFFECACA),
-        iconColor: const Color(0xFFEF4444),
-        textColor: const Color(0xFF991B1B),
+        bgColor: AppColors.dangerSurface,
+        borderColor: AppColors.dangerBorder,
+        iconColor: AppColors.danger,
+        textColor: AppColors.dangerDark,
       );
     }
 
@@ -1833,7 +1833,7 @@ class _LocalAvatar extends StatelessWidget {
       width: size,
       height: size,
       decoration: ShapeDecoration(
-        color: const Color(0xFFF5F5F5),
+        color: AppColors.surface,
         shape: RoundedRectangleBorder(
           side: const BorderSide(color: AppColors.border),
           borderRadius: BorderRadius.circular(circle ? 9999 : 16),

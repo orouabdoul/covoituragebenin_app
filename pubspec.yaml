@@ -38,6 +38,7 @@ dependencies:
   printing: ^5.13.2
   flutter_tts: ^4.0.0
   record: ^5.2.0
+  just_audio: ^0.9.41
   path_provider: ^2.1.5
 
 dependency_overrides:

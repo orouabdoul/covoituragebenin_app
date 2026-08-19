@@ -135,7 +135,7 @@ class _SuccessHeroState extends State<_SuccessHero> with SingleTickerProviderSta
 											height: size,
 											decoration: BoxDecoration(
 												shape: BoxShape.circle,
-												color: const Color(0x147C3AED),
+												color: AppColors.primaryLight,
 											),
 										),
 										Container(
@@ -143,7 +143,7 @@ class _SuccessHeroState extends State<_SuccessHero> with SingleTickerProviderSta
 											height: size * 0.78,
 											decoration: BoxDecoration(
 												shape: BoxShape.circle,
-												color: const Color(0x2A7C3AED),
+												color: AppColors.primaryLight,
 											),
 										),
 										Container(
@@ -197,9 +197,9 @@ class _AmountDisplay extends StatelessWidget {
 			width: double.infinity,
 			padding: EdgeInsets.all(responsive.w(20)),
 			decoration: ShapeDecoration(
-				color: const Color(0x0C7C3AED),
+				color: AppColors.primaryLight,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: Color(0x337C3AED)),
+					side: const BorderSide(color: AppColors.primaryMedium),
 					borderRadius: BorderRadius.circular(responsive.radius(20)),
 				),
 			),
@@ -226,7 +226,7 @@ class _AmountDisplay extends StatelessWidget {
 						decoration: ShapeDecoration(
 							color: AppColors.white,
 							shape: RoundedRectangleBorder(
-								side: const BorderSide(color: Color(0x337C3AED)),
+								side: const BorderSide(color: AppColors.primaryMedium),
 								borderRadius: BorderRadius.circular(9999),
 							),
 						),
@@ -272,7 +272,7 @@ class _ItineraryCard extends StatelessWidget {
 						side: const BorderSide(color: AppColors.border),
 						borderRadius: BorderRadius.circular(responsive.radius(16)),
 					),
-					shadows: const [BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 2))],
+					shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 8, offset: Offset(0, 2))],
 				),
 				child: Column(
 					crossAxisAlignment: CrossAxisAlignment.start,
@@ -381,7 +381,7 @@ class _PaymentBreakdownCard extends StatelessWidget {
 						side: const BorderSide(color: AppColors.border),
 						borderRadius: BorderRadius.circular(responsive.radius(16)),
 					),
-					shadows: const [BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 2))],
+					shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 8, offset: Offset(0, 2))],
 				),
 				child: Column(
 					crossAxisAlignment: CrossAxisAlignment.start,
@@ -542,7 +542,7 @@ class _TripDetailsCard extends StatelessWidget {
 						side: const BorderSide(color: AppColors.border),
 						borderRadius: BorderRadius.circular(responsive.radius(20)),
 					),
-					shadows: const [BoxShadow(color: Color(0x14000000), blurRadius: 12, offset: Offset(0, 2))],
+					shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 12, offset: Offset(0, 2))],
 				),
 				child: Column(
 					crossAxisAlignment: CrossAxisAlignment.start,
@@ -568,7 +568,7 @@ class _TripDetailsCard extends StatelessWidget {
 						_DetailRow(
 							responsive: responsive,
 							icon: Icons.person_rounded,
-							iconColor: const Color(0xFF8B5CF6),
+							iconColor: AppColors.primary,
 							label: 'Conducteur',
 							value: driver,
 						),
@@ -584,7 +584,7 @@ class _TripDetailsCard extends StatelessWidget {
 						_DetailRow(
 							responsive: responsive,
 							icon: Icons.people_alt_rounded,
-							iconColor: const Color(0xFF06B6D4),
+							iconColor: AppColors.primary,
 							label: 'Places réservées',
 							value: '$seats place${seats > 1 ? 's' : ''}',
 						),
@@ -666,9 +666,9 @@ class _NextStepsCard extends StatelessWidget {
 			width: double.infinity,
 			padding: EdgeInsets.all(responsive.w(20)),
 			decoration: ShapeDecoration(
-				color: const Color(0xFFFFFBEB),
+				color: AppColors.warningSurface,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: Color(0xFFFDE68A)),
+					side: const BorderSide(color: AppColors.warningSurface),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
 			),
@@ -677,11 +677,11 @@ class _NextStepsCard extends StatelessWidget {
 				children: [
 					Row(
 						children: [
-							Icon(Icons.tips_and_updates_rounded, size: responsive.text(18), color: const Color(0xFFF59E0B)),
+							Icon(Icons.tips_and_updates_rounded, size: responsive.text(18), color: AppColors.warning),
 							SizedBox(width: responsive.w(8)),
 							Text(
 								'Prochaines étapes',
-								style: AppTextStyles.subtitle(responsive).copyWith(color: const Color(0xFF92400E)),
+								style: AppTextStyles.subtitle(responsive).copyWith(color: AppColors.warningDark),
 							),
 						],
 					),
@@ -729,9 +729,9 @@ class _ShareArrivalTileState extends State<_ShareArrivalTile> {
 			duration: AppResponsive.fastDuration,
 			padding: EdgeInsets.all(responsive.w(14)),
 			decoration: ShapeDecoration(
-				color: _sharing ? const Color(0xFFF0FDF8) : AppColors.white,
+				color: _sharing ? AppColors.successSurface : AppColors.white,
 				shape: RoundedRectangleBorder(
-					side: BorderSide(color: _sharing ? const Color(0x337C3AED) : AppColors.border),
+					side: BorderSide(color: _sharing ? AppColors.primaryMedium : AppColors.border),
 					borderRadius: BorderRadius.circular(14),
 				),
 			),
@@ -827,9 +827,9 @@ class _DriverContactCard extends StatelessWidget {
 				width: double.infinity,
 				padding: EdgeInsets.all(responsive.w(20)),
 				decoration: ShapeDecoration(
-					color: const Color(0xFFF0FDF8),
+					color: AppColors.successSurface,
 					shape: RoundedRectangleBorder(
-						side: const BorderSide(color: Color(0x337C3AED)),
+						side: const BorderSide(color: AppColors.primaryMedium),
 						borderRadius: BorderRadius.circular(responsive.radius(16)),
 					),
 				),
@@ -951,7 +951,7 @@ class _StepItem extends StatelessWidget {
 					height: responsive.w(20),
 					decoration: const BoxDecoration(
 						shape: BoxShape.circle,
-						color: Color(0xFFF59E0B),
+						color: AppColors.warning,
 					),
 					child: Center(
 						child: Text(
@@ -970,7 +970,7 @@ class _StepItem extends StatelessWidget {
 					child: Text(
 						text,
 						style: AppTextStyles.body(responsive).copyWith(
-							color: const Color(0xFF78350F),
+							color: AppColors.warningDark,
 							height: 1.5,
 						),
 					),

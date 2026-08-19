@@ -129,7 +129,7 @@ class _Header extends StatelessWidget {
                           vertical: r.adaptive(phone: 2, smallPhone: 1, tablet: 3, desktop: 4),
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEF4444),
+                          color: AppColors.danger,
                           borderRadius: BorderRadius.circular(r.adaptive(phone: 20, smallPhone: 18, tablet: 24, desktop: 28)),
                         ),
                         child: Text(
@@ -263,7 +263,7 @@ class _NotifCard extends StatelessWidget {
                       width: r.adaptive(phone: 10, smallPhone: 9, tablet: 11, desktop: 12),
                       height: r.adaptive(phone: 10, smallPhone: 9, tablet: 11, desktop: 12),
                       decoration: const BoxDecoration(
-                        color: Color(0xFFEF4444),
+                        color: AppColors.danger,
                         shape: BoxShape.circle,
                       ),
                     ),

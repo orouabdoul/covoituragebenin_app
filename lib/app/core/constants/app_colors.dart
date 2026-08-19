@@ -4,6 +4,7 @@ class AppColors {
   // ── Primaire — Bleu profond (marque, headers, boutons secondaires) ──────────
   static const Color primary            = Color(0xFF1A5FB4);
   static const Color primaryLight       = Color(0x1A1A5FB4); // primary à 10 %
+  static const Color primaryMedium      = Color(0x331A5FB4); // primary à 20 %
   static const Color primarySurface     = Color(0xFFEBF2FF); // bleu très clair
 
   // ── Accent / CTA — Orange corail (1 CTA visible par écran max) ─────────────
@@ -15,17 +16,20 @@ class AppColors {
   static const Color success            = Color(0xFF17A398);
   static const Color successLight       = Color(0x1A17A398); // success à 10 %
   static const Color successSurface     = Color(0xFFE6F7F6); // turquoise très clair
+  static const Color successDark        = Color(0xFF0D6E66); // texte sur fond success
 
   // ── Alerte / Litige — Ambre ────────────────────────────────────────────────
   static const Color warning            = Color(0xFFF5A623);
   static const Color warningLight       = Color(0x1AF5A623); // warning à 10 %
   static const Color warningSurface     = Color(0xFFFEF6E4); // ambre très clair
+  static const Color warningDark        = Color(0xFF92400E); // texte sur fond warning
 
   // ── Erreur — Rouge discret ─────────────────────────────────────────────────
   static const Color danger             = Color(0xFFE5484D);
   static const Color dangerLight        = Color(0x1AE5484D);
   static const Color dangerSurface      = Color(0xFFFFF1F1);
   static const Color dangerBorder       = Color(0xFFFFCDD2);
+  static const Color dangerDark         = Color(0xFF991B1B); // texte sur fond danger
 
   // ── Neutres & Fonds ────────────────────────────────────────────────────────
   static const Color white              = Color(0xFFFFFFFF);
@@ -57,6 +61,29 @@ class AppColors {
   static const Color surfaceInfo            = primarySurface;  // bleu clair = info
   static const Color surfaceWarning         = warningSurface;
   static const Color surfaceWarningStrong   = warning;
+
+  // ── Teintes onboarding (dérivées de la palette marque) ────────────────────
+  static const Color onboardingBlue  = Color(0xFFBAD0E9); // primary × 30 %
+  static const Color onboardingAmber = Color(0xFFFCE5BD); // warning × 30 %
+  static const Color onboardingTeal  = Color(0xFFB9E6E4); // success × 30 %
+
+  // ── Overlays semi-transparents ─────────────────────────────────────────────
+  static const Color overlayLight    = Color(0x7FF5F5F5); // surface 50 % opaque
+  static const Color overlayMedium   = Color(0x4CF5F5F5); // surface 30 % opaque
+
+  // ── Dégradé splash ────────────────────────────────────────────────────────
+  static const Color splashDeep      = Color(0xFF0A2F5C); // bleu nuit (bas du gradient)
+
+  // ── Badges niveaux chauffeur ───────────────────────────────────────────────
+  static const Color badgeGold       = Color(0xFFD4AF37); // or
+  static const Color badgeBronze     = Color(0xFFCD7F32); // bronze
+  static const Color badgeSilver     = Color(0xFF795548); // brun/argent mat
+  static const Color badgeYellow     = Color(0xFFFFCC00); // jaune (MTN / badge)
+
+  // ── Blanc semi-transparent (overlays carte / boutons) ─────────────────────
+  static const Color white50         = Color(0x80FFFFFF); // blanc 50 %
+  static const Color white31         = Color(0x50FFFFFF); // blanc 31 %
+  static const Color white25         = Color(0x40FFFFFF); // blanc 25 %
 
   // ── Alias de compatibilité ─────────────────────────────────────────────────
   static const Color info           = primary;         // notifications info → bleu

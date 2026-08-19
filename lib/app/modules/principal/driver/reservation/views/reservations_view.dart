@@ -151,7 +151,7 @@ class _NotifBadge extends StatelessWidget {
             width: r.w(18),
             height: r.w(18),
             decoration: const ShapeDecoration(
-              color: Color(0xFFE53935),
+              color: AppColors.danger,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.all(Radius.circular(999)),
               ),
@@ -286,7 +286,7 @@ class _ReservationCard extends StatelessWidget {
           ),
           shadows: const [
             BoxShadow(
-                color: Color(0x0D000000), blurRadius: 8, offset: Offset(0, 2)),
+                color: AppColors.shadowSoft, blurRadius: 8, offset: Offset(0, 2)),
           ],
         ),
         child: Column(
@@ -397,11 +397,11 @@ class _ReservationCard extends StatelessWidget {
                               ? request.amountLabel
                               : 'Paiement en attente',
                           iconColor: request.paymentConfirmed
-                              ? const Color(0xFF16A34A)
+                              ? AppColors.success
                               : AppColors.warning,
                           bgColor: request.paymentConfirmed
-                              ? const Color(0xFFDCFCE7)
-                              : const Color(0xFFFFFBEB),
+                              ? AppColors.successSurface
+                              : AppColors.warningSurface,
                         ),
                       ),
                     ],
@@ -416,9 +416,9 @@ class _ReservationCard extends StatelessWidget {
                           child: _ActionBtn(
                             r: r,
                             label: 'Refuser',
-                            bgColor: const Color(0xFFFEF2F2),
-                            textColor: const Color(0xFFE53935),
-                            borderColor: const Color(0xFFFECACA),
+                            bgColor: AppColors.dangerSurface,
+                            textColor: AppColors.danger,
+                            borderColor: AppColors.dangerBorder,
                             onTap: () => controller.onReject(request),
                           ),
                         ),
@@ -464,8 +464,8 @@ class _ReservationCard extends StatelessWidget {
                           _IconBtn(
                             r: r,
                             icon: Icons.phone_rounded,
-                            bgColor: const Color(0xFFDCFCE7),
-                            iconColor: const Color(0xFF16A34A),
+                            bgColor: AppColors.successSurface,
+                            iconColor: AppColors.success,
                             onTap: () => controller.onCallPassenger(request),
                           ),
                         ],
@@ -488,9 +488,9 @@ class _ReservationCard extends StatelessWidget {
                             child: _ActionBtn(
                               r: r,
                               label: 'Appeler',
-                              bgColor: const Color(0xFFDCFCE7),
-                              textColor: const Color(0xFF16A34A),
-                              borderColor: const Color(0xFF16A34A).withValues(alpha: 0.30),
+                              bgColor: AppColors.successSurface,
+                              textColor: AppColors.success,
+                              borderColor: AppColors.success.withValues(alpha: 0.30),
                               onTap: () => controller.onCallPassenger(request),
                             ),
                           ),
@@ -556,13 +556,13 @@ class _UrgencyBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final (bg, text, icon) = switch (urgency) {
       ReservationUrgency.critical => (
-          const Color(0xFFFEF2F2),
-          const Color(0xFFE53935),
+          AppColors.dangerSurface,
+          AppColors.danger,
           Icons.timer_off_rounded,
         ),
       ReservationUrgency.warning => (
-          const Color(0xFFFFFBEB),
-          const Color(0xFFF59E0B),
+          AppColors.warningSurface,
+          AppColors.warning,
           Icons.timer_rounded,
         ),
       ReservationUrgency.normal => (
@@ -618,7 +618,7 @@ class _RouteRow extends StatelessWidget {
                 width: 1.5, height: r.h(28),
                 color: AppColors.border),
             Icon(Icons.location_on_rounded,
-                size: r.text(14), color: const Color(0xFFE53935)),
+                size: r.text(14), color: AppColors.danger),
           ],
         ),
         SizedBox(width: r.w(10)),
@@ -844,14 +844,14 @@ class _StatusBadge extends StatelessWidget {
     final (label, bg, text, icon) = switch (status) {
       ReservationStatus.accepted => (
           'Acceptée',
-          const Color(0xFFDCFCE7),
-          const Color(0xFF16A34A),
+          AppColors.successSurface,
+          AppColors.success,
           Icons.check_circle_rounded,
         ),
       ReservationStatus.rejected => (
           'Refusée',
-          const Color(0xFFFEF2F2),
-          const Color(0xFFE53935),
+          AppColors.dangerSurface,
+          AppColors.danger,
           Icons.cancel_rounded,
         ),
       ReservationStatus.expired => (

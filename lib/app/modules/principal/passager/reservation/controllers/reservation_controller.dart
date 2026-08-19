@@ -459,7 +459,7 @@ class _CancellationDialog extends StatelessWidget {
 	@override
 	Widget build(BuildContext context) {
 		final responsive = AppResponsive(context);
-		final Color accentColor = isFree ? AppColors.primary : const Color(0xFFF59E0B);
+		final Color accentColor = isFree ? AppColors.primary : AppColors.warning;
 
 		return Dialog(
 			backgroundColor: AppColors.white,
@@ -527,7 +527,7 @@ class _CancellationDialog extends StatelessWidget {
 									child: ElevatedButton(
 										onPressed: onConfirm,
 										style: ElevatedButton.styleFrom(
-											backgroundColor: const Color(0xFFEF4444),
+											backgroundColor: AppColors.danger,
 											foregroundColor: Colors.white,
 											elevation: 0,
 											padding: EdgeInsets.symmetric(vertical: responsive.h(14)),
@@ -604,9 +604,9 @@ class _PenaltyBlock extends StatelessWidget {
 			children: [
 				Row(
 					children: [
-						Icon(Icons.warning_amber_rounded, size: responsive.text(14), color: const Color(0xFFF59E0B)),
+						Icon(Icons.warning_amber_rounded, size: responsive.text(14), color: AppColors.warning),
 						SizedBox(width: responsive.w(6)),
-						Text('Frais d\'annulation', style: AppTextStyles.subtitle(responsive).copyWith(color: const Color(0xFFF59E0B))),
+						Text('Frais d\'annulation', style: AppTextStyles.subtitle(responsive).copyWith(color: AppColors.warning)),
 					],
 				),
 				SizedBox(height: responsive.h(8)),
@@ -616,13 +616,13 @@ class _PenaltyBlock extends StatelessWidget {
 				),
 				if (reservation.isPaid) ...[
 					SizedBox(height: responsive.h(10)),
-					Divider(color: const Color(0xFFF59E0B).withValues(alpha: 0.25)),
+					Divider(color: AppColors.warning.withValues(alpha: 0.25)),
 					SizedBox(height: responsive.h(10)),
 					Row(
 						mainAxisAlignment: MainAxisAlignment.spaceBetween,
 						children: [
 							Text('Frais retenus (20 %)', style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textSecondary)),
-							Text('$fmtPenalty F', style: AppTextStyles.caption(responsive).copyWith(color: const Color(0xFFEF4444), fontWeight: FontWeight.w700)),
+							Text('$fmtPenalty F', style: AppTextStyles.caption(responsive).copyWith(color: AppColors.danger, fontWeight: FontWeight.w700)),
 						],
 					),
 					SizedBox(height: responsive.h(6)),

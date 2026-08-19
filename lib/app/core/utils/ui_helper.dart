@@ -2,6 +2,7 @@ import 'package:covoiturage_benin_app/app/core/controller/loading_controller.dar
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'loading_indicator.dart';
+import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 
 class UIHelper {
   final LoadingController loadingController = LoadingController.instance;
@@ -42,10 +43,10 @@ class UIHelper {
       snackPosition: SnackPosition.BOTTOM,
       dismissDirection: DismissDirection.horizontal,
       backgroundColor: messageType == 0
-          ? const Color(0xFF06C2A3)
+          ? AppColors.success
           : messageType == 1
               ? const Color.fromARGB(62, 33, 31, 3)
-              : const Color(0xFFE80B0B),
+              : AppColors.danger,
       margin: const EdgeInsets.only(
           left: 10, right: 10, bottom: kBottomNavigationBarHeight),
       snackStyle: SnackStyle.GROUNDED,
@@ -147,7 +148,7 @@ class UIHelper {
                   Text(
                     title,
                     style: TextStyle(
-                      color: const Color(0xFF121212),
+                      color: AppColors.textPrimary,
                       fontSize: 14,
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w700,
@@ -155,12 +156,12 @@ class UIHelper {
                   ),
                   const SizedBox(height: 10),
                   const Divider(
-                    color: Color(0x4C121212),
+                    color: AppColors.shadow,
                     thickness: 0.5,
                   ),
                   child,
                   const Divider(
-                    color: Color(0x4C121212),
+                    color: AppColors.shadow,
                     thickness: 0.5,
                   ),
                   const SizedBox(height: 10),

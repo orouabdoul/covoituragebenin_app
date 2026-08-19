@@ -20,7 +20,7 @@ class LiveTrackingView extends StatelessWidget {
 		final responsive = AppResponsive(context);
 
 		return Scaffold(
-			backgroundColor: const Color(0xFFE8EFF0),
+			backgroundColor: AppColors.surface,
 			body: Stack(
 				fit: StackFit.expand,
 				children: [
@@ -121,7 +121,7 @@ class _LiveMap extends StatelessWidget {
 						return PolylineLayer(polylines: [
 							Polyline(
 								points: [p, d],
-								color: const Color(0xFFCDD6DA),
+								color: AppColors.borderStrong,
 								strokeWidth: 7.0,
 								strokeCap: StrokeCap.round,
 								strokeJoin: StrokeJoin.round,
@@ -131,11 +131,11 @@ class _LiveMap extends StatelessWidget {
 					return PolylineLayer(polylines: [
 						Polyline(
 							points: pts,
-							color: const Color(0xFFCDD6DA),
+							color: AppColors.borderStrong,
 							strokeWidth: 7.5,
 							strokeCap: StrokeCap.round,
 							strokeJoin: StrokeJoin.round,
-							borderColor: const Color(0x50FFFFFF),
+							borderColor: AppColors.white31,
 							borderStrokeWidth: 1.5,
 						),
 					]);
@@ -153,7 +153,7 @@ class _LiveMap extends StatelessWidget {
 							strokeWidth: 7.5,
 							strokeCap: StrokeCap.round,
 							strokeJoin: StrokeJoin.round,
-							borderColor: const Color(0x40FFFFFF),
+							borderColor: AppColors.white25,
 							borderStrokeWidth: 2.5,
 						),
 					]);
@@ -224,7 +224,7 @@ class _PickupCallout extends StatelessWidget {
 						color: _bg,
 						borderRadius: BorderRadius.circular(10),
 						boxShadow: const [
-							BoxShadow(color: Color(0x557C3AED), blurRadius: 10, offset: Offset(0, 4)),
+							BoxShadow(color: AppColors.primary, blurRadius: 10, offset: Offset(0, 4)),
 						],
 					),
 					child: Row(
@@ -258,7 +258,7 @@ class _PickupCallout extends StatelessWidget {
 						color: _bg,
 						shape: BoxShape.circle,
 						border: Border.all(color: Colors.white, width: 2.5),
-						boxShadow: const [BoxShadow(color: Color(0x457C3AED), blurRadius: 6)],
+						boxShadow: const [BoxShadow(color: AppColors.primary, blurRadius: 6)],
 					),
 				),
 			],
@@ -271,7 +271,7 @@ class _DropoffCallout extends StatelessWidget {
 	const _DropoffCallout({required this.label});
 	final String label;
 
-	static const _bg = Color(0xFFEF4444);
+	static const _bg = AppColors.danger;
 
 	@override
 	Widget build(BuildContext context) {
@@ -287,7 +287,7 @@ class _DropoffCallout extends StatelessWidget {
 						color: _bg,
 						borderRadius: BorderRadius.circular(10),
 						boxShadow: const [
-							BoxShadow(color: Color(0x55EF4444), blurRadius: 10, offset: Offset(0, 4)),
+							BoxShadow(color: AppColors.danger, blurRadius: 10, offset: Offset(0, 4)),
 						],
 					),
 					child: Row(
@@ -319,7 +319,7 @@ class _DropoffCallout extends StatelessWidget {
 						color: _bg,
 						shape: BoxShape.circle,
 						border: Border.all(color: Colors.white, width: 2.5),
-						boxShadow: const [BoxShadow(color: Color(0x55EF4444), blurRadius: 6)],
+						boxShadow: const [BoxShadow(color: AppColors.danger, blurRadius: 6)],
 					),
 				),
 			],
@@ -455,7 +455,7 @@ class _TopBar extends StatelessWidget {
 					_GlassButton(
 						icon: Icons.crisis_alert_rounded,
 						onTap: controller.triggerSOS,
-						color: const Color(0xFFEF4444),
+						color: AppColors.danger,
 					),
 				],
 			),
@@ -482,12 +482,12 @@ class _StatusChip extends StatelessWidget {
 			decoration: BoxDecoration(
 				color: Colors.white,
 				borderRadius: BorderRadius.circular(9999),
-				boxShadow: const [BoxShadow(color: Color(0x30000000), blurRadius: 10)],
+				boxShadow: const [BoxShadow(color: AppColors.shadow, blurRadius: 10)],
 			),
 			child: Row(
 				mainAxisSize: MainAxisSize.min,
 				children: [
-					_PulsingDot(color: started ? AppColors.primary : const Color(0xFFF59E0B)),
+					_PulsingDot(color: started ? AppColors.primary : AppColors.warning),
 					SizedBox(width: responsive.w(7)),
 					Text(
 						started ? 'Trajet en cours' : 'En attente',
@@ -497,7 +497,7 @@ class _StatusChip extends StatelessWidget {
 					if (!voiceOn) ...[
 						SizedBox(width: responsive.w(6)),
 						const Icon(Icons.volume_off_rounded,
-								size: 13, color: Color(0xFF9CA3AF)),
+								size: 13, color: AppColors.textHint),
 					],
 				],
 			),
@@ -531,7 +531,7 @@ class _GlassButton extends StatelessWidget {
 						border: Border.all(
 							color: color ?? Colors.white.withValues(alpha: 0.50)),
 						boxShadow: const [
-							BoxShadow(color: Color(0x30000000), blurRadius: 8),
+							BoxShadow(color: AppColors.shadow, blurRadius: 8),
 						],
 					),
 					child: Icon(icon,
@@ -622,7 +622,7 @@ class _FloatingButtons extends StatelessWidget {
 							: Icons.volume_off_rounded,
 					color: controller.voiceEnabled.value
 							? AppColors.primary
-							: const Color(0xFF9CA3AF),
+							: AppColors.textHint,
 					onTap: controller.toggleVoice,
 					responsive: responsive,
 				)),
@@ -656,7 +656,7 @@ class _MapFab extends StatelessWidget {
 					shape: BoxShape.circle,
 					boxShadow: const [
 						BoxShadow(
-								color: Color(0x30000000), blurRadius: 8, offset: Offset(0, 2)),
+								color: AppColors.shadow, blurRadius: 8, offset: Offset(0, 2)),
 					],
 				),
 				child: Icon(icon, color: color, size: responsive.text(20)),
@@ -681,11 +681,11 @@ class _WaitingBanner extends StatelessWidget {
 			final status = controller.apiTripStatus.value;
 			// Si l'API indique un statut de démarrage, passer en mode "en cours"
 			final isNearStart = status == 'picking_up' || status == 'accepted' || status == 'confirmed';
-			final bgColor  = isNearStart ? const Color(0xFFEFF6FF) : const Color(0xFFFFFBEB);
-			final border   = isNearStart ? const Color(0xFF3B82F6) : const Color(0xFFF59E0B);
-			final iconColor= isNearStart ? const Color(0xFF3B82F6) : const Color(0xFFF59E0B);
-			final titleColor= isNearStart ? const Color(0xFF1E3A8A) : const Color(0xFF92400E);
-			final subColor = isNearStart ? const Color(0xFF2563EB) : const Color(0xFFB45309);
+			final bgColor  = isNearStart ? AppColors.primarySurface : AppColors.warningSurface;
+			final border   = isNearStart ? AppColors.primary : AppColors.warning;
+			final iconColor= isNearStart ? AppColors.primary : AppColors.warning;
+			final titleColor= isNearStart ? AppColors.blueDark : AppColors.warningDark;
+			final subColor = isNearStart ? AppColors.primary : AppColors.warningDark;
 			final icon     = isNearStart ? Icons.near_me_rounded   : Icons.access_time_rounded;
 
 			return Padding(
@@ -702,7 +702,7 @@ class _WaitingBanner extends StatelessWidget {
 						borderRadius: BorderRadius.circular(responsive.radius(14)),
 						border: Border.all(color: border.withValues(alpha: 0.40)),
 						boxShadow: const [
-							BoxShadow(color: Color(0x20000000), blurRadius: 14, offset: Offset(0, 4)),
+							BoxShadow(color: AppColors.shadow, blurRadius: 14, offset: Offset(0, 4)),
 						],
 					),
 					child: Row(
@@ -805,7 +805,7 @@ class _BottomPanel extends StatelessWidget {
 				borderRadius:
 						BorderRadius.vertical(top: Radius.circular(responsive.radius(22))),
 				boxShadow: const [
-					BoxShadow(color: Color(0x40000000), blurRadius: 22, offset: Offset(0, -4)),
+					BoxShadow(color: AppColors.shadow, blurRadius: 22, offset: Offset(0, -4)),
 				],
 			),
 			padding: EdgeInsets.fromLTRB(
@@ -885,7 +885,7 @@ class _RouteRow extends StatelessWidget {
 						Container(
 							width: 11, height: 11,
 							decoration: const BoxDecoration(
-									color: Color(0xFFEF4444), shape: BoxShape.circle),
+									color: AppColors.danger, shape: BoxShape.circle),
 						),
 					],
 				),
@@ -944,7 +944,7 @@ class _MetricsRow extends StatelessWidget {
 					child: _MetricTile(
 						responsive: responsive,
 						icon: Icons.route_rounded,
-						iconColor: const Color(0xFF3B82F6),
+						iconColor: AppColors.primary,
 						label: 'Restant',
 						value: '${controller.distanceRemainingKm.value} km',
 					),
@@ -954,7 +954,7 @@ class _MetricsRow extends StatelessWidget {
 					child: _MetricTile(
 						responsive: responsive,
 						icon: Icons.speed_rounded,
-						iconColor: const Color(0xFFF59E0B),
+						iconColor: AppColors.warning,
 						label: 'Vitesse',
 						value: '${controller.driverSpeedKmh.value} km/h',
 					),
@@ -975,7 +975,7 @@ class _WaitingMetrics extends StatelessWidget {
 			padding: EdgeInsets.symmetric(
 					horizontal: responsive.w(14), vertical: responsive.h(10)),
 			decoration: BoxDecoration(
-				color: const Color(0xFFF5F7F5),
+				color: AppColors.surface,
 				borderRadius: BorderRadius.circular(responsive.radius(10)),
 			),
 			child: Row(
@@ -1055,7 +1055,7 @@ class _DriverRow extends StatelessWidget {
 							Row(
 								children: [
 									const Icon(Icons.star_rounded,
-											size: 12, color: Color(0xFFF4B400)),
+											size: 12, color: AppColors.warning),
 									SizedBox(width: responsive.w(3)),
 									Expanded(
 										child: Text(
@@ -1190,7 +1190,7 @@ class _TripEndedOverlay extends StatelessWidget {
 								width:  responsive.w(72),
 								height: responsive.w(72),
 								decoration: const BoxDecoration(
-										shape: BoxShape.circle, color: Color(0x197C3AED)),
+										shape: BoxShape.circle, color: AppColors.primaryLight),
 								child: const Icon(Icons.check_circle_rounded,
 										color: AppColors.primary, size: 40),
 							),
@@ -1236,7 +1236,7 @@ class _DriverAvatar extends StatelessWidget {
 		return Container(
 			width: size, height: size,
 			decoration: BoxDecoration(
-				color: const Color(0xFFF0FDF4),
+				color: AppColors.successSurface,
 				borderRadius: BorderRadius.circular(14),
 				border: Border.all(color: AppColors.border),
 			),

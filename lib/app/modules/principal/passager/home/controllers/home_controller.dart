@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:flutter/material.dart' hide SearchController;
 import 'package:get/get.dart';
 
@@ -294,11 +295,11 @@ class HomeController extends GetxController {
   static List<Color> _offerColors(String key) {
     switch (key) {
       case 'first_trip':
-        return [const Color(0xFFF4B400), const Color(0xFFFBBF24)];
+        return [AppColors.warning, AppColors.warning];
       case 'cashback':
-        return [const Color(0xFF7C3AED), const Color(0xFF10B981)];
+        return [AppColors.primary, AppColors.success];
       default:
-        return [const Color(0xFF3B82F6), const Color(0xFF6366F1)];
+        return [AppColors.primary, AppColors.primary];
     }
   }
 
@@ -346,25 +347,25 @@ class HomeController extends GetxController {
         HomeQuickAction(
           label: 'Réservations',
           icon: Icons.event_note_rounded,
-          color: const Color(0xFF7C3AED),
+          color: AppColors.primary,
           onTap: openReservations,
         ),
         HomeQuickAction(
           label: 'Mes trajets',
           icon: Icons.directions_car_rounded,
-          color: const Color(0xFF3B82F6),
+          color: AppColors.primary,
           onTap: openTripHistory,
         ),
         HomeQuickAction(
           label: 'Remboursements',
           icon: Icons.account_balance_wallet_rounded,
-          color: const Color(0xFFF59E0B),
+          color: AppColors.warning,
           onTap: openRefundRequest,
         ),
         HomeQuickAction(
           label: 'Assistance',
           icon: Icons.headset_mic_rounded,
-          color: const Color(0xFF8B5CF6),
+          color: AppColors.primary,
           onTap: openSupport,
         ),
       ];

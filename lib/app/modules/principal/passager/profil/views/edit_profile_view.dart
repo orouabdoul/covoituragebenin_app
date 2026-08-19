@@ -311,11 +311,11 @@ class _Field extends StatelessWidget {
 						),
 						errorBorder: OutlineInputBorder(
 							borderRadius: BorderRadius.circular(responsive.radius(12)),
-							borderSide: const BorderSide(color: Color(0xFFEF4444)),
+							borderSide: const BorderSide(color: AppColors.danger),
 						),
 						focusedErrorBorder: OutlineInputBorder(
 							borderRadius: BorderRadius.circular(responsive.radius(12)),
-							borderSide: const BorderSide(color: Color(0xFFEF4444), width: 1.5),
+							borderSide: const BorderSide(color: AppColors.danger, width: 1.5),
 						),
 					),
 				),

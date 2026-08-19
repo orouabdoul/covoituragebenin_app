@@ -271,9 +271,9 @@ class _TopBar extends StatelessWidget {
             width: responsive.w(40),
             height: responsive.w(40),
             decoration: BoxDecoration(
-              color: const Color(0xFFF0FDF8),
+              color: AppColors.successSurface,
               shape: BoxShape.circle,
-              border: Border.all(color: const Color(0x337C3AED)),
+              border: Border.all(color: AppColors.primary),
             ),
             child: Icon(Icons.shield_rounded, color: AppColors.primary, size: responsive.text(18)),
           ),
@@ -320,7 +320,7 @@ class _QuickActionsRow extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.caption(responsive).copyWith(
-                    color: AppColors.textPrimary,
+                    color: AppColors.primary,
                     fontWeight: FontWeight.w600,
                     fontSize: responsive.text(10.5),
                     height: 1.25,
@@ -353,7 +353,7 @@ class _SearchBar extends StatelessWidget {
           color: AppColors.white,
           borderRadius: BorderRadius.circular(responsive.radius(14)),
           border: Border.all(color: AppColors.border),
-          boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 8, offset: Offset(0, 2))],
+          boxShadow: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 8, offset: Offset(0, 2))],
         ),
         child: Row(
           children: [
@@ -474,9 +474,9 @@ class _TripTrackingCard extends StatelessWidget {
     final Color color = isActive
         ? AppColors.primary
         : isArriving
-            ? const Color(0xFFF59E0B)
+            ? AppColors.warning
             : trip.isPending
-                ? const Color(0xFFF59E0B)
+                ? AppColors.warning
                 : AppColors.blue;
 
     final String statusText = isActive
@@ -617,7 +617,7 @@ class _TripTrackingCard extends StatelessWidget {
                   Container(
                     width: 10, height: 10,
                     decoration: const BoxDecoration(
-                        color: Color(0xFFE53935), shape: BoxShape.circle),
+                        color: AppColors.danger, shape: BoxShape.circle),
                   ),
                 ],
               ),
@@ -1140,7 +1140,7 @@ class _HeroSection extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF7C3AED), Color(0xFF6D28D9)],
+          colors: [AppColors.primary, AppColors.primary],
         ),
         shape: RoundedRectangleBorder(
           side: const BorderSide(color: AppColors.border),
@@ -1425,7 +1425,7 @@ class _RideCard extends StatelessWidget {
           Container(
             decoration: const ShapeDecoration(
               shape: RoundedRectangleBorder(
-                side: BorderSide(color: Color(0xFFF3F4F6)),
+                side: BorderSide(color: AppColors.surface),
               ),
             ),
             padding: EdgeInsets.only(top: responsive.h(12)),
@@ -1695,7 +1695,7 @@ class _RecentActivityList extends StatelessWidget {
             if (index != activities.length - 1)
               Padding(
                 padding: EdgeInsets.symmetric(vertical: responsive.h(12)),
-                child: const Divider(height: 1, color: Color(0xFFF3F4F6)),
+                child: const Divider(height: 1, color: AppColors.surface),
               ),
           ],
         ],
@@ -1773,7 +1773,7 @@ class _DriverAvatar extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF7C3AED), Color(0xFF10B981)],
+          colors: [AppColors.primary, AppColors.success],
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(9999),
@@ -1805,12 +1805,12 @@ String _initialsFromName(String name) {
 Color _driverLevelColor(String level) {
   switch (level.toLowerCase()) {
     case 'or':
-      return const Color(0xFFD4AF37);
+      return AppColors.badgeGold;
     case 'platine':
-      return const Color(0xFF7C3AED);
+      return AppColors.primary;
     case 'argent':
-      return const Color(0xFF6B7280);
+      return AppColors.textSecondary;
     default:
-      return const Color(0xFFCD7F32);
+      return AppColors.badgeBronze;
   }
 }

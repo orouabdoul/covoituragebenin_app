@@ -9,6 +9,7 @@ import 'package:covoiturage_benin_app/app/data/models/driver/pre_departure_model
 import 'package:covoiturage_benin_app/app/data/models/driver/trip_model.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/driver/trajet/controllers/trajet_controller.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
+import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 
 class ActiveTripController extends GetxController {
   ActiveTripService get _service => Get.find<ActiveTripService>();
@@ -80,7 +81,7 @@ class ActiveTripController extends GetxController {
               onPressed: () => Get.back(result: true),
               child: const Text('Démarrer',
                   style: TextStyle(
-                      color: Color(0xFF7C3AED),
+                      color: AppColors.primary,
                       fontWeight: FontWeight.w700)),
             ),
           ],

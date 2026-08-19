@@ -150,48 +150,48 @@ Color _colorForType(String type) {
     case 'trip_reminder':
     case 'new_booking_request':
     case 'trip_completed':
-      return const Color(0xFF1565C0);
+      return AppColors.blueDark;
     case 'trip_started':
     case 'trip_proximity':
     case 'booking_status_changed':
-      return const Color(0xFF2E7D32);
+      return AppColors.success;
     case 'trip_ended':
-      return const Color(0xFF1565C0);
+      return AppColors.blueDark;
     case 'reservation_rejected':
     case 'booking_cancelled':
     case 'trip_cancelled':
     case 'account_blocked':
     case 'account_status_changed':
-      return const Color(0xFFB71C1C);
+      return AppColors.dangerDark;
     case 'payment_success':
     case 'payment_confirmed':
     case 'withdrawal_approved':
     case 'refund_approved':
     case 'payout_paid':
-      return const Color(0xFF1B5E20);
+      return AppColors.successDark;
     case 'withdrawal_rejected':
     case 'refund_rejected':
     case 'dispute_status_changed':
     case 'new_dispute':
-      return const Color(0xFFE65100);
+      return AppColors.accent;
     case 'withdrawal_requested':
     case 'withdrawal_processed':
-      return const Color(0xFF4527A0);
+      return AppColors.primary;
     case 'message_new':
     case 'new_message':
-      return const Color(0xFF4527A0);
+      return AppColors.primary;
     case 'review_new':
     case 'review_reply':
-      return const Color(0xFFF57F17);
+      return AppColors.warning;
     case 'account_verified':
     case 'kyc_status_changed':
-      return const Color(0xFF2E7D32);
+      return AppColors.success;
     case 'sos_triggered':
-      return const Color(0xFFB71C1C);
+      return AppColors.dangerDark;
     case 'promo_code_published':
-      return const Color(0xFFF57F17);
+      return AppColors.warning;
     default:
-      return const Color(0xFF1565C0);
+      return AppColors.blueDark;
   }
 }
 
@@ -672,7 +672,7 @@ class PushNotificationService {
     Get.dialog(
       _AlertDialogWidget(
         icon: Icons.block_rounded,
-        iconColor: const Color(0xFFE53935),
+        iconColor: AppColors.danger,
         title: 'Compte suspendu',
         message:
             'Votre compte a été temporairement suspendu. Contactez le support pour plus d\'informations.',
@@ -695,12 +695,12 @@ class PushNotificationService {
     Get.snackbar(
       'Compte restauré',
       'Votre compte a été réactivé. Bienvenue de retour !',
-      backgroundColor: const Color(0xFF2E7D32),
-      colorText: const Color(0xFFFFFFFF),
+      backgroundColor: AppColors.success,
+      colorText: AppColors.white,
       snackPosition: SnackPosition.TOP,
       margin: const EdgeInsets.all(16),
       borderRadius: 12,
-      icon: const Icon(Icons.check_circle_rounded, color: Color(0xFFFFFFFF)),
+      icon: const Icon(Icons.check_circle_rounded, color: AppColors.white),
       duration: const Duration(seconds: 4),
     );
   }
@@ -894,12 +894,12 @@ class _PromoBottomSheet extends StatelessWidget {
             width: r.w(64),
             height: r.w(64),
             decoration: BoxDecoration(
-              color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
+              color: AppColors.warning.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.local_offer_rounded,
-              color: const Color(0xFFF59E0B),
+              color: AppColors.warning,
               size: r.text(30),
             ),
           ),
@@ -927,7 +927,7 @@ class _PromoBottomSheet extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.surfaceMuted,
                 borderRadius: BorderRadius.circular(r.radius(12)),
-                border: Border.all(color: const Color(0xFFF59E0B)),
+                border: Border.all(color: AppColors.warning),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,

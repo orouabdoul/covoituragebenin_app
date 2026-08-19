@@ -19,7 +19,7 @@ class DriverArrivalView extends StatelessWidget {
     final r = AppResponsive(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFE8EFF0),
+      backgroundColor: AppColors.surface,
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -83,7 +83,7 @@ class _ArrivalMap extends StatelessWidget {
         PolylineLayer(polylines: [
           Polyline(
             points: [controller.pickupLatLng, controller.destinationLatLng],
-            color: const Color(0xFF9DBBAB),
+            color: AppColors.successSurface,
             strokeWidth: 5.0,
             strokeCap: StrokeCap.round,
             strokeJoin: StrokeJoin.round,
@@ -94,7 +94,7 @@ class _ArrivalMap extends StatelessWidget {
         PolylineLayer(polylines: [
           Polyline(
             points: [controller.driverStartLatLng, controller.pickupLatLng],
-            color: const Color(0xFFCFD8DC),
+            color: AppColors.border,
             strokeWidth: 4.0,
             strokeCap: StrokeCap.round,
             strokeJoin: StrokeJoin.round,
@@ -166,7 +166,7 @@ class _PickupPin extends StatelessWidget {
             color: AppColors.blue,
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white, width: 3),
-            boxShadow: const [BoxShadow(color: Color(0x504444FF), blurRadius: 10, offset: Offset(0, 3))],
+            boxShadow: const [BoxShadow(color: AppColors.primaryLight, blurRadius: 10, offset: Offset(0, 3))],
           ),
           child: const Icon(Icons.person_rounded, color: Colors.white, size: 20),
         ),
@@ -195,17 +195,17 @@ class _DestinationPin extends StatelessWidget {
           width: 42,
           height: 42,
           decoration: BoxDecoration(
-            color: const Color(0xFFEF4444),
+            color: AppColors.danger,
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white, width: 3),
-            boxShadow: const [BoxShadow(color: Color(0x50EF4444), blurRadius: 10, offset: Offset(0, 3))],
+            boxShadow: const [BoxShadow(color: AppColors.danger, blurRadius: 10, offset: Offset(0, 3))],
           ),
           child: const Icon(Icons.flag_rounded, color: Colors.white, size: 20),
         ),
         Container(
           width: 3, height: 12,
           decoration: const BoxDecoration(
-            color: Color(0xFFEF4444),
+            color: AppColors.danger,
             borderRadius: BorderRadius.only(
               bottomLeft: Radius.circular(4),
               bottomRight: Radius.circular(4),
@@ -225,12 +225,12 @@ class _DriverCarMarker extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: isArrived ? AppColors.primary : const Color(0xFF00C278),
+        color: isArrived ? AppColors.primary : AppColors.success,
         shape: BoxShape.circle,
         border: Border.all(color: Colors.white, width: 3),
         boxShadow: [
           BoxShadow(
-            color: (isArrived ? AppColors.primary : const Color(0xFF00C278)).withValues(alpha: 0.5),
+            color: (isArrived ? AppColors.primary : AppColors.success).withValues(alpha: 0.5),
             blurRadius: 14,
             offset: const Offset(0, 4),
           ),
@@ -294,7 +294,7 @@ class _FabBtn extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           shape: BoxShape.circle,
-          boxShadow: const [BoxShadow(color: Color(0x30000000), blurRadius: 8, offset: Offset(0, 2))],
+          boxShadow: const [BoxShadow(color: AppColors.shadow, blurRadius: 8, offset: Offset(0, 2))],
         ),
         child: Icon(icon, color: color ?? AppColors.textPrimary, size: r.text(20)),
       ),
@@ -322,7 +322,7 @@ class _HeaderBar extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(9999),
-              boxShadow: const [BoxShadow(color: Color(0x30000000), blurRadius: 10)],
+              boxShadow: const [BoxShadow(color: AppColors.shadow, blurRadius: 10)],
             ),
             child: Obx(() {
               final isArrived = controller.status.value == DriverArrivalStatus.arrived;
@@ -414,7 +414,7 @@ class _GlassBtn extends StatelessWidget {
             color: color != null ? color!.withValues(alpha: 0.15) : Colors.white,
             shape: BoxShape.circle,
             border: Border.all(color: color ?? Colors.white.withValues(alpha: 0.5)),
-            boxShadow: const [BoxShadow(color: Color(0x30000000), blurRadius: 8)],
+            boxShadow: const [BoxShadow(color: AppColors.shadow, blurRadius: 8)],
           ),
           child: Icon(icon, size: r.text(20), color: color ?? AppColors.textPrimary),
         ),
@@ -436,7 +436,7 @@ class _BottomPanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(r.radius(24))),
-        boxShadow: const [BoxShadow(color: Color(0x40000000), blurRadius: 20, offset: Offset(0, -4))],
+        boxShadow: const [BoxShadow(color: AppColors.shadow, blurRadius: 20, offset: Offset(0, -4))],
       ),
       padding: EdgeInsets.fromLTRB(
         r.w(16), r.h(16), r.w(16),
@@ -592,11 +592,11 @@ class _RouteRow extends StatelessWidget {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [AppColors.blue.withValues(alpha: 0.6), const Color(0xFFEF4444).withValues(alpha: 0.6)],
+                    colors: [AppColors.blue.withValues(alpha: 0.6), AppColors.danger.withValues(alpha: 0.6)],
                   ),
                 ),
               ),
-              Icon(Icons.location_on_rounded, color: const Color(0xFFEF4444), size: r.text(18)),
+              Icon(Icons.location_on_rounded, color: AppColors.danger, size: r.text(18)),
             ],
           ),
           SizedBox(width: r.w(14)),
@@ -716,7 +716,7 @@ class _Avatar extends StatelessWidget {
     return Container(
       width: size, height: size,
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.border),
       ),

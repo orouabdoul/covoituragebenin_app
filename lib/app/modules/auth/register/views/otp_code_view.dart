@@ -34,13 +34,13 @@ class _TestOtpBanner extends StatelessWidget {
           vertical: responsive.h(12),
         ),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFF8E1),
-          border: Border.all(color: const Color(0xFFFFCA28), width: 1.2),
+          color: AppColors.warningSurface,
+          border: Border.all(color: AppColors.badgeYellow, width: 1.2),
           borderRadius: BorderRadius.circular(responsive.radius(12)),
         ),
         child: Row(
           children: [
-            const Icon(Icons.bug_report_rounded, color: Color(0xFFF57F17), size: 20),
+            const Icon(Icons.bug_report_rounded, color: AppColors.warning, size: 20),
             SizedBox(width: responsive.w(10)),
             Expanded(
               child: Column(
@@ -51,7 +51,7 @@ class _TestOtpBanner extends StatelessWidget {
                     style: TextStyle(
                       fontSize: responsive.text(10),
                       fontWeight: FontWeight.w600,
-                      color: const Color(0xFFF57F17),
+                      color: AppColors.warning,
                     ),
                   ),
                   SizedBox(height: responsive.h(2)),
@@ -60,14 +60,14 @@ class _TestOtpBanner extends StatelessWidget {
                     style: TextStyle(
                       fontSize: responsive.text(22),
                       fontWeight: FontWeight.w800,
-                      color: const Color(0xFFE65100),
+                      color: AppColors.accent,
                       letterSpacing: 6,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.copy_rounded, color: Color(0xFFF57F17), size: 16),
+            const Icon(Icons.copy_rounded, color: AppColors.warning, size: 16),
           ],
         ),
       ),

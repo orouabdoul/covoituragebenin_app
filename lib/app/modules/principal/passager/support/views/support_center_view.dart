@@ -208,7 +208,7 @@ class _FaqTab extends StatelessWidget {
 											side: const BorderSide(color: AppColors.border),
 											borderRadius: BorderRadius.circular(responsive.radius(16)),
 										),
-										shadows: const [BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 2))],
+										shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 8, offset: Offset(0, 2))],
 									),
 									child: Column(
 										children: items.asMap().entries.map((entry) {
@@ -325,9 +325,9 @@ class _ContactBanner extends StatelessWidget {
 		return Container(
 			padding: EdgeInsets.all(responsive.w(16)),
 			decoration: ShapeDecoration(
-				color: const Color(0xFFF0FDF8),
+				color: AppColors.successSurface,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: Color(0x337C3AED)),
+					side: const BorderSide(color: AppColors.primaryMedium),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
 			),
@@ -460,7 +460,7 @@ class _NewTicketForm extends StatelessWidget {
 					side: const BorderSide(color: AppColors.border),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
-				shadows: const [BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 2))],
+				shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 8, offset: Offset(0, 2))],
 			),
 			child: Column(
 				crossAxisAlignment: CrossAxisAlignment.start,
@@ -579,7 +579,7 @@ class _TicketCard extends StatelessWidget {
 					side: const BorderSide(color: AppColors.border),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
-				shadows: const [BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 2))],
+				shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 8, offset: Offset(0, 2))],
 			),
 			child: Column(
 				crossAxisAlignment: CrossAxisAlignment.start,

@@ -26,8 +26,8 @@ class AppButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final r = AppResponsive(context);
     final isEnabled = onPressed != null;
-    final resolvedBg = isEnabled ? (backgroundColor ?? AppColors.primary) : const Color(0xFFD1D5DB);
-    final resolvedText = isEnabled ? (textColor ?? Colors.white) : const Color(0xFF6B7280);
+    final resolvedBg = isEnabled ? (backgroundColor ?? AppColors.primary) : AppColors.border;
+    final resolvedText = isEnabled ? (textColor ?? Colors.white) : AppColors.textSecondary;
     final resolvedBorder = borderColor ?? resolvedBg;
 
     return Material(
@@ -103,10 +103,10 @@ class AppPrimaryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final Color resolvedBackgroundColor = enabled
         ? (backgroundColor ?? AppColors.primary)
-        : (backgroundColor ?? const Color(0xFFD1D5DB));
+        : (backgroundColor ?? AppColors.border);
     final Color resolvedTextColor = enabled
         ? (textColor ?? Colors.white)
-        : (textColor ?? const Color(0xFF6B7280));
+        : (textColor ?? AppColors.textSecondary);
     final Color resolvedBorderColor = borderColor ?? (enabled ? resolvedBackgroundColor : AppColors.border);
 
     return Material(
@@ -167,11 +167,11 @@ class AppCircularButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final Color fillColor = filled ? AppColors.primary : Colors.white;
     final Color borderColor = enabled
-        ? (filled ? AppColors.primary : const Color(0xFFD1D5DB))
-        : const Color(0xFFD1D5DB);
+        ? (filled ? AppColors.primary : AppColors.border)
+        : AppColors.border;
     final Color iconColor = enabled
-        ? (filled ? Colors.white : const Color(0xFFD1D5DB))
-        : const Color(0xFFD1D5DB);
+        ? (filled ? Colors.white : AppColors.border)
+        : AppColors.border;
 
     return Material(
       color: Colors.transparent,
@@ -191,8 +191,8 @@ class AppCircularButton extends StatelessWidget {
               ),
               shadows: filled
                   ? const [
-                      BoxShadow(color: Color(0x19000000), blurRadius: 15, offset: Offset(0, 10)),
-                      BoxShadow(color: Color(0x19000000), blurRadius: 6, offset: Offset(0, 4)),
+                      BoxShadow(color: AppColors.shadow, blurRadius: 15, offset: Offset(0, 10)),
+                      BoxShadow(color: AppColors.shadow, blurRadius: 6, offset: Offset(0, 4)),
                     ]
                   : const [],
             ),
@@ -252,7 +252,7 @@ class AppChipButton extends StatelessWidget {
           child: Text(
             label,
             style: TextStyle(
-              color: textColor ?? const Color(0xFF9CA3AF),
+              color: textColor ?? AppColors.textHint,
               fontSize: responsive.text(14),
               fontFamily: 'Inter',
               fontWeight: FontWeight.w500,
@@ -296,7 +296,7 @@ class AppTextButton extends StatelessWidget {
             label,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: textColor ?? const Color(0xFF6B7280),
+              color: textColor ?? AppColors.textSecondary,
               fontSize: responsive.text(14),
               fontFamily: 'Inter',
               fontWeight: fontWeight ?? FontWeight.w400,

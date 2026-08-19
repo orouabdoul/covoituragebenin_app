@@ -124,8 +124,8 @@ class _TripDetailSheet extends StatelessWidget {
 
   Color get _statusColor => switch (trip.status) {
     'completed' => AppColors.primary,
-    'cancelled' => const Color(0xFFEF4444),
-    _ => const Color(0xFF6366F1),
+    'cancelled' => AppColors.danger,
+    _ => AppColors.primary,
   };
 
   String get _statusLabel => switch (trip.status) {
@@ -193,7 +193,7 @@ class _TripDetailSheet extends StatelessWidget {
                         padding: EdgeInsets.symmetric(vertical: responsive.h(6)),
                         child: Container(height: 1, color: AppColors.border),
                       ),
-                      _DetailRow(responsive: responsive, icon: Icons.location_on_rounded, iconColor: const Color(0xFFEF4444), label: 'Arrivée', value: trip.destination),
+                      _DetailRow(responsive: responsive, icon: Icons.location_on_rounded, iconColor: AppColors.danger, label: 'Arrivée', value: trip.destination),
                     ],
                   ),
                 ),
@@ -226,8 +226,8 @@ class _TripDetailSheet extends StatelessWidget {
                     icon: Icon(Icons.account_balance_wallet_rounded, size: responsive.text(16)),
                     label: const Text('Demander un remboursement'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFEF4444),
-                      side: const BorderSide(color: Color(0x66EF4444)),
+                      foregroundColor: AppColors.danger,
+                      side: const BorderSide(color: AppColors.danger),
                       padding: EdgeInsets.symmetric(vertical: responsive.h(14)),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(responsive.radius(12))),
                     ),
@@ -269,7 +269,7 @@ class _InfoCard extends StatelessWidget {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(responsive.radius(14)),
         border: Border.all(color: AppColors.border),
-        boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 6, offset: Offset(0, 2))],
+        boxShadow: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 6, offset: Offset(0, 2))],
       ),
       child: Column(children: children),
     );

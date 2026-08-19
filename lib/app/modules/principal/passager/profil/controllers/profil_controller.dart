@@ -332,7 +332,7 @@ class ProfilController extends GetxController {
             child: const Text(
               'Se déconnecter',
               style: TextStyle(
-                color: Color(0xFFE53935),
+                color: AppColors.danger,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -637,17 +637,17 @@ class _AddPaymentSheet extends StatelessWidget {
   static const _methods = [
     _PaymentOption(
         icon: Icons.phone_android_rounded,
-        color: Color(0xFFF4B400),
+        color: AppColors.warning,
         label: 'MTN Mobile Money',
         sub: 'Bientôt disponible'),
     _PaymentOption(
         icon: Icons.phone_android_rounded,
-        color: Color(0xFF00A3E0),
+        color: AppColors.primary,
         label: 'Moov Money',
         sub: 'Bientôt disponible'),
     _PaymentOption(
         icon: Icons.credit_card_rounded,
-        color: Color(0xFF1A1F71),
+        color: AppColors.blueDark,
         label: 'Carte Visa / Mastercard',
         sub: 'Bientôt disponible'),
   ];
@@ -723,13 +723,13 @@ class _AddPaymentSheet extends StatelessWidget {
                             horizontal: responsive.w(8),
                             vertical: responsive.h(4)),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
+                          color: AppColors.warning.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(9999),
                         ),
                         child: Text(
                           'Prochainement',
                           style: AppTextStyles.caption(responsive).copyWith(
-                              color: const Color(0xFFF59E0B),
+                              color: AppColors.warning,
                               fontWeight: FontWeight.w700,
                               fontSize: responsive.text(10)),
                         ),

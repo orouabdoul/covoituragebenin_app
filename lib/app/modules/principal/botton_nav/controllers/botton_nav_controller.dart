@@ -30,6 +30,7 @@ import 'package:covoiturage_benin_app/app/modules/principal/passager/messager/vi
 import 'package:covoiturage_benin_app/app/modules/principal/passager/profil/views/profil_view.dart'
     as passenger_profile;
 import 'botton_nav_role.dart';
+import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 
 class BottonNavController extends GetxController with WidgetsBindingObserver {
   BottonNavController({required this.role});
@@ -377,7 +378,7 @@ class _TabPlaceholder extends StatelessWidget {
             Text(
               subtitle,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+              style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
             ),
           ],
         ),

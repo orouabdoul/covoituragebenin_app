@@ -124,7 +124,7 @@ class _AppOtpCodeFieldState extends State<AppOtpCodeField> {
               LengthLimitingTextInputFormatter(1),
             ],
             style: TextStyle(
-              color: const Color(0xFF111111),
+              color: AppColors.textPrimary,
               fontSize: widget.responsive.text(20),
               fontFamily: 'Inter',
               fontWeight: FontWeight.w700,
@@ -139,12 +139,12 @@ class _AppOtpCodeFieldState extends State<AppOtpCodeField> {
               border: OutlineInputBorder(
                 borderRadius:
                     BorderRadius.circular(widget.responsive.radius(12)),
-                borderSide: const BorderSide(width: 2, color: Color(0xFFE0E0E0)),
+                borderSide: const BorderSide(width: 2, color: AppColors.border),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius:
                     BorderRadius.circular(widget.responsive.radius(12)),
-                borderSide: const BorderSide(width: 2, color: Color(0xFFE0E0E0)),
+                borderSide: const BorderSide(width: 2, color: AppColors.border),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius:

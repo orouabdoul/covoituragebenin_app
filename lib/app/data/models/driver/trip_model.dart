@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 
 enum TripStatus { active, pending, completed, canceled }
 
@@ -86,23 +87,23 @@ class TripModel {
 
   Color get statusColor {
     return switch (status) {
-      TripStatus.active => const Color(0xFF7C3AED),
-      TripStatus.pending => const Color(0xFFF4B400),
-      TripStatus.completed => const Color(0xFF2563EB),
-      TripStatus.canceled => const Color(0xFFE53935),
+      TripStatus.active => AppColors.primary,
+      TripStatus.pending => AppColors.warning,
+      TripStatus.completed => AppColors.primary,
+      TripStatus.canceled => AppColors.danger,
     };
   }
 
   Color get statusBackground {
     return switch (status) {
-      TripStatus.active => const Color(0xFF7C3AED),
-      TripStatus.pending => const Color(0x33F4B400),
-      TripStatus.completed => const Color(0x192563EB),
-      TripStatus.canceled => const Color(0x19E53935),
+      TripStatus.active => AppColors.primary,
+      TripStatus.pending => AppColors.warningLight,
+      TripStatus.completed => AppColors.primaryLight,
+      TripStatus.canceled => AppColors.dangerLight,
     };
   }
 
-  Color get statusTextColor => const Color(0xFFFFFFFF);
+  Color get statusTextColor => AppColors.white;
 
   String get statusLabel {
     return switch (status) {

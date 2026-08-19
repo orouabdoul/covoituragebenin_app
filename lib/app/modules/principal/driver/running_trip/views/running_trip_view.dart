@@ -126,7 +126,7 @@ class _HeroBanner extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF7C3AED), Color(0xFF007A50)],
+          colors: [AppColors.primary, AppColors.successDark],
         ),
         borderRadius: BorderRadius.circular(r.radius(18)),
       ),
@@ -270,7 +270,7 @@ class _PassengersCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: s.isPickup
                             ? AppColors.primary.withValues(alpha: 0.12)
-                            : const Color(0x19EF4444),
+                            : AppColors.dangerLight,
                         shape: BoxShape.circle,
                       ),
                       child: Center(
@@ -281,7 +281,7 @@ class _PassengersCard extends StatelessWidget {
                           style: TextStyle(
                             color: s.isPickup
                                 ? AppColors.primary
-                                : const Color(0xFFEF4444),
+                                : AppColors.danger,
                             fontWeight: FontWeight.w800,
                             fontSize: r.text(15),
                           ),
@@ -364,7 +364,7 @@ class _ContactButton extends StatelessWidget {
                 ? 'Envoi en cours…'
                 : 'Contacter tous les passagers'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1D4ED8),
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               padding: EdgeInsets.symmetric(vertical: r.h(14)),
               shape: RoundedRectangleBorder(
@@ -421,7 +421,7 @@ class _TerminateButton extends StatelessWidget {
         icon: const Icon(Icons.flag_rounded, size: 20),
         label: const Text('Terminer le trajet'),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFEF4444),
+          backgroundColor: AppColors.danger,
           foregroundColor: Colors.white,
           padding: EdgeInsets.symmetric(vertical: r.h(14)),
           shape: RoundedRectangleBorder(
@@ -457,7 +457,7 @@ class _TerminateButton extends StatelessWidget {
             },
             child: const Text('Terminer',
                 style: TextStyle(
-                    color: Color(0xFFEF4444),
+                    color: AppColors.danger,
                     fontWeight: FontWeight.w700)),
           ),
         ],

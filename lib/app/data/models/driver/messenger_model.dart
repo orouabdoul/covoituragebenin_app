@@ -171,6 +171,7 @@ class ConversationApiMessage {
     required this.messageUuid,
     required this.kind,
     required this.message,
+    required this.messageType,
     required this.time,
     required this.rawDate,
     required this.isRead,
@@ -183,11 +184,12 @@ class ConversationApiMessage {
   });
 
   final int id;
-  final String messageUuid; // UUID returned by send API, used for delete/edit
-  final String kind; // 'incoming' | 'outgoing' | 'reminder'
+  final String messageUuid;
+  final String kind;        // 'incoming' | 'outgoing' | 'reminder'
   final String message;
+  final String messageType; // 'text' | 'audio' | 'image' | 'document' | 'mixed'
   final String time;
-  final String rawDate; // ISO date "2026-07-14", used for date separators
+  final String rawDate;
   final bool isRead;
   final bool isEdited;
   final String? title;
@@ -199,11 +201,16 @@ class ConversationApiMessage {
   factory ConversationApiMessage.fromJson(Map<String, dynamic> j) {
     final rawAtt = j['attachment'];
     final attachment = rawAtt is Map ? Map<String, dynamic>.from(rawAtt) : null;
+    // message_type est la source de vérité ; on se rabat sur attachment.type pour
+    // les réponses d'anciens backends qui ne l'incluent pas encore.
+    final attType = attachment?['type'] as String?;
+    final messageType = j['message_type'] as String? ?? attType ?? 'text';
     return ConversationApiMessage(
       id: (j['id'] as num?)?.toInt() ?? 0,
       messageUuid: j['uuid'] as String? ?? '',
       kind: j['kind'] as String? ?? 'incoming',
       message: j['body'] as String? ?? j['message'] as String? ?? '',
+      messageType: messageType,
       time: j['time'] as String? ?? '',
       rawDate: j['raw_date'] as String? ?? j['date'] as String? ?? '',
       isRead: j['is_read'] == true || j['is_read'] == 1,
@@ -212,7 +219,7 @@ class ConversationApiMessage {
       subtitle: j['subtitle'] as String?,
       actionLabel: j['action_label'] as String?,
       attachmentUrl: attachment?['url'] as String?,
-      attachmentType: attachment?['type'] as String?,
+      attachmentType: attType,
     );
   }
 }

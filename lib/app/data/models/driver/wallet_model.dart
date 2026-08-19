@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 
 enum TransactionType { tripRevenue, withdrawal, commission, bonus }
 enum TransactionStatus { pending, completed, failed }
@@ -49,7 +50,7 @@ class TransactionModel {
 
   Color get amountColor =>
       apiAmountColor ??
-      (isCredit ? const Color(0xFF7C3AED) : const Color(0xFF111827));
+      (isCredit ? AppColors.primary : AppColors.textPrimary);
 
   String get statusLabel =>
       apiStatusLabel ??
@@ -62,9 +63,9 @@ class TransactionModel {
   Color get statusColor =>
       apiStatusColor ??
       switch (status) {
-        TransactionStatus.pending => const Color(0xFFF4B400),
-        TransactionStatus.completed => const Color(0xFF7C3AED),
-        TransactionStatus.failed => const Color(0xFFE53935),
+        TransactionStatus.pending => AppColors.warning,
+        TransactionStatus.completed => AppColors.primary,
+        TransactionStatus.failed => AppColors.danger,
       };
 
   factory TransactionModel.fromJson(Map<String, dynamic> j) {

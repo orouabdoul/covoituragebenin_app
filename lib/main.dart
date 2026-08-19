@@ -48,6 +48,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -114,7 +115,7 @@ class MyApp extends StatelessWidget {
       smartManagement: SmartManagement.keepFactory,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF7C3AED),
+          seedColor: AppColors.primary,
         ),
       ),
       // Empêche la grande police système (accessibilité) de casser les layouts

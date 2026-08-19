@@ -8,6 +8,7 @@ import 'package:covoiturage_benin_app/app/data/models/driver/notification_driver
 import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/driver/reservation/controllers/reservations_controller.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
+import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 
 enum NotifFilterType { all, unread, reservations, payments, trips }
 
@@ -218,7 +219,7 @@ class DriverNotificationsController extends GetxController {
       code.isNotEmpty
           ? 'Utilisez le code $code${discount.isNotEmpty ? ' pour $discount% de réduction' : ''}.'
           : 'Un nouveau code promo est disponible.',
-      backgroundColor: const Color(0xFFF59E0B),
+      backgroundColor: AppColors.warning,
       colorText: Colors.white,
       snackPosition: SnackPosition.TOP,
       margin: const EdgeInsets.all(16),
@@ -233,7 +234,7 @@ class DriverNotificationsController extends GetxController {
       AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(children: [
-          Icon(Icons.block_rounded, color: Color(0xFFE53935), size: 22),
+          Icon(Icons.block_rounded, color: AppColors.danger, size: 22),
           SizedBox(width: 10),
           Text('Compte suspendu',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
@@ -251,7 +252,7 @@ class DriverNotificationsController extends GetxController {
             },
             child: const Text('Support',
                 style: TextStyle(
-                    color: Color(0xFFE53935), fontWeight: FontWeight.w700)),
+                    color: AppColors.danger, fontWeight: FontWeight.w700)),
           ),
         ],
       ),

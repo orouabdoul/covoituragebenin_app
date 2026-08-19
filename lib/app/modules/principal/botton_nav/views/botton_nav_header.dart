@@ -154,7 +154,7 @@ class BottonNavHeader extends StatelessWidget {
                           constraints: BoxConstraints(minWidth: responsive.w(16), minHeight: responsive.w(16)),
                           padding: EdgeInsets.symmetric(horizontal: responsive.w(4)),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE53935),
+                            color: AppColors.danger,
                             borderRadius: BorderRadius.circular(9999),
                             border: Border.all(color: AppColors.white, width: 1.5),
                           ),

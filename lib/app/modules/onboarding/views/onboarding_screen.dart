@@ -33,7 +33,7 @@ class OnboardingScreen extends GetView<OnboardingController> {
               top: responsive.h(16),
               right: responsive.w(16),
               child: Material(
-                color: AppColors.white,
+                color: Colors.transparent,
                 child: GetBuilder<OnboardingController>(
                   builder: (controller) {
                     if (controller.isLastPage) {
@@ -49,7 +49,7 @@ class OnboardingScreen extends GetView<OnboardingController> {
                 ),
               ),
             ),
-              Align(
+            Align(
               alignment: Alignment.bottomCenter,
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
@@ -75,6 +75,8 @@ class OnboardingScreen extends GetView<OnboardingController> {
   }
 }
 
+// ── Données d'un slide ────────────────────────────────────────────────────────
+
 class _SlideData {
   const _SlideData({
     required this.image,
@@ -86,6 +88,10 @@ class _SlideData {
     required this.descriptionWidth,
     required this.bottomPadding,
     required this.fit,
+    required this.bgTop,
+    required this.bgBottom,
+    required this.imageBg,
+    required this.tintColor,
   });
 
   final String image;
@@ -97,79 +103,21 @@ class _SlideData {
   final double descriptionWidth;
   final double bottomPadding;
   final BoxFit fit;
+
+  final Color bgTop;
+  final Color bgBottom;
+  final Color imageBg;
+
+  /// Teinte appliquée sur l'image via ColorFiltered + BlendMode.multiply.
+  /// Blanc de l'illustration → tintColor. Couleurs → légèrement décalées.
+  final Color tintColor;
 }
 
-class _OnboardingSlide extends StatelessWidget {
-  const _OnboardingSlide({required this.responsive, required this.data});
-
-  final AppResponsive responsive;
-  final _SlideData data;
-
-  @override
-  Widget build(BuildContext context) {
-    final double pixelRatio = MediaQuery.devicePixelRatioOf(context);
-    final int cacheWidth = (responsive.w(data.imageWidth) * pixelRatio).round() > 512
-      ? 512
-      : (responsive.w(data.imageWidth) * pixelRatio).round();
-    final int cacheHeight = (responsive.h(data.imageHeight) * pixelRatio).round() > 512
-      ? 512
-      : (responsive.h(data.imageHeight) * pixelRatio).round();
-
-    return SafeArea(
-      child: SingleChildScrollView(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minHeight: MediaQuery.sizeOf(context).height),
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(
-              responsive.w(24),
-              responsive.h(48),
-              responsive.w(24),
-              responsive.h(data.bottomPadding),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                SizedBox(
-                  width: responsive.w(data.imageWidth),
-                  height: responsive.h(data.imageHeight),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(responsive.radius(24)),
-                    child: Image.asset(
-                      data.image,
-                      fit: data.fit,
-                      cacheWidth: cacheWidth,
-                      cacheHeight: cacheHeight,
-                      filterQuality: FilterQuality.low,
-                    ),
-                  ),
-                ),
-                SizedBox(height: responsive.h(32)),
-                SizedBox(
-                  width: responsive.w(data.titleWidth),
-                  child: Text(
-                    data.title,
-                    textAlign: TextAlign.center,
-                    style: AppTextStyles.onboardingTitle(responsive),
-                  ),
-                ),
-                SizedBox(height: responsive.h(16)),
-                SizedBox(
-                  width: responsive.w(data.descriptionWidth),
-                  child: Text(
-                    data.description,
-                    textAlign: TextAlign.center,
-                    style: AppTextStyles.onboardingDescription(responsive),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
+// ── Slides de l'onboarding ────────────────────────────────────────────────────
+// Couleurs : 30 % du brand color mélangé au blanc → clairement visible.
+//   Slide 1+2 → Bleu primaire  #1A5FB4  → tint #BAD0E9
+//   Slide 3   → Ambre warning  #F5A623  → tint #FCE5BD
+//   Slide 4   → Turquoise      #17A398  → tint #B9E6E4
 
 const List<_SlideData> _slides = [
   _SlideData(
@@ -182,6 +130,10 @@ const List<_SlideData> _slides = [
     descriptionWidth: 278,
     bottomPadding: 150,
     fit: BoxFit.cover,
+    bgTop: AppColors.onboardingBlue,
+    bgBottom: AppColors.white,
+    imageBg: AppColors.onboardingBlue,
+    tintColor: AppColors.onboardingBlue,
   ),
   _SlideData(
     image: AppImages.onboarding2,
@@ -193,6 +145,10 @@ const List<_SlideData> _slides = [
     descriptionWidth: 269,
     bottomPadding: 150,
     fit: BoxFit.cover,
+    bgTop: AppColors.onboardingBlue,
+    bgBottom: AppColors.white,
+    imageBg: AppColors.onboardingBlue,
+    tintColor: AppColors.onboardingBlue,
   ),
   _SlideData(
     image: AppImages.onboarding3,
@@ -204,6 +160,10 @@ const List<_SlideData> _slides = [
     descriptionWidth: 282,
     bottomPadding: 150,
     fit: BoxFit.contain,
+    bgTop: AppColors.onboardingAmber,
+    bgBottom: AppColors.white,
+    imageBg: AppColors.onboardingAmber,
+    tintColor: AppColors.onboardingAmber,
   ),
   _SlideData(
     image: AppImages.onboarding4,
@@ -215,8 +175,129 @@ const List<_SlideData> _slides = [
     descriptionWidth: 253,
     bottomPadding: 300,
     fit: BoxFit.contain,
+    bgTop: AppColors.onboardingTeal,
+    bgBottom: AppColors.white,
+    imageBg: AppColors.onboardingTeal,
+    tintColor: AppColors.onboardingTeal,
   ),
 ];
+
+// ── Slide ─────────────────────────────────────────────────────────────────────
+
+class _OnboardingSlide extends StatelessWidget {
+  const _OnboardingSlide({required this.responsive, required this.data});
+
+  final AppResponsive responsive;
+  final _SlideData data;
+
+  @override
+  Widget build(BuildContext context) {
+    final double pixelRatio = MediaQuery.devicePixelRatioOf(context);
+    final int cacheWidth = (responsive.w(data.imageWidth) * pixelRatio).round() > 512
+        ? 512
+        : (responsive.w(data.imageWidth) * pixelRatio).round();
+    final int cacheHeight = (responsive.h(data.imageHeight) * pixelRatio).round() > 512
+        ? 512
+        : (responsive.h(data.imageHeight) * pixelRatio).round();
+
+    return Stack(
+      children: [
+        // ── Fond dégradé (couleur charte → blanc) ──────────────────────────
+        Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                stops: const [0.0, 0.55, 1.0],
+                colors: [
+                  data.bgTop,
+                  data.bgTop.withValues(alpha: 0.4),
+                  data.bgBottom,
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // ── Contenu du slide ───────────────────────────────────────────────
+        SafeArea(
+          child: SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: MediaQuery.sizeOf(context).height),
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  responsive.w(24),
+                  responsive.h(48),
+                  responsive.w(24),
+                  responsive.h(data.bottomPadding),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // ── Image avec fond de couleur ─────────────────────────
+                    Container(
+                      width: responsive.w(data.imageWidth),
+                      height: responsive.h(data.imageHeight),
+                      decoration: BoxDecoration(
+                        color: data.imageBg,
+                        borderRadius: BorderRadius.circular(responsive.radius(24)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: data.bgTop.withValues(alpha: 0.5),
+                            blurRadius: 24,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(responsive.radius(24)),
+                        child: ColorFiltered(
+                          colorFilter: ColorFilter.mode(
+                            data.tintColor,
+                            BlendMode.multiply,
+                          ),
+                          child: Image.asset(
+                            data.image,
+                            fit: data.fit,
+                            cacheWidth: cacheWidth,
+                            cacheHeight: cacheHeight,
+                            filterQuality: FilterQuality.low,
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: responsive.h(32)),
+                    SizedBox(
+                      width: responsive.w(data.titleWidth),
+                      child: Text(
+                        data.title,
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.onboardingTitle(responsive),
+                      ),
+                    ),
+                    SizedBox(height: responsive.h(16)),
+                    SizedBox(
+                      width: responsive.w(data.descriptionWidth),
+                      child: Text(
+                        data.description,
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.onboardingDescription(responsive),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Actions bas de page ───────────────────────────────────────────────────────
 
 class _PagerActions extends StatelessWidget {
   const _PagerActions({required this.responsive, required this.controller});
@@ -229,7 +310,11 @@ class _PagerActions extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _DotsRow(responsive: responsive, activeIndex: controller.currentPage.value, count: OnboardingController.pagesCount),
+        _DotsRow(
+          responsive: responsive,
+          activeIndex: controller.currentPage.value,
+          count: OnboardingController.pagesCount,
+        ),
         SizedBox(height: responsive.h(32)),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -281,37 +366,53 @@ class _FinalActions extends StatelessWidget {
   }
 }
 
+// ── Points de pagination ──────────────────────────────────────────────────────
+
 class _DotsRow extends StatelessWidget {
-  const _DotsRow({required this.responsive, required this.activeIndex, required this.count});
+  const _DotsRow({
+    required this.responsive,
+    required this.activeIndex,
+    required this.count,
+  });
 
   final AppResponsive responsive;
   final int activeIndex;
   final int count;
 
+  /// Couleur active = couleur primaire du slide courant
+  static const _dotColors = [
+    AppColors.primary,    // slide 1 → bleu
+    AppColors.primary,    // slide 2 → bleu
+    AppColors.warning,    // slide 3 → ambre
+    AppColors.success,    // slide 4 → turquoise
+  ];
+
   @override
   Widget build(BuildContext context) {
+    final activeColor = activeIndex < _dotColors.length
+        ? _dotColors[activeIndex]
+        : AppColors.primary;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(count, (index) {
         final bool isActive = index == activeIndex;
-        final double size = isActive ? responsive.w(14) : responsive.w(12);
-            final Color color = isActive ? AppColors.primary : AppColors.borderStrong;
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: size,
-              height: size,
-              decoration: ShapeDecoration(
-                color: color,
-                shape: RoundedRectangleBorder(
-                  side: const BorderSide(color: AppColors.border),
-                  borderRadius: BorderRadius.circular(9999),
-                ),
-              ),
-            ),
-            if (index < count - 1) SizedBox(width: responsive.w(23)),
-          ],
+        final double width  = isActive ? responsive.w(24) : responsive.w(12);
+        final double height = responsive.w(12);
+        final Color  color  = isActive ? activeColor : AppColors.borderStrong;
+
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeInOut,
+          width: width,
+          height: height,
+          margin: EdgeInsets.only(
+            right: index < count - 1 ? responsive.w(8) : 0,
+          ),
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(9999),
+          ),
         );
       }),
     );

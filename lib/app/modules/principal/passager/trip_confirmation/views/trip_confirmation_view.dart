@@ -172,7 +172,7 @@ class _TripSummary extends StatelessWidget {
 									width: responsive.w(48),
 									height: responsive.w(48),
 									decoration: BoxDecoration(
-										color: const Color(0x197C3AED),
+										color: AppColors.primaryLight,
 										borderRadius: BorderRadius.circular(12),
 									),
 									child: const Icon(Icons.check_circle_outline_rounded, color: AppColors.primary),
@@ -197,9 +197,9 @@ class _TripSummary extends StatelessWidget {
 								Container(
 									padding: EdgeInsets.symmetric(horizontal: responsive.w(10), vertical: responsive.h(4)),
 									decoration: BoxDecoration(
-										color: const Color(0x197C3AED),
+										color: AppColors.primaryLight,
 										borderRadius: BorderRadius.circular(9999),
-										border: Border.all(color: const Color(0x337C3AED)),
+										border: Border.all(color: AppColors.primaryMedium),
 									),
 									child: Text(
 										'Terminé ✓',
@@ -254,9 +254,9 @@ class _ConfirmCard extends StatelessWidget {
 								responsive: responsive,
 								label: 'Signaler un problème',
 								onTap: () => controller.hasIssue.value = !controller.hasIssue.value,
-								backgroundColor: const Color(0xFFFEF2F2),
-								textColor: const Color(0xFFEF4444),
-								borderColor: const Color(0xFFFCA5A5),
+								backgroundColor: AppColors.dangerSurface,
+								textColor: AppColors.danger,
+								borderColor: AppColors.dangerBorder,
 								height: responsive.h(48),
 								borderRadius: responsive.radius(14),
 							),
@@ -281,14 +281,14 @@ class _ConfirmCard extends StatelessWidget {
 														child: Container(
 															padding: EdgeInsets.symmetric(horizontal: responsive.w(12), vertical: responsive.h(6)),
 															decoration: BoxDecoration(
-																color: selected ? const Color(0xFFFEF2F2) : AppColors.surfaceMuted,
+																color: selected ? AppColors.dangerSurface : AppColors.surfaceMuted,
 																borderRadius: BorderRadius.circular(9999),
-																border: Border.all(color: selected ? const Color(0xFFEF4444) : AppColors.border),
+																border: Border.all(color: selected ? AppColors.danger : AppColors.border),
 															),
 															child: Text(
 																issue,
 																style: AppTextStyles.caption(responsive).copyWith(
-																	color: selected ? const Color(0xFFEF4444) : AppColors.textSecondary,
+																	color: selected ? AppColors.danger : AppColors.textSecondary,
 																	fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
 																),
 															),
@@ -360,7 +360,7 @@ class _RatingCard extends StatelessWidget {
 											filled ? Icons.star_rounded : Icons.star_border_rounded,
 											key: ValueKey(filled),
 											size: responsive.text(38),
-											color: filled ? const Color(0xFFF59E0B) : AppColors.border,
+											color: filled ? AppColors.warning : AppColors.border,
 										),
 									),
 								),
@@ -371,7 +371,7 @@ class _RatingCard extends StatelessWidget {
 					Obx(() => Text(
 						_ratingLabel(controller.rating.value),
 						style: AppTextStyles.body(responsive).copyWith(
-							color: controller.rating.value > 0 ? const Color(0xFFF59E0B) : AppColors.textHint,
+							color: controller.rating.value > 0 ? AppColors.warning : AppColors.textHint,
 							fontWeight: FontWeight.w600,
 						),
 					)),
@@ -421,7 +421,7 @@ class _QuickTagsCard extends StatelessWidget {
 									duration: AppResponsive.fastDuration,
 									padding: EdgeInsets.symmetric(horizontal: responsive.w(14), vertical: responsive.h(8)),
 									decoration: BoxDecoration(
-										color: selected ? const Color(0x0C7C3AED) : AppColors.surfaceMuted,
+										color: selected ? AppColors.primaryLight : AppColors.surfaceMuted,
 										borderRadius: BorderRadius.circular(9999),
 										border: Border.all(
 											color: selected ? AppColors.primary : AppColors.border,
@@ -527,7 +527,7 @@ class _SubmittedState extends StatelessWidget {
 							padding: EdgeInsets.symmetric(horizontal: responsive.w(4)),
 							child: Icon(
 								i < controller.rating.value ? Icons.star_rounded : Icons.star_border_rounded,
-								color: const Color(0xFFF59E0B),
+								color: AppColors.warning,
 								size: responsive.text(28),
 							),
 						)),
@@ -576,7 +576,7 @@ class _Card extends StatelessWidget {
 					side: const BorderSide(color: AppColors.border),
 					borderRadius: BorderRadius.circular(responsive.radius(20)),
 				),
-				shadows: const [BoxShadow(color: Color(0x0C000000), blurRadius: 8, offset: Offset(0, 2))],
+				shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 8, offset: Offset(0, 2))],
 			),
 			child: child,
 		);
@@ -599,7 +599,7 @@ class _DriverAvatar extends StatelessWidget {
 			width: size,
 			height: size,
 			decoration: BoxDecoration(
-				color: const Color(0xFFF5F5F5),
+				color: AppColors.surface,
 				borderRadius: BorderRadius.circular(16),
 				border: Border.all(color: AppColors.border),
 			),
@@ -625,7 +625,7 @@ class _SuccessCircle extends StatelessWidget {
 			height: size,
 			decoration: BoxDecoration(
 				shape: BoxShape.circle,
-				color: const Color(0x197C3AED),
+				color: AppColors.primaryLight,
 				boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.15), blurRadius: 20, spreadRadius: 4)],
 			),
 			child: Icon(Icons.favorite_rounded, color: AppColors.primary, size: size * 0.45),

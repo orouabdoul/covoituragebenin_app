@@ -121,14 +121,14 @@ class _AccountSuspendedView extends StatelessWidget {
             width: responsive.w(88),
             height: responsive.w(88),
             decoration: ShapeDecoration(
-              color: const Color(0xFFFFF1F1),
+              color: AppColors.dangerSurface,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(responsive.radius(28)),
-                side: const BorderSide(color: Color(0xFFFFCDD2), width: 1.5),
+                side: const BorderSide(color: AppColors.dangerBorder, width: 1.5),
               ),
               shadows: const [
                 BoxShadow(
-                  color: Color(0x22E53935),
+                  color: AppColors.dangerLight,
                   blurRadius: 20,
                   offset: Offset(0, 8),
                 ),
@@ -137,14 +137,14 @@ class _AccountSuspendedView extends StatelessWidget {
             child: Icon(
               Icons.block_rounded,
               size: responsive.text(44),
-              color: const Color(0xFFE53935),
+              color: AppColors.danger,
             ),
           ),
           SizedBox(height: responsive.h(28)),
           Text(
             'Compte suspendu',
             style: AppTextStyles.h5(responsive).copyWith(
-              color: const Color(0xFFE53935),
+              color: AppColors.danger,
             ),
             textAlign: TextAlign.center,
           ),
@@ -162,15 +162,15 @@ class _AccountSuspendedView extends StatelessWidget {
           Container(
             padding: EdgeInsets.all(responsive.w(14)),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFF8F8),
+              color: AppColors.dangerSurface,
               borderRadius: BorderRadius.circular(responsive.radius(12)),
-              border: Border.all(color: const Color(0xFFFFCDD2)),
+              border: Border.all(color: AppColors.dangerBorder),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(Icons.info_outline_rounded,
-                    size: responsive.text(16), color: const Color(0xFFE53935)),
+                    size: responsive.text(16), color: AppColors.danger),
                 SizedBox(width: responsive.w(10)),
                 Expanded(
                   child: Text(
@@ -196,13 +196,13 @@ class _AccountSuspendedView extends StatelessWidget {
           _SuspendedContactCard(
             responsive: responsive,
             icon: Icons.chat_rounded,
-            iconColor: const Color(0xFF7C3AED),
-            iconBg: const Color(0xFFDCFCE7),
+            iconColor: AppColors.primary,
+            iconBg: AppColors.successSurface,
             title: 'WhatsApp',
             subtitle: AppStrings.supportWhatsApp,
             onTap: () => _showContactDialog(
               icon: Icons.chat_rounded,
-              iconColor: const Color(0xFF7C3AED),
+              iconColor: AppColors.primary,
               title: 'WhatsApp Support',
               contact: AppStrings.supportWhatsApp,
               hint: 'Numéro copié. Ouvrez WhatsApp pour démarrer.',
@@ -212,13 +212,13 @@ class _AccountSuspendedView extends StatelessWidget {
           _SuspendedContactCard(
             responsive: responsive,
             icon: Icons.phone_rounded,
-            iconColor: const Color(0xFF1E88E5),
-            iconBg: const Color(0xFFDBEAFE),
+            iconColor: AppColors.primary,
+            iconBg: AppColors.primarySurface,
             title: 'Appel téléphonique',
             subtitle: AppStrings.supportPhone,
             onTap: () => _showContactDialog(
               icon: Icons.headset_mic_rounded,
-              iconColor: const Color(0xFF1E88E5),
+              iconColor: AppColors.primary,
               title: 'Support téléphonique',
               contact: AppStrings.supportPhone,
               hint: 'Numéro copié dans le presse-papiers.',
@@ -228,13 +228,13 @@ class _AccountSuspendedView extends StatelessWidget {
           _SuspendedContactCard(
             responsive: responsive,
             icon: Icons.email_rounded,
-            iconColor: const Color(0xFF8B5CF6),
-            iconBg: const Color(0xFFEDE9FE),
+            iconColor: AppColors.primary,
+            iconBg: AppColors.primarySurface,
             title: 'Email',
             subtitle: AppStrings.supportEmail,
             onTap: () => _showContactDialog(
               icon: Icons.email_rounded,
-              iconColor: const Color(0xFF8B5CF6),
+              iconColor: AppColors.primary,
               title: 'Email support',
               contact: AppStrings.supportEmail,
               hint: 'Adresse email copiée dans le presse-papiers.',
@@ -252,7 +252,7 @@ class _AccountSuspendedView extends StatelessWidget {
                 decoration: ShapeDecoration(
                   color: loading
                       ? AppColors.surfaceMuted
-                      : const Color(0xFFE53935),
+                      : AppColors.danger,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(responsive.radius(14)),
                   ),
@@ -320,9 +320,9 @@ void _showContactDialog({
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: const Color(0xFFF9FAFB),
+              color: AppColors.surface,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFE5E7EB)),
+              border: Border.all(color: AppColors.border),
             ),
             child: Text(
               contact,
@@ -457,14 +457,14 @@ class _AccountPendingView extends StatelessWidget {
             width: responsive.w(88),
             height: responsive.w(88),
             decoration: ShapeDecoration(
-              color: const Color(0xFFFFF8E1),
+              color: AppColors.warningSurface,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(responsive.radius(28)),
-                side: const BorderSide(color: Color(0xFFFFE082), width: 1.5),
+                side: const BorderSide(color: AppColors.warningSurface, width: 1.5),
               ),
               shadows: const [
                 BoxShadow(
-                  color: Color(0x22FFA000),
+                  color: AppColors.warningLight,
                   blurRadius: 20,
                   offset: Offset(0, 8),
                 ),
@@ -473,7 +473,7 @@ class _AccountPendingView extends StatelessWidget {
             child: Icon(
               Icons.hourglass_bottom_rounded,
               size: responsive.text(44),
-              color: const Color(0xFFFFA000),
+              color: AppColors.warning,
             ),
           ),
           SizedBox(height: responsive.h(28)),
@@ -496,7 +496,7 @@ class _AccountPendingView extends StatelessWidget {
           _PendingStep(
             responsive: responsive,
             icon: Icons.check_circle_rounded,
-            color: const Color(0xFF43A047),
+            color: AppColors.success,
             label: 'Compte créé',
             done: true,
           ),
@@ -504,7 +504,7 @@ class _AccountPendingView extends StatelessWidget {
           _PendingStep(
             responsive: responsive,
             icon: Icons.manage_search_rounded,
-            color: const Color(0xFFFFA000),
+            color: AppColors.warning,
             label: 'Vérification par l\'équipe MINIZON',
             done: false,
           ),
@@ -598,11 +598,11 @@ class _PendingStep extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: done
-            ? const Color(0xFFF1F8F1)
+            ? AppColors.successSurface
             : AppColors.white,
         borderRadius: BorderRadius.circular(responsive.radius(12)),
         border: Border.all(
-          color: done ? const Color(0xFFC8E6C9) : AppColors.border,
+          color: done ? AppColors.successSurface : AppColors.border,
         ),
       ),
       child: Row(
@@ -613,7 +613,7 @@ class _PendingStep extends StatelessWidget {
             child: Text(
               label,
               style: AppTextStyles.bodyMedium(responsive).copyWith(
-                color: done ? const Color(0xFF2E7D32) : AppColors.textSecondary,
+                color: done ? AppColors.success : AppColors.textSecondary,
                 fontWeight: done ? FontWeight.w600 : FontWeight.w400,
               ),
             ),
@@ -793,7 +793,7 @@ class _BottonNavItem extends StatelessWidget {
                           width: responsive.w(8),
                           height: responsive.w(8),
                           decoration: ShapeDecoration(
-                            color: const Color(0xFFE53935),
+                            color: AppColors.danger,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(9999),
                             ),

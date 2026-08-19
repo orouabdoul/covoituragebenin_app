@@ -120,13 +120,13 @@ class _SosButton extends StatelessWidget {
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFFDC2626), Color(0xFFB91C1C)],
+            colors: [AppColors.danger, AppColors.dangerDark],
           ),
           borderRadius: BorderRadius.circular(
               r.adaptive(phone: 20, smallPhone: 18, tablet: 24, desktop: 28)),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFEF4444).withValues(alpha: 0.35),
+              color: AppColors.danger.withValues(alpha: 0.35),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -295,7 +295,7 @@ class _EmergencyContactsCard extends StatelessWidget {
                           width: r.w(36),
                           height: r.w(36),
                           decoration: const BoxDecoration(
-                            color: Color(0xFFE6F7EF),
+                            color: AppColors.successSurface,
                             shape: BoxShape.circle,
                           ),
                           child: Center(
@@ -471,17 +471,17 @@ class _EmergencyNumbersCard extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(r.adaptive(phone: 16, smallPhone: 14, tablet: 18, desktop: 20)),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF1F2),
+        color: AppColors.dangerSurface,
         borderRadius: BorderRadius.circular(
             r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-        border: Border.all(color: const Color(0xFFEF4444).withValues(alpha: 0.2)),
+        border: Border.all(color: AppColors.danger.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text("Numéros d'urgence",
               style: AppTextStyles.homeCardTitle(r)
-                  .copyWith(color: const Color(0xFFDC2626))),
+                  .copyWith(color: AppColors.danger)),
           SizedBox(height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -511,33 +511,33 @@ class _EmergNum extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFF1F2),
+          color: AppColors.dangerSurface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-              color: const Color(0xFFEF4444).withValues(alpha: 0.25)),
+              color: AppColors.danger.withValues(alpha: 0.25)),
         ),
         child: Column(
           children: [
             Text(
               number,
               style: const TextStyle(
-                color: Color(0xFFDC2626),
+                color: AppColors.danger,
                 fontWeight: FontWeight.w900,
                 fontSize: 22,
               ),
             ),
             const SizedBox(height: 2),
             Text(label,
-                style: const TextStyle(color: Color(0xFF9B1C1C), fontSize: 12)),
+                style: const TextStyle(color: AppColors.dangerDark, fontSize: 12)),
             const SizedBox(height: 4),
             const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.copy_rounded, size: 11, color: Color(0xFFEF4444)),
+                Icon(Icons.copy_rounded, size: 11, color: AppColors.danger),
                 SizedBox(width: 3),
                 Text('Copier',
                     style:
-                        TextStyle(fontSize: 10, color: Color(0xFFEF4444))),
+                        TextStyle(fontSize: 10, color: AppColors.danger)),
               ],
             ),
           ],

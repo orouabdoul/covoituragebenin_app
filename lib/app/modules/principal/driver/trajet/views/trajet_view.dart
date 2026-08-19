@@ -695,7 +695,7 @@ class _TinyAvatar extends StatelessWidget {
 			width: size,
 			height: size,
 			decoration: ShapeDecoration(
-				color: const Color(0xFFEFF6F3),
+				color: AppColors.successSurface,
 				shape: RoundedRectangleBorder(
 					borderRadius: BorderRadius.circular(9999),
 					side: const BorderSide(color: AppColors.border),

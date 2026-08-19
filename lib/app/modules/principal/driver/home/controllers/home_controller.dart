@@ -145,12 +145,12 @@ class DriverTripCard {
   final int totalStops;
 
   Color get statusColor => switch (statusLabel) {
-    'En attente' => const Color(0xFFF4B400),
-    'Confirmé'   => const Color(0xFF7C3AED),
-    'En cours'   => const Color(0xFF3B82F6),
-    'Terminé'    => const Color(0xFF6B7280),
-    'Annulé'     => const Color(0xFFE53935),
-    _            => const Color(0xFF7C3AED),
+    'En attente' => AppColors.warning,
+    'Confirmé'   => AppColors.primary,
+    'En cours'   => AppColors.primary,
+    'Terminé'    => AppColors.textSecondary,
+    'Annulé'     => AppColors.danger,
+    _            => AppColors.primary,
   };
 
   Color get statusBg => statusColor.withValues(alpha: 0.12);
@@ -282,29 +282,29 @@ class DriverHomeController extends GetxController {
       title: 'Trajets effectués',
       value: '—',
       icon: Icons.route_rounded,
-      color: Color(0x197C3AED),
-      iconColor: Color(0xFF7C3AED),
+      color: AppColors.primaryLight,
+      iconColor: AppColors.primary,
     ),
     const DriverMetric(
       title: 'Passagers transportés',
       value: '—',
       icon: Icons.groups_rounded,
-      color: Color(0x19F4B400),
-      iconColor: Color(0xFFF4B400),
+      color: AppColors.warningLight,
+      iconColor: AppColors.warning,
     ),
     const DriverMetric(
       title: 'Note moyenne',
       value: '—',
       icon: Icons.star_rounded,
-      color: Color(0x1922C55E),
-      iconColor: Color(0xFF22C55E),
+      color: AppColors.successLight,
+      iconColor: AppColors.success,
     ),
     const DriverMetric(
       title: 'Taux acceptation',
       value: '—',
       icon: Icons.verified_rounded,
-      color: Color(0x193B82F6),
-      iconColor: Color(0xFF3B82F6),
+      color: AppColors.primaryLight,
+      iconColor: AppColors.primary,
     ),
   ].obs;
 
@@ -316,43 +316,43 @@ class DriverHomeController extends GetxController {
     DriverAction(
       label: 'Publier',
       icon: Icons.add_road_rounded,
-      backgroundColor: Color(0x197C3AED),
-      iconColor: Color(0xFF7C3AED),
+      backgroundColor: AppColors.primaryLight,
+      iconColor: AppColors.primary,
       route: 'driverAddTrip',
     ),
     DriverAction(
       label: 'Réservations',
       icon: Icons.event_note_rounded,
-      backgroundColor: Color(0x19F4B400),
-      iconColor: Color(0xFFF4B400),
+      backgroundColor: AppColors.warningLight,
+      iconColor: AppColors.warning,
       route: 'driverReservations',
     ),
     DriverAction(
       label: 'Retirer',
       icon: Icons.account_balance_wallet_outlined,
-      backgroundColor: Color(0x197C3AED),
-      iconColor: Color(0xFF7C3AED),
+      backgroundColor: AppColors.primaryLight,
+      iconColor: AppColors.primary,
       route: 'driverWithdraw',
     ),
     DriverAction(
       label: 'Mes trajets',
       icon: Icons.route_rounded,
-      backgroundColor: Color(0x193B82F6),
-      iconColor: Color(0xFF3B82F6),
+      backgroundColor: AppColors.primaryLight,
+      iconColor: AppColors.primary,
       route: 'driverTrips',
     ),
     DriverAction(
       label: 'Support',
       icon: Icons.support_agent_rounded,
-      backgroundColor: Color(0x19A855F7),
-      iconColor: Color(0xFFA855F7),
+      backgroundColor: AppColors.primaryLight,
+      iconColor: AppColors.primary,
       route: 'driverSupportCenter',
     ),
     DriverAction(
       label: 'Statistiques',
       icon: Icons.bar_chart_rounded,
-      backgroundColor: Color(0x196366F1),
-      iconColor: Color(0xFF6366F1),
+      backgroundColor: AppColors.primaryLight,
+      iconColor: AppColors.primary,
       route: 'driverStatistics',
     ),
   ];
@@ -670,10 +670,10 @@ class DriverHomeController extends GetxController {
   }
 
   (String, Color, Color) _requestStatusInfo(String status) => switch (status) {
-        'accepted' => ('Accepté', const Color(0xFF16A34A), const Color(0x1922C55E)),
-        'rejected' => ('Refusé', const Color(0xFFDC2626), const Color(0x19EF4444)),
-        'cancelled' => ('Annulé', const Color(0xFF6B7280), const Color(0x196B7280)),
-        _ => ('En attente', const Color(0xFFF4B400), const Color(0x19F4B400)),
+        'accepted' => ('Accepté', AppColors.success, AppColors.successLight),
+        'rejected' => ('Refusé', AppColors.danger, AppColors.dangerLight),
+        'cancelled' => ('Annulé', AppColors.textSecondary, AppColors.primaryLight),
+        _ => ('En attente', AppColors.warning, AppColors.warningLight),
       };
 
   DriverMetric _metricFromApi(DashboardMetricData m) {
@@ -686,40 +686,40 @@ class DriverHomeController extends GetxController {
           title: m.label,
           value: displayValue,
           icon: Icons.route_rounded,
-          color: const Color(0x197C3AED),
-          iconColor: const Color(0xFF7C3AED),
+          color: AppColors.primaryLight,
+          iconColor: AppColors.primary,
           progress: progress,
         ),
       'passengers' => DriverMetric(
           title: m.label,
           value: displayValue,
           icon: Icons.groups_rounded,
-          color: const Color(0x19F4B400),
-          iconColor: const Color(0xFFF4B400),
+          color: AppColors.warningLight,
+          iconColor: AppColors.warning,
           progress: progress,
         ),
       'rating' => DriverMetric(
           title: m.label,
           value: displayValue,
           icon: Icons.star_rounded,
-          color: const Color(0x1922C55E),
-          iconColor: const Color(0xFF22C55E),
+          color: AppColors.successLight,
+          iconColor: AppColors.success,
           progress: progress,
         ),
       'acceptance_rate' => DriverMetric(
           title: m.label,
           value: '${(m.value is num ? (m.value as num).toDouble() * 100 : 0).toStringAsFixed(0)}%',
           icon: Icons.verified_rounded,
-          color: const Color(0x193B82F6),
-          iconColor: const Color(0xFF3B82F6),
+          color: AppColors.primaryLight,
+          iconColor: AppColors.primary,
           progress: m.value is num ? (m.value as num).toDouble() : progress,
         ),
       _ => DriverMetric(
           title: m.label,
           value: displayValue,
           icon: Icons.analytics_rounded,
-          color: const Color(0x193B82F6),
-          iconColor: const Color(0xFF3B82F6),
+          color: AppColors.primaryLight,
+          iconColor: AppColors.primary,
           progress: progress,
         ),
     };
@@ -728,27 +728,27 @@ class DriverHomeController extends GetxController {
   DriverBadge _badgeFromApi(DashboardBadgeData b) => switch (b.key) {
         'top_rated' => DriverBadge(
             label: b.label,
-            color: const Color(0x337C3AED),
+            color: AppColors.primaryMedium,
             icon: Icons.verified_rounded,
-            iconColor: const Color(0xFF7C3AED),
+            iconColor: AppColors.primary,
           ),
         'top_driver' || 'top_10' => DriverBadge(
             label: b.label,
-            color: const Color(0x33F4B400),
+            color: AppColors.warningLight,
             icon: Icons.workspace_premium_rounded,
-            iconColor: const Color(0xFFF4B400),
+            iconColor: AppColors.warning,
           ),
         'fast' || 'punctual' => DriverBadge(
             label: b.label,
-            color: const Color(0x333B82F6),
+            color: AppColors.primaryMedium,
             icon: Icons.speed_rounded,
-            iconColor: const Color(0xFF3B82F6),
+            iconColor: AppColors.primary,
           ),
         _ => DriverBadge(
             label: b.label,
-            color: const Color(0x33A855F7),
+            color: AppColors.primaryMedium,
             icon: Icons.emoji_events_rounded,
-            iconColor: const Color(0xFFA855F7),
+            iconColor: AppColors.primary,
           ),
       };
 
@@ -856,7 +856,7 @@ class DriverHomeController extends GetxController {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               decoration: BoxDecoration(
-                color: const Color(0xFFE6F7EF),
+                color: AppColors.successSurface,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Text(phone,

@@ -61,7 +61,7 @@ class TrustHubView extends StatelessWidget {
 														_PromiseCard(
 															responsive: responsive,
 															icon: Icons.headset_mic_rounded,
-															iconColor: const Color(0xFF8B5CF6),
+															iconColor: AppColors.primary,
 															title: 'Support humain 24h/24 · 7j/7',
 															body: 'Une vraie personne de notre équipe est disponible à toute heure pour vous aider, en français ou en fon. Vous n\'êtes jamais seul(e).',
 														),
@@ -164,7 +164,7 @@ class _HeroCard extends StatelessWidget {
 				gradient: LinearGradient(
 					begin: Alignment.topLeft,
 					end: Alignment.bottomRight,
-					colors: [Color(0xFF7C3AED), Color(0xFF007A4E)],
+					colors: [AppColors.primary, AppColors.successDark],
 				),
 			),
 			child: Column(
@@ -303,7 +303,7 @@ class _PromiseCard extends StatelessWidget {
 					side: const BorderSide(color: AppColors.border),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
-				shadows: const [BoxShadow(color: Color(0x08000000), blurRadius: 6, offset: Offset(0, 2))],
+				shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 6, offset: Offset(0, 2))],
 			),
 			child: Row(
 				crossAxisAlignment: CrossAxisAlignment.start,
@@ -349,25 +349,25 @@ class _RightsCard extends StatelessWidget {
 	static const _rights = [
 		_Right(
 			icon: Icons.cancel_rounded,
-			color: Color(0xFFEF4444),
+			color: AppColors.danger,
 			title: 'Droit d\'annulation sans frais',
 			body: 'Vous pouvez annuler votre réservation jusqu\'à 1 heure avant le départ sans aucuns frais.',
 		),
 		_Right(
 			icon: Icons.account_balance_wallet_rounded,
-			color: Color(0xFF7C3AED),
+			color: AppColors.primary,
 			title: 'Droit au remboursement complet',
 			body: 'Si le conducteur est absent ou annule, vous êtes intégralement remboursé(e), sans démarche complexe.',
 		),
 		_Right(
 			icon: Icons.security_rounded,
-			color: Color(0xFF3B82F6),
+			color: AppColors.primary,
 			title: 'Droit à un trajet sûr',
 			body: 'Vous pouvez signaler tout problème de sécurité pendant ou après le trajet. Nous prenons chaque signalement au sérieux.',
 		),
 		_Right(
 			icon: Icons.privacy_tip_rounded,
-			color: Color(0xFF8B5CF6),
+			color: AppColors.primary,
 			title: 'Droit à la protection de vos données',
 			body: 'Vos informations personnelles ne sont jamais partagées avec des tiers sans votre consentement explicite.',
 		),
@@ -383,7 +383,7 @@ class _RightsCard extends StatelessWidget {
 					side: const BorderSide(color: AppColors.border),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
-				shadows: const [BoxShadow(color: Color(0x08000000), blurRadius: 6, offset: Offset(0, 2))],
+				shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 6, offset: Offset(0, 2))],
 			),
 			child: Column(
 				children: _rights.asMap().entries.map((e) {
@@ -472,7 +472,7 @@ class _VerificationSteps extends StatelessWidget {
 					side: const BorderSide(color: AppColors.border),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
-				shadows: const [BoxShadow(color: Color(0x08000000), blurRadius: 6, offset: Offset(0, 2))],
+				shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 6, offset: Offset(0, 2))],
 			),
 			child: Column(
 				children: _steps.asMap().entries.map((e) {
@@ -566,9 +566,9 @@ class _StatsCard extends StatelessWidget {
 		return Container(
 			padding: EdgeInsets.all(responsive.w(20)),
 			decoration: ShapeDecoration(
-				color: const Color(0xFFF0FDF8),
+				color: AppColors.successSurface,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: Color(0x337C3AED)),
+					side: const BorderSide(color: AppColors.primaryMedium),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
 			),
@@ -640,7 +640,7 @@ class _Stat extends StatelessWidget {
 class _StatDivider extends StatelessWidget {
 	@override
 	Widget build(BuildContext context) {
-		return Container(width: 1, height: 40, color: const Color(0x337C3AED));
+		return Container(width: 1, height: 40, color: AppColors.primaryMedium);
 	}
 }
 
@@ -659,7 +659,7 @@ class _QuickActionsRow extends StatelessWidget {
 					responsive: responsive,
 					icon: Icons.shield_rounded,
 					label: 'Sécurité',
-					color: const Color(0xFFEF4444),
+					color: AppColors.danger,
 					onTap: controller.goToSafety,
 				),
 				SizedBox(width: responsive.w(10)),
@@ -704,7 +704,7 @@ class _QuickBtn extends StatelessWidget {
 							side: BorderSide(color: color.withValues(alpha: 0.25)),
 							borderRadius: BorderRadius.circular(responsive.radius(14)),
 						),
-						shadows: const [BoxShadow(color: Color(0x08000000), blurRadius: 6, offset: Offset(0, 2))],
+						shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 6, offset: Offset(0, 2))],
 					),
 					child: Column(
 						children: [
@@ -843,7 +843,7 @@ class _UserTrustStatus extends StatelessWidget {
 						side: const BorderSide(color: AppColors.border),
 						borderRadius: BorderRadius.circular(responsive.radius(16)),
 					),
-					shadows: const [BoxShadow(color: Color(0x08000000), blurRadius: 6, offset: Offset(0, 2))],
+					shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 6, offset: Offset(0, 2))],
 				),
 				child: Column(
 					children: [

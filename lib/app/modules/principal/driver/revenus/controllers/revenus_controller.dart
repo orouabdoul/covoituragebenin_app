@@ -100,7 +100,7 @@ class RevenusController extends GetxController {
     Get.dialog(AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: const Row(children: [
-        Icon(Icons.payments_rounded, color: Color(0xFF7C3AED), size: 22),
+        Icon(Icons.payments_rounded, color: AppColors.primary, size: 22),
         SizedBox(width: 10),
         Text('Retirer des fonds', style: TextStyle(fontSize: 16)),
       ]),
@@ -115,7 +115,7 @@ class RevenusController extends GetxController {
     Get.dialog(AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: const Row(children: [
-        Icon(Icons.receipt_long_rounded, color: Color(0xFF7C3AED), size: 22),
+        Icon(Icons.receipt_long_rounded, color: AppColors.primary, size: 22),
         SizedBox(width: 10),
         Text('Relevé de revenus', style: TextStyle(fontSize: 16)),
       ]),
@@ -128,7 +128,7 @@ class RevenusController extends GetxController {
             UIHelper().showSnackBar(AppStrings.appName, 'Relevé envoyé par e-mail.', 0);
           },
           child: const Text('Envoyer',
-              style: TextStyle(color: Color(0xFF7C3AED), fontWeight: FontWeight.w700)),
+              style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
         ),
       ],
     ));
@@ -171,7 +171,7 @@ class RevenusController extends GetxController {
                   UIHelper().showSnackBar(AppStrings.appName, 'Numéro copié.', 0);
                 }),
             const Divider(height: 1, color: AppColors.border),
-            _actionTile(icon: Icons.delete_outline_rounded, color: const Color(0xFFE53935),
+            _actionTile(icon: Icons.delete_outline_rounded, color: AppColors.danger,
                 label: 'Supprimer', onTap: () { Get.back(); confirmDelete(method); }),
           ],
         ),
@@ -310,7 +310,7 @@ class RevenusController extends GetxController {
             UIHelper().showSnackBar(AppStrings.appName, '${method.title} supprimé.', 0);
           },
           child: const Text('Supprimer',
-              style: TextStyle(color: Color(0xFFE53935), fontWeight: FontWeight.w700)),
+              style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.w700)),
         ),
       ],
     ));
@@ -321,10 +321,10 @@ class RevenusController extends GetxController {
     String? selectedType;
 
     const methodTypes = [
-      ('MTN Mobile Money', Icons.phone_android_rounded,    Color(0xFFF4B400)),
-      ('Moov Money',       Icons.phone_android_rounded,    Color(0xFF6366F1)),
-      ('Celtiis Cash',     Icons.phone_android_rounded,    Color(0xFFE31E24)),
-      ('Compte Bancaire',  Icons.account_balance_outlined, Color(0xFF7C3AED)),
+      ('MTN Mobile Money', Icons.phone_android_rounded,    AppColors.warning),
+      ('Moov Money',       Icons.phone_android_rounded,    AppColors.primary),
+      ('Celtiis Cash',     Icons.phone_android_rounded,    AppColors.danger),
+      ('Compte Bancaire',  Icons.account_balance_outlined, AppColors.primary),
     ];
 
     Get.bottomSheet(
@@ -459,7 +459,7 @@ class RevenueMethod {
     required this.title,
     required this.subtitle,
     required this.icon,
-    this.color = const Color(0xFF7C3AED),
+    this.color = AppColors.primary,
   });
 
   final String  title;

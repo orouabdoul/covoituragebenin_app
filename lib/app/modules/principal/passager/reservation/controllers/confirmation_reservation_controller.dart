@@ -131,13 +131,13 @@ class ConfirmationReservationController extends GetxController {
       title: AppStrings.reservationMobileMoneyPaymentTitle,
       description: AppStrings.reservationMobileMoneyPaymentDescription,
       icon: Icons.phone_android_rounded,
-      backgroundColor: Color(0xFFDBEAFE),
+      backgroundColor: AppColors.primarySurface,
     ),
     const ReservationPaymentMethod(
       title: AppStrings.reservationCardPaymentTitle,
       description: AppStrings.reservationCardPaymentDescription,
       icon: Icons.credit_card_rounded,
-      backgroundColor: Color(0xFFDCFCE7),
+      backgroundColor: AppColors.successSurface,
     ),
   ].obs;
 
@@ -870,7 +870,7 @@ class _PriceConfirmSheet extends StatelessWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: const Color(0xFFE5E7EB),
+                color: AppColors.border,
                 borderRadius: BorderRadius.circular(9999),
               ),
             ),
@@ -880,7 +880,7 @@ class _PriceConfirmSheet extends StatelessWidget {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: const Color(0xFFE6F7EF),
+              color: AppColors.successSurface,
               borderRadius: BorderRadius.circular(16),
             ),
             child: const Icon(Icons.route_rounded,
@@ -892,7 +892,7 @@ class _PriceConfirmSheet extends StatelessWidget {
             style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF111827)),
+                color: AppColors.textPrimary),
           ),
           const SizedBox(height: 4),
           Text(
@@ -909,9 +909,9 @@ class _PriceConfirmSheet extends StatelessWidget {
               padding:
                   const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               decoration: BoxDecoration(
-                color: const Color(0xFFF9FAFB),
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
+                border: Border.all(color: AppColors.border),
               ),
               child: Column(
                 children: [
@@ -931,7 +931,7 @@ class _PriceConfirmSheet extends StatelessWidget {
                             ),
                           ),
                           Container(
-                              width: 2, height: 30, color: const Color(0xFFD1D5DB)),
+                              width: 2, height: 30, color: AppColors.border),
                         ],
                       ),
                       const SizedBox(width: 10),
@@ -944,18 +944,18 @@ class _PriceConfirmSheet extends StatelessWidget {
                               style: const TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF111827)),
+                                  color: AppColors.textPrimary),
                             ),
                             if (pickupNeighborhood.isNotEmpty)
                               Text(pickupNeighborhood,
                                   style: const TextStyle(
                                       fontSize: 12,
-                                      color: Color(0xFF6B7280))),
+                                      color: AppColors.textSecondary)),
                             if (pickupAddress.isNotEmpty)
                               Text(pickupAddress,
                                   style: const TextStyle(
                                       fontSize: 11,
-                                      color: Color(0xFF9CA3AF))),
+                                      color: AppColors.textHint)),
                           ],
                         ),
                       ),
@@ -987,18 +987,18 @@ class _PriceConfirmSheet extends StatelessWidget {
                               style: const TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF111827)),
+                                  color: AppColors.textPrimary),
                             ),
                             if (dropoffNeighborhood.isNotEmpty)
                               Text(dropoffNeighborhood,
                                   style: const TextStyle(
                                       fontSize: 12,
-                                      color: Color(0xFF6B7280))),
+                                      color: AppColors.textSecondary)),
                             if (dropoffAddress.isNotEmpty)
                               Text(dropoffAddress,
                                   style: const TextStyle(
                                       fontSize: 11,
-                                      color: Color(0xFF9CA3AF))),
+                                      color: AppColors.textHint)),
                           ],
                         ),
                       ),
@@ -1018,7 +1018,7 @@ class _PriceConfirmSheet extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE6F7EF),
+                  color: AppColors.successSurface,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                       color: AppColors.primary.withValues(alpha: 0.3)),
@@ -1036,7 +1036,7 @@ class _PriceConfirmSheet extends StatelessWidget {
                             color: AppColors.primary)),
                     SizedBox(width: 4),
                     Text('· prix selon votre distance',
-                        style: TextStyle(fontSize: 12, color: Color(0xFF374151))),
+                        style: TextStyle(fontSize: 12, color: AppColors.textPrimary)),
                   ],
                 ),
               ),
@@ -1045,7 +1045,7 @@ class _PriceConfirmSheet extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 18),
             decoration: BoxDecoration(
-              color: const Color(0xFFE6F7EF),
+              color: AppColors.successSurface,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                   color: AppColors.primary.withValues(alpha: 0.2)),
@@ -1076,9 +1076,9 @@ class _PriceConfirmSheet extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: const Color(0xFFF9FAFB),
+              color: AppColors.surface,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFE5E7EB)),
+              border: Border.all(color: AppColors.border),
             ),
             child: Column(
               children: [
@@ -1115,7 +1115,7 @@ class _PriceConfirmSheet extends StatelessWidget {
                 ),
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 10),
-                  child: Divider(height: 1, color: Color(0xFFE5E7EB)),
+                  child: Divider(height: 1, color: AppColors.border),
                 ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1124,7 +1124,7 @@ class _PriceConfirmSheet extends StatelessWidget {
                         style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF111827))),
+                            color: AppColors.textPrimary)),
                     Text(
                       confirmedTotal > 0
                           ? '${_fmt(confirmedTotal)} FCFA'
@@ -1201,7 +1201,7 @@ class _DetailRow extends StatelessWidget {
           style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF111827)),
+              color: AppColors.textPrimary),
         ),
       ],
     );
@@ -1215,7 +1215,7 @@ class ReservationPaymentMethod {
     required this.title,
     required this.description,
     required this.icon,
-    this.backgroundColor = const Color(0xFFF5F5F5),
+    this.backgroundColor = AppColors.surface,
   });
 
   final String title;
@@ -1226,7 +1226,7 @@ class ReservationPaymentMethod {
   Color get resolvedBackgroundColor {
     final Object? value = backgroundColor;
     if (value is Color) return value;
-    return const Color(0xFFF5F5F5);
+    return AppColors.surface;
   }
 
   IconData get iconData {

@@ -8,6 +8,7 @@ import 'package:covoiturage_benin_app/app/core/services/driver/vehicles/vehicles
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/vehicle_model.dart';
+import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 
 enum VehicleType { car, motorcycle }
 
@@ -193,16 +194,16 @@ class AddVehicleController extends GetxController {
   // ── Options ───────────────────────────────────────────────────────────────
 
   static const List<VehicleColorOption> colorOptions = [
-    VehicleColorOption(label: 'Blanc',  color: Color(0xFFFFFFFF)),
-    VehicleColorOption(label: 'Noir',   color: Color(0xFF1F2937)),
-    VehicleColorOption(label: 'Gris',   color: Color(0xFF9CA3AF)),
-    VehicleColorOption(label: 'Argent', color: Color(0xFFD1D5DB)),
-    VehicleColorOption(label: 'Rouge',  color: Color(0xFFEF4444)),
-    VehicleColorOption(label: 'Bleu',   color: Color(0xFF3B82F6)),
-    VehicleColorOption(label: 'Vert',   color: Color(0xFF10B981)),
-    VehicleColorOption(label: 'Jaune',  color: Color(0xFFF59E0B)),
-    VehicleColorOption(label: 'Orange', color: Color(0xFFF97316)),
-    VehicleColorOption(label: 'Marron', color: Color(0xFF92400E)),
+    VehicleColorOption(label: 'Blanc',  color: AppColors.white),
+    VehicleColorOption(label: 'Noir',   color: AppColors.textPrimary),
+    VehicleColorOption(label: 'Gris',   color: AppColors.textHint),
+    VehicleColorOption(label: 'Argent', color: AppColors.border),
+    VehicleColorOption(label: 'Rouge',  color: AppColors.danger),
+    VehicleColorOption(label: 'Bleu',   color: AppColors.primary),
+    VehicleColorOption(label: 'Vert',   color: AppColors.success),
+    VehicleColorOption(label: 'Jaune',  color: AppColors.warning),
+    VehicleColorOption(label: 'Orange', color: AppColors.accent),
+    VehicleColorOption(label: 'Marron', color: AppColors.warningDark),
   ];
 
   // ── Selections ────────────────────────────────────────────────────────────
@@ -379,7 +380,7 @@ class AddVehicleController extends GetxController {
             onPressed: _confirmDelete,
             child: const Text(
               'Supprimer',
-              style: TextStyle(color: Color(0xFFE53935)),
+              style: TextStyle(color: AppColors.danger),
             ),
           ),
         ],

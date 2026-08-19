@@ -202,9 +202,9 @@ class _ResultCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSuccess = status == VerificationStatus.success;
-    const warningBg = Color(0xFFFFF8E1);
-    const warningBorder = Color(0xFFFFE082);
-    const warningText = Color(0xFFE65100);
+    const warningBg = AppColors.warningSurface;
+    const warningBorder = AppColors.warningSurface;
+    const warningText = AppColors.accent;
 
     final bgColor = isSuccess ? AppColors.successLight : warningBg;
     final borderColor =

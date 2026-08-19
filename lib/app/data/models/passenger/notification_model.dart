@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 
 class PassengerNotificationModel {
   PassengerNotificationModel({
@@ -246,32 +247,32 @@ class PassengerNotificationModel {
 
   static Color _defaultColor(String category, String type) => switch (type) {
         'new_booking_request' || 'reservation_new' || 'reservation_accepted'
-            => const Color(0xFF7C3AED),
+            => AppColors.primary,
         'booking_status_changed' || 'trip_started'
-            => const Color(0xFF2E7D32),
+            => AppColors.success,
         'reservation_rejected' || 'booking_cancelled' || 'trip_cancelled' ||
         'account_blocked' || 'account_status_changed'
-            => const Color(0xFFE53935),
+            => AppColors.danger,
         'trip_completed' || 'trip_ended'
-            => const Color(0xFF6366F1),
+            => AppColors.primary,
         'payment_confirmed' || 'payment_success' || 'payout_paid'
-            => const Color(0xFF1B5E20),
+            => AppColors.successDark,
         'withdrawal_requested' || 'withdrawal_processed'
-            => const Color(0xFF4527A0),
+            => AppColors.primary,
         'dispute_status_changed'
-            => const Color(0xFFE65100),
+            => AppColors.accent,
         'new_message' || 'message_new'
-            => const Color(0xFF4527A0),
+            => AppColors.primary,
         'promo_code_published'
-            => const Color(0xFFF59E0B),
+            => AppColors.warning,
         'account_verified' || 'kyc_status_changed'
-            => const Color(0xFF2E7D32),
+            => AppColors.success,
         _ => switch (category) {
-              'reservations' => const Color(0xFF7C3AED),
-              'trips'        => const Color(0xFF6366F1),
-              'payments'     => const Color(0xFF3B82F6),
-              'messages'     => const Color(0xFF4527A0),
-              _              => const Color(0xFFEF4444),
+              'reservations' => AppColors.primary,
+              'trips'        => AppColors.primary,
+              'payments'     => AppColors.primary,
+              'messages'     => AppColors.primary,
+              _              => AppColors.danger,
             },
       };
 }

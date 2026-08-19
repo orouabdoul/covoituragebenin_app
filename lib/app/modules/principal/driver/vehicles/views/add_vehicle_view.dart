@@ -137,13 +137,13 @@ class _HeroSection extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment(0, 0),
           end: Alignment(1, 1),
-          colors: [Color(0xFF7C3AED), Color(0xFF6D28D9)],
+          colors: [AppColors.primary, AppColors.primary],
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(responsive.radius(24)),
         ),
         shadows: const [
-          BoxShadow(color: Color(0x0C000000), blurRadius: 2, offset: Offset(0, 1)),
+          BoxShadow(color: AppColors.shadowSoft, blurRadius: 2, offset: Offset(0, 1)),
         ],
       ),
       child: Column(
@@ -216,7 +216,7 @@ class _VehicleInfoForm extends StatelessWidget {
           side: const BorderSide(color: AppColors.border),
         ),
         shadows: const [
-          BoxShadow(color: Color(0x0C000000), blurRadius: 2, offset: Offset(0, 1)),
+          BoxShadow(color: AppColors.shadowSoft, blurRadius: 2, offset: Offset(0, 1)),
         ],
       ),
       child: Column(
@@ -432,7 +432,7 @@ class _TypeChipField extends StatelessWidget {
         height: responsive.adaptive(phone: 40, smallPhone: 38, tablet: 40, desktop: 40),
         padding: EdgeInsets.symmetric(horizontal: responsive.w(12)),
         decoration: ShapeDecoration(
-          color: isSelected ? AppColors.primary : const Color(0xFFF9FAFB),
+          color: isSelected ? AppColors.primary : AppColors.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(responsive.radius(16)),
             side: BorderSide(
@@ -506,7 +506,7 @@ class _SelectField extends StatelessWidget {
             height: responsive.adaptive(phone: 40, smallPhone: 38, tablet: 40, desktop: 40),
             padding: EdgeInsets.symmetric(horizontal: responsive.w(16)),
             decoration: ShapeDecoration(
-              color: disabled ? AppColors.surfaceMuted : const Color(0xFFF9FAFB),
+              color: disabled ? AppColors.surfaceMuted : AppColors.surface,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(responsive.radius(16)),
                 side: BorderSide(
@@ -786,7 +786,7 @@ class _ColorSelector extends StatelessWidget {
           height: responsive.adaptive(phone: 40, smallPhone: 38, tablet: 40, desktop: 40),
           padding: EdgeInsets.symmetric(horizontal: responsive.w(12)),
           decoration: ShapeDecoration(
-            color: const Color(0xFFF9FAFB),
+            color: AppColors.surface,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(responsive.radius(16)),
               side: BorderSide(
@@ -845,14 +845,14 @@ class _ColorSelector extends StatelessWidget {
                       width: isSelected ? 2.5 : 1,
                     ),
                     boxShadow: isSelected
-                        ? [const BoxShadow(color: Color(0x337C3AED), blurRadius: 6)]
+                        ? [const BoxShadow(color: AppColors.primaryMedium, blurRadius: 6)]
                         : null,
                   ),
                   child: isSelected
                       ? Icon(
                           Icons.check_rounded,
                           size: responsive.text(14),
-                          color: opt.color == const Color(0xFFFFFFFF)
+                          color: opt.color == AppColors.white
                               ? AppColors.textPrimary
                               : AppColors.white,
                         )
@@ -912,7 +912,7 @@ class _SeatsSelector extends StatelessWidget {
         Container(
           height: responsive.adaptive(phone: 40, smallPhone: 38, tablet: 40, desktop: 40),
           decoration: ShapeDecoration(
-            color: const Color(0xFFF9FAFB),
+            color: AppColors.surface,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(responsive.radius(16)),
               side: const BorderSide(color: AppColors.border),
@@ -1048,7 +1048,7 @@ class _FormField extends StatelessWidget {
           height: responsive.adaptive(phone: 40, smallPhone: 38, tablet: 40, desktop: 40),
           padding: EdgeInsets.symmetric(horizontal: responsive.w(16)),
           decoration: ShapeDecoration(
-            color: const Color(0xFFF9FAFB),
+            color: AppColors.surface,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(responsive.radius(16)),
               side: const BorderSide(color: AppColors.border),
@@ -1092,7 +1092,7 @@ class _PhotoUploadSection extends StatelessWidget {
           side: const BorderSide(color: AppColors.border),
         ),
         shadows: const [
-          BoxShadow(color: Color(0x0C000000), blurRadius: 2, offset: Offset(0, 1)),
+          BoxShadow(color: AppColors.shadowSoft, blurRadius: 2, offset: Offset(0, 1)),
         ],
       ),
       child: Column(
@@ -1123,12 +1123,12 @@ class _PhotoUploadSection extends StatelessWidget {
                 height: responsive.w(120),
                 clipBehavior: Clip.antiAlias,
                 decoration: ShapeDecoration(
-                  color: hasAny ? AppColors.successLight : const Color(0xFFF9FAFB),
+                  color: hasAny ? AppColors.successLight : AppColors.surface,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(responsive.radius(16)),
                     side: BorderSide(
                       width: 2,
-                      color: hasAny ? AppColors.success : const Color(0xFFD1D5DB),
+                      color: hasAny ? AppColors.success : AppColors.border,
                     ),
                   ),
                 ),
@@ -1218,10 +1218,10 @@ class _DocumentsSection extends StatelessWidget {
   };
 
   static const _docColors = <String, Color>{
-    'registration_doc':      Color(0x192563EB),
-    'insurance_doc':         Color(0x197C3AED),
-    'tvm_doc':               Color(0x19F4B400),
-    'technical_control_doc': Color(0x19E53935),
+    'registration_doc':      AppColors.primaryLight,
+    'insurance_doc':         AppColors.primaryLight,
+    'tvm_doc':               AppColors.warningLight,
+    'technical_control_doc': AppColors.dangerLight,
   };
 
   @override
@@ -1236,7 +1236,7 @@ class _DocumentsSection extends StatelessWidget {
           side: const BorderSide(color: AppColors.border),
         ),
         shadows: const [
-          BoxShadow(color: Color(0x0C000000), blurRadius: 2, offset: Offset(0, 1)),
+          BoxShadow(color: AppColors.shadowSoft, blurRadius: 2, offset: Offset(0, 1)),
         ],
       ),
       child: Column(
@@ -1267,7 +1267,7 @@ class _DocumentsSection extends StatelessWidget {
                       label: slot.label,
                       isRequired: slot.required,
                       icon: _docIcons[slot.apiKey] ?? Icons.attach_file_rounded,
-                      badgeColor: _docColors[slot.apiKey] ?? const Color(0x19000000),
+                      badgeColor: _docColors[slot.apiKey] ?? AppColors.shadow,
                       hasFile: hasAny,
                       isNewFile: hasNew,
                       isExistingFile: !hasNew && existingUrl != null,
@@ -1387,7 +1387,7 @@ class _DocumentRow extends StatelessWidget {
                       Text(
                         '*',
                         style: AppTextStyles.caption(responsive)
-                            .copyWith(color: const Color(0xFFE53935)),
+                            .copyWith(color: AppColors.danger),
                       ),
                     ],
                   ],
@@ -1465,11 +1465,11 @@ class _SecuritySection extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment(-0, 0.5),
           end: Alignment(1, 0.5),
-          colors: [Color(0x0C2563EB), Color(0x0C7C3AED)],
+          colors: [AppColors.primaryLight, AppColors.primaryLight],
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(responsive.radius(24)),
-          side: const BorderSide(color: Color(0x332563EB)),
+          side: const BorderSide(color: AppColors.primaryMedium),
         ),
       ),
       child: Column(
@@ -1481,7 +1481,7 @@ class _SecuritySection extends StatelessWidget {
                 width: responsive.w(48),
                 height: responsive.w(48),
                 decoration: ShapeDecoration(
-                  color: const Color(0xFF2563EB),
+                  color: AppColors.primary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(responsive.radius(12)),
                   ),
@@ -1734,7 +1734,7 @@ class _ImageSourceTile extends StatelessWidget {
                 width: responsive.w(44),
                 height: responsive.w(44),
                 decoration: ShapeDecoration(
-                  color: const Color(0xFFE8F5F0),
+                  color: AppColors.successSurface,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(responsive.radius(12)),
                   ),

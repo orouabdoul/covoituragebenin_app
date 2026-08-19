@@ -537,12 +537,12 @@ class _AvailabilitySection extends StatelessWidget {
                           ),
                           shadows: const [
                             BoxShadow(
-                              color: Color(0x19000000),
+                              color: AppColors.shadow,
                               blurRadius: 6,
                               offset: Offset(0, 4),
                             ),
                             BoxShadow(
-                              color: Color(0x19000000),
+                              color: AppColors.shadow,
                               blurRadius: 4,
                               offset: Offset(0, 2),
                             ),
@@ -753,7 +753,7 @@ class _NextTripCard extends StatelessWidget {
                     height: responsive.h(64),
                     color: AppColors.border,
                   ),
-                  _RouteDot(color: const Color(0xFFE53935)),
+                  _RouteDot(color: AppColors.danger),
                 ],
               ),
               SizedBox(width: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
@@ -816,7 +816,7 @@ class _NextTripCard extends StatelessWidget {
                     '${(trip.tripProgress * 100).toStringAsFixed(0)}%',
                     style: AppTextStyles.caption(responsive).copyWith(
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFF3B82F6),
+                      color: AppColors.primary,
                     ),
                   ),
               ],
@@ -828,7 +828,7 @@ class _NextTripCard extends StatelessWidget {
                 value: trip.tripProgress.clamp(0.0, 1.0),
                 minHeight: responsive.adaptive(phone: 5, smallPhone: 4, tablet: 5, desktop: 5).toDouble(),
                 backgroundColor: AppColors.surfaceSoft,
-                color: const Color(0xFF3B82F6),
+                color: AppColors.primary,
               ),
             ),
           ],
@@ -954,7 +954,7 @@ class _LocalAvatar extends StatelessWidget {
       width: size,
       height: size,
       decoration: ShapeDecoration(
-        color: const Color(0xFFEFF6F3),
+        color: AppColors.successSurface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(9999),
           side: BorderSide(color: borderColor),
@@ -1143,7 +1143,7 @@ class _SectionHeader extends StatelessWidget {
               vertical: responsive.h(4),
             ),
             decoration: ShapeDecoration(
-              color: const Color(0xFFE53935),
+              color: AppColors.danger,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(9999),
               ),
@@ -1186,8 +1186,8 @@ class _QuickRequestCard extends StatelessWidget {
       final urgent = request.isUrgent;
       final borderColor = urgent
           ? (request.remainingSeconds.value <= 60
-              ? const Color(0xFFE53935)
-              : const Color(0xFFF59E0B))
+              ? AppColors.danger
+              : AppColors.warning)
           : AppColors.border;
 
       return AnimatedContainer(
@@ -1201,7 +1201,7 @@ class _QuickRequestCard extends StatelessWidget {
           ),
           shadows: const [
             BoxShadow(
-                color: Color(0x0C000000), blurRadius: 6, offset: Offset(0, 2)),
+                color: AppColors.shadowSoft, blurRadius: 6, offset: Offset(0, 2)),
           ],
         ),
         child: Row(
@@ -1245,8 +1245,8 @@ class _QuickRequestCard extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: urgent
                               ? (request.remainingSeconds.value <= 60
-                                  ? const Color(0xFFFEF2F2)
-                                  : const Color(0xFFFFFBEB))
+                                  ? AppColors.dangerSurface
+                                  : AppColors.warningSurface)
                               : AppColors.surfaceAccent,
                           borderRadius: BorderRadius.circular(999),
                           border: Border.all(
@@ -1319,8 +1319,8 @@ class _QuickRequestCard extends StatelessWidget {
                   _MiniButton(
                     responsive: responsive,
                     label: 'Refuser',
-                    bgColor: const Color(0xFFFEF2F2),
-                    textColor: const Color(0xFFE53935),
+                    bgColor: AppColors.dangerSurface,
+                    textColor: AppColors.danger,
                     isLoading: false,
                     onTap: processing ? null : onReject,
                   ),
@@ -1452,7 +1452,7 @@ class _RequestCard extends StatelessWidget {
         color: AppColors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(responsive.radius(22)),
-          side: const BorderSide(width: 2, color: Color(0x337C3AED)),
+          side: const BorderSide(width: 2, color: AppColors.primaryMedium),
         ),
         shadows: const [
           BoxShadow(color: AppColors.shadowSoft, blurRadius: 2, offset: Offset(0, 1)),
@@ -1708,8 +1708,8 @@ class _WalletSection extends StatelessWidget {
           borderRadius: BorderRadius.circular(responsive.radius(22)),
         ),
         shadows: const [
-          BoxShadow(color: Color(0x19000000), blurRadius: 15, offset: Offset(0, 10)),
-          BoxShadow(color: Color(0x19000000), blurRadius: 6, offset: Offset(0, 4)),
+          BoxShadow(color: AppColors.shadow, blurRadius: 15, offset: Offset(0, 10)),
+          BoxShadow(color: AppColors.shadow, blurRadius: 6, offset: Offset(0, 4)),
         ],
       ),
       child: Column(

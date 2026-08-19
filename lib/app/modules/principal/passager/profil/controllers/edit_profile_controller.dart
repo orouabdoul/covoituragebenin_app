@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/profile/passenger_profile_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'profil_controller.dart';
+import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 
 class EditProfileController extends GetxController {
   final firstNameController  = TextEditingController();
@@ -104,7 +105,7 @@ class EditProfileController extends GetxController {
       Get.snackbar(
         'Profil mis à jour',
         'Vos informations ont été sauvegardées.',
-        backgroundColor: const Color(0xFF7C3AED),
+        backgroundColor: AppColors.primary,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
         margin: const EdgeInsets.all(16),
@@ -118,7 +119,7 @@ class EditProfileController extends GetxController {
       Get.snackbar(
         'Erreur',
         msg,
-        backgroundColor: const Color(0xFFEF4444),
+        backgroundColor: AppColors.danger,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
         margin: const EdgeInsets.all(16),
@@ -151,7 +152,7 @@ class _AvatarSourceSheet extends StatelessWidget {
         children: [
           Container(
             width: 40, height: 4,
-            decoration: BoxDecoration(color: const Color(0xFFE5E7EB), borderRadius: BorderRadius.circular(2)),
+            decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)),
           ),
           const SizedBox(height: 16),
           const Text('Changer la photo',
@@ -160,8 +161,8 @@ class _AvatarSourceSheet extends StatelessWidget {
           ListTile(
             leading: Container(
               padding: const EdgeInsets.all(8),
-              decoration: const BoxDecoration(color: Color(0xFFF0FDF8), shape: BoxShape.circle),
-              child: const Icon(Icons.photo_library_rounded, color: Color(0xFF7C3AED)),
+              decoration: const BoxDecoration(color: AppColors.successSurface, shape: BoxShape.circle),
+              child: const Icon(Icons.photo_library_rounded, color: AppColors.primary),
             ),
             title: const Text('Galerie photo',
                 style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500)),
@@ -170,8 +171,8 @@ class _AvatarSourceSheet extends StatelessWidget {
           ListTile(
             leading: Container(
               padding: const EdgeInsets.all(8),
-              decoration: const BoxDecoration(color: Color(0xFFF0F9FF), shape: BoxShape.circle),
-              child: const Icon(Icons.camera_alt_rounded, color: Color(0xFF0EA5E9)),
+              decoration: const BoxDecoration(color: AppColors.primarySurface, shape: BoxShape.circle),
+              child: const Icon(Icons.camera_alt_rounded, color: AppColors.primary),
             ),
             title: const Text('Appareil photo',
                 style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500)),

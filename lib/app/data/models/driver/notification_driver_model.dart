@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 
 enum DriverNotificationType {
   reservation,
@@ -261,28 +262,28 @@ class DriverNotificationModel {
   static Color _defaultBg(DriverNotificationType type, String rawType) =>
       switch (rawType) {
         'new_booking_request' || 'reservation_new' || 'reservation_accepted'
-            => const Color(0xFF3B82F6),
-        'booking_status_changed'       => const Color(0xFF2E7D32),
+            => AppColors.primary,
+        'booking_status_changed'       => AppColors.success,
         'reservation_rejected' || 'booking_cancelled' || 'trip_cancelled' ||
         'account_blocked' || 'account_status_changed'
-            => const Color(0xFFE53935),
-        'trip_started'                 => const Color(0xFF2E7D32),
-        'trip_completed' || 'trip_ended' => const Color(0xFF6366F1),
-        'payment_success'              => const Color(0xFF1B5E20),
+            => AppColors.danger,
+        'trip_started'                 => AppColors.success,
+        'trip_completed' || 'trip_ended' => AppColors.primary,
+        'payment_success'              => AppColors.successDark,
         'withdrawal_requested' || 'withdrawal_processed'
-            => const Color(0xFF7C3AED),
-        'payout_paid'                  => const Color(0xFF1B5E20),
-        'new_message' || 'message_new' => const Color(0xFF4527A0),
-        'promo_code_published'         => const Color(0xFFF59E0B),
-        'kyc_status_changed' || 'account_verified' => const Color(0xFF2E7D32),
+            => AppColors.primary,
+        'payout_paid'                  => AppColors.successDark,
+        'new_message' || 'message_new' => AppColors.primary,
+        'promo_code_published'         => AppColors.warning,
+        'kyc_status_changed' || 'account_verified' => AppColors.success,
         _ => switch (type) {
-              DriverNotificationType.reservation => const Color(0xFF3B82F6),
-              DriverNotificationType.payment     => const Color(0xFF7C3AED),
-              DriverNotificationType.trip        => const Color(0xFF6366F1),
-              DriverNotificationType.alert       => const Color(0xFFF59E0B),
-              DriverNotificationType.promotion   => const Color(0xFFF4B400),
-              DriverNotificationType.support     => const Color(0xFFA855F7),
-              DriverNotificationType.message     => const Color(0xFF4527A0),
+              DriverNotificationType.reservation => AppColors.primary,
+              DriverNotificationType.payment     => AppColors.primary,
+              DriverNotificationType.trip        => AppColors.primary,
+              DriverNotificationType.alert       => AppColors.warning,
+              DriverNotificationType.promotion   => AppColors.warning,
+              DriverNotificationType.support     => AppColors.primary,
+              DriverNotificationType.message     => AppColors.primary,
             },
       };
 

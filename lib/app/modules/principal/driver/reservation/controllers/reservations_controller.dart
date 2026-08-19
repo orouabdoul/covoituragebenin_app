@@ -162,8 +162,8 @@ class LiveReservationRequest {
 
   Color get urgencyColor {
     final secs = remainingSeconds.value;
-    if (secs <= 60) return const Color(0xFFE53935);
-    if (secs <= 120) return const Color(0xFFF59E0B);
+    if (secs <= 60) return AppColors.danger;
+    if (secs <= 120) return AppColors.warning;
     return AppColors.primary;
   }
 
@@ -184,8 +184,8 @@ class LiveReservationRequest {
   }
 
   Color get borderColor => switch (urgency) {
-        ReservationUrgency.critical => const Color(0xFFE53935),
-        ReservationUrgency.warning  => const Color(0xFFF59E0B),
+        ReservationUrgency.critical => AppColors.danger,
+        ReservationUrgency.warning  => AppColors.warning,
         ReservationUrgency.normal   => AppColors.border,
       };
 
@@ -311,12 +311,12 @@ class ReservationsController extends GetxController {
             style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700)),
         content: Text(
           'La demande de ${r.passengerName} sera annulée et le passager sera notifié.',
-          style: const TextStyle(fontFamily: 'Inter', color: Color(0xFF4B5563)),
+          style: const TextStyle(fontFamily: 'Inter', color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: Get.back,
-            child: const Text('Annuler', style: TextStyle(color: Color(0xFF6B7280))),
+            child: const Text('Annuler', style: TextStyle(color: AppColors.textSecondary)),
           ),
           TextButton(
             onPressed: () {
@@ -324,7 +324,7 @@ class ReservationsController extends GetxController {
               _confirmReject(r);
             },
             child: const Text('Refuser',
-                style: TextStyle(color: Color(0xFFE53935), fontWeight: FontWeight.w700)),
+                style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -406,7 +406,7 @@ class ReservationsController extends GetxController {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.star_rounded, color: Color(0xFFF4B400), size: 16),
+                const Icon(Icons.star_rounded, color: AppColors.warning, size: 16),
                 const SizedBox(width: 4),
                 Text('${r.rating}  ·  ${r.tripsCount} trajets',
                     style: const TextStyle(fontSize: 13, color: AppColors.textMuted)),
@@ -568,7 +568,7 @@ class ReservationsController extends GetxController {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               decoration: BoxDecoration(
-                color: const Color(0xFFE6F7EF),
+                color: AppColors.successSurface,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(phone,
@@ -702,8 +702,8 @@ class _ContactSheet extends StatelessWidget {
           const SizedBox(height: 12),
           _ContactOption(
             icon: Icons.call_rounded,
-            iconBg: const Color(0xFFDCFCE7),
-            iconColor: const Color(0xFF16A34A),
+            iconBg: AppColors.successSurface,
+            iconColor: AppColors.success,
             title: 'Appeler le passager',
             subtitle: request.phone != null
                 ? 'Numéro masqué pour votre sécurité'

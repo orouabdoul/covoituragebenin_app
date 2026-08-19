@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
 import 'app_responsive.dart';
+import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 
 class AppTextStyles {
   static const String _fontFamily = 'Inter';
 
   static TextStyle onboardingSkip(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF9CA3AF),
+      color: AppColors.textHint,
       fontSize: responsive.text(14),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w500,
@@ -19,7 +20,7 @@ class AppTextStyles {
 
   static TextStyle onboardingTitle(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF111111),
+      color: AppColors.textPrimary,
       fontSize: responsive.text(30),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w700,
@@ -30,7 +31,7 @@ class AppTextStyles {
 
   static TextStyle onboardingDescription(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF4B5563),
+      color: AppColors.textSecondary,
       fontSize: responsive.text(18),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w400,
@@ -96,7 +97,7 @@ class AppTextStyles {
 
   static TextStyle rolesTitle(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF111111),
+      color: AppColors.textPrimary,
       fontSize: responsive.text(24),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w700,
@@ -107,7 +108,7 @@ class AppTextStyles {
 
   static TextStyle rolesSubtitle(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF4B5563),
+      color: AppColors.textSecondary,
       fontSize: responsive.text(16),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w400,
@@ -118,7 +119,7 @@ class AppTextStyles {
 
   static TextStyle rolesCardTitle(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF111111),
+      color: AppColors.textPrimary,
       fontSize: responsive.text(20),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w700,
@@ -129,7 +130,7 @@ class AppTextStyles {
 
   static TextStyle rolesBenefit(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF374151),
+      color: AppColors.textPrimary,
       fontSize: responsive.text(14),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w400,
@@ -151,7 +152,7 @@ class AppTextStyles {
 
   static TextStyle registerHero(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF111111),
+      color: AppColors.textPrimary,
       fontSize: responsive.text(28),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w800,
@@ -173,7 +174,7 @@ class AppTextStyles {
 
   static TextStyle registerTagline(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF6B7280),
+      color: AppColors.textSecondary,
       fontSize: responsive.text(16),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w400,
@@ -184,7 +185,7 @@ class AppTextStyles {
 
   static TextStyle registerSection(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF374151),
+      color: AppColors.textPrimary,
       fontSize: responsive.text(14),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w600,
@@ -195,7 +196,7 @@ class AppTextStyles {
 
   static TextStyle registerBody(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF374151),
+      color: AppColors.textPrimary,
       fontSize: responsive.text(14),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w400,
@@ -206,7 +207,7 @@ class AppTextStyles {
 
   static TextStyle registerLabel(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF6B7280),
+      color: AppColors.textSecondary,
       fontSize: responsive.text(12),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w500,
@@ -217,7 +218,7 @@ class AppTextStyles {
 
   static TextStyle registerField(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF111111),
+      color: AppColors.textPrimary,
       fontSize: responsive.text(16),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w500,
@@ -228,7 +229,7 @@ class AppTextStyles {
 
   static TextStyle otpTitle(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF111111),
+      color: AppColors.textPrimary,
       fontSize: responsive.text(24),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w700,
@@ -239,7 +240,7 @@ class AppTextStyles {
 
   static TextStyle otpBody(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF4B5563),
+      color: AppColors.textSecondary,
       fontSize: responsive.text(16),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w400,
@@ -261,7 +262,7 @@ class AppTextStyles {
 
   static TextStyle otpDigit(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF111111),
+      color: AppColors.textPrimary,
       fontSize: responsive.text(24),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w700,
@@ -272,7 +273,7 @@ class AppTextStyles {
 
   static TextStyle otpHint(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF6B7280),
+      color: AppColors.textSecondary,
       fontSize: responsive.text(14),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w400,
@@ -305,7 +306,7 @@ class AppTextStyles {
 
   static TextStyle otpSecurityTitle(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF111111),
+      color: AppColors.textPrimary,
       fontSize: responsive.text(14),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w600,
@@ -316,7 +317,7 @@ class AppTextStyles {
 
   static TextStyle otpSecurityBody(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF4B5563),
+      color: AppColors.textSecondary,
       fontSize: responsive.text(12),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w400,
@@ -327,7 +328,7 @@ class AppTextStyles {
 
   static TextStyle profileSectionTitle(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF111111),
+      color: AppColors.textPrimary,
       fontSize: responsive.text(18),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w700,
@@ -338,7 +339,7 @@ class AppTextStyles {
 
   static TextStyle profileSectionLabel(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF374151),
+      color: AppColors.textPrimary,
       fontSize: responsive.text(14),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w500,
@@ -382,7 +383,7 @@ class AppTextStyles {
 
   static TextStyle profileMeta(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF4B5563),
+      color: AppColors.textSecondary,
       fontSize: responsive.text(14),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w500,
@@ -426,7 +427,7 @@ class AppTextStyles {
 
   static TextStyle homeSectionTitle(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF111111),
+      color: AppColors.textPrimary,
       fontSize: responsive.text(16),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w700,
@@ -437,7 +438,7 @@ class AppTextStyles {
 
   static TextStyle homeCardTitle(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF111111),
+      color: AppColors.textPrimary,
       fontSize: responsive.text(14),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w700,
@@ -448,7 +449,7 @@ class AppTextStyles {
 
   static TextStyle homeCardBody(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF6B7280),
+      color: AppColors.textSecondary,
       fontSize: responsive.text(12),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w400,
@@ -481,7 +482,7 @@ class AppTextStyles {
 
   static TextStyle body(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF374151),
+      color: AppColors.textPrimary,
       fontSize: responsive.text(14),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w400,
@@ -497,7 +498,7 @@ class AppTextStyles {
 
   static TextStyle subtitle(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF111111),
+      color: AppColors.textPrimary,
       fontSize: responsive.text(16),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w600,
@@ -508,7 +509,7 @@ class AppTextStyles {
 
   static TextStyle muted(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF6B7280),
+      color: AppColors.textSecondary,
       fontSize: responsive.text(14),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w400,
@@ -534,7 +535,7 @@ class AppTextStyles {
 
   static TextStyle h2(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF111827),
+      color: AppColors.textPrimary,
       fontSize: responsive.text(28),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w800,
@@ -545,7 +546,7 @@ class AppTextStyles {
 
   static TextStyle h3(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF111827),
+      color: AppColors.textPrimary,
       fontSize: responsive.text(24),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w700,
@@ -556,7 +557,7 @@ class AppTextStyles {
 
   static TextStyle h4(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF111827),
+      color: AppColors.textPrimary,
       fontSize: responsive.text(20),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w700,
@@ -567,7 +568,7 @@ class AppTextStyles {
 
   static TextStyle h5(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF111827),
+      color: AppColors.textPrimary,
       fontSize: responsive.text(18),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w600,
@@ -580,7 +581,7 @@ class AppTextStyles {
 
   static TextStyle bodyMedium(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF111827),
+      color: AppColors.textPrimary,
       fontSize: responsive.text(14),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w500,
@@ -591,7 +592,7 @@ class AppTextStyles {
 
   static TextStyle bodySmall(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF374151),
+      color: AppColors.textPrimary,
       fontSize: responsive.text(12),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w400,
@@ -602,7 +603,7 @@ class AppTextStyles {
 
   static TextStyle labelSmall(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF6B7280),
+      color: AppColors.textSecondary,
       fontSize: responsive.text(11),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w500,
@@ -613,7 +614,7 @@ class AppTextStyles {
 
   static TextStyle caption(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF6B7280),
+      color: AppColors.textSecondary,
       fontSize: responsive.text(12),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w400,
@@ -637,7 +638,7 @@ class AppTextStyles {
 
   static TextStyle rolesCardDescription(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF4B5563),
+      color: AppColors.textSecondary,
       fontSize: responsive.text(14),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w400,
@@ -648,7 +649,7 @@ class AppTextStyles {
 
   static TextStyle rolesCardTitle2(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF111111),
+      color: AppColors.textPrimary,
       fontSize: responsive.text(16),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w700,
@@ -669,7 +670,7 @@ class AppTextStyles {
 
   static TextStyle h6(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF111827),
+      color: AppColors.textPrimary,
       fontSize: responsive.text(16),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w600,
@@ -680,7 +681,7 @@ class AppTextStyles {
 
   static TextStyle registerSectionTitle(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF111111),
+      color: AppColors.textPrimary,
       fontSize: responsive.text(18),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w700,
@@ -691,7 +692,7 @@ class AppTextStyles {
 
   static TextStyle registerHeroTitle(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF111111),
+      color: AppColors.textPrimary,
       fontSize: responsive.text(26),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w800,
@@ -702,7 +703,7 @@ class AppTextStyles {
 
   static TextStyle registerHelp(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF4B5563),
+      color: AppColors.textSecondary,
       fontSize: responsive.text(14),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w400,
@@ -713,7 +714,7 @@ class AppTextStyles {
 
   static TextStyle registerMuted(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF9CA3AF),
+      color: AppColors.textHint,
       fontSize: responsive.text(13),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w400,
@@ -724,7 +725,7 @@ class AppTextStyles {
 
   static TextStyle dialogTitle(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF111111),
+      color: AppColors.textPrimary,
       fontSize: responsive.text(18),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w700,
@@ -735,7 +736,7 @@ class AppTextStyles {
 
   static TextStyle dialogBody(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF4B5563),
+      color: AppColors.textSecondary,
       fontSize: responsive.text(14),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w400,
@@ -746,7 +747,7 @@ class AppTextStyles {
 
   static TextStyle dialogHint(AppResponsive responsive) {
     return TextStyle(
-      color: const Color(0xFF9CA3AF),
+      color: AppColors.textHint,
       fontSize: responsive.text(12),
       fontFamily: _fontFamily,
       fontWeight: FontWeight.w400,

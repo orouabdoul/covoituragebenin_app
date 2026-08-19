@@ -122,7 +122,7 @@ class RevenusView extends StatelessWidget {
 												alignment: Alignment.centerRight,
 												padding: const EdgeInsets.only(right: 20),
 												decoration: BoxDecoration(
-													color: Color(0xFFE53935),
+													color: AppColors.danger,
 													borderRadius: BorderRadius.circular(responsive.radius(16)),
 												),
 												child: const Icon(Icons.delete_outline_rounded, color: Colors.white, size: 22),
@@ -147,7 +147,7 @@ class RevenusView extends StatelessWidget {
 															TextButton(
 																onPressed: () => Get.back(result: true),
 																child: const Text('Supprimer',
-																		style: TextStyle(color: Color(0xFFE53935), fontWeight: FontWeight.w700)),
+																		style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.w700)),
 															),
 														],
 													),
@@ -398,7 +398,7 @@ class _PendingIncomeCard extends StatelessWidget {
 			width: double.infinity,
 			padding: EdgeInsets.all(responsive.adaptive(phone: 20, smallPhone: 18, tablet: 20, desktop: 20)),
 			decoration: ShapeDecoration(
-				color: const Color(0x19F4B400),
+				color: AppColors.warningLight,
 				shape: RoundedRectangleBorder(
 					side: const BorderSide(width: 2, color: AppColors.accent),
 					borderRadius: BorderRadius.circular(responsive.radius(24)),
@@ -852,7 +852,7 @@ class _AddMethodButton extends StatelessWidget {
 			height: responsive.adaptive(phone: 56, smallPhone: 52, tablet: 56, desktop: 56),
 			backgroundColor: AppColors.surfaceMuted,
 			textColor: AppColors.primary,
-			borderColor: const Color(0x33111111),
+			borderColor: AppColors.shadow,
 			borderRadius: responsive.radius(16),
 		);
 	}

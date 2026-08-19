@@ -115,7 +115,7 @@ class _SearchHeader extends StatelessWidget {
       decoration: ShapeDecoration(
         color: Colors.white.withValues(alpha: 0.95),
         shape: RoundedRectangleBorder(
-          side: const BorderSide(width: 1, color: Color(0xFFF3F4F6)),
+          side: const BorderSide(width: 1, color: AppColors.surface),
           borderRadius: BorderRadius.circular(responsive.radius(16)),
         ),
       ),
@@ -127,7 +127,7 @@ class _SearchHeader extends StatelessWidget {
             responsive: responsive,
             label: '',
             borderRadius: responsive.radius(22),
-            backgroundColor: const Color(0xFFF9FAFB),
+            backgroundColor: AppColors.surface,
             padding: EdgeInsets.symmetric(
               horizontal: responsive.w(16),
               vertical: responsive.h(12),
@@ -188,7 +188,7 @@ class _FilterRow extends StatelessWidget {
                 label: filter.label,
                 onTap: () => controller.selectFilter(index),
                 height: responsive.h(40),
-                backgroundColor: selected ? AppColors.primary : const Color(0xFFF3F4F6),
+                backgroundColor: selected ? AppColors.primary : AppColors.surface,
                 textColor: selected ? AppColors.white : AppColors.textPrimary,
                 borderColor: selected ? AppColors.primary : AppColors.border,
               ),
@@ -221,7 +221,7 @@ class _ThreadCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(responsive.radius(16)),
           ),
           shadows: const [
-            BoxShadow(color: Color(0x0C000000), blurRadius: 2, offset: Offset(0, 1)),
+            BoxShadow(color: AppColors.shadowSoft, blurRadius: 2, offset: Offset(0, 1)),
           ],
         ),
         child: Column(

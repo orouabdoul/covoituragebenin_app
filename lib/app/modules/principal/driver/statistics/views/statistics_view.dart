@@ -292,7 +292,7 @@ class _RevenueHero extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF7C3AED), Color(0xFF6D28D9)],
+          colors: [AppColors.primary, AppColors.primary],
         ),
         borderRadius: BorderRadius.circular(
             r.adaptive(phone: 18, smallPhone: 16, tablet: 20, desktop: 24)),
@@ -430,7 +430,7 @@ class _MetricsGrid extends StatelessWidget {
                     ? stats.averageRating.toStringAsFixed(1)
                     : '—',
                 label: 'Note moyenne',
-                color: const Color(0xFF22C55E),
+                color: AppColors.success,
               ),
             ),
             SizedBox(width: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
@@ -683,7 +683,7 @@ class _PerformanceCard extends StatelessWidget {
             r: r,
             label: "Taux d'annulation",
             value: stats.cancellationRate,
-            color: const Color(0xFFEF4444),
+            color: AppColors.danger,
             inverted: true,
           ),
           SizedBox(
@@ -816,10 +816,10 @@ class _BadgesCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final badgeDefs = [
-      (icon: Icons.verified_rounded,          label: 'Fiable',   color: const Color(0xFF7C3AED), unlocked: _isReliable),
-      (icon: Icons.workspace_premium_rounded, label: 'Top 10%',  color: const Color(0xFFF4B400), unlocked: _isTop),
-      (icon: Icons.speed_rounded,             label: 'Rapide',   color: const Color(0xFF3B82F6), unlocked: _isFast),
-      (icon: Icons.star_rounded,              label: 'Ponctuel', color: const Color(0xFF6366F1), unlocked: _isPunctual),
+      (icon: Icons.verified_rounded,          label: 'Fiable',   color: AppColors.primary, unlocked: _isReliable),
+      (icon: Icons.workspace_premium_rounded, label: 'Top 10%',  color: AppColors.warning, unlocked: _isTop),
+      (icon: Icons.speed_rounded,             label: 'Rapide',   color: AppColors.primary, unlocked: _isFast),
+      (icon: Icons.star_rounded,              label: 'Ponctuel', color: AppColors.primary, unlocked: _isPunctual),
     ];
 
     final pct = (_milestoneProgress * 100).round();

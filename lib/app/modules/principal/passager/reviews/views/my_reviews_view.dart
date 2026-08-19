@@ -175,7 +175,7 @@ class _RatingSummaryCard extends StatelessWidget {
 					side: const BorderSide(color: AppColors.border),
 					borderRadius: BorderRadius.circular(responsive.radius(20)),
 				),
-				shadows: const [BoxShadow(color: Color(0x0A000000), blurRadius: 10, offset: Offset(0, 3))],
+				shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 10, offset: Offset(0, 3))],
 			),
 			child: Row(
 				children: [
@@ -273,7 +273,7 @@ class _ReviewCard extends StatelessWidget {
 					side: const BorderSide(color: AppColors.border),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
-				shadows: const [BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 2))],
+				shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 8, offset: Offset(0, 2))],
 			),
 			child: Column(
 				crossAxisAlignment: CrossAxisAlignment.start,

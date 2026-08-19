@@ -135,12 +135,12 @@ class _ActiveTripBanner extends StatelessWidget {
 				padding: EdgeInsets.symmetric(horizontal: responsive.w(16), vertical: responsive.h(12)),
 				decoration: BoxDecoration(
 					gradient: const LinearGradient(
-						colors: [Color(0xFF7C3AED), Color(0xFF6D28D9)],
+						colors: [AppColors.primary, AppColors.primary],
 					),
 					borderRadius: BorderRadius.circular(responsive.radius(14)),
 					boxShadow: [
 						BoxShadow(
-							color: const Color(0xFF7C3AED).withValues(alpha: 0.30),
+							color: AppColors.primary.withValues(alpha: 0.30),
 							blurRadius: 12,
 							offset: const Offset(0, 4),
 						),
@@ -261,11 +261,11 @@ class _StatusTabBar extends StatelessWidget {
 
 	Color _tabColor(ReservationStatus s) {
 		switch (s) {
-			case ReservationStatus.pending: return const Color(0xFFF59E0B);
+			case ReservationStatus.pending: return AppColors.warning;
 			case ReservationStatus.confirmed: return AppColors.blue;
 			case ReservationStatus.inProgress: return AppColors.primary;
-			case ReservationStatus.completed: return const Color(0xFF6B7280);
-			case ReservationStatus.cancelled: return const Color(0xFFEF4444);
+			case ReservationStatus.completed: return AppColors.textSecondary;
+			case ReservationStatus.cancelled: return AppColors.danger;
 		}
 	}
 
@@ -295,12 +295,12 @@ class _ReservationCard extends StatelessWidget {
 
 	Color get _statusColor {
 		switch (reservation.status) {
-			case ReservationStatus.pending: return const Color(0xFFF59E0B);
+			case ReservationStatus.pending: return AppColors.warning;
 			case ReservationStatus.confirmed:
-				return reservation.isPaid ? AppColors.blue : const Color(0xFFF59E0B);
+				return reservation.isPaid ? AppColors.blue : AppColors.warning;
 			case ReservationStatus.inProgress: return AppColors.primary;
-			case ReservationStatus.completed: return const Color(0xFF6B7280);
-			case ReservationStatus.cancelled: return const Color(0xFFEF4444);
+			case ReservationStatus.completed: return AppColors.textSecondary;
+			case ReservationStatus.cancelled: return AppColors.danger;
 		}
 	}
 
@@ -346,7 +346,7 @@ class _ReservationCard extends StatelessWidget {
 					BoxShadow(
 						color: reservation.status == ReservationStatus.inProgress
 								? color.withValues(alpha: 0.12)
-								: const Color(0x0C000000),
+								: AppColors.shadowSoft,
 						blurRadius: reservation.status == ReservationStatus.inProgress ? 16 : 4,
 						offset: const Offset(0, 2),
 					),
@@ -508,21 +508,21 @@ class _PaymentWarningBanner extends StatelessWidget {
 			child: Container(
 				width: double.infinity,
 				padding: EdgeInsets.symmetric(horizontal: responsive.w(14), vertical: responsive.h(10)),
-				color: const Color(0xFFFFF7ED),
+				color: AppColors.warningSurface,
 				child: Row(
 					children: [
-						const Icon(Icons.payment_rounded, size: 16, color: Color(0xFFF59E0B)),
+						const Icon(Icons.payment_rounded, size: 16, color: AppColors.warning),
 						SizedBox(width: responsive.w(8)),
 						Expanded(
 							child: Text(
 								'Paiement en attente — Payez avant le départ',
 								style: AppTextStyles.caption(responsive).copyWith(
-									color: const Color(0xFF92400E),
+									color: AppColors.warningDark,
 									fontWeight: FontWeight.w600,
 								),
 							),
 						),
-						const Icon(Icons.chevron_right_rounded, size: 16, color: Color(0xFFF59E0B)),
+						const Icon(Icons.chevron_right_rounded, size: 16, color: AppColors.warning),
 					],
 				),
 			),
@@ -542,15 +542,15 @@ class _CancelReasonBanner extends StatelessWidget {
 		return Container(
 			width: double.infinity,
 			padding: EdgeInsets.symmetric(horizontal: responsive.w(14), vertical: responsive.h(10)),
-			color: const Color(0xFFFEF2F2),
+			color: AppColors.dangerSurface,
 			child: Row(
 				children: [
-					const Icon(Icons.info_outline_rounded, size: 15, color: Color(0xFFEF4444)),
+					const Icon(Icons.info_outline_rounded, size: 15, color: AppColors.danger),
 					SizedBox(width: responsive.w(8)),
 					Expanded(
 						child: Text(
 							'Motif : $reason',
-							style: AppTextStyles.caption(responsive).copyWith(color: const Color(0xFF991B1B)),
+							style: AppTextStyles.caption(responsive).copyWith(color: AppColors.dangerDark),
 						),
 					),
 				],
@@ -646,7 +646,7 @@ class _RouteBlock extends StatelessWidget {
 							height: responsive.w(11),
 							decoration: BoxDecoration(
 								shape: BoxShape.circle,
-								border: Border.all(color: const Color(0xFFEF4444), width: 2),
+								border: Border.all(color: AppColors.danger, width: 2),
 								color: Colors.white,
 							),
 							child: Center(
@@ -655,7 +655,7 @@ class _RouteBlock extends StatelessWidget {
 									height: responsive.w(4),
 									decoration: const BoxDecoration(
 										shape: BoxShape.circle,
-										color: Color(0xFFEF4444),
+										color: AppColors.danger,
 									),
 								),
 							),
@@ -882,7 +882,7 @@ class _ActionButtons extends StatelessWidget {
 					label: 'Voir détails',
 					icon: Icons.info_outline_rounded,
 					color: AppColors.white,
-					bg: const Color(0xFF1D4ED8),
+					bg: AppColors.primary,
 					onTap: () => controller.viewDetails(reservation),
 				),
 			),
@@ -898,7 +898,7 @@ class _ActionButtons extends StatelessWidget {
 						label: 'Payer maintenant',
 						icon: Icons.payment_rounded,
 						color: AppColors.white,
-						bg: const Color(0xFFF59E0B),
+						bg: AppColors.warning,
 						fullWidth: true,
 						onTap: () => controller.payNow(reservation),
 					),
@@ -924,7 +924,7 @@ class _ActionButtons extends StatelessWidget {
 									icon: Icons.chat_bubble_outline_rounded,
 									color: AppColors.primary,
 									bg: AppColors.surfaceAccent,
-									border: const Color(0x337C3AED),
+									border: AppColors.primaryMedium,
 									onTap: () => controller.contactDriver(reservation),
 								),
 							),
@@ -942,20 +942,20 @@ class _ActionButtons extends StatelessWidget {
 						horizontal: responsive.w(14),
 					),
 					decoration: BoxDecoration(
-						color: const Color(0xFFD1FAE5),
+						color: AppColors.successSurface,
 						borderRadius: BorderRadius.circular(10),
-						border: Border.all(color: const Color(0xFF6EE7B7)),
+						border: Border.all(color: AppColors.successSurface),
 					),
 					child: Row(
 						mainAxisAlignment: MainAxisAlignment.center,
 						children: [
 							const Icon(Icons.check_circle_rounded,
-									color: Color(0xFF6D28D9), size: 16),
+									color: AppColors.primary, size: 16),
 							SizedBox(width: responsive.w(6)),
 							const Text(
 								'Payé',
 								style: TextStyle(
-									color: Color(0xFF065F46),
+									color: AppColors.successDark,
 									fontWeight: FontWeight.w700,
 									fontSize: 13,
 								),
@@ -1013,7 +1013,7 @@ class _ActionButtons extends StatelessWidget {
 						label: 'Évaluer le conducteur',
 						icon: Icons.star_outline_rounded,
 						color: AppColors.white,
-						bg: const Color(0xFFF59E0B),
+						bg: AppColors.warning,
 						fullWidth: true,
 						onTap: () => controller.rateDriver(reservation),
 					),
@@ -1069,7 +1069,7 @@ class _ActionButtons extends StatelessWidget {
 						label: 'Demander un remboursement',
 						icon: Icons.account_balance_wallet_outlined,
 						color: AppColors.white,
-						bg: const Color(0xFFEF4444),
+						bg: AppColors.danger,
 						fullWidth: true,
 						onTap: () => controller.requestRefund(reservation),
 					),
@@ -1113,19 +1113,19 @@ class _RefundStatusChip extends StatelessWidget {
 			width: double.infinity,
 			padding: EdgeInsets.symmetric(horizontal: responsive.w(14), vertical: responsive.h(10)),
 			decoration: BoxDecoration(
-				color: const Color(0xFFFFF7ED),
+				color: AppColors.warningSurface,
 				borderRadius: BorderRadius.circular(responsive.radius(10)),
-				border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.40)),
+				border: Border.all(color: AppColors.warning.withValues(alpha: 0.40)),
 			),
 			child: Row(
 				children: [
-					const Icon(Icons.hourglass_top_rounded, size: 15, color: Color(0xFFF59E0B)),
+					const Icon(Icons.hourglass_top_rounded, size: 15, color: AppColors.warning),
 					SizedBox(width: responsive.w(8)),
 					Expanded(
 						child: Text(
 							'Remboursement en cours de traitement',
 							style: AppTextStyles.caption(responsive).copyWith(
-								color: const Color(0xFF92400E),
+								color: AppColors.warningDark,
 								fontWeight: FontWeight.w600,
 							),
 						),
@@ -1267,7 +1267,7 @@ class _Avatar extends StatelessWidget {
 			height: size,
 			decoration: BoxDecoration(
 				gradient: const LinearGradient(
-					colors: [Color(0xFF7C3AED), Color(0xFF10B981)],
+					colors: [AppColors.primary, AppColors.success],
 				),
 				shape: BoxShape.circle,
 				border: Border.all(color: AppColors.border),

@@ -15,6 +15,7 @@ import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import '../../messager/controllers/messager_controller.dart';
 import '../../search/controllers/search_controller.dart';
 import '../../reservation/controllers/reservation_controller.dart';
+import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 
 class LiveTrackingController extends GetxController {
   PassengerReservationService get _service =>
@@ -772,7 +773,7 @@ class _SOSDialog extends StatelessWidget {
             );
           },
           child: const Text('CONFIRMER',
-              style: TextStyle(color: Color(0xFFEF4444))),
+              style: TextStyle(color: AppColors.danger)),
         ),
       ],
     );

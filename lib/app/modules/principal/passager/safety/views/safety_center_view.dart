@@ -109,7 +109,7 @@ class _SOSActiveBanner extends StatelessWidget {
 				horizontal: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
 				vertical: responsive.h(12),
 			),
-			color: const Color(0xFFDC2626),
+			color: AppColors.danger,
 			child: Row(
 				children: [
 					const Icon(Icons.warning_rounded, color: Colors.white, size: 20),
@@ -204,7 +204,7 @@ class _SOSButtonState extends State<_SOSButton> with SingleTickerProviderStateMi
 										height: widget.responsive.w(168),
 										decoration: BoxDecoration(
 											shape: BoxShape.circle,
-											color: const Color(0xFFDC2626).withValues(alpha: 0.08 + 0.06 * _scale.value),
+											color: AppColors.danger.withValues(alpha: 0.08 + 0.06 * _scale.value),
 										),
 									),
 									Container(
@@ -212,7 +212,7 @@ class _SOSButtonState extends State<_SOSButton> with SingleTickerProviderStateMi
 										height: widget.responsive.w(140),
 										decoration: BoxDecoration(
 											shape: BoxShape.circle,
-											color: const Color(0xFFDC2626).withValues(alpha: 0.14 + 0.06 * _scale.value),
+											color: AppColors.danger.withValues(alpha: 0.14 + 0.06 * _scale.value),
 										),
 									),
 								],
@@ -224,10 +224,10 @@ class _SOSButtonState extends State<_SOSButton> with SingleTickerProviderStateMi
 										height: widget.responsive.w(112),
 										decoration: BoxDecoration(
 											shape: BoxShape.circle,
-											color: active ? const Color(0xFFDC2626) : const Color(0xFFEF4444),
+											color: active ? AppColors.danger : AppColors.danger,
 											boxShadow: [
 												BoxShadow(
-													color: const Color(0xFFDC2626).withValues(alpha: active ? 0.50 : 0.28),
+													color: AppColors.danger.withValues(alpha: active ? 0.50 : 0.28),
 													blurRadius: active ? 28 : 18,
 													spreadRadius: active ? 6 : 0,
 												),
@@ -494,10 +494,10 @@ class _EmergencyContactsCard extends StatelessWidget {
 										alignment: Alignment.centerRight,
 										padding: EdgeInsets.only(right: responsive.w(16)),
 										decoration: BoxDecoration(
-											color: const Color(0xFFEF4444).withValues(alpha: 0.15),
+											color: AppColors.danger.withValues(alpha: 0.15),
 											borderRadius: BorderRadius.circular(12),
 										),
-										child: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444)),
+										child: const Icon(Icons.delete_outline_rounded, color: AppColors.danger),
 									),
 									onDismissed: (_) => controller.removeContact(contact.id),
 									child: Container(
@@ -638,7 +638,7 @@ class _Card extends StatelessWidget {
 					side: const BorderSide(color: AppColors.border),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
-				shadows: const [BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 2))],
+				shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 8, offset: Offset(0, 2))],
 			),
 			child: child,
 		);

@@ -108,7 +108,7 @@ class SafetyCenterController extends GetxController {
       Get.snackbar(
         '🆘 Alerte SOS activée',
         'Vos contacts d\'urgence ont été notifiés avec votre position.',
-        backgroundColor: const Color(0xFFDC2626),
+        backgroundColor: AppColors.danger,
         colorText: Colors.white,
         duration: const Duration(seconds: 6),
         snackPosition: SnackPosition.TOP,
@@ -211,7 +211,7 @@ class SafetyCenterController extends GetxController {
     Get.snackbar(
       'Appel en cours',
       'Composition du $number ($name)...',
-      backgroundColor: const Color(0xFFDC2626),
+      backgroundColor: AppColors.danger,
       colorText: Colors.white,
       snackPosition: SnackPosition.TOP,
       margin: const EdgeInsets.all(16),
@@ -296,7 +296,7 @@ class _SOSConfirmDialog extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: const Row(
         children: [
-          Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 28),
+          Icon(Icons.warning_amber_rounded, color: AppColors.danger, size: 28),
           SizedBox(width: 10),
           Text('Alerte SOS', style: TextStyle(fontWeight: FontWeight.w700)),
         ],
@@ -309,7 +309,7 @@ class _SOSConfirmDialog extends StatelessWidget {
         TextButton(onPressed: Get.back, child: const Text('Annuler')),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFDC2626),
+            backgroundColor: AppColors.danger,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           ),

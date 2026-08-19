@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
+import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 
 /// Résultat retourné par [IdCardCameraScreen].
 /// [fullCard] = photo complète de la carte.
@@ -453,7 +454,7 @@ class _CardOverlayPainter extends CustomPainter {
     canvas.drawRRect(
       zoneRRect,
       Paint()
-        ..color = const Color(0xFF22C55E).withValues(alpha: 0.18)
+        ..color = AppColors.success.withValues(alpha: 0.18)
         ..style = PaintingStyle.fill,
     );
 
@@ -461,7 +462,7 @@ class _CardOverlayPainter extends CustomPainter {
     canvas.drawRRect(
       zoneRRect,
       Paint()
-        ..color = const Color(0xFF22C55E).withValues(alpha: 0.80)
+        ..color = AppColors.success.withValues(alpha: 0.80)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.8,
     );
@@ -479,7 +480,7 @@ class _CardOverlayPainter extends CustomPainter {
     final headCy = zone.top + zone.height * 0.38;
 
     final paint = Paint()
-      ..color = const Color(0xFF22C55E).withValues(alpha: 0.85)
+      ..color = AppColors.success.withValues(alpha: 0.85)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.8
       ..strokeCap = StrokeCap.round;
@@ -515,7 +516,7 @@ class _CardOverlayPainter extends CustomPainter {
       text: const TextSpan(
         text: 'Visage',
         style: TextStyle(
-          color: Color(0xFF22C55E),
+          color: AppColors.success,
           fontSize: 9.5,
           fontWeight: FontWeight.w600,
           fontFamily: 'Inter',

@@ -235,12 +235,12 @@ class _NotificationTile extends StatelessWidget {
 				width: double.infinity,
 				padding: EdgeInsets.all(responsive.w(16)),
 				decoration: ShapeDecoration(
-					color: notif.isRead ? AppColors.white : const Color(0xFFF0FDF8),
+					color: notif.isRead ? AppColors.white : AppColors.successSurface,
 					shape: RoundedRectangleBorder(
-						side: BorderSide(color: notif.isRead ? AppColors.border : const Color(0x337C3AED)),
+						side: BorderSide(color: notif.isRead ? AppColors.border : AppColors.primaryMedium),
 						borderRadius: BorderRadius.circular(responsive.radius(16)),
 					),
-					shadows: const [BoxShadow(color: Color(0x08000000), blurRadius: 6, offset: Offset(0, 1))],
+					shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 6, offset: Offset(0, 1))],
 				),
 				child: Row(
 					crossAxisAlignment: CrossAxisAlignment.start,
@@ -346,7 +346,7 @@ class _DismissBackground extends StatelessWidget {
 			alignment: Alignment.centerRight,
 			padding: EdgeInsets.only(right: responsive.w(20)),
 			decoration: BoxDecoration(
-				color: const Color(0xFFEF4444),
+				color: AppColors.danger,
 				borderRadius: BorderRadius.circular(responsive.radius(16)),
 			),
 			child: const Icon(Icons.delete_rounded, color: Colors.white, size: 24),

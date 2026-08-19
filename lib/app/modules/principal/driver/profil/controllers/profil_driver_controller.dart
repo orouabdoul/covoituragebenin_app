@@ -591,7 +591,7 @@ class DriverProfileController extends GetxController {
             onPressed: () => Get.back(result: true),
             child: const Text(
               'Se déconnecter',
-              style: TextStyle(color: Color(0xFFE53935), fontWeight: FontWeight.w700),
+              style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.w700),
             ),
           ),
         ],
@@ -1057,7 +1057,7 @@ class _SecuritySheet extends StatelessWidget {
           const Divider(height: 1, color: AppColors.border),
           _SecurityTile(
             icon: Icons.logout_rounded,
-            color: const Color(0xFFE53935),
+            color: AppColors.danger,
             label: 'Se déconnecter',
             subtitle: 'Quitter votre session sur cet appareil',
             onTap: controller.logoutAllDevices,

@@ -84,7 +84,7 @@ class _HeaderBar extends StatelessWidget {
 			),
 			decoration: const BoxDecoration(
 				color: AppColors.white,
-				border: Border(bottom: BorderSide(color: Color(0xFFF3F4F6))),
+				border: Border(bottom: BorderSide(color: AppColors.surface)),
 			),
 			child: Row(
 				children: [
@@ -118,7 +118,7 @@ class _RoundIconButton extends StatelessWidget {
 					width: responsive.w(40),
 					height: responsive.w(40),
 					decoration: ShapeDecoration(
-						color: const Color(0xFFF5F5F5),
+						color: AppColors.surface,
 						shape: RoundedRectangleBorder(
 							side: const BorderSide(color: AppColors.border),
 							borderRadius: BorderRadius.circular(9999),
@@ -149,7 +149,7 @@ class _SectionCard extends StatelessWidget {
 					borderRadius: BorderRadius.circular(responsive.radius(20)),
 				),
 				shadows: const [
-					BoxShadow(color: Color(0x14000000), blurRadius: 12, offset: Offset(0, 2)),
+					BoxShadow(color: AppColors.shadowSoft, blurRadius: 12, offset: Offset(0, 2)),
 				],
 			),
 			child: child,
@@ -175,7 +175,7 @@ class _StopsCard extends StatelessWidget {
 					side: BorderSide(color: AppColors.primary.withValues(alpha: 0.30)),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
-				shadows: const [BoxShadow(color: Color(0x08000000), blurRadius: 8, offset: Offset(0, 2))],
+				shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 8, offset: Offset(0, 2))],
 			),
 			child: Column(
 				crossAxisAlignment: CrossAxisAlignment.start,
@@ -299,13 +299,13 @@ class _StopsCard extends StatelessWidget {
 						padding: EdgeInsets.symmetric(vertical: responsive.h(14)),
 						child: Row(
 							children: [
-								const Expanded(child: Divider(color: Color(0xFFE5E7EB))),
+								const Expanded(child: Divider(color: AppColors.border)),
 								Padding(
 									padding: EdgeInsets.symmetric(horizontal: responsive.w(10)),
 									child: Icon(Icons.swap_vert_rounded,
 											size: responsive.text(18), color: AppColors.textHint),
 								),
-								const Expanded(child: Divider(color: Color(0xFFE5E7EB))),
+								const Expanded(child: Divider(color: AppColors.border)),
 							],
 						),
 					),
@@ -314,7 +314,7 @@ class _StopsCard extends StatelessWidget {
 					_SectionLabel(
 						responsive: responsive,
 						icon: Icons.location_on_rounded,
-						iconColor: const Color(0xFFEF4444),
+						iconColor: AppColors.danger,
 						label: 'Dépose',
 					),
 					SizedBox(height: responsive.h(8)),
@@ -325,7 +325,7 @@ class _StopsCard extends StatelessWidget {
 						responsive: responsive,
 						label: 'Ville *',
 						icon: Icons.location_city_rounded,
-						iconColor: const Color(0xFFEF4444),
+						iconColor: AppColors.danger,
 						controller: controller.dropoffCityController,
 						items: controller.dropoffCityItems,
 						isSelected: controller.dropoffSelectedCity.value != null,
@@ -342,7 +342,7 @@ class _StopsCard extends StatelessWidget {
 							responsive: responsive,
 							label: 'Quartier *',
 							icon: Icons.map_rounded,
-							iconColor: const Color(0xFFEF4444),
+							iconColor: AppColors.danger,
 							controller: controller.dropoffNeighborhoodController,
 							items: districts,
 							isSelected: controller.dropoffSelectedNeighborhood.value != null,
@@ -385,22 +385,22 @@ class _StopsCard extends StatelessWidget {
 								padding: EdgeInsets.symmetric(
 										horizontal: responsive.w(10), vertical: responsive.h(8)),
 								decoration: BoxDecoration(
-									color: const Color(0xFFFFF7ED),
+									color: AppColors.warningSurface,
 									borderRadius: BorderRadius.circular(responsive.radius(8)),
 									border: Border.all(
-											color: const Color(0xFFF59E0B).withValues(alpha: 0.4)),
+											color: AppColors.warning.withValues(alpha: 0.4)),
 								),
 								child: Row(
 									children: [
 										Icon(Icons.warning_amber_rounded,
 												size: responsive.text(13),
-												color: const Color(0xFFF59E0B)),
+												color: AppColors.warning),
 										SizedBox(width: responsive.w(6)),
 										Expanded(
 											child: Text(
 												'"$city" non reconnue. Choisissez une ville de la liste.',
 												style: AppTextStyles.caption(responsive).copyWith(
-													color: const Color(0xFF92400E),
+													color: AppColors.warningDark,
 													fontSize: responsive.text(11),
 												),
 											),
@@ -417,7 +417,7 @@ class _StopsCard extends StatelessWidget {
 						padding: EdgeInsets.symmetric(
 								horizontal: responsive.w(12), vertical: responsive.h(8)),
 						decoration: BoxDecoration(
-							color: const Color(0xFFF0FDF4),
+							color: AppColors.successSurface,
 							borderRadius: BorderRadius.circular(responsive.radius(10)),
 							border: Border.all(
 									color: AppColors.primary.withValues(alpha: 0.20)),
@@ -552,8 +552,8 @@ class _GpsStatusBadge extends StatelessWidget {
 					horizontal: responsive.w(10), vertical: responsive.h(6)),
 			decoration: BoxDecoration(
 				color: isLoading
-						? const Color(0xFFF5F5F5)
-						: const Color(0xFFE6F7EF),
+						? AppColors.surface
+						: AppColors.successSurface,
 				borderRadius: BorderRadius.circular(responsive.radius(8)),
 				border: Border.all(
 					color: isLoading
@@ -919,7 +919,7 @@ class _TripCard extends StatelessWidget {
 							Container(
 								padding: EdgeInsets.symmetric(horizontal: responsive.w(12), vertical: responsive.h(4)),
 								decoration: ShapeDecoration(
-									color: const Color(0x197C3AED),
+									color: AppColors.primaryLight,
 									shape: RoundedRectangleBorder(
 										side: const BorderSide(color: AppColors.border),
 										borderRadius: BorderRadius.circular(9999),
@@ -938,7 +938,7 @@ class _TripCard extends StatelessWidget {
 					SizedBox(height: responsive.h(20)),
 					_TimelineRow(
 						responsive: responsive,
-						topColor: const Color(0xFF7C3AED),
+						topColor: AppColors.primary,
 						title: departureCity,
 						subtitle: departureNote,
 						meta: departureTime,
@@ -996,7 +996,7 @@ class _TimelineRow extends StatelessWidget {
 							decoration: ShapeDecoration(
 								color: outlinedTop ? Colors.white : topColor,
 								shape: RoundedRectangleBorder(
-									side: BorderSide(color: outlinedTop ? const Color(0xFF7C3AED) : AppColors.border, width: outlinedTop ? 2 : 1),
+									side: BorderSide(color: outlinedTop ? AppColors.primary : AppColors.border, width: outlinedTop ? 2 : 1),
 									borderRadius: BorderRadius.circular(9999),
 								),
 							),
@@ -1007,7 +1007,7 @@ class _TimelineRow extends StatelessWidget {
 								width: responsive.w(12),
 								height: responsive.w(12),
 								decoration: ShapeDecoration(
-									color: const Color(0xFF7C3AED),
+									color: AppColors.primary,
 									shape: RoundedRectangleBorder(
 										side: const BorderSide(color: AppColors.border),
 										borderRadius: BorderRadius.circular(9999),
@@ -1081,7 +1081,7 @@ class _DriverCard extends StatelessWidget {
 								Row(
 									children: [
 										Expanded(child: Text(driverName, style: AppTextStyles.h6(responsive))),
-										_Pill(text: '4.9', background: const Color(0x197C3AED), responsive: responsive),
+										_Pill(text: '4.9', background: AppColors.primaryLight, responsive: responsive),
 									],
 								),
 								SizedBox(height: responsive.h(4)),
@@ -1101,8 +1101,8 @@ class _DriverCard extends StatelessWidget {
 									spacing: responsive.w(8),
 									runSpacing: responsive.h(8),
 									children: [
-										_Pill(text: AppStrings.reservationVerifiedLicense, background: const Color(0xFFF5F5F5), responsive: responsive),
-										_Pill(text: AppStrings.reservationQuickReply, background: const Color(0xFFF5F5F5), responsive: responsive),
+										_Pill(text: AppStrings.reservationVerifiedLicense, background: AppColors.surface, responsive: responsive),
+										_Pill(text: AppStrings.reservationQuickReply, background: AppColors.surface, responsive: responsive),
 									],
 								),
 								SizedBox(height: responsive.h(10)),
@@ -1135,7 +1135,7 @@ class _Avatar extends StatelessWidget {
 			width: size,
 			height: size,
 			decoration: ShapeDecoration(
-				color: const Color(0xFFF5F5F5),
+				color: AppColors.surface,
 				shape: RoundedRectangleBorder(
 					side: const BorderSide(color: AppColors.border),
 					borderRadius: BorderRadius.circular(16),
@@ -1218,7 +1218,7 @@ class _SeatsCard extends StatelessWidget {
 						width: double.infinity,
 						padding: EdgeInsets.all(responsive.w(16)),
 						decoration: ShapeDecoration(
-							color: const Color(0xFFF5F5F5),
+							color: AppColors.surface,
 							shape: RoundedRectangleBorder(
 								side: const BorderSide(color: AppColors.border),
 								borderRadius: BorderRadius.circular(responsive.radius(16)),
@@ -1285,19 +1285,19 @@ class _SeatsCard extends StatelessWidget {
 										Container(
 											padding: EdgeInsets.symmetric(horizontal: responsive.w(10), vertical: responsive.h(6)),
 											decoration: BoxDecoration(
-												color: const Color(0xFFFFF7ED),
+												color: AppColors.warningSurface,
 												borderRadius: BorderRadius.circular(responsive.radius(8)),
-												border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.4)),
+												border: Border.all(color: AppColors.warning.withValues(alpha: 0.4)),
 											),
 											child: Row(
 												children: [
-													Icon(Icons.info_outline_rounded, size: responsive.text(13), color: const Color(0xFFF59E0B)),
+													Icon(Icons.info_outline_rounded, size: responsive.text(13), color: AppColors.warning),
 													SizedBox(width: responsive.w(6)),
 													Expanded(
 														child: Text(
 															'Le conducteur autorise max $cap place${cap > 1 ? 's' : ''} par réservation',
 															style: AppTextStyles.caption(responsive).copyWith(
-																color: const Color(0xFF92400E),
+																color: AppColors.warningDark,
 																fontSize: responsive.text(11),
 															),
 														),
@@ -1352,14 +1352,14 @@ class _PriceCard extends StatelessWidget {
 				final int total = baseTotal + serviceFee;
 
 				String? badgeLabel;
-				Color badgeColor = const Color(0xFFFFF3CD);
-				Color badgeBorder = const Color(0xFFFFCA2C);
-				Color badgeText = const Color(0xFF856404);
+				Color badgeColor = AppColors.warningSurface;
+				Color badgeBorder = AppColors.badgeYellow;
+				Color badgeText = AppColors.warningDark;
 				if (isProrated) {
 					badgeLabel = 'Au prorata';
-					badgeColor = const Color(0xFFD1FAE5);
-					badgeBorder = const Color(0xFF34D399);
-					badgeText = const Color(0xFF065F46);
+					badgeColor = AppColors.successSurface;
+					badgeBorder = AppColors.success;
+					badgeText = AppColors.successDark;
 				} else if (!fromApi) {
 					badgeLabel = 'Estimé';
 				}
@@ -1401,7 +1401,7 @@ class _PriceCard extends StatelessWidget {
 						SizedBox(height: responsive.h(8)),
 						_PriceLine(label: AppStrings.reservationServiceFee, value: _formatPrice(serviceFee), responsive: responsive),
 						SizedBox(height: responsive.h(12)),
-						Container(height: 1, color: const Color(0xFFF3F4F6)),
+						Container(height: 1, color: AppColors.surface),
 						SizedBox(height: responsive.h(12)),
 						Row(
 							mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1415,7 +1415,7 @@ class _PriceCard extends StatelessWidget {
 							Text(
 								noteText,
 								style: AppTextStyles.caption(responsive).copyWith(
-									color: const Color(0xFF6B7280),
+									color: AppColors.textSecondary,
 									fontStyle: FontStyle.italic,
 								),
 							),
@@ -1476,7 +1476,7 @@ class _PaymentCard extends StatelessWidget {
 											width: double.infinity,
 											padding: EdgeInsets.all(responsive.w(16)),
 											decoration: ShapeDecoration(
-												color: selected ? const Color(0x0C7C3AED) : Colors.white,
+												color: selected ? AppColors.primaryLight : Colors.white,
 												shape: RoundedRectangleBorder(
 													side: BorderSide(
 														width: selected ? 2 : 1,
@@ -1491,7 +1491,7 @@ class _PaymentCard extends StatelessWidget {
 														width: responsive.w(40),
 														height: responsive.w(40),
 														decoration: ShapeDecoration(
-															color: const Color(0xFFF5F5F5),
+															color: AppColors.surface,
 															shape: RoundedRectangleBorder(
 																side: const BorderSide(color: AppColors.border),
 																borderRadius: BorderRadius.circular(9999),
@@ -1551,13 +1551,13 @@ class _PolicyCard extends StatelessWidget {
 						width: responsive.w(40),
 						height: responsive.w(40),
 						decoration: ShapeDecoration(
-							color: const Color(0x33F4B400),
+							color: AppColors.warningLight,
 							shape: RoundedRectangleBorder(
 								side: const BorderSide(color: AppColors.border),
 								borderRadius: BorderRadius.circular(9999),
 							),
 						),
-						child: Icon(Icons.info_outline_rounded, size: responsive.text(18), color: const Color(0xFFF4B400)),
+						child: Icon(Icons.info_outline_rounded, size: responsive.text(18), color: AppColors.warning),
 					),
 					SizedBox(width: responsive.w(12)),
 					Expanded(
@@ -1592,7 +1592,7 @@ class _SafetyCard extends StatelessWidget {
 						width: responsive.w(40),
 						height: responsive.w(40),
 						decoration: ShapeDecoration(
-							color: const Color(0x337C3AED),
+							color: AppColors.primaryMedium,
 							shape: RoundedRectangleBorder(
 								side: const BorderSide(color: AppColors.border),
 								borderRadius: BorderRadius.circular(9999),

@@ -168,7 +168,7 @@ class _ReadinessHero extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF7C3AED), Color(0xFF6D28D9)],
+          colors: [AppColors.primary, AppColors.primary],
         ),
         borderRadius: BorderRadius.circular(r.adaptive(phone: 18, smallPhone: 16, tablet: 20, desktop: 24)),
       ),
@@ -417,7 +417,7 @@ class _StopsCard extends StatelessWidget {
                   vertical: r.adaptive(phone: 3, smallPhone: 2, tablet: 4, desktop: 5),
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0x193B82F6),
+                  color: AppColors.primaryLight,
                   borderRadius: BorderRadius.circular(r.adaptive(phone: 20, smallPhone: 18, tablet: 24, desktop: 28)),
                 ),
                 child: Text(
@@ -451,7 +451,7 @@ class _StopRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final stopColor = stop.isPickup ? AppColors.info : const Color(0xFFEF4444);
+    final stopColor = stop.isPickup ? AppColors.info : AppColors.danger;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

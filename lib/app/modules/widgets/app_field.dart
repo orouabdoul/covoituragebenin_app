@@ -49,7 +49,7 @@ class AppField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final double radius = borderRadius ?? responsive.radius(16);
-    final Color resolvedBackgroundColor = backgroundColor ?? const Color(0xFFF5F5F5);
+    final Color resolvedBackgroundColor = backgroundColor ?? AppColors.surface;
     final Color resolvedBorderColor = borderColor ?? AppColors.border;
     final Widget resolvedChild = child ?? TextField(
       controller: controller,

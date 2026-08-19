@@ -138,32 +138,32 @@ class _RefundCard extends StatelessWidget {
 		RefundHistoryStatus.pending => _StatusConfig(
 			label: 'En attente',
 			icon: Icons.hourglass_top_rounded,
-			color: const Color(0xFFF59E0B),
-			bg: const Color(0xFFFFFBEB),
+			color: AppColors.warning,
+			bg: AppColors.warningSurface,
 		),
 		RefundHistoryStatus.underReview => _StatusConfig(
 			label: 'En cours d\'examen',
 			icon: Icons.manage_search_rounded,
-			color: const Color(0xFF6366F1),
-			bg: const Color(0xFFF0F0FF),
+			color: AppColors.primary,
+			bg: AppColors.primarySurface,
 		),
 		RefundHistoryStatus.approved => _StatusConfig(
 			label: 'Approuvé',
 			icon: Icons.check_circle_outline_rounded,
 			color: AppColors.primary,
-			bg: const Color(0xFFF0FDF8),
+			bg: AppColors.successSurface,
 		),
 		RefundHistoryStatus.refunded => _StatusConfig(
 			label: 'Remboursé',
 			icon: Icons.account_balance_wallet_rounded,
 			color: AppColors.primary,
-			bg: const Color(0xFFF0FDF8),
+			bg: AppColors.successSurface,
 		),
 		RefundHistoryStatus.rejected => _StatusConfig(
 			label: 'Refusé',
 			icon: Icons.cancel_outlined,
-			color: const Color(0xFFEF4444),
-			bg: const Color(0xFFFFF5F5),
+			color: AppColors.danger,
+			bg: AppColors.dangerSurface,
 		),
 	};
 
@@ -177,7 +177,7 @@ class _RefundCard extends StatelessWidget {
 					side: BorderSide(color: cfg.color.withValues(alpha: 0.20)),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
-				shadows: const [BoxShadow(color: Color(0x0C000000), blurRadius: 6, offset: Offset(0, 2))],
+				shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 6, offset: Offset(0, 2))],
 			),
 			child: Column(
 				crossAxisAlignment: CrossAxisAlignment.start,

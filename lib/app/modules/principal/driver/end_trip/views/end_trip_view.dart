@@ -207,7 +207,7 @@ class _TripSummaryCard extends StatelessWidget {
             label: 'Commission (${data.commissionRate}%)',
             value: '-${data.commission.toStringAsFixed(0)} FCFA',
             isBold: false,
-            valueColor: const Color(0xFFE53935),
+            valueColor: AppColors.danger,
           ),
           Divider(height: r.adaptive(phone: 16, smallPhone: 12, tablet: 18, desktop: 20), color: AppColors.border),
           _RevRow(r: r, label: 'Vos revenus nets', value: '${data.netRevenue.toStringAsFixed(0)} FCFA', isBold: true),
@@ -373,7 +373,7 @@ class _PaymentTimerCard extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(r.adaptive(phone: 16, smallPhone: 14, tablet: 18, desktop: 20)),
       decoration: BoxDecoration(
-        color: const Color(0x0CF4B400),
+        color: AppColors.warningLight,
         borderRadius: BorderRadius.circular(r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
         border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
       ),

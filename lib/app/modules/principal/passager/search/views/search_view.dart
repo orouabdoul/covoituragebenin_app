@@ -280,7 +280,7 @@ class _SearchPanel extends StatelessWidget {
 								decoration: BoxDecoration(
 									color: AppColors.surfaceAccent,
 									shape: BoxShape.circle,
-									border: Border.all(color: const Color(0x337C3AED)),
+									border: Border.all(color: AppColors.primaryMedium),
 								),
 								child: Icon(
 									Icons.swap_vert_rounded,
@@ -297,7 +297,7 @@ class _SearchPanel extends StatelessWidget {
 						responsive: responsive,
 						label: "Ville d'arrivée",
 						icon: Icons.location_on_rounded,
-						iconColor: const Color(0xFFEF4444),
+						iconColor: AppColors.danger,
 						controller: controller.destinationCityController,
 						items: controller.beninCities,
 						isSelected: controller.selectedDestinationCity.value != null,
@@ -311,7 +311,7 @@ class _SearchPanel extends StatelessWidget {
 						responsive: responsive,
 						label: "Quartier d'arrivée (optionnel)",
 						icon: Icons.location_on_outlined,
-						iconColor: const Color(0xFFEF4444),
+						iconColor: AppColors.danger,
 						controller: controller.destinationDistrictController,
 						items: controller.getDistricts(controller.selectedDestinationCity.value),
 						isSelected: controller.selectedDestinationDistrict.value != null,
@@ -504,8 +504,8 @@ class _SearchAutocompleteFieldState extends State<_SearchAutocompleteField> {
 			borderColor = AppColors.primary;
 			effectiveIconColor = AppColors.primary;
 		} else if (_isError) {
-			borderColor = const Color(0xFFEF4444);
-			effectiveIconColor = const Color(0xFFEF4444);
+			borderColor = AppColors.danger;
+			effectiveIconColor = AppColors.danger;
 		} else {
 			borderColor = AppColors.border;
 			effectiveIconColor = widget.iconColor;
@@ -567,7 +567,7 @@ class _SearchAutocompleteFieldState extends State<_SearchAutocompleteField> {
 							if (_isError)
 								Padding(
 									padding: EdgeInsets.symmetric(horizontal: responsive.w(8)),
-									child: Icon(Icons.close_rounded, size: responsive.text(14), color: const Color(0xFFEF4444)),
+									child: Icon(Icons.close_rounded, size: responsive.text(14), color: AppColors.danger),
 								),
 						],
 					),
@@ -580,7 +580,7 @@ class _SearchAutocompleteFieldState extends State<_SearchAutocompleteField> {
 							color: AppColors.white,
 							borderRadius: BorderRadius.circular(responsive.radius(10)),
 							border: Border.all(color: AppColors.border),
-							boxShadow: const [BoxShadow(color: Color(0x12000000), blurRadius: 8, offset: Offset(0, 2))],
+							boxShadow: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 8, offset: Offset(0, 2))],
 						),
 						child: ListView.builder(
 							shrinkWrap: true,
@@ -604,7 +604,7 @@ class _SearchAutocompleteFieldState extends State<_SearchAutocompleteField> {
 						child: Text(
 							'Sélectionnez dans la liste',
 							style: AppTextStyles.caption(responsive).copyWith(
-								color: const Color(0xFFEF4444),
+								color: AppColors.danger,
 								fontSize: responsive.text(10),
 							),
 						),
@@ -803,7 +803,7 @@ class _RideCard extends StatelessWidget {
 	Widget build(BuildContext context) {
 		final borderColor = _isFullyBooked
 				? AppColors.border
-				: (_isUrgent ? const Color(0xFFEF4444).withValues(alpha: 0.30) : AppColors.border);
+				: (_isUrgent ? AppColors.danger.withValues(alpha: 0.30) : AppColors.border);
 
 		return InkWell(
 			onTap: _isFullyBooked
@@ -819,7 +819,7 @@ class _RideCard extends StatelessWidget {
 							side: BorderSide(color: borderColor),
 							borderRadius: BorderRadius.circular(responsive.radius(16)),
 						),
-						shadows: const [BoxShadow(color: Color(0x0C000000), blurRadius: 6, offset: Offset(0, 2))],
+						shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 6, offset: Offset(0, 2))],
 					),
 					child: Column(
 						crossAxisAlignment: CrossAxisAlignment.start,
@@ -894,7 +894,7 @@ class _RideCard extends StatelessWidget {
 													responsive: responsive,
 													icon: Icons.schedule_rounded,
 													label: controller.formatDeparture(ride.minutesUntilDeparture),
-													color: _isLeavingSoon && !_isFullyBooked ? const Color(0xFFEF4444) : AppColors.textHint,
+													color: _isLeavingSoon && !_isFullyBooked ? AppColors.danger : AppColors.textHint,
 												),
 												_InfoPill(
 													responsive: responsive,
@@ -968,21 +968,21 @@ class _FullyBookedBanner extends StatelessWidget {
 			width: double.infinity,
 			padding: EdgeInsets.symmetric(horizontal: responsive.w(14), vertical: responsive.h(8)),
 			decoration: BoxDecoration(
-				color: const Color(0xFFF3F4F6),
+				color: AppColors.surface,
 				borderRadius: BorderRadius.only(
 					topLeft: Radius.circular(responsive.radius(16)),
 					topRight: Radius.circular(responsive.radius(16)),
 				),
-				border: const Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
+				border: const Border(bottom: BorderSide(color: AppColors.border)),
 			),
 			child: Row(
 				children: [
-					const Icon(Icons.block_rounded, size: 14, color: Color(0xFF6B7280)),
+					const Icon(Icons.block_rounded, size: 14, color: AppColors.textSecondary),
 					SizedBox(width: responsive.w(6)),
 					Text(
 						'Complet — Aucune place disponible',
 						style: AppTextStyles.caption(responsive).copyWith(
-							color: const Color(0xFF6B7280),
+							color: AppColors.textSecondary,
 							fontWeight: FontWeight.w700,
 						),
 					),
@@ -1010,7 +1010,7 @@ class _UrgencyBanner extends StatelessWidget {
 	@override
 	Widget build(BuildContext context) {
 		final isRed = isUrgent && isLeavingSoon;
-		final color = isRed ? const Color(0xFFEF4444) : (isUrgent ? const Color(0xFFEF4444) : const Color(0xFFF59E0B));
+		final color = isRed ? AppColors.danger : (isUrgent ? AppColors.danger : AppColors.warning);
 		final bg = color.withValues(alpha: 0.07);
 		final text = isRed
 				? '⚠ ${ride.seatsAvailable} place${ride.seatsAvailable > 1 ? 's' : ''} restante${ride.seatsAvailable > 1 ? 's' : ''} — Départ imminent'
@@ -1076,7 +1076,7 @@ class _RouteTimeline extends StatelessWidget {
 								Container(
 									width: responsive.w(8),
 									height: responsive.w(8),
-									decoration: const BoxDecoration(color: Color(0xFFF59E0B), shape: BoxShape.circle),
+									decoration: const BoxDecoration(color: AppColors.warning, shape: BoxShape.circle),
 								),
 								Expanded(
 									child: Container(
@@ -1091,7 +1091,7 @@ class _RouteTimeline extends StatelessWidget {
 								height: responsive.w(10),
 								decoration: BoxDecoration(
 									shape: BoxShape.circle,
-									border: Border.all(color: const Color(0xFFEF4444), width: 2),
+									border: Border.all(color: AppColors.danger, width: 2),
 								),
 							),
 						],
@@ -1121,18 +1121,18 @@ class _RouteTimeline extends StatelessWidget {
 											Container(
 												padding: EdgeInsets.symmetric(horizontal: responsive.w(7), vertical: responsive.h(3)),
 												decoration: BoxDecoration(
-													color: const Color(0xFFFEF3C7),
+													color: AppColors.warningSurface,
 													borderRadius: BorderRadius.circular(responsive.radius(6)),
-													border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.40)),
+													border: Border.all(color: AppColors.warning.withValues(alpha: 0.40)),
 												),
 												child: Row(
 													mainAxisSize: MainAxisSize.min,
 													children: [
-														const Icon(Icons.sync_alt_rounded, size: 11, color: Color(0xFFF59E0B)),
+														const Icon(Icons.sync_alt_rounded, size: 11, color: AppColors.warning),
 														SizedBox(width: responsive.w(4)),
 														Text(ride.waypointCity!,
 																style: AppTextStyles.caption(responsive).copyWith(
-																	color: const Color(0xFF92400E),
+																	color: AppColors.warningDark,
 																	fontWeight: FontWeight.w600,
 																	fontSize: responsive.text(11),
 																)),
@@ -1219,9 +1219,9 @@ class _SeatsChip extends StatelessWidget {
 			return Container(
 				padding: EdgeInsets.symmetric(horizontal: responsive.w(10), vertical: responsive.h(5)),
 				decoration: BoxDecoration(
-					color: const Color(0xFFF3F4F6),
+					color: AppColors.surface,
 					borderRadius: BorderRadius.circular(responsive.radius(8)),
-					border: Border.all(color: const Color(0xFFD1D5DB)),
+					border: Border.all(color: AppColors.border),
 				),
 				child: Row(
 					mainAxisSize: MainAxisSize.min,
@@ -1237,7 +1237,7 @@ class _SeatsChip extends StatelessWidget {
 			);
 		}
 		final isUrgent = seats <= 2;
-		final color = isUrgent ? const Color(0xFFEF4444) : AppColors.primary;
+		final color = isUrgent ? AppColors.danger : AppColors.primary;
 		final bg = color.withValues(alpha: 0.08);
 
 		return Container(
@@ -1285,7 +1285,7 @@ class _Avatar extends StatelessWidget {
 			width: responsive.w(44),
 			height: responsive.w(44),
 			decoration: BoxDecoration(
-				gradient: const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFF10B981)]),
+				gradient: const LinearGradient(colors: [AppColors.primary, AppColors.success]),
 				shape: BoxShape.circle,
 				border: Border.all(color: AppColors.border),
 			),

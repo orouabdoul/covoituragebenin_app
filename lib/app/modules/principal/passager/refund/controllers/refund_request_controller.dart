@@ -186,7 +186,7 @@ class RefundRequestController extends GetxController {
       Get.snackbar(
         'Erreur',
         'Impossible de soumettre la demande. Réessayez.',
-        backgroundColor: const Color(0xFFEF4444),
+        backgroundColor: AppColors.danger,
         colorText: Colors.white,
       );
     }

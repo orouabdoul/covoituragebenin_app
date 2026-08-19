@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -11,6 +12,7 @@ import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_field.dart';
+import 'package:covoiturage_benin_app/app/modules/widgets/voice_message_bubble.dart';
 
 import '../controllers/detail_messager_controller.dart';
 
@@ -88,14 +90,11 @@ class DetailMessagerView extends GetView<PassengerDetailMessagerController> {
                                   ? const SizedBox(
                                       width: 20,
                                       height: 20,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2))
+                                      child: CircularProgressIndicator(strokeWidth: 2))
                                   : TextButton.icon(
                                       onPressed: controller.loadMore,
-                                      icon: const Icon(
-                                          Icons.expand_less_rounded),
-                                      label: const Text(
-                                          'Messages précédents'),
+                                      icon: const Icon(Icons.expand_less_rounded),
+                                      label: const Text('Messages précédents'),
                                     ),
                             ),
                           );
@@ -194,7 +193,7 @@ class _ConversationHeader extends StatelessWidget {
             decoration: ShapeDecoration(
               color: Colors.white,
               shape: RoundedRectangleBorder(
-                side: const BorderSide(width: 1, color: Color(0xFFF3F4F6)),
+                side: const BorderSide(width: 1, color: AppColors.surface),
                 borderRadius: BorderRadius.circular(responsive.radius(16)),
               ),
             ),
@@ -208,7 +207,7 @@ class _ConversationHeader extends StatelessWidget {
                     children: [
                       _HeaderActionButton(
                         responsive: responsive,
-                        backgroundColor: const Color(0xFFF9FAFB),
+                        backgroundColor: AppColors.surface,
                         icon: Icons.arrow_back_ios_new_rounded,
                         iconSize: 18,
                         onTap: Get.back,
@@ -227,7 +226,7 @@ class _ConversationHeader extends StatelessWidget {
                                   decoration: ShapeDecoration(
                                     color: AppColors.border,
                                     shape: RoundedRectangleBorder(
-                                      side: const BorderSide(width: 2, color: Color(0xFF7C3AED)),
+                                      side: const BorderSide(width: 2, color: AppColors.primary),
                                       borderRadius: BorderRadius.circular(9999),
                                     ),
                                   ),
@@ -248,7 +247,7 @@ class _ConversationHeader extends StatelessWidget {
                                       width: responsive.w(16),
                                       height: responsive.w(16),
                                       decoration: ShapeDecoration(
-                                        color: const Color(0xFF7C3AED),
+                                        color: AppColors.primary,
                                         shape: RoundedRectangleBorder(
                                           side: const BorderSide(width: 2, color: Colors.white),
                                           borderRadius: BorderRadius.circular(9999),
@@ -283,7 +282,7 @@ class _ConversationHeader extends StatelessWidget {
                                           width: responsive.w(8),
                                           height: responsive.w(8),
                                           decoration: const BoxDecoration(
-                                            color: Color(0xFF7C3AED),
+                                            color: AppColors.primary,
                                             shape: BoxShape.circle,
                                           ),
                                         ),
@@ -314,7 +313,7 @@ class _ConversationHeader extends StatelessWidget {
                     if (!controller.isAdminConversation.value) ...[
                       _HeaderActionButton(
                         responsive: responsive,
-                        backgroundColor: const Color(0x197C3AED),
+                        backgroundColor: AppColors.primaryLight,
                         icon: Icons.call_rounded,
                         iconSize: 18,
                         iconColor: AppColors.primary,
@@ -324,7 +323,7 @@ class _ConversationHeader extends StatelessWidget {
                     ],
                     _HeaderActionButton(
                       responsive: responsive,
-                      backgroundColor: const Color(0xFFF9FAFB),
+                      backgroundColor: AppColors.surface,
                       icon: Icons.more_horiz_rounded,
                       iconSize: 20,
                       iconColor: AppColors.textSecondary,
@@ -344,9 +343,9 @@ class _ConversationHeader extends StatelessWidget {
                 vertical: responsive.adaptive(phone: 12, smallPhone: 12, tablet: 14, desktop: 16),
               ),
               decoration: ShapeDecoration(
-                color: const Color(0x0C7C3AED),
+                color: AppColors.primaryLight,
                 shape: RoundedRectangleBorder(
-                  side: const BorderSide(color: Color(0x337C3AED)),
+                  side: const BorderSide(color: AppColors.primaryMedium),
                   borderRadius: BorderRadius.circular(responsive.radius(16)),
                 ),
               ),
@@ -358,9 +357,9 @@ class _ConversationHeader extends StatelessWidget {
                     height: responsive.w(40),
                     padding: EdgeInsets.symmetric(horizontal: responsive.w(12), vertical: responsive.h(8)),
                     decoration: ShapeDecoration(
-                      color: const Color(0x337C3AED),
+                      color: AppColors.primaryMedium,
                       shape: RoundedRectangleBorder(
-                        side: const BorderSide(color: Color(0xFFE5E7EB)),
+                        side: const BorderSide(color: AppColors.border),
                         borderRadius: BorderRadius.circular(9999),
                       ),
                     ),
@@ -448,7 +447,7 @@ class _HeaderActionButton extends StatelessWidget {
         decoration: ShapeDecoration(
           color: backgroundColor,
           shape: RoundedRectangleBorder(
-            side: const BorderSide(color: Color(0xFFE5E7EB)),
+            side: const BorderSide(color: AppColors.border),
             borderRadius: BorderRadius.circular(9999),
           ),
         ),
@@ -472,7 +471,7 @@ class _DateSeparator extends StatelessWidget {
         padding: EdgeInsets.symmetric(
             horizontal: responsive.w(14), vertical: responsive.h(5)),
         decoration: BoxDecoration(
-          color: const Color(0xFFE9E9E9),
+          color: AppColors.border,
           borderRadius: BorderRadius.circular(9999),
         ),
         child: Text(
@@ -506,6 +505,9 @@ class _IncomingMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isAudio = attachmentType == 'audio';
+    final hasAttachment = attachmentUrl != null && attachmentUrl!.isNotEmpty;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -518,9 +520,10 @@ class _IncomingMessage extends StatelessWidget {
               ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: responsive.w(280)),
                 child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: responsive.w(16), vertical: responsive.h(12)),
+                  padding: EdgeInsets.symmetric(
+                      horizontal: responsive.w(16), vertical: responsive.h(12)),
                   decoration: ShapeDecoration(
-                    color: const Color(0xFFF3F4F6),
+                    color: AppColors.surface,
                     shape: RoundedRectangleBorder(
                       side: const BorderSide(color: AppColors.border),
                       borderRadius: BorderRadius.only(
@@ -535,16 +538,19 @@ class _IncomingMessage extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (attachmentUrl != null && attachmentUrl!.isNotEmpty)
+                      if (hasAttachment)
                         _AttachmentPreview(
                           responsive: responsive,
                           url: attachmentUrl!,
                           isImage: attachmentType == 'image',
+                          isAudio: isAudio,
                           isIncoming: true,
                         ),
                       if (message.isNotEmpty)
                         Padding(
-                          padding: attachmentUrl != null ? EdgeInsets.only(top: responsive.h(8)) : EdgeInsets.zero,
+                          padding: hasAttachment
+                              ? EdgeInsets.only(top: responsive.h(8))
+                              : EdgeInsets.zero,
                           child: Text(
                             message,
                             style: AppTextStyles.caption(responsive).copyWith(
@@ -590,6 +596,9 @@ class _OutgoingMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isAudio = attachmentType == 'audio';
+    final hasAttachment = attachmentUrl != null && attachmentUrl!.isNotEmpty;
+
     return Align(
       alignment: Alignment.centerRight,
       child: Padding(
@@ -600,7 +609,8 @@ class _OutgoingMessage extends StatelessWidget {
             ConstrainedBox(
               constraints: BoxConstraints(maxWidth: responsive.w(280)),
               child: Container(
-                padding: EdgeInsets.symmetric(horizontal: responsive.w(16), vertical: responsive.h(12)),
+                padding: EdgeInsets.symmetric(
+                    horizontal: responsive.w(16), vertical: responsive.h(12)),
                 decoration: ShapeDecoration(
                   color: AppColors.primary,
                   shape: RoundedRectangleBorder(
@@ -617,16 +627,19 @@ class _OutgoingMessage extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (attachmentUrl != null && attachmentUrl!.isNotEmpty)
+                    if (hasAttachment)
                       _AttachmentPreview(
                         responsive: responsive,
                         url: attachmentUrl!,
                         isImage: attachmentType == 'image',
+                        isAudio: isAudio,
                         isIncoming: false,
                       ),
                     if (message.isNotEmpty)
                       Padding(
-                        padding: attachmentUrl != null ? EdgeInsets.only(top: responsive.h(8)) : EdgeInsets.zero,
+                        padding: hasAttachment
+                            ? EdgeInsets.only(top: responsive.h(8))
+                            : EdgeInsets.zero,
                         child: Text(
                           message,
                           style: AppTextStyles.caption(responsive).copyWith(
@@ -660,9 +673,7 @@ class _OutgoingMessage extends StatelessWidget {
                   Icon(
                     isRead ? Icons.done_all_rounded : Icons.done_rounded,
                     size: responsive.text(13),
-                    color: isRead
-                        ? const Color(0xFF3B82F6)
-                        : AppColors.textGhost,
+                    color: isRead ? AppColors.primary : AppColors.textGhost,
                   ),
                 ],
               ],
@@ -704,7 +715,7 @@ class _LocationCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(responsive.radius(12)),
             ),
             shadows: const [
-              BoxShadow(color: Color(0x0C000000), blurRadius: 2, offset: Offset(0, 1)),
+              BoxShadow(color: AppColors.shadowSoft, blurRadius: 2, offset: Offset(0, 1)),
             ],
           ),
           child: Column(
@@ -718,7 +729,7 @@ class _LocationCard extends StatelessWidget {
                     height: responsive.w(40),
                     padding: EdgeInsets.symmetric(horizontal: responsive.w(14), vertical: responsive.h(8)),
                     decoration: ShapeDecoration(
-                      color: const Color(0x197C3AED),
+                      color: AppColors.primaryLight,
                       shape: RoundedRectangleBorder(
                         side: const BorderSide(color: AppColors.border),
                         borderRadius: BorderRadius.circular(responsive.radius(8)),
@@ -743,9 +754,9 @@ class _LocationCard extends StatelessWidget {
                 responsive: responsive,
                 label: actionLabel.isNotEmpty ? actionLabel : 'Voir sur la carte',
                 onTap: onTap,
-                backgroundColor: const Color(0x197C3AED),
+                backgroundColor: AppColors.primaryLight,
                 textColor: AppColors.primary,
-                borderColor: const Color(0x337C3AED),
+                borderColor: AppColors.primaryMedium,
                 borderRadius: responsive.radius(8),
                 height: responsive.h(40),
               ),
@@ -772,22 +783,22 @@ class _ReminderCard extends StatelessWidget {
         child: Container(
           padding: EdgeInsets.symmetric(horizontal: responsive.w(16), vertical: responsive.h(8)),
           decoration: ShapeDecoration(
-            color: const Color(0x19F4B400),
+            color: AppColors.warningLight,
             shape: RoundedRectangleBorder(
-              side: const BorderSide(color: Color(0x33F4B400)),
+              side: const BorderSide(color: AppColors.warningLight),
               borderRadius: BorderRadius.circular(responsive.radius(12)),
             ),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.info_outline_rounded, size: responsive.text(14), color: const Color(0xFFF4B400)),
+              Icon(Icons.info_outline_rounded, size: responsive.text(14), color: AppColors.warning),
               SizedBox(width: responsive.w(8)),
               Expanded(
                 child: Text(
                   message,
                   style: AppTextStyles.caption(responsive).copyWith(
-                    color: const Color(0xFFF4B400),
+                    color: AppColors.warning,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -800,6 +811,8 @@ class _ReminderCard extends StatelessWidget {
   }
 }
 
+// ── Compositeur de message ────────────────────────────────────────────────────
+
 class _Composer extends StatefulWidget {
   const _Composer({required this.responsive, required this.controller});
 
@@ -810,28 +823,66 @@ class _Composer extends StatefulWidget {
   State<_Composer> createState() => _ComposerState();
 }
 
-class _ComposerState extends State<_Composer> {
+class _ComposerState extends State<_Composer>
+    with SingleTickerProviderStateMixin {
   final _recorder = AudioRecorder();
   bool _isRecording = false;
+  bool _isCancelled = false;
+  bool _isStopping = false;
+  int _recordSeconds = 0;
+  Timer? _chronoTimer;
+  late final AnimationController _pulseCtrl;
+  late final Animation<double> _pulseAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    )..repeat(reverse: true);
+    _pulseAnim = Tween<double>(begin: 1.0, end: 1.4).animate(
+      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
+    );
+  }
 
   Future<void> _startRecording() async {
     if (!await _recorder.hasPermission()) return;
+    _isCancelled = false;
+    _isStopping = false;
+    _recordSeconds = 0;
     final dir = await getTemporaryDirectory();
-    final path = '${dir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
-    await _recorder.start(const RecordConfig(encoder: AudioEncoder.aacLc), path: path);
+    final path =
+        '${dir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
+    await _recorder.start(
+        const RecordConfig(encoder: AudioEncoder.aacLc), path: path);
+    _chronoTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() => _recordSeconds++);
+    });
     if (mounted) setState(() => _isRecording = true);
   }
 
-  Future<void> _stopAndSend() async {
+  Future<void> _stopAndSend({bool cancelled = false}) async {
+    if (_isStopping) return;
+    _isStopping = true;
+    _chronoTimer?.cancel();
     final path = await _recorder.stop();
     if (mounted) setState(() => _isRecording = false);
-    if (path != null && File(path).existsSync()) {
+    if (!cancelled && path != null && File(path).existsSync()) {
       await widget.controller.sendAudio(path);
     }
   }
 
+  String get _chronoStr {
+    final m = _recordSeconds ~/ 60;
+    final s = _recordSeconds % 60;
+    return '$m:${s.toString().padLeft(2, '0')}';
+  }
+
   @override
   void dispose() {
+    _chronoTimer?.cancel();
+    _pulseCtrl.dispose();
     _recorder.dispose();
     super.dispose();
   }
@@ -840,100 +891,196 @@ class _ComposerState extends State<_Composer> {
   Widget build(BuildContext context) {
     final responsive = widget.responsive;
     final controller = widget.controller;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Obx(() {
           final idx = controller.editingIndex.value;
           if (idx == null) return const SizedBox.shrink();
-          final msg = idx < controller.messages.length ? controller.messages[idx] : null;
+          final msg =
+              idx < controller.messages.length ? controller.messages[idx] : null;
           return _EditBanner(
             responsive: responsive,
             message: msg?.message ?? '',
             onCancel: controller.cancelEdit,
           );
         }),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
+        Stack(
+          alignment: Alignment.centerRight,
           children: [
-            AppCircularButton(
-              responsive: responsive,
-              icon: Icons.add_rounded,
-              onTap: controller.openAttachmentPicker,
-              size: responsive.w(40),
-              filled: false,
-            ),
-            SizedBox(width: responsive.w(12)),
-            Expanded(
-              child: AppField(
-                responsive: responsive,
-                label: '',
-                borderRadius: responsive.radius(9999),
-                backgroundColor: const Color(0xFFF9FAFB),
-                padding: EdgeInsets.symmetric(
-                  horizontal: responsive.w(16),
-                  vertical: responsive.h(12),
-                ),
-                child: TextField(
-                  controller: controller.messageController,
-                  decoration: InputDecoration.collapsed(
-                    hintText: AppStrings.messengerDetailInputHint,
-                    hintStyle: AppTextStyles.caption(responsive).copyWith(color: AppColors.textGhost),
-                  ),
-                  style: AppTextStyles.caption(responsive).copyWith(color: Colors.black),
-                  maxLines: 1,
-                  scrollPhysics: const BouncingScrollPhysics(),
-                ),
-              ),
-            ),
-            SizedBox(width: responsive.w(12)),
-            Obx(() {
-              final isEditing = controller.editingIndex.value != null;
-              if (isEditing) {
-                return AppCircularButton(
+            // ── Barre normale (toujours dans l'arbre pour la continuité du geste) ──
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                AppCircularButton(
                   responsive: responsive,
-                  icon: Icons.check_rounded,
-                  onTap: controller.sendMessage,
-                  filled: true,
+                  icon: Icons.add_rounded,
+                  onTap: controller.openAttachmentPicker,
                   size: responsive.w(40),
-                );
-              }
-              return ValueListenableBuilder<TextEditingValue>(
-                valueListenable: controller.messageController,
-                builder: (_, value, _) {
-                  if (value.text.trim().isNotEmpty) {
+                  filled: false,
+                ),
+                SizedBox(width: responsive.w(12)),
+                Expanded(
+                  child: AppField(
+                    responsive: responsive,
+                    label: '',
+                    borderRadius: responsive.radius(9999),
+                    backgroundColor: AppColors.surface,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: responsive.w(16),
+                      vertical: responsive.h(12),
+                    ),
+                    child: TextField(
+                      controller: controller.messageController,
+                      decoration: InputDecoration.collapsed(
+                        hintText: AppStrings.messengerDetailInputHint,
+                        hintStyle: AppTextStyles.caption(responsive)
+                            .copyWith(color: AppColors.textGhost),
+                      ),
+                      style: AppTextStyles.caption(responsive)
+                          .copyWith(color: Colors.black),
+                      maxLines: 1,
+                      scrollPhysics: const BouncingScrollPhysics(),
+                    ),
+                  ),
+                ),
+                SizedBox(width: responsive.w(12)),
+                // ── Bouton micro / envoi / valider ──────────────────────────
+                Obx(() {
+                  final isEditing = controller.editingIndex.value != null;
+                  if (isEditing) {
                     return AppCircularButton(
                       responsive: responsive,
-                      icon: Icons.send_rounded,
+                      icon: Icons.check_rounded,
                       onTap: controller.sendMessage,
                       filled: true,
                       size: responsive.w(40),
                     );
                   }
-                  return GestureDetector(
-                    onLongPressStart: (_) => _startRecording(),
-                    onLongPressEnd: (_) => _stopAndSend(),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: responsive.w(40),
-                      height: responsive.w(40),
-                      decoration: BoxDecoration(
-                        color: _isRecording ? AppColors.danger : AppColors.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        _isRecording ? Icons.stop_rounded : Icons.mic_rounded,
-                        color: Colors.white,
-                        size: responsive.w(20),
-                      ),
-                    ),
+                  return ValueListenableBuilder<TextEditingValue>(
+                    valueListenable: controller.messageController,
+                    builder: (context, value, _) {
+                      if (value.text.trim().isNotEmpty) {
+                        return AppCircularButton(
+                          responsive: responsive,
+                          icon: Icons.send_rounded,
+                          onTap: controller.sendMessage,
+                          filled: true,
+                          size: responsive.w(40),
+                        );
+                      }
+                      return GestureDetector(
+                        onLongPressStart: (_) => _startRecording(),
+                        onLongPressMoveUpdate: (details) {
+                          if (!_isRecording || _isStopping) return;
+                          if (details.offsetFromOrigin.dx < -80) {
+                            _isCancelled = true;
+                            _stopAndSend(cancelled: true);
+                          }
+                        },
+                        onLongPressEnd: (_) {
+                          if (!_isCancelled) _stopAndSend();
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: responsive.w(40),
+                          height: responsive.w(40),
+                          decoration: BoxDecoration(
+                            color: _isRecording
+                                ? AppColors.danger
+                                : AppColors.primary,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            _isRecording
+                                ? Icons.stop_rounded
+                                : Icons.mic_rounded,
+                            color: Colors.white,
+                            size: responsive.w(20),
+                          ),
+                        ),
+                      );
+                    },
                   );
-                },
-              );
-            }),
+                }),
+              ],
+            ),
+            // ── Overlay d'enregistrement (couvre + et TextField) ────────────
+            if (_isRecording)
+              Positioned(
+                left: 0,
+                right: responsive.w(52),
+                child: _RecordingBar(
+                  responsive: responsive,
+                  chronoStr: _chronoStr,
+                  pulseAnim: _pulseAnim,
+                ),
+              ),
           ],
         ),
       ],
+    );
+  }
+}
+
+class _RecordingBar extends StatelessWidget {
+  const _RecordingBar({
+    required this.responsive,
+    required this.chronoStr,
+    required this.pulseAnim,
+  });
+
+  final AppResponsive responsive;
+  final String chronoStr;
+  final Animation<double> pulseAnim;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: responsive.w(40),
+      padding: EdgeInsets.symmetric(horizontal: responsive.w(12)),
+      decoration: BoxDecoration(
+        color: AppColors.dangerSurface,
+        borderRadius: BorderRadius.circular(9999),
+        border: Border.all(color: AppColors.dangerBorder),
+      ),
+      child: Row(
+        children: [
+          AnimatedBuilder(
+            animation: pulseAnim,
+            builder: (_, child) => Transform.scale(
+              scale: pulseAnim.value,
+              child: Container(
+                width: responsive.w(8),
+                height: responsive.w(8),
+                decoration: const BoxDecoration(
+                    color: Colors.red, shape: BoxShape.circle),
+              ),
+            ),
+          ),
+          SizedBox(width: responsive.w(8)),
+          Text(
+            chronoStr,
+            style: TextStyle(
+              fontSize: responsive.text(13),
+              fontWeight: FontWeight.w600,
+              color: Colors.red,
+            ),
+          ),
+          const Spacer(),
+          Icon(Icons.chevron_left_rounded,
+              color: Colors.red.withValues(alpha: 0.7),
+              size: responsive.text(16)),
+          Text(
+            'Glisser pour annuler',
+            style: TextStyle(
+              fontSize: responsive.text(11),
+              color: Colors.red.withValues(alpha: 0.7),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1000,7 +1147,8 @@ class _EditBanner extends StatelessWidget {
             onTap: onCancel,
             child: Padding(
               padding: EdgeInsets.all(responsive.w(4)),
-              child: Icon(Icons.close_rounded, size: responsive.text(18), color: AppColors.textMuted),
+              child: Icon(Icons.close_rounded,
+                  size: responsive.text(18), color: AppColors.textMuted),
             ),
           ),
         ],
@@ -1046,16 +1194,26 @@ class _AttachmentPreview extends StatelessWidget {
     required this.responsive,
     required this.url,
     required this.isImage,
+    required this.isAudio,
     required this.isIncoming,
   });
 
   final AppResponsive responsive;
   final String url;
   final bool isImage;
+  final bool isAudio;
   final bool isIncoming;
 
   @override
   Widget build(BuildContext context) {
+    if (isAudio) {
+      return VoiceMessageBubble(
+        audioUrl: url,
+        isOutgoing: !isIncoming,
+        responsive: responsive,
+      );
+    }
+
     if (isImage) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(responsive.radius(10)),
@@ -1067,7 +1225,7 @@ class _AttachmentPreview extends StatelessWidget {
           errorBuilder: (ctx, err, stack) => Container(
             width: responsive.w(220),
             height: responsive.h(80),
-            color: isIncoming ? const Color(0xFFE5E7EB) : Colors.white24,
+            color: isIncoming ? AppColors.border : Colors.white24,
             child: Icon(Icons.broken_image_rounded,
                 color: isIncoming ? AppColors.textGhost : Colors.white54),
           ),
@@ -1076,8 +1234,15 @@ class _AttachmentPreview extends StatelessWidget {
     }
 
     // Document
+    String filename;
+    try {
+      filename = Uri.parse(url).pathSegments.last;
+    } catch (_) {
+      filename = 'Document';
+    }
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: responsive.w(12), vertical: responsive.h(10)),
+      padding: EdgeInsets.symmetric(
+          horizontal: responsive.w(12), vertical: responsive.h(10)),
       decoration: BoxDecoration(
         color: isIncoming ? Colors.white : Colors.white24,
         borderRadius: BorderRadius.circular(responsive.radius(10)),
@@ -1092,7 +1257,7 @@ class _AttachmentPreview extends StatelessWidget {
           SizedBox(width: responsive.w(8)),
           Flexible(
             child: Text(
-              _filename(url),
+              filename,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: AppTextStyles.caption(responsive).copyWith(
@@ -1104,13 +1269,5 @@ class _AttachmentPreview extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String _filename(String url) {
-    try {
-      return Uri.parse(url).pathSegments.last;
-    } catch (_) {
-      return 'Document';
-    }
   }
 }

@@ -45,19 +45,19 @@ class RefundRequestView extends StatelessWidget {
 																		child: Container(
 																			padding: EdgeInsets.all(responsive.w(14)),
 																			decoration: BoxDecoration(
-																				color: const Color(0xFFFFFBEB),
+																				color: AppColors.warningSurface,
 																				borderRadius: BorderRadius.circular(12),
-																				border: Border.all(color: const Color(0xFFF59E0B)),
+																				border: Border.all(color: AppColors.warning),
 																			),
 																			child: Row(
 																				children: [
-																					const Icon(Icons.info_rounded, color: Color(0xFFF59E0B), size: 18),
+																					const Icon(Icons.info_rounded, color: AppColors.warning, size: 18),
 																					SizedBox(width: responsive.w(10)),
 																					Expanded(
 																						child: Text(
 																							'Une demande de remboursement a déjà été soumise pour ce trajet.',
 																							style: AppTextStyles.caption(responsive).copyWith(
-																								color: const Color(0xFF92400E),
+																								color: AppColors.warningDark,
 																								fontWeight: FontWeight.w500,
 																							),
 																						),
@@ -198,7 +198,7 @@ class _TripCard extends StatelessWidget {
 									),
 									Obx(() => Row(
 										children: [
-											const _RouteDot(color: Color(0xFFEF4444), filled: false),
+											const _RouteDot(color: AppColors.danger, filled: false),
 											SizedBox(width: responsive.w(10)),
 											Expanded(
 												child: Text(
@@ -491,7 +491,7 @@ class _ReasonsCard extends StatelessWidget {
 						children: [
 							Text('Motif du remboursement', style: AppTextStyles.h6(responsive)),
 							SizedBox(width: responsive.w(4)),
-							Text('*', style: TextStyle(color: const Color(0xFFEF4444), fontSize: responsive.text(14), fontWeight: FontWeight.w700)),
+							Text('*', style: TextStyle(color: AppColors.danger, fontSize: responsive.text(14), fontWeight: FontWeight.w700)),
 						],
 					),
 					SizedBox(height: responsive.h(14)),
@@ -505,7 +505,7 @@ class _ReasonsCard extends StatelessWidget {
 									margin: EdgeInsets.only(bottom: responsive.h(8)),
 									padding: EdgeInsets.symmetric(horizontal: responsive.w(14), vertical: responsive.h(12)),
 									decoration: ShapeDecoration(
-										color: selected ? const Color(0xFFF0FDF8) : AppColors.surfaceMuted,
+										color: selected ? AppColors.successSurface : AppColors.surfaceMuted,
 										shape: RoundedRectangleBorder(
 											side: BorderSide(color: selected ? AppColors.primary : AppColors.border),
 											borderRadius: BorderRadius.circular(12),
@@ -612,9 +612,9 @@ class _RefundSummaryCard extends StatelessWidget {
 		return Container(
 			padding: EdgeInsets.all(responsive.w(16)),
 			decoration: ShapeDecoration(
-				color: const Color(0xFFF0FDF8),
+				color: AppColors.successSurface,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: Color(0x337C3AED)),
+					side: const BorderSide(color: AppColors.primaryMedium),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
 			),
@@ -716,8 +716,8 @@ class _SuccessStateState extends State<_SuccessState> with SingleTickerProviderS
 									height: responsive.w(100),
 									decoration: const BoxDecoration(
 										shape: BoxShape.circle,
-										color: Color(0xFFF0FDF8),
-										boxShadow: [BoxShadow(color: Color(0x227C3AED), blurRadius: 24, spreadRadius: 8)],
+										color: AppColors.successSurface,
+										boxShadow: [BoxShadow(color: AppColors.primaryLight, blurRadius: 24, spreadRadius: 8)],
 									),
 									child: Icon(Icons.check_circle_rounded, color: AppColors.primary, size: responsive.text(52)),
 								),
@@ -738,9 +738,9 @@ class _SuccessStateState extends State<_SuccessState> with SingleTickerProviderS
 							Container(
 								padding: EdgeInsets.all(responsive.w(16)),
 								decoration: ShapeDecoration(
-									color: const Color(0xFFF0FDF8),
+									color: AppColors.successSurface,
 									shape: RoundedRectangleBorder(
-										side: const BorderSide(color: Color(0x337C3AED)),
+										side: const BorderSide(color: AppColors.primaryMedium),
 										borderRadius: BorderRadius.circular(16),
 									),
 								),
@@ -811,7 +811,7 @@ class _LoadingOverlay extends StatelessWidget {
 					decoration: BoxDecoration(
 						color: Colors.white,
 						borderRadius: BorderRadius.circular(20),
-						boxShadow: const [BoxShadow(color: Color(0x20000000), blurRadius: 24)],
+						boxShadow: const [BoxShadow(color: AppColors.shadow, blurRadius: 24)],
 					),
 					child: Column(
 						mainAxisSize: MainAxisSize.min,
@@ -848,7 +848,7 @@ class _Card extends StatelessWidget {
 					side: const BorderSide(color: AppColors.border),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
-				shadows: const [BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 2))],
+				shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 8, offset: Offset(0, 2))],
 			),
 			child: child,
 		);

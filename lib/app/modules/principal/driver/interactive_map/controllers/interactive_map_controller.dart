@@ -13,6 +13,7 @@ import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/interactive_map_model.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/trip_model.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
+import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 
 enum StopType { pickup, dropoff }
 
@@ -509,17 +510,17 @@ class InteractiveMapController extends GetxController
   // ── Visual helpers ─────────────────────────────────────────────────────────
 
   Color stopColor(MapStop stop) {
-    if (stop.status == StopStatus.done) return const Color(0xFF9CA3AF);
+    if (stop.status == StopStatus.done) return AppColors.textHint;
     return stop.type == StopType.pickup
-        ? const Color(0xFF3B82F6)
-        : const Color(0xFFEF4444);
+        ? AppColors.primary
+        : AppColors.danger;
   }
 
   Color stopBgColor(MapStop stop) {
-    if (stop.status == StopStatus.done) return const Color(0x269CA3AF);
+    if (stop.status == StopStatus.done) return AppColors.primaryLight;
     return stop.type == StopType.pickup
-        ? const Color(0x263B82F6)
-        : const Color(0x26EF4444);
+        ? AppColors.primaryLight
+        : AppColors.dangerLight;
   }
 
   String stopTypeLabel(StopType type) =>
@@ -532,9 +533,9 @@ class InteractiveMapController extends GetxController
       };
 
   Color stopStatusColor(StopStatus status) => switch (status) {
-        StopStatus.pending => const Color(0xFFF59E0B),
-        StopStatus.approaching => const Color(0xFF3B82F6),
-        StopStatus.done => const Color(0xFF9CA3AF),
+        StopStatus.pending => AppColors.warning,
+        StopStatus.approaching => AppColors.primary,
+        StopStatus.done => AppColors.textHint,
       };
 
   @override

@@ -348,6 +348,7 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
     return DetailMessage(
       kind: kind,
       message: m.message,
+      messageType: m.messageType,
       time: m.time,
       rawDate: m.rawDate,
       messageId: m.id,
@@ -466,7 +467,10 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
   Future<void> sendAudio(String filePath) async {
     final optimistic = DetailMessage(
       kind: DetailMessageKind.outgoing,
-      message: '🎤 Message vocal…',
+      message: '',
+      messageType: 'audio',
+      attachmentType: 'audio',
+      attachmentUrl: filePath, // chemin local — remplacé par l'URL distante après upload
       time: 'maintenant',
     );
     messages.add(optimistic);
@@ -578,7 +582,7 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
             _OptionRow(
               icon: Icons.photo_library_rounded,
               label: 'Galerie photo',
-              color: const Color(0xFF6366F1),
+              color: AppColors.primary,
               onTap: () {
                 Get.back();
                 _pickAndSend(ImageSource.gallery);
@@ -658,7 +662,7 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: const Color(0xFFF3F4F6),
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppColors.border),
               ),
@@ -704,7 +708,7 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
             _OptionRow(
               icon: Icons.delete_outline_rounded,
               label: 'Supprimer le message',
-              color: const Color(0xFFEF4444),
+              color: AppColors.danger,
               onTap: () {
                 Get.back();
                 Get.dialog(
@@ -713,7 +717,7 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
                         borderRadius: BorderRadius.circular(16)),
                     title: const Row(children: [
                       Icon(Icons.delete_outline_rounded,
-                          color: Color(0xFFEF4444), size: 20),
+                          color: AppColors.danger, size: 20),
                       SizedBox(width: 8),
                       Expanded(
                           child: Text('Supprimer ce message ?',
@@ -744,7 +748,7 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
                         child: const Text(
                           'Supprimer',
                           style: TextStyle(
-                              color: Color(0xFFEF4444),
+                              color: AppColors.danger,
                               fontWeight: FontWeight.w700),
                         ),
                       ),
@@ -789,7 +793,7 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             decoration: BoxDecoration(
-                color: const Color(0xFFE6F7EF),
+                color: AppColors.successSurface,
                 borderRadius: BorderRadius.circular(12)),
             child: Text(phone,
                 style: const TextStyle(
@@ -847,7 +851,7 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
           _OptionRow(
             icon: Icons.block_rounded,
             label: 'Bloquer ce contact',
-            color: const Color(0xFFEF4444),
+            color: AppColors.danger,
             onTap: () {
               Get.back();
               final n = displayName.value;
@@ -869,7 +873,7 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
                     },
                     child: const Text('Bloquer',
                         style: TextStyle(
-                            color: Color(0xFFEF4444),
+                            color: AppColors.danger,
                             fontWeight: FontWeight.w700)),
                   ),
                 ],
@@ -880,7 +884,7 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
           _OptionRow(
             icon: Icons.report_rounded,
             label: 'Signaler un problème',
-            color: const Color(0xFFF59E0B),
+            color: AppColors.warning,
             onTap: () {
               Get.back();
               UIHelper().showSnackBar('MINIZON',
@@ -892,7 +896,7 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
           _OptionRow(
             icon: Icons.delete_outline_rounded,
             label: 'Supprimer la conversation',
-            color: const Color(0xFF9CA3AF),
+            color: AppColors.textHint,
             onTap: () {
               Get.back();
               UIHelper()
@@ -937,7 +941,7 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                  color: const Color(0xFFE6F7EF),
+                  color: AppColors.successSurface,
                   borderRadius: BorderRadius.circular(12)),
               child: const Row(children: [
                 Icon(Icons.info_outline_rounded,
@@ -1025,6 +1029,7 @@ class DetailMessage {
   const DetailMessage({
     required this.kind,
     this.message = '',
+    this.messageType = 'text',
     this.time = '',
     this.rawDate = '',
     this.dateLabel = '',
@@ -1041,6 +1046,7 @@ class DetailMessage {
 
   final DetailMessageKind kind;
   final String message;
+  final String messageType; // 'text' | 'audio' | 'image' | 'document' | 'mixed'
   final String time;
   final String rawDate;
   final String dateLabel;
@@ -1056,12 +1062,16 @@ class DetailMessage {
 
   bool get hasAttachment =>
       attachmentUrl != null && attachmentUrl!.isNotEmpty;
-  bool get isImageAttachment => attachmentType == 'image';
+  bool get isAudioMessage =>
+      messageType == 'audio' || attachmentType == 'audio';
+  bool get isImageAttachment =>
+      messageType == 'image' || attachmentType == 'image';
 
   DetailMessage copyWith({String? message, bool? isRead, bool? isEdited}) =>
       DetailMessage(
         kind: kind,
         message: message ?? this.message,
+        messageType: messageType,
         time: time,
         rawDate: rawDate,
         dateLabel: dateLabel,

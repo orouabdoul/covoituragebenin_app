@@ -115,7 +115,7 @@ class _WelcomeSection extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF6366F1), Color(0xFF4F46E5)],
+          colors: [AppColors.primary, AppColors.primary],
         ),
         borderRadius: BorderRadius.circular(r.adaptive(phone: 16, smallPhone: 14, tablet: 18, desktop: 20)),
       ),
@@ -353,7 +353,7 @@ class _ContactCard extends StatelessWidget {
                             width: r.adaptive(phone: 7, smallPhone: 6, tablet: 8, desktop: 9),
                             height: r.adaptive(phone: 7, smallPhone: 6, tablet: 8, desktop: 9),
                             decoration: const BoxDecoration(
-                              color: Color(0xFF22C55E), shape: BoxShape.circle),
+                              color: AppColors.success, shape: BoxShape.circle),
                           ),
                           SizedBox(width: r.adaptive(phone: 4, smallPhone: 3, tablet: 5, desktop: 6)),
                           Text('Disponible maintenant',

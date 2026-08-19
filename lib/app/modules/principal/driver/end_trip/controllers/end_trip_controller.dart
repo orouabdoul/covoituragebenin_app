@@ -80,11 +80,11 @@ class EndTripController extends GetxController {
       StatefulBuilder(
         builder: (context, setState) {
           const categories = [
-            ('Passager agressif', Icons.person_off_rounded, Color(0xFFEF4444)),
-            ('Accident de route', Icons.car_crash_rounded, Color(0xFFF59E0B)),
-            ("Passager n'était pas là", Icons.location_off_rounded, Color(0xFF6366F1)),
-            ('Paiement refusé', Icons.payment_rounded, Color(0xFFF97316)),
-            ('Autre incident', Icons.more_horiz_rounded, Color(0xFF9CA3AF)),
+            ('Passager agressif', Icons.person_off_rounded, AppColors.danger),
+            ('Accident de route', Icons.car_crash_rounded, AppColors.warning),
+            ("Passager n'était pas là", Icons.location_off_rounded, AppColors.primary),
+            ('Paiement refusé', Icons.payment_rounded, AppColors.accent),
+            ('Autre incident', Icons.more_horiz_rounded, AppColors.textHint),
           ];
           return Padding(
             padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
@@ -198,7 +198,7 @@ class EndTripController extends GetxController {
                       decoration: BoxDecoration(
                         color: selectedCategory == null
                             ? AppColors.textGhost
-                            : const Color(0xFFF59E0B),
+                            : AppColors.warning,
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: const Center(

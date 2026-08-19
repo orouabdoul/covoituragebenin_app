@@ -100,7 +100,7 @@ class _HeaderBar extends StatelessWidget {
 							AlertDialog(
 								shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
 								title: const Row(children: [
-									Icon(Icons.lock_rounded, color: Color(0xFF7C3AED), size: 20),
+									Icon(Icons.lock_rounded, color: AppColors.primary, size: 20),
 									SizedBox(width: 8),
 									Text('Paiement sécurisé', style: TextStyle(fontSize: 15)),
 								]),
@@ -334,7 +334,7 @@ class _PaymentMethodCard extends StatelessWidget {
 										child: Container(
 											padding: EdgeInsets.all(responsive.w(14)),
 											decoration: ShapeDecoration(
-												color: selected ? const Color(0x0C7C3AED) : Colors.white,
+												color: selected ? AppColors.primaryLight : Colors.white,
 												shape: RoundedRectangleBorder(
 													side: BorderSide(
 														width: selected ? 2 : 1,
@@ -506,9 +506,9 @@ class _ServiceLogo extends StatelessWidget {
 
 	static Color brandColor(MobileMoneyService s) {
 		switch (s) {
-			case MobileMoneyService.mtn:     return const Color(0xFFFFCC00);
-			case MobileMoneyService.moov:    return const Color(0xFF0052A5);
-			case MobileMoneyService.celtiis: return const Color(0xFFE31E24);
+			case MobileMoneyService.mtn:     return AppColors.badgeYellow;
+			case MobileMoneyService.moov:    return AppColors.primary;
+			case MobileMoneyService.celtiis: return AppColors.danger;
 		}
 	}
 
@@ -586,7 +586,7 @@ class _MtnFallback extends StatelessWidget {
 					style: TextStyle(
 						fontSize: size * 0.30,
 						fontWeight: FontWeight.w900,
-						color: const Color(0xFF1A1A1A),
+						color: AppColors.textPrimary,
 						fontFamily: 'Inter',
 						letterSpacing: size * 0.01,
 					),
@@ -611,7 +611,7 @@ class _MoovFallback extends StatelessWidget {
 				gradient: LinearGradient(
 					begin: Alignment.topLeft,
 					end: Alignment.bottomRight,
-					colors: [color, const Color(0xFF003A8C)],
+					colors: [color, AppColors.blueDark],
 				),
 				borderRadius: BorderRadius.circular(size * 0.18),
 			),
@@ -658,7 +658,7 @@ class _CeltisFallback extends StatelessWidget {
 				gradient: LinearGradient(
 					begin: Alignment.topLeft,
 					end: Alignment.bottomRight,
-					colors: [color, const Color(0xFFC0101A)],
+					colors: [color, AppColors.dangerDark],
 				),
 				borderRadius: BorderRadius.circular(size * 0.18),
 			),
@@ -735,9 +735,9 @@ class _SecurityCard extends StatelessWidget {
 		return Container(
 			padding: EdgeInsets.all(responsive.w(16)),
 			decoration: ShapeDecoration(
-				color: const Color(0x0C7C3AED),
+				color: AppColors.primaryLight,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: Color(0x337C3AED)),
+					side: const BorderSide(color: AppColors.primaryMedium),
 					borderRadius: BorderRadius.circular(responsive.radius(14)),
 				),
 			),
@@ -825,7 +825,7 @@ class _SectionCard extends StatelessWidget {
 					side: const BorderSide(color: AppColors.border),
 					borderRadius: BorderRadius.circular(responsive.radius(20)),
 				),
-				shadows: const [BoxShadow(color: Color(0x14000000), blurRadius: 12, offset: Offset(0, 2))],
+				shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 12, offset: Offset(0, 2))],
 			),
 			child: child,
 		);

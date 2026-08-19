@@ -43,7 +43,7 @@ class WithdrawController extends GetxController {
       subtitle: 'MoMo · Bénin',
       phoneNumber: '',
       icon: Icons.phone_android_rounded,
-      iconBackground: Color(0x33F4B400),
+      iconBackground: AppColors.warningLight,
       isDefault: true,
     ),
     const WithdrawMethodModel(
@@ -52,7 +52,7 @@ class WithdrawController extends GetxController {
       subtitle: 'Flooz · Bénin',
       phoneNumber: '',
       icon: Icons.phone_android_rounded,
-      iconBackground: Color(0x196366F1),
+      iconBackground: AppColors.primaryLight,
     ),
     const WithdrawMethodModel(
       id: 'celtiis',
@@ -60,7 +60,7 @@ class WithdrawController extends GetxController {
       subtitle: 'Cash · Bénin',
       phoneNumber: '',
       icon: Icons.phone_android_rounded,
-      iconBackground: Color(0x33E31E24),
+      iconBackground: AppColors.dangerLight,
     ),
     const WithdrawMethodModel(
       id: 'bank',
@@ -68,7 +68,7 @@ class WithdrawController extends GetxController {
       subtitle: 'UBA, Ecobank…',
       phoneNumber: '',
       icon: Icons.account_balance_outlined,
-      iconBackground: Color(0x197C3AED),
+      iconBackground: AppColors.primaryLight,
     ),
   ].obs;
 
@@ -258,11 +258,11 @@ class WithdrawController extends GetxController {
             Container(
               width: 72, height: 72,
               decoration: const BoxDecoration(
-                color: Color(0x1A7C3AED),
+                color: AppColors.primaryLight,
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.check_circle_rounded,
-                  color: Color(0xFF7C3AED), size: 40),
+                  color: AppColors.primary, size: 40),
             ),
             const SizedBox(height: 16),
             const Text(

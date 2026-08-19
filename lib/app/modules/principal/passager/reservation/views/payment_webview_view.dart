@@ -73,7 +73,7 @@ class _TopBar extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(8, topPad + 4, 16, 8),
       decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
+        border: Border(bottom: BorderSide(color: AppColors.border)),
       ),
       child: Row(
         children: [
@@ -87,7 +87,7 @@ class _TopBar extends StatelessWidget {
                 width: 44,
                 height: 44,
                 child: Icon(Icons.close_rounded,
-                    color: Color(0xFF374151), size: 22),
+                    color: AppColors.textPrimary, size: 22),
               ),
             ),
           ),
@@ -113,14 +113,14 @@ class _TopBar extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF111827),
+                    color: AppColors.textPrimary,
                   ),
                 ),
                 Text(
                   'Propulsé par FedaPay',
                   style: TextStyle(
                     fontSize: 11,
-                    color: Color(0xFF9CA3AF),
+                    color: AppColors.textHint,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -188,13 +188,13 @@ class _ErrorState extends StatelessWidget {
               style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF111827)),
+                  color: AppColors.textPrimary),
             ),
             const SizedBox(height: 6),
             const Text(
               'Vérifiez votre connexion internet et réessayez.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
