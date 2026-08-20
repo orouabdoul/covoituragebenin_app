@@ -278,6 +278,7 @@ class HomeController extends GetxController {
         driverLevelProgress: d.driverLevelProgress,
         driverBadges: d.driverBadges,
         tripProgress: d.tripProgress,
+        driverPhone: d.driverPhone,
       );
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -459,13 +460,15 @@ class HomeController extends GetxController {
               'originPoint':      trip.originPoint,
               'destinationPoint': trip.destinationPoint,
               'driverName':       trip.driverName,
+              'driverPhone':      trip.driverPhone,
             });
       case UpcomingTripStatus.driverArriving:
         Get.toNamed(AppRoutes.passengerDriverArrival,
             arguments: {
               'bookingUuid': trip.bookingUuid,
-              'driverName': trip.driverName,
-              'tripRoute': '${trip.origin} → ${trip.destination}',
+              'driverName':  trip.driverName,
+              'tripRoute':   '${trip.origin} → ${trip.destination}',
+              'driverPhone': trip.driverPhone,
             });
       case UpcomingTripStatus.upcoming:
         BottonNavController.goToTab(2);
@@ -597,6 +600,7 @@ class HomeUpcomingTrip {
     this.seatsBooked = 1,
     this.completedStops = 0,
     this.totalStops = 0,
+    this.driverPhone = '',
   });
 
   final String bookingUuid;
@@ -629,6 +633,7 @@ class HomeUpcomingTrip {
   final int seatsBooked;
   final int completedStops;
   final int totalStops;
+  final String driverPhone;
 }
 
 class HomeQuickAction {

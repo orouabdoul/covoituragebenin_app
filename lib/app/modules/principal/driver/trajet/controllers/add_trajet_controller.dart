@@ -27,7 +27,7 @@ class AddTrajetController extends GetxController {
   bool hasApprovedVehicle = true;
 
   // ── Seats, price ──────────────────────────────────────────────────────────
-  final RxInt availableSeats = 4.obs;
+  final RxInt availableSeats = 3.obs;
   final RxDouble pricePerSeat = 5000.0.obs;
   final RxSet<String> selectedOptions = <String>{}.obs;
   final RxBool isPublishing = false.obs;
@@ -90,11 +90,15 @@ class AddTrajetController extends GetxController {
   final TextEditingController priceController = TextEditingController(text: '5000');
 
   int get totalAmount => availableSeats.value * pricePerSeat.value.toInt();
-  int get maxPassengers => selectedVehicle.value?.availableSeats ?? 4;
+  // Total vehicle seats minus 1 (driver seat) = max passenger seats for this trip.
+  int get maxPassengers {
+    final seats = selectedVehicle.value?.availableSeats ?? 5;
+    return (seats - 1).clamp(1, 99);
+  }
   String get capacityLabel {
     final v = selectedVehicle.value;
     if (v == null) return 'Sélectionnez un véhicule';
-    return '${v.brand} ${v.model} — ${v.availableSeats} places max';
+    return '${v.brand} ${v.model} — $maxPassengers place${maxPassengers > 1 ? 's' : ''} passager max';
   }
 
   // ── Villes & quartiers ────────────────────────────────────────────────────
@@ -512,7 +516,8 @@ class AddTrajetController extends GetxController {
     final max = maxPassengers;
     if (availableSeats.value > max) {
       availableSeats.value = max;
-      UIHelper().showSnackBar('MINIZON', 'Places limitées à $max (capacité du véhicule).', 1);
+      UIHelper().showSnackBar(
+          'MINIZON', 'Places passagers limitées à $max (1 siège réservé au conducteur).', 1);
     } else if (availableSeats.value < 1) {
       availableSeats.value = 1;
     }

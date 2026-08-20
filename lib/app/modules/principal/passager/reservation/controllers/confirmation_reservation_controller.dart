@@ -899,7 +899,7 @@ class _PriceConfirmSheet extends StatelessWidget {
             booking.passengerDistanceKm > 0
                 ? 'Calculé sur ${booking.formattedPassengerDistance} de trajet'
                 : 'Basé sur le tarif du conducteur',
-            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
           ),
           // ── Prise et dépôt ───────────────────────────────────────────────
           if (pickupCity.isNotEmpty || dropoffCity.isNotEmpty) ...[
@@ -971,7 +971,7 @@ class _PriceConfirmSheet extends StatelessWidget {
                             width: 10,
                             height: 10,
                             decoration: BoxDecoration(
-                              color: Colors.red,
+                              color: AppColors.danger,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -1065,7 +1065,7 @@ class _PriceConfirmSheet extends StatelessWidget {
                   seats > 1 && booking.calculatedPrice > 0
                       ? '${_fmt(booking.calculatedPrice)} FCFA × $seats places + frais'
                       : 'pour 1 place (frais inclus)',
-                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                  style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -1164,7 +1164,7 @@ class _PriceConfirmSheet extends StatelessWidget {
             child: Text(
               'Annuler',
               style: TextStyle(
-                  color: Colors.grey[600],
+                  color: AppColors.textSecondary,
                   fontSize: 14,
                   fontWeight: FontWeight.w600),
             ),
@@ -1190,11 +1190,11 @@ class _DetailRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: Colors.grey[500]),
+        Icon(icon, size: 16, color: AppColors.textHint),
         const SizedBox(width: 8),
         Expanded(
           child: Text(label,
-              style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+              style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
         ),
         Text(
           value,

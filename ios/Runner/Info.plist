@@ -62,8 +62,13 @@
 	     FIREBASE — modes d'exécution en arrière-plan
 	     Requis pour recevoir les notifications push quand l'app est fermée
 	     ═══════════════════════════════════════════════════════════ -->
+	<!-- Localisation permanente iOS < 14 -->
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>MINIZON utilise votre position en arrière-plan lorsque vous êtes conducteur actif, pour mettre à jour votre position en temps réel.</string>
+
 	<key>UIBackgroundModes</key>
 	<array>
+		<string>audio</string>
 		<string>fetch</string>
 		<string>remote-notification</string>
 	</array>

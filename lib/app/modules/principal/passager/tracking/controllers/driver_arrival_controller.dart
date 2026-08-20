@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'package:covoiturage_benin_app/app/core/services/passenger/messaging/passenger_messaging_service.dart';
+import 'package:covoiturage_benin_app/app/core/utils/phone_utils.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import '../../messager/controllers/messager_controller.dart';
 import '../../reservation/controllers/reservation_controller.dart'
@@ -63,6 +64,7 @@ class DriverArrivalController extends GetxController {
   String _conversationUuid = '';
   String _driverName       = '';
   String _tripRoute        = '';
+  String _driverPhone      = '';
   bool   _isSendingMsg     = false;
 
   @override
@@ -88,6 +90,8 @@ class DriverArrivalController extends GetxController {
       if (dn is String && dn.isNotEmpty) _driverName = dn;
       final tr = savedArgs['tripRoute'];
       if (tr is String && tr.isNotEmpty) _tripRoute = tr;
+      final dp = savedArgs['driverPhone'];
+      if (dp is String && dp.isNotEmpty) _driverPhone = dp;
     }
 
     // Calculer les coordonnées
@@ -196,10 +200,7 @@ class DriverArrivalController extends GetxController {
     } catch (_) {}
   }
 
-  void callDriver() {
-    Get.snackbar('Appel conducteur', 'Connexion en cours…',
-        duration: const Duration(seconds: 2), snackPosition: SnackPosition.TOP);
-  }
+  void callDriver() => PhoneUtils.call(_driverPhone);
 
   Future<void> sendMessage(String msg) async {
     if (_isSendingMsg) return;

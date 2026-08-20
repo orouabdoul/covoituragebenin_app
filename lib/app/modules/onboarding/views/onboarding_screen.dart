@@ -200,21 +200,10 @@ class _OnboardingSlide extends StatelessWidget {
 
     return Stack(
       children: [
-        // ── Fond dégradé ───────────────────────────────────────────────────
-        Positioned.fill(
+        // ── Fond blanc ─────────────────────────────────────────────────────
+        const Positioned.fill(
           child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                stops: const [0.0, 0.55, 1.0],
-                colors: [
-                  data.bgTop,
-                  data.bgTop.withValues(alpha: 0.4),
-                  data.bgBottom,
-                ],
-              ),
-            ),
+            decoration: BoxDecoration(color: AppColors.white),
           ),
         ),
 
@@ -239,9 +228,9 @@ class _OnboardingSlide extends StatelessWidget {
                         borderRadius: BorderRadius.circular(responsive.radius(24)),
                         boxShadow: [
                           BoxShadow(
-                            color: data.bgTop.withValues(alpha: 0.5),
-                            blurRadius: 24,
-                            offset: const Offset(0, 8),
+                            color: Colors.black.withValues(alpha: 0.10),
+                            blurRadius: 20,
+                            offset: const Offset(0, 6),
                           ),
                         ],
                       ),
@@ -377,19 +366,9 @@ class _DotsRow extends StatelessWidget {
   final int activeIndex;
   final int count;
 
-  /// Couleur active = couleur primaire du slide courant
-  static const _dotColors = [
-    AppColors.primary,    // slide 1 → bleu
-    AppColors.primary,    // slide 2 → bleu
-    AppColors.warning,    // slide 3 → ambre
-    AppColors.success,    // slide 4 → turquoise
-  ];
-
   @override
   Widget build(BuildContext context) {
-    final activeColor = activeIndex < _dotColors.length
-        ? _dotColors[activeIndex]
-        : AppColors.primary;
+    const activeColor = AppColors.primary;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,

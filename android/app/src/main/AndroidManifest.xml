@@ -53,7 +53,7 @@
              Doit correspondre à un canal créé dans le code Flutter. -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="ch_trip"/>
+            android:value="ch_trip_v2"/>
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />

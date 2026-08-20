@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/booking/booking_service.dart';
+import 'package:covoiturage_benin_app/app/core/utils/phone_utils.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/driver/messager/controllers/messager_controller.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
@@ -539,67 +540,8 @@ class ReservationsController extends GetxController {
     );
   }
 
-  void onCallPassenger(LiveReservationRequest r) {
-    final phone = r.phone ?? 'Non disponible';
-    Get.dialog(
-      AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(children: [
-          Container(
-            width: 40, height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(r.passengerInitial,
-                  style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.primary)),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(r.passengerName,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-          ),
-        ]),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              decoration: BoxDecoration(
-                color: AppColors.successSurface,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(phone,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.primary,
-                    letterSpacing: 1,
-                  )),
-            ),
-            const SizedBox(height: 8),
-            const Text('Numéro masqué pour votre sécurité',
-                style: TextStyle(fontSize: 11, color: AppColors.textGhost)),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: Get.back, child: const Text('Fermer')),
-          if (r.phone != null)
-            TextButton(
-              onPressed: () {
-                Clipboard.setData(ClipboardData(text: phone));
-                Get.back();
-                UIHelper().showSnackBar('MINIZON', 'Numéro copié.', 0);
-              },
-              child: const Text('Copier',
-                  style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
-            ),
-        ],
-      ),
-    );
-  }
+  void onCallPassenger(LiveReservationRequest r) =>
+      PhoneUtils.call(r.phone ?? '');
 
   @override
   Future<void> refresh() => _loadBookings();

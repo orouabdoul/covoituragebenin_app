@@ -30,7 +30,7 @@ class AddTrajetView extends GetView<AddTrajetController> {
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
             child: const Text('Abandonner'),
           ),
         ],
@@ -705,7 +705,16 @@ class _LocationAutocompleteFieldState
                   focusNode: _focusNode,
                   enabled: widget.enabled,
                   onChanged: _onUserTyped,
-                  decoration: InputDecoration.collapsed(
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    focusedErrorBorder: InputBorder.none,
+                    filled: false,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
                     hintText: widget.hint,
                     hintStyle: AppTextStyles.muted(widget.responsive),
                   ),
@@ -1019,7 +1028,7 @@ class _VehicleSelector extends StatelessWidget {
                           ),
                           SizedBox(height: responsive.h(2)),
                           Text(
-                            '${vehicle.licensePlate} • ${vehicle.availableSeats} places',
+                            '${vehicle.licensePlate} • ${vehicle.availableSeats} places (${vehicle.availableSeats - 1} passagers)',
                             style: AppTextStyles.caption(responsive),
                           ),
                         ],
@@ -1078,7 +1087,7 @@ class _SeatsPicker extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'place${current > 1 ? 's' : ''}',
+                    'passager${current > 1 ? 's' : ''}',
                     style: AppTextStyles.caption(responsive),
                   ),
                 ],
@@ -1210,7 +1219,16 @@ class _PricingCard extends StatelessWidget {
                     fontSize: responsive.text(22),
                     color: AppColors.textPrimary,
                   ),
-                  decoration: InputDecoration.collapsed(
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    focusedErrorBorder: InputBorder.none,
+                    filled: false,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
                     hintText: '5000',
                     hintStyle: AppTextStyles.muted(responsive).copyWith(
                       fontSize: responsive.text(22),
@@ -1634,7 +1652,16 @@ class _EstimateBanner extends StatelessWidget {
                               color: AppColors.primary,
                               fontSize: responsive.text(14),
                             ),
-                            decoration: InputDecoration.collapsed(
+                            decoration: InputDecoration(
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              disabledBorder: InputBorder.none,
+                              errorBorder: InputBorder.none,
+                              focusedErrorBorder: InputBorder.none,
+                              filled: false,
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
                               hintText: '—',
                               hintStyle: AppTextStyles.muted(responsive),
                             ),

@@ -66,6 +66,12 @@ class ProfileDriverView extends GetView<ProfileDriverController> {
                                 textStyle: AppTextStyles.profileFieldValue(responsive),
                                 hintStyle: AppTextStyles.profileFieldValue(responsive)
                                     .copyWith(color: AppColors.textGhost),
+                                borderColor: controller.lastNameError.value.isNotEmpty
+                                    ? AppColors.danger : null,
+                                helperText: controller.lastNameError.value.isNotEmpty
+                                    ? controller.lastNameError.value : null,
+                                helperStyle: AppTextStyles.profileMeta(responsive)
+                                    .copyWith(color: AppColors.danger),
                               ),
                               SizedBox(height: responsive.h(16)),
                               AppField(
@@ -77,6 +83,25 @@ class ProfileDriverView extends GetView<ProfileDriverController> {
                                 textStyle: AppTextStyles.profileFieldValue(responsive),
                                 hintStyle: AppTextStyles.profileFieldValue(responsive)
                                     .copyWith(color: AppColors.textGhost),
+                                borderColor: controller.firstNameError.value.isNotEmpty
+                                    ? AppColors.danger : null,
+                                helperText: controller.firstNameError.value.isNotEmpty
+                                    ? controller.firstNameError.value : null,
+                                helperStyle: AppTextStyles.profileMeta(responsive)
+                                    .copyWith(color: AppColors.danger),
+                              ),
+                              SizedBox(height: responsive.h(16)),
+                              PhoneFieldWidget(
+                                responsive: responsive,
+                                label: AppStrings.profileFieldPhone,
+                                labelStyle: AppTextStyles.profileSectionLabel(responsive),
+                                controller: controller.phoneController,
+                                borderColor: controller.phoneError.value.isNotEmpty
+                                    ? AppColors.danger : null,
+                                helperText: controller.phoneError.value.isNotEmpty
+                                    ? controller.phoneError.value : null,
+                                helperStyle: AppTextStyles.profileMeta(responsive)
+                                    .copyWith(color: AppColors.danger),
                               ),
                               SizedBox(height: responsive.h(16)),
                               _GenderSelector(
@@ -150,9 +175,21 @@ class ProfileDriverView extends GetView<ProfileDriverController> {
                           title: AppStrings.profileSelfieSection,
                           icon: Icons.face_rounded,
                           subtitle: AppStrings.profileSelfieSectionHint,
-                          child: SelfieCaptureWidget(
-                            responsive: responsive,
-                            onChanged: controller.onSelfiesChanged,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SelfieCaptureWidget(
+                                responsive: responsive,
+                                onChanged: controller.onSelfiesChanged,
+                              ),
+                              if (controller.selfieError.value.isNotEmpty) ...[
+                                SizedBox(height: responsive.h(8)),
+                                _InlineError(
+                                  responsive: responsive,
+                                  text: controller.selfieError.value,
+                                ),
+                              ],
+                            ],
                           ),
                         ),
                         SizedBox(height: responsive.h(20)),
@@ -163,6 +200,7 @@ class ProfileDriverView extends GetView<ProfileDriverController> {
                           title: AppStrings.profileIdCardSection,
                           icon: Icons.credit_card_rounded,
                           child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               IdCardPreviewTile(
                                 responsive: responsive,
@@ -180,6 +218,13 @@ class ProfileDriverView extends GetView<ProfileDriverController> {
                                 isDetecting: controller.isDetectingCardFace,
                                 detectionError: controller.idCardDetectionError,
                               ),
+                              if (controller.idCardError.value.isNotEmpty) ...[
+                                SizedBox(height: responsive.h(4)),
+                                _InlineError(
+                                  responsive: responsive,
+                                  text: controller.idCardError.value,
+                                ),
+                              ],
                               SizedBox(height: responsive.h(16)),
                               IdCardPreviewTile(
                                 responsive: responsive,
@@ -236,6 +281,7 @@ class ProfileDriverView extends GetView<ProfileDriverController> {
                                     ? 'Honda, Yamaha, Suzuki...'
                                     : 'Toyota, Peugeot, Renault...',
                                 value: controller.selectedBrand.value,
+                                errorText: controller.brandError.value,
                                 onTap: () => _showVehiclePicker(
                                   context: context,
                                   responsive: responsive,
@@ -256,6 +302,7 @@ class ProfileDriverView extends GetView<ProfileDriverController> {
                                     : 'Choisir la marque d\'abord',
                                 value: controller.selectedModel.value,
                                 disabled: controller.selectedBrand.value == null,
+                                errorText: controller.modelError.value,
                                 onTap: controller.selectedBrand.value != null
                                     ? () => _showVehiclePicker(
                                           context: context,
@@ -284,6 +331,12 @@ class ProfileDriverView extends GetView<ProfileDriverController> {
                                       textStyle: AppTextStyles.profileFieldValue(responsive),
                                       hintStyle: AppTextStyles.profileFieldValue(responsive)
                                           .copyWith(color: AppColors.textGhost),
+                                      borderColor: controller.colorError.value.isNotEmpty
+                                          ? AppColors.danger : null,
+                                      helperText: controller.colorError.value.isNotEmpty
+                                          ? controller.colorError.value : null,
+                                      helperStyle: AppTextStyles.profileMeta(responsive)
+                                          .copyWith(color: AppColors.danger),
                                     ),
                                   ),
                                   SizedBox(width: responsive.w(12)),
@@ -363,6 +416,12 @@ class ProfileDriverView extends GetView<ProfileDriverController> {
                                 textStyle: AppTextStyles.profileFieldValue(responsive),
                                 hintStyle: AppTextStyles.profileFieldValue(responsive)
                                     .copyWith(color: AppColors.textGhost),
+                                borderColor: controller.plateError.value.isNotEmpty
+                                    ? AppColors.danger : null,
+                                helperText: controller.plateError.value.isNotEmpty
+                                    ? controller.plateError.value : null,
+                                helperStyle: AppTextStyles.profileMeta(responsive)
+                                    .copyWith(color: AppColors.danger),
                               ),
                             ],
                           ),
@@ -408,6 +467,8 @@ class ProfileDriverView extends GetView<ProfileDriverController> {
                                   });
                                 },
                                 selectedValue: controller.vehiclePhotoName.value,
+                                errorText: controller.vehiclePhotoError.value,
+                                sizeHint: 'JPG/PNG · max 5 Mo',
                               ),
                               SizedBox(height: responsive.h(16)),
                               _DocumentUploadTile(
@@ -422,6 +483,8 @@ class ProfileDriverView extends GetView<ProfileDriverController> {
                                 icon: Icons.folder_open_rounded,
                                 onTap: () => controller.addRequiredDocument(isLicense: false),
                                 selectedValue: controller.registrationDocumentName.value,
+                                errorText: controller.registrationError.value,
+                                sizeHint: 'PDF/JPG/PNG · max 10 Mo',
                               ),
                               if (controller.selectedDriverType.value != DriverType.moto) ...[
                                 SizedBox(height: responsive.h(16)),
@@ -433,6 +496,8 @@ class ProfileDriverView extends GetView<ProfileDriverController> {
                                   icon: Icons.badge_outlined,
                                   onTap: () => controller.addRequiredDocument(isLicense: true),
                                   selectedValue: controller.licenseDocumentName.value,
+                                  errorText: controller.licenseDocError.value,
+                                  sizeHint: 'PDF/JPG/PNG · max 10 Mo',
                                 ),
                               ],
                               SizedBox(height: responsive.h(16)),
@@ -444,6 +509,8 @@ class ProfileDriverView extends GetView<ProfileDriverController> {
                                 icon: Icons.security_rounded,
                                 onTap: controller.addInsuranceDoc,
                                 selectedValue: controller.insuranceDocName.value,
+                                errorText: controller.insuranceError.value,
+                                sizeHint: 'PDF/JPG/PNG · max 10 Mo',
                               ),
                             ],
                           ),
@@ -816,6 +883,7 @@ class _VehicleSelectField extends StatelessWidget {
     required this.value,
     required this.onTap,
     this.disabled = false,
+    this.errorText = '',
   });
 
   final AppResponsive responsive;
@@ -824,10 +892,12 @@ class _VehicleSelectField extends StatelessWidget {
   final String? value;
   final VoidCallback? onTap;
   final bool disabled;
+  final String errorText;
 
   @override
   Widget build(BuildContext context) {
     final hasValue = value != null && value!.isNotEmpty;
+    final hasError = errorText.isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -844,8 +914,12 @@ class _VehicleSelectField extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(responsive.radius(10)),
                 side: BorderSide(
-                  color: hasValue && !disabled ? AppColors.primary : AppColors.border,
-                  width: hasValue && !disabled ? 1.5 : 1,
+                  color: hasError
+                      ? AppColors.danger
+                      : hasValue && !disabled
+                          ? AppColors.primary
+                          : AppColors.border,
+                  width: (hasError || (hasValue && !disabled)) ? 1.5 : 1,
                 ),
               ),
             ),
@@ -854,7 +928,11 @@ class _VehicleSelectField extends StatelessWidget {
                 Icon(
                   hasValue ? Icons.check_circle_rounded : Icons.search_rounded,
                   size: responsive.text(16),
-                  color: hasValue && !disabled ? AppColors.primary : AppColors.textGhost,
+                  color: hasError
+                      ? AppColors.danger
+                      : hasValue && !disabled
+                          ? AppColors.primary
+                          : AppColors.textGhost,
                 ),
                 SizedBox(width: responsive.w(8)),
                 Expanded(
@@ -876,6 +954,23 @@ class _VehicleSelectField extends StatelessWidget {
             ),
           ),
         ),
+        if (hasError) ...[
+          SizedBox(height: responsive.h(4)),
+          Row(
+            children: [
+              Icon(Icons.error_outline_rounded,
+                  size: responsive.text(12), color: AppColors.danger),
+              SizedBox(width: responsive.w(4)),
+              Flexible(
+                child: Text(
+                  errorText,
+                  style: AppTextStyles.profileMeta(responsive)
+                      .copyWith(color: AppColors.danger),
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }
@@ -1449,6 +1544,32 @@ class _SectionCard extends StatelessWidget {
   }
 }
 
+// ── Inline error row ──────────────────────────────────────────────────────────
+
+class _InlineError extends StatelessWidget {
+  const _InlineError({required this.responsive, required this.text});
+  final AppResponsive responsive;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(Icons.error_outline_rounded,
+            size: responsive.text(12), color: AppColors.danger),
+        SizedBox(width: responsive.w(4)),
+        Flexible(
+          child: Text(
+            text,
+            style: AppTextStyles.profileMeta(responsive)
+                .copyWith(color: AppColors.danger),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 // ── Document upload tile ──────────────────────────────────────────────────────
 
 class _DocumentUploadTile extends StatelessWidget {
@@ -1460,6 +1581,8 @@ class _DocumentUploadTile extends StatelessWidget {
     required this.icon,
     required this.onTap,
     required this.selectedValue,
+    this.errorText = '',
+    this.sizeHint = '',
   });
 
   final AppResponsive responsive;
@@ -1469,58 +1592,96 @@ class _DocumentUploadTile extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
   final String selectedValue;
+  final String errorText;
+  final String sizeHint;
 
   @override
   Widget build(BuildContext context) {
-    return AppField(
-      responsive: responsive,
-      label: title,
-      labelStyle: AppTextStyles.profileSectionLabel(responsive),
-      backgroundColor: AppColors.white,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            width: responsive.w(48),
-            height: responsive.w(48),
-            decoration: ShapeDecoration(
-              color: selectedValue.isNotEmpty ? AppColors.successLight : AppColors.surfaceAccent,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(responsive.radius(12)),
+    final hasError = errorText.isNotEmpty;
+    final hasDone = selectedValue.isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AppField(
+          responsive: responsive,
+          label: title,
+          labelStyle: AppTextStyles.profileSectionLabel(responsive),
+          backgroundColor: AppColors.white,
+          borderColor: hasError ? AppColors.danger : null,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: responsive.w(48),
+                height: responsive.w(48),
+                decoration: ShapeDecoration(
+                  color: hasDone ? AppColors.successLight : AppColors.surfaceAccent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(responsive.radius(12)),
+                  ),
+                ),
+                child: Icon(
+                  hasDone ? Icons.check_rounded : icon,
+                  color: hasDone ? AppColors.success : AppColors.primary,
+                  size: responsive.text(20),
+                ),
               ),
-            ),
-            child: Icon(
-              selectedValue.isNotEmpty ? Icons.check_rounded : icon,
-              color: selectedValue.isNotEmpty ? AppColors.success : AppColors.primary,
-              size: responsive.text(20),
-            ),
+              SizedBox(height: responsive.h(12)),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: AppTextStyles.profileSectionTitle(responsive)
+                    .copyWith(fontSize: responsive.text(15)),
+              ),
+              SizedBox(height: responsive.h(4)),
+              Text(subtitle,
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.profileMeta(responsive)),
+              if (sizeHint.isNotEmpty) ...[
+                SizedBox(height: responsive.h(2)),
+                Text(sizeHint,
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.profileMeta(responsive)
+                        .copyWith(color: AppColors.textMuted)),
+              ],
+              if (hasDone) ...[
+                SizedBox(height: responsive.h(8)),
+                Text(
+                  selectedValue,
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.profileMeta(responsive)
+                      .copyWith(
+                          color: AppColors.success, fontWeight: FontWeight.w600),
+                ),
+              ],
+              SizedBox(height: responsive.h(12)),
+              AppChipButton(
+                responsive: responsive,
+                label: hasDone ? 'Remplacer' : actionLabel,
+                onTap: onTap,
+              ),
+            ],
           ),
-          SizedBox(height: responsive.h(12)),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: AppTextStyles.profileSectionTitle(responsive)
-                .copyWith(fontSize: responsive.text(15)),
-          ),
+        ),
+        if (hasError) ...[
           SizedBox(height: responsive.h(4)),
-          Text(subtitle, textAlign: TextAlign.center, style: AppTextStyles.profileMeta(responsive)),
-          if (selectedValue.isNotEmpty) ...[
-            SizedBox(height: responsive.h(8)),
-            Text(
-              selectedValue,
-              textAlign: TextAlign.center,
-              style: AppTextStyles.profileMeta(responsive)
-                  .copyWith(color: AppColors.success, fontWeight: FontWeight.w600),
-            ),
-          ],
-          SizedBox(height: responsive.h(12)),
-          AppChipButton(
-            responsive: responsive,
-            label: selectedValue.isNotEmpty ? 'Remplacer' : actionLabel,
-            onTap: onTap,
+          Row(
+            children: [
+              Icon(Icons.error_outline_rounded,
+                  size: responsive.text(12), color: AppColors.danger),
+              SizedBox(width: responsive.w(4)),
+              Flexible(
+                child: Text(
+                  errorText,
+                  style: AppTextStyles.profileMeta(responsive)
+                      .copyWith(color: AppColors.danger),
+                ),
+              ),
+            ],
           ),
         ],
-      ),
+      ],
     );
   }
 }

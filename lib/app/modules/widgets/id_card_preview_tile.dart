@@ -153,7 +153,7 @@ class IdCardPreviewTile extends StatelessWidget {
                     right: 0,
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
-                      color: Colors.red.shade600.withValues(alpha: 0.88),
+                      color: AppColors.danger.withValues(alpha: 0.88),
                       child: Row(
                         children: [
                           const Icon(Icons.warning_rounded,
@@ -245,12 +245,12 @@ class IdCardPreviewTile extends StatelessWidget {
               ),
             ] else if (_faceMissing) ...[
               Icon(Icons.error_outline_rounded,
-                  size: responsive.text(14), color: Colors.red.shade600),
+                  size: responsive.text(14), color: AppColors.danger),
               SizedBox(width: responsive.w(6)),
               Expanded(
                 child: Text('Aucun visage — carte invalide',
                     style: AppTextStyles.profileMeta(responsive)
-                        .copyWith(color: Colors.red.shade600),
+                        .copyWith(color: AppColors.danger),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis),
               ),

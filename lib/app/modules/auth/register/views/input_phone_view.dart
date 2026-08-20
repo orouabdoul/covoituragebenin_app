@@ -107,7 +107,16 @@ class InputPhoneView extends GetView<InputPhoneController> {
 														LengthLimitingTextInputFormatter(10),
 													],
 													style: AppTextStyles.registerField(responsive),
-													decoration: InputDecoration.collapsed(
+													decoration: InputDecoration(
+														border: InputBorder.none,
+														enabledBorder: InputBorder.none,
+														focusedBorder: InputBorder.none,
+														disabledBorder: InputBorder.none,
+														errorBorder: InputBorder.none,
+														focusedErrorBorder: InputBorder.none,
+														filled: false,
+														isDense: true,
+														contentPadding: EdgeInsets.zero,
 														hintText: AppStrings.registerPhoneHint,
 														hintStyle: AppTextStyles.registerField(responsive).copyWith(color: AppColors.textGhost),
 													),

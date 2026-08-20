@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
+import 'package:covoiturage_benin_app/app/core/utils/phone_utils.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/passenger_reservation_service.dart';
 import 'package:covoiturage_benin_app/app/data/models/passenger/reservations_model.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
@@ -116,21 +117,7 @@ class PaymentSuccessController extends GetxController {
     return '$formatted FCFA';
   }
 
-  void callDriver() {
-    final phone = driverPhone.value.isNotEmpty ? driverPhone.value : '+229 97 12 34 56';
-    final driverName = ride.value?.driverName ?? 'votre conducteur';
-    Get.snackbar(
-      'Appeler $driverName',
-      'Numéro : $phone',
-      backgroundColor: AppColors.primary,
-      colorText: Colors.white,
-      icon: const Icon(Icons.phone_rounded, color: Colors.white),
-      snackPosition: SnackPosition.TOP,
-      margin: const EdgeInsets.all(16),
-      borderRadius: 12,
-      duration: const Duration(seconds: 4),
-    );
-  }
+  void callDriver() => PhoneUtils.call(driverPhone.value);
 
   void messageDriver() {
     final driverName = ride.value?.driverName ?? 'Votre conducteur';

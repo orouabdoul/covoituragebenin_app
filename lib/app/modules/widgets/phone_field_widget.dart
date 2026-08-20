@@ -89,7 +89,16 @@ class PhoneFieldWidget extends StatelessWidget {
               keyboardType: TextInputType.number,
               inputFormatters: [_PhoneOhOnePrefixFormatter()],
               style: AppTextStyles.profileFieldValue(responsive),
-              decoration: InputDecoration.collapsed(
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
+                errorBorder: InputBorder.none,
+                focusedErrorBorder: InputBorder.none,
+                filled: false,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
                 hintText: '01 97 45 67 89',
                 hintStyle: AppTextStyles.profileFieldValue(responsive)
                     .copyWith(color: AppColors.textGhost),

@@ -21,13 +21,15 @@ import '../../../modules/principal/passager/messager/controllers/detail_messager
     show PassengerDetailMessagerController;
 
 // ── Canaux Android ─────────────────────────────────────────────────────────────
+// Suffixe _v2 : force la recréation des canaux sur les appareils qui
+// avaient les anciens canaux sans son/vibration.
 
-const _chTrip    = 'ch_trip';
-const _chPayment = 'ch_payment';
-const _chMessage = 'ch_message';
-const _chReview  = 'ch_review';
-const _chAccount = 'ch_account';
-const _chGeneral = 'ch_general';
+const _chTrip    = 'ch_trip_v2';
+const _chPayment = 'ch_payment_v2';
+const _chMessage = 'ch_message_v2';
+const _chReview  = 'ch_review_v2';
+const _chAccount = 'ch_account_v2';
+const _chGeneral = 'ch_general_v2';
 
 const _allChannels = [
   AndroidNotificationChannel(
@@ -206,6 +208,20 @@ String _buildPayload(Map<String, dynamic> data) =>
 
 int _notifId() => DateTime.now().millisecondsSinceEpoch ~/ 1000 % 100000;
 
+// Notifs critiques : Priority.max + fullScreenIntent (visibles sur écran verrouillé)
+bool _isCriticalType(String type) {
+  switch (type) {
+    case 'new_booking_request':
+    case 'reservation_new':
+    case 'trip_started':
+    case 'trip_proximity':
+    case 'sos_triggered':
+      return true;
+    default:
+      return false;
+  }
+}
+
 // Supporte plusieurs noms de champs selon le backend (title/sender_name/sender)
 String _extractTitle(Map<String, dynamic> data, String type) {
   for (final key in ['title', 'sender_name', 'sender']) {
@@ -265,6 +281,8 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     }
   }
 
+  final critical = _isCriticalType(type);
+
   await plugin.show(
     _notifId(),
     title,
@@ -274,18 +292,25 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
         channelId,
         chName,
         importance: Importance.max,
-        priority: Priority.high,
+        priority: critical ? Priority.max : Priority.high,
         playSound: true,
         enableVibration: true,
         color: color,
         icon: '@drawable/ic_notification',
+        ticker: title,
+        autoCancel: true,
         groupKey: groupKey,
         setAsGroupSummary: false,
+        fullScreenIntent: critical,
+        styleInformation: body.length > 40
+            ? BigTextStyleInformation(body, contentTitle: title)
+            : DefaultStyleInformation(true, true),
       ),
       iOS: const DarwinNotificationDetails(
         presentAlert: true,
         presentBadge: true,
         presentSound: true,
+        interruptionLevel: InterruptionLevel.active,
       ),
     ),
     payload: _buildPayload(data),
@@ -337,8 +362,14 @@ class PushNotificationService {
     if (!Platform.isAndroid) return;
     final impl = _localNotifications.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
+    if (impl == null) return;
+    // Supprime les anciens canaux (v1) qui pourraient bloquer son/vibration
+    const oldIds = ['ch_trip','ch_payment','ch_message','ch_review','ch_account','ch_general'];
+    for (final id in oldIds) {
+      await impl.deleteNotificationChannel(id);
+    }
     for (final ch in _allChannels) {
-      await impl?.createNotificationChannel(ch);
+      await impl.createNotificationChannel(ch);
     }
   }
 
@@ -476,6 +507,7 @@ class PushNotificationService {
     final chName    = _channelNameForId(channelId);
     final color     = _colorForType(type);
     final groupKey  = _groupKeyForType(type, data);
+    final critical  = _isCriticalType(type);
 
     _localNotifications.show(
       _notifId(),
@@ -486,18 +518,25 @@ class PushNotificationService {
           channelId,
           chName,
           importance: Importance.max,
-          priority: Priority.high,
+          priority: critical ? Priority.max : Priority.high,
           playSound: true,
           enableVibration: true,
           color: color,
           icon: '@drawable/ic_notification',
+          ticker: title,
+          autoCancel: true,
           groupKey: groupKey,
           setAsGroupSummary: false,
+          fullScreenIntent: critical,
+          styleInformation: body.length > 40
+              ? BigTextStyleInformation(body, contentTitle: title)
+              : DefaultStyleInformation(true, true),
         ),
         iOS: const DarwinNotificationDetails(
           presentAlert: true,
           presentBadge: true,
           presentSound: true,
+          interruptionLevel: InterruptionLevel.active,
         ),
       ),
       payload: _buildPayload(data),

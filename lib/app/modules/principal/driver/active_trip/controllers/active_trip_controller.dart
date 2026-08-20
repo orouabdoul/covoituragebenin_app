@@ -75,7 +75,7 @@ class ActiveTripController extends GetxController {
             TextButton(
               onPressed: () => Get.back(result: false),
               child: const Text('Annuler',
-                  style: TextStyle(color: Colors.grey)),
+                  style: TextStyle(color: AppColors.textSecondary)),
             ),
             TextButton(
               onPressed: () => Get.back(result: true),

@@ -149,7 +149,16 @@ class _SearchHeader extends StatelessWidget {
                     controller: Get.find<MessagerController>(tag: 'driver').searchController,
                     style: AppTextStyles.caption(responsive)
                         .copyWith(color: AppColors.textPrimary),
-                    decoration: InputDecoration.collapsed(
+                    decoration: InputDecoration(
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                      errorBorder: InputBorder.none,
+                      focusedErrorBorder: InputBorder.none,
+                      filled: false,
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
                       hintText: AppStrings.messengerSearchHint,
                       hintStyle: AppTextStyles.caption(responsive)
                           .copyWith(color: AppColors.textGhost),

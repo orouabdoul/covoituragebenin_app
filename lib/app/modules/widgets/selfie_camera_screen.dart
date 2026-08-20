@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:camera/camera.dart';
+import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 
@@ -402,7 +403,7 @@ class _CaptureButton extends StatelessWidget {
             width: capturing ? 52 : 64,
             height: capturing ? 52 : 64,
             decoration: BoxDecoration(
-              color: capturing ? Colors.grey.shade400 : Colors.white,
+              color: capturing ? AppColors.borderStrong : AppColors.white,
               shape: BoxShape.circle,
             ),
             child: capturing

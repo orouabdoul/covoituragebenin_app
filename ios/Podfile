@@ -42,8 +42,12 @@ post_install do |installer|
     target.build_configurations.each do |config|
       # Force le minimum iOS à 13.0 pour tous les pods
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+      # Version Swift requise par record, just_audio, firebase_messaging
+      config.build_settings['SWIFT_VERSION'] = '5.0'
       # Désactive les warnings Xcode non critiques
       config.build_settings['GCC_WARN_INHIBIT_ALL_WARNINGS'] = 'YES'
+      # Désactive Bitcode (déprécié Xcode 14+)
+      config.build_settings['ENABLE_BITCODE'] = 'NO'
     end
   end
 end

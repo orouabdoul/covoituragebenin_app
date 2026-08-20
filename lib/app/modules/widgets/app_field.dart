@@ -2,13 +2,14 @@ import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:flutter/material.dart';
 
-class AppField extends StatelessWidget {
+class AppField extends StatefulWidget {
   const AppField({
     super.key,
     required this.responsive,
     required this.label,
     this.child,
     this.controller,
+    this.focusNode,
     this.hintText,
     this.keyboardType,
     this.textStyle,
@@ -30,6 +31,7 @@ class AppField extends StatelessWidget {
   final String label;
   final Widget? child;
   final TextEditingController? controller;
+  final FocusNode? focusNode;
   final String? hintText;
   final TextInputType? keyboardType;
   final TextStyle? textStyle;
@@ -47,44 +49,94 @@ class AppField extends StatelessWidget {
   final TextStyle? helperStyle;
 
   @override
+  State<AppField> createState() => _AppFieldState();
+}
+
+class _AppFieldState extends State<AppField> {
+  FocusNode? _internalNode;
+  FocusNode get _node =>
+      widget.focusNode ?? (_internalNode ??= FocusNode());
+
+  @override
+  void dispose() {
+    _internalNode?.dispose();
+    super.dispose();
+  }
+
+  void _handleContainerTap() {
+    if (widget.child == null && !widget.readOnly) {
+      _node.requestFocus();
+    }
+    widget.onTap?.call();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final double radius = borderRadius ?? responsive.radius(16);
-    final Color resolvedBackgroundColor = backgroundColor ?? AppColors.surface;
-    final Color resolvedBorderColor = borderColor ?? AppColors.border;
-    final Widget resolvedChild = child ?? TextField(
-      controller: controller,
-      keyboardType: keyboardType,
-      style: textStyle,
-      readOnly: readOnly,
-      obscureText: obscureText,
-      maxLines: maxLines,
-      onTap: onTap,
-      decoration: InputDecoration.collapsed(
-        hintText: hintText,
-        hintStyle: hintStyle,
-      ),
-    );
+    final r = widget.responsive;
+    final double radius = widget.borderRadius ?? r.radius(16);
+    final Color bg = widget.backgroundColor ?? AppColors.surface;
+    final Color bc = widget.borderColor ?? AppColors.border;
+
+    final bool hasCustomChild = widget.child != null;
+
+    final Widget resolvedChild = hasCustomChild
+        ? widget.child!
+        : TextField(
+            focusNode: _node,
+            controller: widget.controller,
+            keyboardType: widget.keyboardType,
+            style: widget.textStyle,
+            readOnly: widget.readOnly,
+            obscureText: widget.obscureText,
+            maxLines: widget.maxLines,
+            onTap: widget.onTap,
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              disabledBorder: InputBorder.none,
+              errorBorder: InputBorder.none,
+              focusedErrorBorder: InputBorder.none,
+              filled: false,
+              isDense: true,
+              contentPadding: EdgeInsets.zero,
+              hintText: widget.hintText,
+              hintStyle: widget.hintStyle,
+            ),
+          );
+
+    // Custom child → SizedBox.expand so columns/rows can control their own
+    // alignment. Default TextField → Align centerLeft for vertical centering
+    // within the minHeight constraint.
+    final Widget containerChild = hasCustomChild
+        ? SizedBox(width: double.infinity, child: resolvedChild)
+        : Align(alignment: Alignment.centerLeft, child: resolvedChild);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: labelStyle),
-        SizedBox(height: responsive.h(8)),
-        Container(
-          width: double.infinity,
-          padding: padding ?? EdgeInsets.all(responsive.w(16)),
-          decoration: ShapeDecoration(
-            color: resolvedBackgroundColor,
-            shape: RoundedRectangleBorder(
-              side: BorderSide(width: 2, color: resolvedBorderColor),
-              borderRadius: BorderRadius.circular(radius),
+        Text(widget.label, style: widget.labelStyle),
+        SizedBox(height: r.h(8)),
+        GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: _handleContainerTap,
+          child: Container(
+            width: double.infinity,
+            constraints: BoxConstraints(minHeight: r.h(52)),
+            padding: widget.padding ?? EdgeInsets.all(r.w(16)),
+            decoration: ShapeDecoration(
+              color: bg,
+              shape: RoundedRectangleBorder(
+                side: BorderSide(width: 2, color: bc),
+                borderRadius: BorderRadius.circular(radius),
+              ),
             ),
+            child: containerChild,
           ),
-          child: resolvedChild,
         ),
-        if (helperText != null) ...[
-          SizedBox(height: responsive.h(8)),
-          Text(helperText!, style: helperStyle),
+        if (widget.helperText != null) ...[
+          SizedBox(height: r.h(8)),
+          Text(widget.helperText!, style: widget.helperStyle),
         ],
       ],
     );

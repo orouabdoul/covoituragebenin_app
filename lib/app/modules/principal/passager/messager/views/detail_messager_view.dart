@@ -949,7 +949,16 @@ class _ComposerState extends State<_Composer>
                         ),
                         child: TextField(
                           controller: controller.messageController,
-                          decoration: InputDecoration.collapsed(
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            disabledBorder: InputBorder.none,
+                            errorBorder: InputBorder.none,
+                            focusedErrorBorder: InputBorder.none,
+                            filled: false,
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
                             hintText: AppStrings.messengerDetailInputHint,
                             hintStyle: AppTextStyles.caption(responsive)
                                 .copyWith(color: AppColors.textGhost),
@@ -1067,7 +1076,7 @@ class _ComposerState extends State<_Composer>
                                 width: responsive.w(8),
                                 height: responsive.w(8),
                                 decoration: const BoxDecoration(
-                                    color: Colors.red,
+                                    color: AppColors.danger,
                                     shape: BoxShape.circle),
                               ),
                             ),
@@ -1078,20 +1087,20 @@ class _ComposerState extends State<_Composer>
                             style: TextStyle(
                               fontSize: responsive.text(13),
                               fontWeight: FontWeight.w600,
-                              color: Colors.red,
+                              color: AppColors.danger,
                             ),
                           ),
                           const Spacer(),
                           if (!_isLocked) ...[
                             Icon(Icons.chevron_left_rounded,
-                                color: Colors.red.withValues(alpha: 0.7),
+                                color: AppColors.danger.withValues(alpha: 0.7),
                                 size: responsive.text(16)),
                             Text(
                               'Glisser pour annuler',
                               style: TextStyle(
                                   fontSize: responsive.text(11),
                                   color:
-                                      Colors.red.withValues(alpha: 0.7)),
+                                      AppColors.danger.withValues(alpha: 0.7)),
                             ),
                           ] else
                             Icon(Icons.lock_rounded,

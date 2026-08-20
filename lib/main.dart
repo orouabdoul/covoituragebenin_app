@@ -114,8 +114,183 @@ class MyApp extends StatelessWidget {
       title: 'MINIZON',
       smartManagement: SmartManagement.keepFactory,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: AppColors.primary,
+        useMaterial3: true,
+        fontFamily: 'Inter',
+        colorScheme: const ColorScheme(
+          brightness: Brightness.light,
+
+          // ── Dominant : Bleu confiance ────────────────────────────────────
+          primary:            AppColors.primary,
+          onPrimary:          Colors.white,
+          primaryContainer:   AppColors.primarySurface,
+          onPrimaryContainer: AppColors.primary,
+
+          // ── Secondaire : Turquoise validation ───────────────────────────
+          secondary:            AppColors.success,
+          onSecondary:          Colors.white,
+          secondaryContainer:   AppColors.successSurface,
+          onSecondaryContainer: AppColors.successDark,
+
+          // ── Accent : Orange corail (1 élément clé max) ───────────────────
+          tertiary:            AppColors.accent,
+          onTertiary:          Colors.white,
+          tertiaryContainer:   Color(0xFFFFE8DE), // corail 10 % — dérivé de #FF7A45
+          onTertiaryContainer: AppColors.accent,
+
+          // ── Erreur ────────────────────────────────────────────────────────
+          error:            AppColors.danger,
+          onError:          Colors.white,
+          errorContainer:   AppColors.dangerSurface,
+          onErrorContainer: AppColors.dangerDark,
+
+          // ── Surfaces & fonds ─────────────────────────────────────────────
+          surface:                AppColors.white,
+          onSurface:              AppColors.textPrimary,
+          surfaceContainerHighest: AppColors.surface,
+          onSurfaceVariant:       AppColors.textSecondary,
+
+          // ── Contours & ombres ─────────────────────────────────────────────
+          outline:        AppColors.border,
+          outlineVariant: AppColors.borderStrong,
+          shadow:         AppColors.shadow,
+          scrim:          Color(0x99000000), // noir 60 % pour les overlays modaux
+
+          // ── Inverse (snackbar, tooltip) ───────────────────────────────────
+          inverseSurface:   AppColors.textPrimary,
+          onInverseSurface: Colors.white,
+          inversePrimary:   AppColors.primarySurface,
+          surfaceTint:      AppColors.primary,
+        ),
+
+        // ── AppBar ─────────────────────────────────────────────────────────
+        appBarTheme: const AppBarTheme(
+          backgroundColor:  AppColors.primary,
+          foregroundColor:  Colors.white,
+          elevation:        0,
+          scrolledUnderElevation: 2,
+          iconTheme:        IconThemeData(color: Colors.white),
+          actionsIconTheme: IconThemeData(color: Colors.white),
+          titleTextStyle: TextStyle(
+            color:       Colors.white,
+            fontFamily:  'Inter',
+            fontWeight:  FontWeight.w600,
+            fontSize:    18,
+            letterSpacing: -0.3,
+          ),
+        ),
+
+        // ── FAB → accent corail (CTA unique) ──────────────────────────────
+        floatingActionButtonTheme: const FloatingActionButtonThemeData(
+          backgroundColor: AppColors.accent,
+          foregroundColor: Colors.white,
+          elevation:       4,
+        ),
+
+        // ── Boutons Material ──────────────────────────────────────────────
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            textStyle: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.primary,
+            side: const BorderSide(color: AppColors.primary),
+            textStyle: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600),
+          ),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            foregroundColor: AppColors.primary,
+            textStyle: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500),
+          ),
+        ),
+
+        // ── Formulaires ───────────────────────────────────────────────────
+        inputDecorationTheme: InputDecorationTheme(
+          filled:      true,
+          fillColor:   AppColors.surface,
+          hintStyle:   const TextStyle(color: AppColors.textHint, fontFamily: 'Inter'),
+          labelStyle:  const TextStyle(color: AppColors.textSecondary, fontFamily: 'Inter'),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: AppColors.border, width: 2),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: AppColors.border, width: 2),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: AppColors.danger, width: 2),
+          ),
+        ),
+
+        // ── Checkbox & Switch → turquoise validation ──────────────────────
+        checkboxTheme: CheckboxThemeData(
+          fillColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) return AppColors.success;
+            return AppColors.border;
+          }),
+          checkColor: WidgetStateProperty.all(Colors.white),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        ),
+        switchTheme: SwitchThemeData(
+          thumbColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) return Colors.white;
+            return AppColors.textHint;
+          }),
+          trackColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) return AppColors.success;
+            return AppColors.border;
+          }),
+        ),
+        radioTheme: RadioThemeData(
+          fillColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) return AppColors.success;
+            return AppColors.border;
+          }),
+        ),
+
+        // ── Indicateurs de progression → bleu primaire ───────────────────
+        progressIndicatorTheme: const ProgressIndicatorThemeData(
+          color:            AppColors.primary,
+          linearTrackColor: AppColors.primarySurface,
+          circularTrackColor: AppColors.primarySurface,
+        ),
+
+        // ── Chips ─────────────────────────────────────────────────────────
+        chipTheme: ChipThemeData(
+          backgroundColor:  AppColors.surface,
+          selectedColor:    AppColors.primarySurface,
+          labelStyle: const TextStyle(color: AppColors.textPrimary, fontFamily: 'Inter'),
+          side: const BorderSide(color: AppColors.border),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+
+        // ── Divider ───────────────────────────────────────────────────────
+        dividerTheme: const DividerThemeData(
+          color:     AppColors.border,
+          thickness: 1,
+          space:     1,
+        ),
+
+        // ── Snackbar ──────────────────────────────────────────────────────
+        snackBarTheme: const SnackBarThemeData(
+          backgroundColor: AppColors.textPrimary,
+          contentTextStyle: TextStyle(
+            color:      Colors.white,
+            fontFamily: 'Inter',
+            fontSize:   14,
+          ),
+          actionTextColor: AppColors.accent,
+          behavior: SnackBarBehavior.floating,
         ),
       ),
       // Empêche la grande police système (accessibilité) de casser les layouts

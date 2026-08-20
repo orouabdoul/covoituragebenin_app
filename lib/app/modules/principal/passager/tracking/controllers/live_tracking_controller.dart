@@ -11,6 +11,7 @@ import 'package:latlong2/latlong.dart';
 
 import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/passenger_reservation_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/messaging/passenger_messaging_service.dart';
+import 'package:covoiturage_benin_app/app/core/utils/phone_utils.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import '../../messager/controllers/messager_controller.dart';
 import '../../search/controllers/search_controller.dart';
@@ -84,6 +85,7 @@ class LiveTrackingController extends GetxController {
   String _parsedPickupLabel  = '';  // label complet panneau bas
   String _parsedDropoffLabel = '';
   String _parsedDriverName   = '';
+  String _driverPhone        = '';
   bool   _isSendingMsg       = false;
   Timer? _pollingTimer;
   Timer? _animTimer;       // interpolation fluide position conducteur
@@ -221,6 +223,8 @@ class LiveTrackingController extends GetxController {
       final destinationPoint = args['destinationPoint'] as String? ?? '';
       final dn               = args['driverName']       as String? ?? '';
       if (dn.isNotEmpty) _parsedDriverName = dn;
+      final dp               = args['driverPhone']      as String? ?? '';
+      if (dp.isNotEmpty) _driverPhone = dp;
 
       // Construire les labels complets du panneau bas
       if (pickupCity.isNotEmpty) {
@@ -547,10 +551,7 @@ class LiveTrackingController extends GetxController {
     } catch (_) {}
   }
 
-  void callDriver() {
-    Get.snackbar('Appel conducteur', 'Connexion en cours…',
-        duration: const Duration(seconds: 2), snackPosition: SnackPosition.TOP);
-  }
+  void callDriver() => PhoneUtils.call(_driverPhone);
 
   void triggerSOS() => Get.dialog(const _SOSDialog());
 

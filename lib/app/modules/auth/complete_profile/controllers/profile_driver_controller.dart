@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
@@ -82,6 +84,25 @@ class ProfileDriverController extends GetxController {
   XFile? _idCardBackFile;
 
   final RxBool isSubmitting = false.obs;
+
+  // ── Erreurs de validation inline ───────────────────────────────────────────
+  final RxString firstNameError  = ''.obs;
+  final RxString lastNameError   = ''.obs;
+  final RxString phoneError      = ''.obs;
+  final RxString brandError      = ''.obs;
+  final RxString modelError      = ''.obs;
+  final RxString colorError      = ''.obs;
+  final RxString plateError      = ''.obs;
+  final RxString selfieError     = ''.obs;
+  final RxString idCardError     = ''.obs;
+  final RxString vehiclePhotoError  = ''.obs;
+  final RxString registrationError  = ''.obs;
+  final RxString licenseDocError    = ''.obs;
+  final RxString insuranceError     = ''.obs;
+
+  // Taille max autorisée : 5 Mo images, 10 Mo documents
+  static const int _maxImageBytes = 5 * 1024 * 1024;
+  static const int _maxDocBytes   = 10 * 1024 * 1024;
 
   // register_token (nouveau compte) ou null (utilisateur existant avec auth token)
   String? _registerToken;
@@ -299,12 +320,52 @@ class ProfileDriverController extends GetxController {
     runVerification();
   }
 
-  Future<void> continueProfile() async {
-    if (firstNameController.text.trim().isEmpty ||
-        lastNameController.text.trim().isEmpty) {
-      UIHelper().showSnackBar('MINIZON', 'Prénom et nom sont requis.', 2);
-      return;
+  void _clearErrors() {
+    firstNameError.value = '';
+    lastNameError.value = '';
+    phoneError.value = '';
+    brandError.value = '';
+    modelError.value = '';
+    colorError.value = '';
+    plateError.value = '';
+    selfieError.value = '';
+    idCardError.value = '';
+    vehiclePhotoError.value = '';
+    registrationError.value = '';
+    licenseDocError.value = '';
+    insuranceError.value = '';
+    update();
+  }
+
+  void _parseBackendErrors(dynamic data) {
+    if (data == null) return;
+    final errors = data['errors'];
+    if (errors is! Map) return;
+
+    String _first(dynamic v) {
+      if (v is List && v.isNotEmpty) return v.first.toString();
+      if (v is String) return v;
+      return '';
     }
+
+    if (errors['first_name'] != null) firstNameError.value = _first(errors['first_name']);
+    if (errors['last_name'] != null) lastNameError.value = _first(errors['last_name']);
+    if (errors['phone'] != null) phoneError.value = _first(errors['phone']);
+    if (errors['brand'] != null) brandError.value = _first(errors['brand']);
+    if (errors['model'] != null) modelError.value = _first(errors['model']);
+    if (errors['color'] != null) colorError.value = _first(errors['color']);
+    if (errors['license_plate'] != null) plateError.value = _first(errors['license_plate']);
+    if (errors['selfie_front'] != null) selfieError.value = _first(errors['selfie_front']);
+    if (errors['id_card_front'] != null) idCardError.value = _first(errors['id_card_front']);
+    if (errors['vehicle_photo'] != null) vehiclePhotoError.value = _first(errors['vehicle_photo']);
+    if (errors['registration_doc'] != null) registrationError.value = _first(errors['registration_doc']);
+    if (errors['driving_license_photo'] != null) licenseDocError.value = _first(errors['driving_license_photo']);
+    if (errors['insurance_doc'] != null) insuranceError.value = _first(errors['insurance_doc']);
+    update();
+  }
+
+  Future<void> continueProfile() async {
+    _clearErrors();
 
     final isNewRegistration = _registerToken != null;
     if (!isNewRegistration) {
@@ -480,7 +541,15 @@ class ProfileDriverController extends GetxController {
           'Un compte existe déjà pour ce numéro.',
           2,
         );
+      } else if (response.statusCode == 422) {
+        _parseBackendErrors(response.data);
+        UIHelper().showSnackBar(
+          'MINIZON',
+          'Veuillez corriger les champs signalés en rouge.',
+          3,
+        );
       } else {
+        _parseBackendErrors(response.data);
         final msg = response.data?['message'] as String? ??
             response.data?['error'] as String? ??
             'Erreur lors de la soumission (${response.statusCode}).';
@@ -501,8 +570,15 @@ class ProfileDriverController extends GetxController {
     final XFile? file =
         await ImagePicker().pickImage(source: source, imageQuality: 85);
     if (file == null) return;
+    final size = await File(file.path).length();
+    if (size > _maxImageBytes) {
+      vehiclePhotoError.value = 'Image trop lourde — max 5 Mo (actuel : ${(size / 1048576).toStringAsFixed(1)} Mo)';
+      update();
+      return;
+    }
     _vehiclePhotoFile = file;
     vehiclePhotoName.value = file.name;
+    vehiclePhotoError.value = '';
     update();
   }
 
@@ -523,12 +599,22 @@ class ProfileDriverController extends GetxController {
       ],
     );
     if (file == null) return;
+    final size = await File(file.path).length();
+    if (size > _maxDocBytes) {
+      final msg = 'Fichier trop lourd — max 10 Mo (actuel : ${(size / 1048576).toStringAsFixed(1)} Mo)';
+      if (isLicense) licenseDocError.value = msg;
+      else registrationError.value = msg;
+      update();
+      return;
+    }
     if (isLicense) {
       _licenseDocFile = file;
       licenseDocumentName.value = file.name;
+      licenseDocError.value = '';
     } else {
       _registrationDocFile = file;
       registrationDocumentName.value = file.name;
+      registrationError.value = '';
     }
     update();
   }
@@ -544,8 +630,15 @@ class ProfileDriverController extends GetxController {
       ],
     );
     if (file == null) return;
+    final size = await File(file.path).length();
+    if (size > _maxDocBytes) {
+      insuranceError.value = 'Fichier trop lourd — max 10 Mo (actuel : ${(size / 1048576).toStringAsFixed(1)} Mo)';
+      update();
+      return;
+    }
     _insuranceDocFile = file;
     insuranceDocName.value = file.name;
+    insuranceError.value = '';
     update();
   }
 

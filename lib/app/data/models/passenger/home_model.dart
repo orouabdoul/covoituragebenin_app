@@ -27,6 +27,7 @@ class PassengerUpcomingTripData {
     this.seatsBooked = 1,
     this.completedStops = 0,
     this.totalStops = 0,
+    this.driverPhone = '',
   });
 
   final String bookingUuid;
@@ -56,6 +57,7 @@ class PassengerUpcomingTripData {
   final int seatsBooked;
   final int completedStops;
   final int totalStops;
+  final String driverPhone;
 
   factory PassengerUpcomingTripData.fromJson(Map<String, dynamic> json) {
     final origin = (json['origin'] as String?) ?? '';
@@ -108,6 +110,7 @@ class PassengerUpcomingTripData {
       seatsBooked: (json['seats_booked'] as num?)?.toInt() ?? 1,
       completedStops: (json['completed_stops'] as num?)?.toInt() ?? 0,
       totalStops: (json['total_stops'] as num?)?.toInt() ?? 0,
+      driverPhone: (json['driver_phone'] as String?) ?? '',
     );
   }
 }
