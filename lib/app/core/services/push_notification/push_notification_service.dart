@@ -206,6 +206,26 @@ String _buildPayload(Map<String, dynamic> data) =>
 
 int _notifId() => DateTime.now().millisecondsSinceEpoch ~/ 1000 % 100000;
 
+// Supporte plusieurs noms de champs selon le backend (title/sender_name/sender)
+String _extractTitle(Map<String, dynamic> data, String type) {
+  for (final key in ['title', 'sender_name', 'sender']) {
+    final v = (data[key] as String?)?.trim() ?? '';
+    if (v.isNotEmpty) return v;
+  }
+  if (type == 'new_message' || type == 'message_new') return 'Nouveau message';
+  return 'MINIZON';
+}
+
+// Supporte plusieurs noms de champs selon le backend (body/message/content)
+String _extractBody(Map<String, dynamic> data, String type) {
+  for (final key in ['body', 'message', 'content', 'text']) {
+    final v = (data[key] as String?)?.trim() ?? '';
+    if (v.isNotEmpty) return v;
+  }
+  if (type == 'new_message' || type == 'message_new') return 'Vous avez reçu un nouveau message';
+  return '';
+}
+
 // ── Handler background (isolate séparé) ───────────────────────────────────────
 
 const _silentTypes = {'messages_read', 'message_edited', 'message_deleted'};
@@ -221,8 +241,8 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
   if (_silentTypes.contains(type)) return;
 
-  final title = data['title'] as String? ?? 'MINIZON';
-  final body  = data['body']  as String? ?? '';
+  final title = _extractTitle(data, type);
+  final body  = _extractBody(data, type);
   if (body.isEmpty && title == 'MINIZON') return;
 
   final channelId = _channelForType(type);
@@ -366,9 +386,33 @@ class PushNotificationService {
           _routeToActiveChat(convUuid, _SilentAction.delete, msgUuid, null);
         }
         return true;
+      case 'new_message':
+      case 'message_new':
+        // Si l'utilisateur est déjà dans ce chat, on rafraîchit silencieusement
+        if (convUuid.isNotEmpty && _refreshActiveChat(convUuid)) return true;
+        return false; // pas dans le chat → afficher la notification
       default:
         return false;
     }
+  }
+
+  // Retourne true si le chat correspondant est actif et a été rafraîchi
+  bool _refreshActiveChat(String convUuid) {
+    if (Get.isRegistered<DriverDetailMessagerController>()) {
+      final c = Get.find<DriverDetailMessagerController>();
+      if (c.conversationUuid == convUuid) {
+        c.handleNewMessage(convUuid);
+        return true;
+      }
+    }
+    if (Get.isRegistered<PassengerDetailMessagerController>()) {
+      final c = Get.find<PassengerDetailMessagerController>();
+      if (c.conversationUuid == convUuid) {
+        c.handleNewMessage(convUuid);
+        return true;
+      }
+    }
+    return false;
   }
 
   void _routeToActiveChat(
@@ -419,11 +463,15 @@ class PushNotificationService {
   void _showLocalNotification(RemoteMessage message) {
     final data  = message.data;
     final notif = message.notification;
-    final title = notif?.title ?? data['title'] as String? ?? 'MINIZON';
-    final body  = notif?.body  ?? data['body']  as String? ?? '';
+    final type  = data['type'] as String? ?? '';
+    final title = notif?.title?.trim().isNotEmpty == true
+        ? notif!.title!
+        : _extractTitle(data, type);
+    final body  = notif?.body?.trim().isNotEmpty == true
+        ? notif!.body!
+        : _extractBody(data, type);
     if (body.isEmpty && title == 'MINIZON') return;
 
-    final type      = data['type'] as String? ?? '';
     final channelId = _channelForType(type);
     final chName    = _channelNameForId(channelId);
     final color     = _colorForType(type);

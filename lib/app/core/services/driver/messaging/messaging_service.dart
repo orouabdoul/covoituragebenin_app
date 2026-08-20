@@ -16,6 +16,7 @@ abstract class MessagingService {
     String uuid,
     String filePath, {
     String? caption,
+    String? messageType,
   });
 
   Future<ApiResult<void>> markAsRead(String uuid);

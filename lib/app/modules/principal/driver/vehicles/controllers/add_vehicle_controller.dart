@@ -136,14 +136,11 @@ class AddVehicleController extends GetxController {
   }
 
   Future<void> pickDocFromFiles(String apiKey) async {
-    final result = await FilePicker.platform.pickFiles(
+    final pFile = await FilePicker.pickFile(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
-      withData: false,
     );
-    if (result == null || result.files.isEmpty) return;
-    final pFile = result.files.first;
-    if (pFile.path == null) return;
+    if (pFile == null || pFile.path == null) return;
     _docFiles[apiKey] = XFile(pFile.path!, name: pFile.name);
     filesVersion.value++;
   }

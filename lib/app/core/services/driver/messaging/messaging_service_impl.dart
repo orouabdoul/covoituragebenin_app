@@ -76,10 +76,10 @@ class MessagingServiceImpl implements MessagingService {
       if (res.statusCode == 404) return ApiResult.failure(AppError.userNotFound);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('driverFetchThread: $e');
+      logger.w('driverFetchThread: $e');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('driverFetchThread: $e');
+      logger.w('driverFetchThread: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -120,11 +120,13 @@ class MessagingServiceImpl implements MessagingService {
     String uuid,
     String filePath, {
     String? caption,
+    String? messageType,
   }) async {
     try {
       final bearer = await _bearerToken();
       final formData = FormData.fromMap({
         if (caption != null && caption.isNotEmpty) 'body': caption,
+        if (messageType != null) 'message_type': messageType,
         'attachment': await MultipartFile.fromFile(filePath),
       });
       final res = await _dio.post(

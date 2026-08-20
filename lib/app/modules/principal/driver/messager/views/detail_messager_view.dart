@@ -107,7 +107,8 @@ class DetailMessagerView extends GetView<DriverDetailMessagerController> {
                               message: message.message,
                               time: message.time,
                               attachmentUrl: message.attachmentUrl,
-                              attachmentType: message.attachmentType,
+                              isAudio: message.isAudioMessage,
+                              isImage: message.isImageAttachment,
                             );
                           case DetailMessageKind.outgoing:
                             return GestureDetector(
@@ -120,7 +121,8 @@ class DetailMessagerView extends GetView<DriverDetailMessagerController> {
                                 isRead: message.isRead,
                                 isPending: message.messageId == 0,
                                 attachmentUrl: message.attachmentUrl,
-                                attachmentType: message.attachmentType,
+                                isAudio: message.isAudioMessage,
+                                isImage: message.isImageAttachment,
                               ),
                             );
                           case DetailMessageKind.info:
@@ -561,7 +563,8 @@ class _IncomingMessage extends StatelessWidget {
     required this.message,
     required this.time,
     this.attachmentUrl,
-    this.attachmentType,
+    this.isAudio = false,
+    this.isImage = false,
   });
 
   final AppResponsive responsive;
@@ -569,12 +572,11 @@ class _IncomingMessage extends StatelessWidget {
   final String message;
   final String time;
   final String? attachmentUrl;
-  final String? attachmentType;
+  final bool isAudio;
+  final bool isImage;
 
   @override
   Widget build(BuildContext context) {
-    final isImage = attachmentType == 'image';
-    final isAudio = attachmentType == 'audio';
     final hasAttachment =
         attachmentUrl != null && attachmentUrl!.isNotEmpty;
 
@@ -624,14 +626,10 @@ class _IncomingMessage extends StatelessWidget {
                           ),
                         ),
                       if (hasAttachment && isImage)
-                        Image.network(
-                          attachmentUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (ctx, e, s) => Padding(
-                            padding: EdgeInsets.all(responsive.w(12)),
-                            child: const Icon(Icons.broken_image_rounded,
-                                color: AppColors.textGhost, size: 36),
-                          ),
+                        _ImageWidget(
+                          url: attachmentUrl!,
+                          isOutgoing: false,
+                          responsive: responsive,
                         ),
                       if (hasAttachment && !isImage && !isAudio)
                         _DocAttachment(
@@ -673,7 +671,8 @@ class _OutgoingMessage extends StatelessWidget {
     this.isRead = false,
     this.isPending = false,
     this.attachmentUrl,
-    this.attachmentType,
+    this.isAudio = false,
+    this.isImage = false,
   });
 
   final AppResponsive responsive;
@@ -683,12 +682,11 @@ class _OutgoingMessage extends StatelessWidget {
   final bool isRead;
   final bool isPending;
   final String? attachmentUrl;
-  final String? attachmentType;
+  final bool isAudio;
+  final bool isImage;
 
   @override
   Widget build(BuildContext context) {
-    final isImage = attachmentType == 'image';
-    final isAudio = attachmentType == 'audio';
     final hasAttachment =
         attachmentUrl != null && attachmentUrl!.isNotEmpty;
 
@@ -736,14 +734,10 @@ class _OutgoingMessage extends StatelessWidget {
                         ),
                       ),
                     if (hasAttachment && isImage)
-                      Image.network(
-                        attachmentUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (ctx, e, s) => Padding(
-                          padding: EdgeInsets.all(responsive.w(12)),
-                          child: const Icon(Icons.broken_image_rounded,
-                              color: Colors.white70, size: 36),
-                        ),
+                      _ImageWidget(
+                        url: attachmentUrl!,
+                        isOutgoing: true,
+                        responsive: responsive,
                       ),
                     if (hasAttachment && !isImage && !isAudio)
                       _DocAttachment(
@@ -949,6 +943,7 @@ class _ComposerState extends State<_Composer>
     with SingleTickerProviderStateMixin {
   final _recorder = AudioRecorder();
   bool _isRecording = false;
+  bool _isLocked = false;
   bool _isCancelled = false;
   bool _isStopping = false;
   int _recordSeconds = 0;
@@ -972,6 +967,7 @@ class _ComposerState extends State<_Composer>
     if (!await _recorder.hasPermission()) return;
     _isCancelled = false;
     _isStopping = false;
+    _isLocked = false;
     _recordSeconds = 0;
     final dir = await getTemporaryDirectory();
     final path =
@@ -989,7 +985,13 @@ class _ComposerState extends State<_Composer>
     _isStopping = true;
     _chronoTimer?.cancel();
     final path = await _recorder.stop();
-    if (mounted) setState(() => _isRecording = false);
+    if (mounted) {
+      setState(() {
+        _isRecording = false;
+        _isLocked = false;
+        _isStopping = false;
+      });
+    }
     if (!cancelled && path != null && File(path).existsSync()) {
       await widget.controller.sendAudio(path);
     }
@@ -1029,181 +1031,214 @@ class _ComposerState extends State<_Composer>
           );
         }),
         Stack(
-          alignment: Alignment.centerRight,
+          alignment: Alignment.center,
           children: [
-            // ── Barre normale (toujours dans l'arbre pour la continuité du geste) ──
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                AppCircularButton(
-                  responsive: responsive,
-                  icon: Icons.add_rounded,
-                  onTap: controller.openAttachmentPicker,
-                  size: responsive.w(40),
-                  filled: false,
-                ),
-                SizedBox(width: responsive.w(12)),
-                Expanded(
-                  child: AppField(
-                    responsive: responsive,
-                    label: '',
-                    borderRadius: responsive.radius(9999),
-                    backgroundColor: AppColors.surface,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: responsive.w(16),
-                      vertical: responsive.h(12),
-                    ),
-                    child: TextField(
-                      controller: controller.messageController,
-                      decoration: InputDecoration.collapsed(
-                        hintText: AppStrings.messengerDetailInputHint,
-                        hintStyle: AppTextStyles.caption(responsive)
-                            .copyWith(color: AppColors.textGhost),
-                      ),
-                      style: AppTextStyles.caption(responsive)
-                          .copyWith(color: Colors.black),
-                      minLines: 1,
-                      maxLines: 4,
-                      scrollPhysics: const BouncingScrollPhysics(),
-                    ),
-                  ),
-                ),
-                SizedBox(width: responsive.w(12)),
-                // ── Bouton micro / envoi / valider ──────────────────────────
-                Obx(() {
-                  final isEditing = controller.editingIndex.value != null;
-                  if (isEditing) {
-                    return AppCircularButton(
+            // Barre normale — reste dans l'arbre (garde le GestureDetector actif pendant l'enregistrement)
+            Opacity(
+              opacity: (_isRecording || _isLocked) ? 0.0 : 1.0,
+              child: IgnorePointer(
+                ignoring: _isRecording || _isLocked,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    AppCircularButton(
                       responsive: responsive,
-                      icon: Icons.check_rounded,
-                      onTap: controller.sendMessage,
-                      filled: true,
+                      icon: Icons.add_rounded,
+                      onTap: controller.openAttachmentPicker,
                       size: responsive.w(40),
-                    );
-                  }
-                  return ValueListenableBuilder<TextEditingValue>(
-                    valueListenable: controller.messageController,
-                    builder: (context, value, _) {
-                      if (value.text.trim().isNotEmpty) {
+                      filled: false,
+                    ),
+                    SizedBox(width: responsive.w(12)),
+                    Expanded(
+                      child: AppField(
+                        responsive: responsive,
+                        label: '',
+                        borderRadius: responsive.radius(9999),
+                        backgroundColor: AppColors.surface,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: responsive.w(16),
+                          vertical: responsive.h(12),
+                        ),
+                        child: TextField(
+                          controller: controller.messageController,
+                          decoration: InputDecoration.collapsed(
+                            hintText: AppStrings.messengerDetailInputHint,
+                            hintStyle: AppTextStyles.caption(responsive)
+                                .copyWith(color: AppColors.textGhost),
+                          ),
+                          style: AppTextStyles.caption(responsive)
+                              .copyWith(color: Colors.black),
+                          minLines: 1,
+                          maxLines: 4,
+                          scrollPhysics: const BouncingScrollPhysics(),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: responsive.w(12)),
+                    Obx(() {
+                      final isEditing = controller.editingIndex.value != null;
+                      if (isEditing) {
                         return AppCircularButton(
                           responsive: responsive,
-                          icon: Icons.send_rounded,
+                          icon: Icons.check_rounded,
                           onTap: controller.sendMessage,
                           filled: true,
                           size: responsive.w(40),
                         );
                       }
-                      return GestureDetector(
-                        onLongPressStart: (_) => _startRecording(),
-                        onLongPressMoveUpdate: (details) {
-                          if (!_isRecording || _isStopping) return;
-                          if (details.offsetFromOrigin.dx < -80) {
-                            _isCancelled = true;
-                            _stopAndSend(cancelled: true);
+                      return ValueListenableBuilder<TextEditingValue>(
+                        valueListenable: controller.messageController,
+                        builder: (context, value, _) {
+                          if (value.text.trim().isNotEmpty) {
+                            return AppCircularButton(
+                              responsive: responsive,
+                              icon: Icons.send_rounded,
+                              onTap: controller.sendMessage,
+                              filled: true,
+                              size: responsive.w(40),
+                            );
                           }
+                          return GestureDetector(
+                            onLongPressStart: (_) => _startRecording(),
+                            onLongPressMoveUpdate: (details) {
+                              if (!_isRecording || _isStopping) return;
+                              if (details.offsetFromOrigin.dx < -80) {
+                                _isCancelled = true;
+                                _stopAndSend(cancelled: true);
+                              }
+                              if (details.offsetFromOrigin.dy < -60 &&
+                                  !_isLocked) {
+                                setState(() => _isLocked = true);
+                              }
+                            },
+                            onLongPressEnd: (_) {
+                              if (_isLocked) return;
+                              if (!_isCancelled) _stopAndSend();
+                            },
+                            child: Container(
+                              width: responsive.w(40),
+                              height: responsive.w(40),
+                              decoration: const BoxDecoration(
+                                color: AppColors.primary,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(Icons.mic_rounded,
+                                  color: Colors.white,
+                                  size: responsive.w(20)),
+                            ),
+                          );
                         },
-                        onLongPressEnd: (_) {
-                          if (!_isCancelled) _stopAndSend();
-                        },
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          width: responsive.w(40),
-                          height: responsive.w(40),
-                          decoration: BoxDecoration(
-                            color: _isRecording
-                                ? AppColors.danger
-                                : AppColors.primary,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            _isRecording
-                                ? Icons.stop_rounded
-                                : Icons.mic_rounded,
-                            color: Colors.white,
-                            size: responsive.w(20),
-                          ),
-                        ),
                       );
-                    },
-                  );
-                }),
-              ],
-            ),
-            // ── Overlay d'enregistrement (couvre + et TextField) ────────────
-            if (_isRecording)
-              Positioned(
-                left: 0,
-                right: responsive.w(52),
-                child: _RecordingBar(
-                  responsive: responsive,
-                  chronoStr: _chronoStr,
-                  pulseAnim: _pulseAnim,
+                    }),
+                  ],
                 ),
+              ),
+            ),
+            // Barre d'enregistrement WhatsApp — remplace entièrement la barre normale
+            if (_isRecording || _isLocked)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  GestureDetector(
+                    onTap: () => _stopAndSend(cancelled: true),
+                    child: Container(
+                      width: responsive.w(40),
+                      height: responsive.w(40),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.dangerBorder),
+                      ),
+                      child: Icon(Icons.delete_outline_rounded,
+                          color: AppColors.danger, size: responsive.w(20)),
+                    ),
+                  ),
+                  SizedBox(width: responsive.w(12)),
+                  Expanded(
+                    child: Container(
+                      height: responsive.w(40),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: responsive.w(12)),
+                      decoration: BoxDecoration(
+                        color: _isLocked
+                            ? AppColors.primaryLight
+                            : AppColors.dangerSurface,
+                        borderRadius: BorderRadius.circular(9999),
+                        border: Border.all(
+                          color: _isLocked
+                              ? AppColors.primaryMedium
+                              : AppColors.dangerBorder,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          AnimatedBuilder(
+                            animation: _pulseAnim,
+                            builder: (_, _) => Transform.scale(
+                              scale: _pulseAnim.value,
+                              child: Container(
+                                width: responsive.w(8),
+                                height: responsive.w(8),
+                                decoration: const BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: responsive.w(8)),
+                          Text(
+                            _chronoStr,
+                            style: TextStyle(
+                              fontSize: responsive.text(13),
+                              fontWeight: FontWeight.w600,
+                              color: Colors.red,
+                            ),
+                          ),
+                          const Spacer(),
+                          if (!_isLocked) ...[
+                            Icon(Icons.chevron_left_rounded,
+                                color: Colors.red.withValues(alpha: 0.7),
+                                size: responsive.text(16)),
+                            Text(
+                              'Glisser pour annuler',
+                              style: TextStyle(
+                                  fontSize: responsive.text(11),
+                                  color:
+                                      Colors.red.withValues(alpha: 0.7)),
+                            ),
+                          ] else
+                            Icon(Icons.lock_rounded,
+                                color: AppColors.primary,
+                                size: responsive.text(16)),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: responsive.w(12)),
+                  GestureDetector(
+                    onTap: _isLocked ? () => _stopAndSend() : null,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: responsive.w(40),
+                      height: responsive.w(40),
+                      decoration: BoxDecoration(
+                        color: _isLocked
+                            ? AppColors.primary
+                            : AppColors.danger,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        _isLocked ? Icons.send_rounded : Icons.mic_rounded,
+                        color: Colors.white,
+                        size: responsive.w(20),
+                      ),
+                    ),
+                  ),
+                ],
               ),
           ],
         ),
       ],
-    );
-  }
-}
-
-class _RecordingBar extends StatelessWidget {
-  const _RecordingBar({
-    required this.responsive,
-    required this.chronoStr,
-    required this.pulseAnim,
-  });
-
-  final AppResponsive responsive;
-  final String chronoStr;
-  final Animation<double> pulseAnim;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: responsive.w(40),
-      padding: EdgeInsets.symmetric(horizontal: responsive.w(12)),
-      decoration: BoxDecoration(
-        color: AppColors.dangerSurface,
-        borderRadius: BorderRadius.circular(9999),
-        border: Border.all(color: AppColors.dangerBorder),
-      ),
-      child: Row(
-        children: [
-          AnimatedBuilder(
-            animation: pulseAnim,
-            builder: (_, child) => Transform.scale(
-              scale: pulseAnim.value,
-              child: Container(
-                width: responsive.w(8),
-                height: responsive.w(8),
-                decoration: const BoxDecoration(
-                    color: Colors.red, shape: BoxShape.circle),
-              ),
-            ),
-          ),
-          SizedBox(width: responsive.w(8)),
-          Text(
-            chronoStr,
-            style: TextStyle(
-              fontSize: responsive.text(13),
-              fontWeight: FontWeight.w600,
-              color: Colors.red,
-            ),
-          ),
-          const Spacer(),
-          Icon(Icons.chevron_left_rounded,
-              color: Colors.red.withValues(alpha: 0.7),
-              size: responsive.text(16)),
-          Text(
-            'Glisser pour annuler',
-            style: TextStyle(
-              fontSize: responsive.text(11),
-              color: Colors.red.withValues(alpha: 0.7),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -1329,6 +1364,87 @@ class _DocAttachment extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ImageWidget extends StatelessWidget {
+  const _ImageWidget({
+    required this.url,
+    required this.isOutgoing,
+    required this.responsive,
+  });
+
+  final String url;
+  final bool isOutgoing;
+  final AppResponsive responsive;
+
+  bool get _isLocal =>
+      !url.startsWith('http://') && !url.startsWith('https://');
+
+  @override
+  Widget build(BuildContext context) {
+    final r = responsive;
+    final path =
+        _isLocal && url.startsWith('file://') ? Uri.parse(url).toFilePath() : url;
+
+    Widget img;
+    if (_isLocal) {
+      img = Image.file(
+        File(path),
+        width: r.w(220),
+        height: r.h(160),
+        fit: BoxFit.cover,
+        errorBuilder: (ctx, e, s) => _broken(r),
+      );
+    } else {
+      img = Image.network(
+        url,
+        width: r.w(220),
+        height: r.h(160),
+        fit: BoxFit.cover,
+        errorBuilder: (ctx, e, s) => _broken(r),
+        loadingBuilder: (ctx, child, progress) {
+          if (progress == null) return child;
+          return SizedBox(
+            width: r.w(220),
+            height: r.h(160),
+            child: Center(
+              child: CircularProgressIndicator(
+                color: isOutgoing ? Colors.white : AppColors.primary,
+                strokeWidth: 2,
+              ),
+            ),
+          );
+        },
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(r.radius(10)),
+      child: Stack(
+        children: [
+          img,
+          if (_isLocal)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black45,
+                child: const Center(
+                  child: CircularProgressIndicator(
+                      color: Colors.white, strokeWidth: 2),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _broken(AppResponsive r) => Container(
+        width: r.w(220),
+        height: r.h(80),
+        color: isOutgoing ? Colors.white24 : AppColors.border,
+        child: Icon(Icons.broken_image_rounded,
+            color: isOutgoing ? Colors.white54 : AppColors.textGhost),
+      );
 }
 
 class _Avatar extends StatelessWidget {

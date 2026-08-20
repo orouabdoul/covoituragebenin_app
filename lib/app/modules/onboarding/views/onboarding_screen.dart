@@ -193,16 +193,14 @@ class _OnboardingSlide extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final double pixelRatio = MediaQuery.devicePixelRatioOf(context);
-    final int cacheWidth = (responsive.w(data.imageWidth) * pixelRatio).round() > 512
-        ? 512
-        : (responsive.w(data.imageWidth) * pixelRatio).round();
-    final int cacheHeight = (responsive.h(data.imageHeight) * pixelRatio).round() > 512
-        ? 512
-        : (responsive.h(data.imageHeight) * pixelRatio).round();
+    final int cacheWidth =
+        (responsive.w(data.imageWidth) * pixelRatio).round().clamp(1, 512);
+    final int cacheHeight =
+        (responsive.h(data.imageHeight) * pixelRatio).round().clamp(1, 512);
 
     return Stack(
       children: [
-        // ── Fond dégradé (couleur charte → blanc) ──────────────────────────
+        // ── Fond dégradé ───────────────────────────────────────────────────
         Positioned.fill(
           child: DecoratedBox(
             decoration: BoxDecoration(
@@ -222,22 +220,18 @@ class _OnboardingSlide extends StatelessWidget {
 
         // ── Contenu du slide ───────────────────────────────────────────────
         SafeArea(
-          child: SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: MediaQuery.sizeOf(context).height),
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  responsive.w(24),
-                  responsive.h(48),
-                  responsive.w(24),
-                  responsive.h(data.bottomPadding),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // ── Image avec fond de couleur ─────────────────────────
-                    Container(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: responsive.w(24)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Espace pour le bouton "Passer" en haut
+                SizedBox(height: responsive.h(56)),
+
+                // Image centrée dans l'espace disponible
+                Expanded(
+                  child: Center(
+                    child: Container(
                       width: responsive.w(data.imageWidth),
                       height: responsive.h(data.imageHeight),
                       decoration: BoxDecoration(
@@ -268,27 +262,31 @@ class _OnboardingSlide extends StatelessWidget {
                         ),
                       ),
                     ),
-                    SizedBox(height: responsive.h(32)),
-                    SizedBox(
-                      width: responsive.w(data.titleWidth),
-                      child: Text(
-                        data.title,
-                        textAlign: TextAlign.center,
-                        style: AppTextStyles.onboardingTitle(responsive),
-                      ),
-                    ),
-                    SizedBox(height: responsive.h(16)),
-                    SizedBox(
-                      width: responsive.w(data.descriptionWidth),
-                      child: Text(
-                        data.description,
-                        textAlign: TextAlign.center,
-                        style: AppTextStyles.onboardingDescription(responsive),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+
+                SizedBox(height: responsive.h(32)),
+                SizedBox(
+                  width: responsive.w(data.titleWidth),
+                  child: Text(
+                    data.title,
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.onboardingTitle(responsive),
+                  ),
+                ),
+                SizedBox(height: responsive.h(16)),
+                SizedBox(
+                  width: responsive.w(data.descriptionWidth),
+                  child: Text(
+                    data.description,
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.onboardingDescription(responsive),
+                  ),
+                ),
+
+                // Espace réservé pour la barre d'actions en bas
+                SizedBox(height: responsive.h(data.bottomPadding)),
+              ],
             ),
           ),
         ),

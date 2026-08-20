@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -47,11 +48,13 @@ class PassengerDetailMessagerController extends GetxController with WidgetsBindi
   int _latestSeenId = 0;
   Timer? _pollingTimer;
   Timer? _presenceTimer;
+  bool _isPolling = false;
 
   final ScrollController scrollController = ScrollController();
 
   final _deletedIds = <int>{};
   final _localEdits = <int, String>{};
+  final _audioMessageIds = <int>{};
   bool _persistLoaded = false;
 
   @override
@@ -174,14 +177,16 @@ class PassengerDetailMessagerController extends GetxController with WidgetsBindi
 
   void _startPolling() {
     _pollingTimer?.cancel();
-    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       _pollForNewMessages();
     });
   }
 
   Future<void> _pollForNewMessages() async {
-    if (_uuid.isEmpty || isSending.value) return;
+    if (_uuid.isEmpty || isSending.value || _isPolling) return;
+    _isPolling = true;
     final result = await _service.fetchThread(_uuid);
+    _isPolling = false;
     if (!result.isSuccess) return;
 
     final detail = result.data!;
@@ -258,6 +263,11 @@ class PassengerDetailMessagerController extends GetxController with WidgetsBindi
         final map = Map<String, dynamic>.from(jsonDecode(editsJson) as Map);
         _localEdits.addAll(map.map((k, v) => MapEntry(int.parse(k), v as String)));
       }
+      final audioJson = prefs.getString('aud_$_uuid');
+      if (audioJson != null) {
+        final list = List<dynamic>.from(jsonDecode(audioJson) as List);
+        _audioMessageIds.addAll(list.whereType<int>());
+      }
     } catch (_) {}
   }
 
@@ -280,31 +290,45 @@ class PassengerDetailMessagerController extends GetxController with WidgetsBindi
     } catch (_) {}
   }
 
-  /// Corrige la liste locale existante en réappliquant suppressions et modifications.
+  void _saveAudioMessageIds() async {
+    if (_uuid.isEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('aud_$_uuid', jsonEncode(_audioMessageIds.toList()));
+    } catch (_) {}
+  }
+
   void _applyLocalOverridesToExisting() {
-    if (_deletedIds.isEmpty && _localEdits.isEmpty) return;
+    if (_deletedIds.isEmpty && _localEdits.isEmpty && _audioMessageIds.isEmpty) return;
     if (_deletedIds.isNotEmpty) {
       messages.removeWhere((m) => m.messageId > 0 && _deletedIds.contains(m.messageId));
     }
-    if (_localEdits.isNotEmpty) {
-      for (var i = 0; i < messages.length; i++) {
-        final m = messages[i];
-        if (m.messageId <= 0) continue;
-        final edit = _localEdits[m.messageId];
-        if (edit != null && m.message != edit) {
-          messages[i] = m.copyWith(message: edit, isEdited: true);
-        }
+    for (var i = 0; i < messages.length; i++) {
+      final m = messages[i];
+      if (m.messageId <= 0) continue;
+      var updated = m;
+      final edit = _localEdits[m.messageId];
+      if (edit != null && m.message != edit) {
+        updated = updated.copyWith(message: edit, isEdited: true);
       }
+      if (_audioMessageIds.contains(m.messageId) && !updated.isAudioMessage) {
+        updated = updated.copyWith(messageType: 'audio');
+      }
+      if (updated != m) messages[i] = updated;
     }
   }
 
-  /// Applique les suppressions et modifications locales après chaque rechargement.
   List<DetailMessage> _withLocalOverrides(List<DetailMessage> msgs) {
     final result = <DetailMessage>[];
     for (final m in msgs) {
       if (m.messageId > 0 && _deletedIds.contains(m.messageId)) continue;
+      var updated = m;
       final edit = m.messageId > 0 ? _localEdits[m.messageId] : null;
-      result.add(edit != null ? m.copyWith(message: edit, isEdited: true) : m);
+      if (edit != null) updated = updated.copyWith(message: edit, isEdited: true);
+      if (m.messageId > 0 && _audioMessageIds.contains(m.messageId) && !updated.isAudioMessage) {
+        updated = updated.copyWith(messageType: 'audio');
+      }
+      result.add(updated);
     }
     return result;
   }
@@ -369,6 +393,11 @@ class PassengerDetailMessagerController extends GetxController with WidgetsBindi
   void handleMessageDeleted(String convUuid, String messageUuid) {
     if (convUuid != _uuid) return;
     messages.removeWhere((m) => m.messageUuid == messageUuid);
+  }
+
+  void handleNewMessage(String convUuid) {
+    if (convUuid != _uuid) return;
+    _pollForNewMessages();
   }
 
   void _markOtherUserActive() {
@@ -459,7 +488,7 @@ class PassengerDetailMessagerController extends GetxController with WidgetsBindi
     );
     messages.add(optimistic);
     isSending.value = true;
-    final result = await _service.sendAttachment(_uuid, filePath);
+    final result = await _service.sendAttachment(_uuid, filePath, messageType: 'audio');
     isSending.value = false;
     messages.remove(optimistic);
     if (!result.isSuccess) {
@@ -467,9 +496,14 @@ class PassengerDetailMessagerController extends GetxController with WidgetsBindi
       return;
     }
     final sent = _toDetailMessage(result.data!);
-    messages.add(sent);
+    final audioMsg = sent.isAudioMessage ? sent : sent.copyWith(messageType: 'audio');
+    messages.add(audioMsg);
     final newId = result.data!.id;
-    if (newId > _latestSeenId) _latestSeenId = newId;
+    if (newId > 0) {
+      _audioMessageIds.add(newId);
+      _saveAudioMessageIds();
+      if (newId > _latestSeenId) _latestSeenId = newId;
+    }
     _scrollToBottom();
   }
 
@@ -506,6 +540,13 @@ class PassengerDetailMessagerController extends GetxController with WidgetsBindi
               color: AppColors.primary,
               onTap: () { Get.back(); _pickAndSend(ImageSource.gallery); },
             ),
+            const SizedBox(height: 10),
+            _OptionTile(
+              icon: Icons.insert_drive_file_rounded,
+              label: 'Fichier / Document',
+              color: AppColors.textSecondary,
+              onTap: () { Get.back(); _pickAndSendFile(); },
+            ),
           ],
         ),
       ),
@@ -523,30 +564,64 @@ class PassengerDetailMessagerController extends GetxController with WidgetsBindi
     final file = await picker.pickImage(source: source, imageQuality: 85, maxWidth: 1920);
     if (file == null) return;
 
+    // Miniature locale visible pendant l'upload (comme WhatsApp)
     final optimistic = DetailMessage(
       kind: DetailMessageKind.outgoing,
-      message: '📷 Image en cours d\'envoi…',
+      message: '',
+      messageType: 'image',
+      attachmentType: 'image',
+      attachmentUrl: file.path,
       time: 'maintenant',
     );
     messages.add(optimistic);
+    _scrollToBottom();
 
     isSending.value = true;
     final result = await _service.sendAttachment(_uuid, file.path);
     isSending.value = false;
-
     messages.remove(optimistic);
 
     if (!result.isSuccess) {
-      if (result.error != null) {
-        UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
-      }
+      if (result.error != null) UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
       return;
     }
 
     final sent = _toDetailMessage(result.data!);
-    messages.add(sent);
+    messages.add(sent.isImageAttachment ? sent : sent.copyWith(messageType: 'image'));
+    _scrollToBottom();
     final newId = result.data!.id;
     if (newId > _latestSeenId) _latestSeenId = newId;
+  }
+
+  Future<void> _pickAndSendFile() async {
+    if (_uuid.isEmpty) return;
+    final picked = await FilePicker.pickFile(type: FileType.any);
+    if (picked == null || picked.path == null) return;
+
+    final optimistic = DetailMessage(
+      kind: DetailMessageKind.outgoing,
+      message: picked.name,
+      messageType: 'document',
+      attachmentType: 'document',
+      attachmentUrl: picked.path,
+      time: 'maintenant',
+    );
+    messages.add(optimistic);
+    _scrollToBottom();
+
+    isSending.value = true;
+    final res = await _service.sendAttachment(_uuid, picked.path!);
+    isSending.value = false;
+    messages.remove(optimistic);
+
+    if (res.isSuccess) {
+      messages.add(_toDetailMessage(res.data!));
+      _scrollToBottom();
+      final newId = res.data!.id;
+      if (newId > _latestSeenId) _latestSeenId = newId;
+    } else if (res.error != null) {
+      UIHelper().showSnackBar('MINIZON', res.error!.message, 2);
+    }
   }
 
   Future<void> sendMessage() async {
@@ -642,7 +717,13 @@ class PassengerDetailMessagerController extends GetxController with WidgetsBindi
                 border: Border.all(color: AppColors.border),
               ),
               child: Text(
-                msg.message.isNotEmpty ? msg.message : '📷 Image',
+                msg.message.isNotEmpty
+                    ? msg.message
+                    : msg.isAudioMessage
+                        ? '🎵 Message vocal'
+                        : msg.isImageAttachment
+                            ? '📷 Image'
+                            : '📎 Fichier',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
@@ -1014,10 +1095,10 @@ class DetailMessage {
   bool get isImageAttachment =>
       messageType == 'image' || attachmentType == 'image';
 
-  DetailMessage copyWith({String? message, bool? isRead, bool? isEdited}) => DetailMessage(
+  DetailMessage copyWith({String? message, bool? isRead, bool? isEdited, String? messageType}) => DetailMessage(
     kind: kind,
     message: message ?? this.message,
-    messageType: messageType,
+    messageType: messageType ?? this.messageType,
     time: time,
     rawDate: rawDate,
     dateLabel: dateLabel,

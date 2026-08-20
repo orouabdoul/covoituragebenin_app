@@ -201,10 +201,35 @@ class ConversationApiMessage {
   factory ConversationApiMessage.fromJson(Map<String, dynamic> j) {
     final rawAtt = j['attachment'];
     final attachment = rawAtt is Map ? Map<String, dynamic>.from(rawAtt) : null;
-    // message_type est la source de vérité ; on se rabat sur attachment.type pour
-    // les réponses d'anciens backends qui ne l'incluent pas encore.
     final attType = attachment?['type'] as String?;
-    final messageType = j['message_type'] as String? ?? attType ?? 'text';
+
+    // URL sans query params + nom de fichier original + MIME type
+    final attUrl  = (attachment?['url']           as String? ?? '').toLowerCase().split('?').first;
+    final attName = (attachment?['name']           as String? ??
+                     attachment?['original_name']  as String? ?? '').toLowerCase();
+    final attMime = (attachment?['mime_type']      as String? ??
+                     attachment?['content_type']   as String? ?? '').toLowerCase();
+
+    bool isAudioPath(String p) =>
+        p.endsWith('.m4a') || p.endsWith('.aac') || p.endsWith('.mp3') ||
+        p.endsWith('.ogg') || p.endsWith('.wav') || p.endsWith('.opus');
+    bool isImagePath(String p) =>
+        p.endsWith('.jpg') || p.endsWith('.jpeg') || p.endsWith('.png') ||
+        p.endsWith('.gif') || p.endsWith('.webp') || p.endsWith('.heic');
+
+    final byMime = attMime.startsWith('audio/') ? 'audio'
+        : attMime.startsWith('image/') ? 'image'
+        : null;
+    final byExt = (isAudioPath(attUrl) || isAudioPath(attName)) ? 'audio'
+        : (isImagePath(attUrl) || isImagePath(attName)) ? 'image'
+        : null;
+
+    // If server stored 'document' but MIME/extension says audio or image, trust the file.
+    // This covers existing rows uploaded before the backend MIME fix (finfo misidentifies .m4a as video/mp4).
+    String messageType = j['message_type'] as String? ?? attType ?? byMime ?? byExt ?? 'text';
+    if (messageType == 'document') {
+      messageType = byMime ?? byExt ?? messageType;
+    }
     return ConversationApiMessage(
       id: (j['id'] as num?)?.toInt() ?? 0,
       messageUuid: j['uuid'] as String? ?? '',

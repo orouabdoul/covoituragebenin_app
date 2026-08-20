@@ -20,7 +20,8 @@ enum AppError {
   refundAlreadySubmitted,
   paymentProviderError,
   alreadyPaid,
-  invalidPhoneFormat;
+  invalidPhoneFormat,
+  serverUnavailable;
 
   String get message {
     switch (this) {
@@ -55,6 +56,8 @@ enum AppError {
         return 'Erreur du système de paiement. Vérifiez la configuration FedPay côté serveur.';
       case AppError.alreadyPaid:
         return 'Ce paiement a déjà été effectué.';
+      case AppError.serverUnavailable:
+        return 'Le service est temporairement indisponible. Réessayez dans quelques instants.';
       default:
         return 'Une erreur inattendue est survenue.';
     }
