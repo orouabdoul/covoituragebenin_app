@@ -204,7 +204,7 @@ class _TopBar extends StatelessWidget {
         color: AppColors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(responsive.radius(16)),
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Colors.transparent),
         ),
       ),
       child: Row(
@@ -255,7 +255,7 @@ class _HeroCard extends StatelessWidget {
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(responsive.radius(22)),
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Colors.transparent),
         ),
         shadows: const [
           BoxShadow(
@@ -365,7 +365,7 @@ class _HeroCard extends StatelessWidget {
               color: AppColors.white.withValues(alpha: 0.18),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(responsive.radius(16)),
-                side: const BorderSide(color: AppColors.border),
+                side: const BorderSide(color: Colors.transparent),
               ),
             ),
             child: Row(
@@ -412,7 +412,7 @@ class _HeroChip extends StatelessWidget {
         color: AppColors.white.withValues(alpha: 0.20),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(9999),
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Colors.transparent),
         ),
       ),
       child: Text(
@@ -613,7 +613,7 @@ class _StatsGrid extends StatelessWidget {
                       colors: [item.accentStart, item.accentEnd],
                     ),
                     borderRadius: BorderRadius.circular(responsive.radius(16)),
-                    border: Border.all(color: AppColors.border),
+                    border: Border.all(color: Colors.transparent),
                     boxShadow: const [
                       BoxShadow(
                         color: AppColors.shadow,
@@ -1120,7 +1120,7 @@ class _PerformanceSection extends StatelessWidget {
             ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(responsive.radius(16)),
-              side: const BorderSide(color: AppColors.border),
+              side: const BorderSide(color: Colors.transparent),
             ),
             shadows: const [
               BoxShadow(
@@ -1468,7 +1468,7 @@ class _DriverEmergencyContactsSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(responsive.radius(20)),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: Colors.transparent),
         boxShadow: const [
           BoxShadow(color: AppColors.shadow, blurRadius: 12, offset: Offset(0, 4)),
         ],
@@ -1600,7 +1600,7 @@ class _DriverContactTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceMuted,
         borderRadius: BorderRadius.circular(responsive.radius(12)),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: Colors.transparent),
       ),
       child: Row(
         children: [

@@ -172,7 +172,7 @@ class _RatingSummaryCard extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: AppColors.white,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 					borderRadius: BorderRadius.circular(responsive.radius(20)),
 				),
 				shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 10, offset: Offset(0, 3))],
@@ -270,7 +270,7 @@ class _ReviewCard extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: AppColors.white,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
 				shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 8, offset: Offset(0, 2))],
@@ -350,7 +350,7 @@ class _ReviewCard extends StatelessWidget {
 							decoration: BoxDecoration(
 								color: AppColors.surfaceMuted,
 								borderRadius: BorderRadius.circular(10),
-								border: Border.all(color: AppColors.border),
+								border: Border.all(color: Colors.transparent),
 							),
 							child: Row(
 								crossAxisAlignment: CrossAxisAlignment.start,
@@ -452,7 +452,7 @@ class _Avatar extends StatelessWidget {
 			decoration: BoxDecoration(
 				color: AppColors.surfaceMuted,
 				borderRadius: BorderRadius.circular(size * 0.28),
-				border: Border.all(color: AppColors.border),
+				border: Border.all(color: Colors.transparent),
 			),
 			child: Center(
 				child: Text(
@@ -483,7 +483,7 @@ class _RoundBtn extends StatelessWidget {
 					decoration: BoxDecoration(
 						shape: BoxShape.circle,
 						color: AppColors.surfaceMuted,
-						border: Border.all(color: AppColors.border),
+						border: Border.all(color: Colors.transparent),
 					),
 					child: Icon(icon, size: responsive.text(20), color: AppColors.textPrimary),
 				),

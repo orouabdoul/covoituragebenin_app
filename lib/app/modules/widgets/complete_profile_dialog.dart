@@ -141,7 +141,7 @@ class CompleteProfileDialog extends StatelessWidget {
                             },
                             backgroundColor: AppColors.white,
                             textColor: AppColors.primary,
-                            borderColor: AppColors.border,
+                            borderColor: Colors.transparent,
                           ),
                         ),
                       ],

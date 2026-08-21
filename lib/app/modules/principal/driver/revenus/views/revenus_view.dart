@@ -200,7 +200,7 @@ class _TopHeader extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: AppColors.white,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
 				shadows: const [
@@ -252,7 +252,7 @@ class _HeroBalanceCard extends StatelessWidget {
 					colors: [AppColors.primary, AppColors.success],
 				),
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 					borderRadius: BorderRadius.only(
 						bottomLeft: Radius.circular(responsive.radius(32)),
 						bottomRight: Radius.circular(responsive.radius(32)),
@@ -274,7 +274,7 @@ class _HeroBalanceCard extends StatelessWidget {
 									color: AppColors.white,
 									shape: RoundedRectangleBorder(
 										borderRadius: BorderRadius.circular(9999),
-										side: const BorderSide(color: AppColors.border),
+										side: const BorderSide(color: Colors.transparent),
 									),
 								),
 							),
@@ -292,7 +292,7 @@ class _HeroBalanceCard extends StatelessWidget {
 									color: AppColors.white,
 									shape: RoundedRectangleBorder(
 										borderRadius: BorderRadius.circular(9999),
-										side: const BorderSide(color: AppColors.border),
+										side: const BorderSide(color: Colors.transparent),
 									),
 								),
 							),
@@ -359,7 +359,7 @@ class _HeroBalanceCard extends StatelessWidget {
 											height: responsive.adaptive(phone: 56, smallPhone: 52, tablet: 56, desktop: 56),
 											backgroundColor: AppColors.white,
 											textColor: AppColors.primary,
-											borderColor: AppColors.border,
+											borderColor: Colors.transparent,
 											borderRadius: responsive.radius(16),
 										),
 									),
@@ -419,7 +419,7 @@ class _PendingIncomeCard extends StatelessWidget {
 											color: AppColors.accent,
 											shape: RoundedRectangleBorder(
 												borderRadius: BorderRadius.circular(9999),
-												side: const BorderSide(color: AppColors.border),
+												side: const BorderSide(color: Colors.transparent),
 											),
 										),
 										child: Icon(Icons.schedule_rounded, color: AppColors.white, size: responsive.text(20)),
@@ -537,7 +537,7 @@ class _WeeklyChartCard extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: AppColors.white,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
 				shadows: const [
@@ -673,7 +673,7 @@ class _TransactionCard extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: AppColors.white,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
 				shadows: const [
@@ -693,7 +693,7 @@ class _TransactionCard extends StatelessWidget {
 										color: transaction.iconBackground,
 										shape: RoundedRectangleBorder(
 											borderRadius: BorderRadius.circular(responsive.radius(12)),
-											side: const BorderSide(color: AppColors.border),
+											side: const BorderSide(color: Colors.transparent),
 										),
 									),
 									child: Icon(transaction.icon, color: AppColors.primary, size: responsive.text(20)),
@@ -743,7 +743,7 @@ class _TransactionCard extends StatelessWidget {
 									color: transaction.statusColor.withValues(alpha: 0.10),
 									shape: RoundedRectangleBorder(
 										borderRadius: BorderRadius.circular(9999),
-										side: const BorderSide(color: AppColors.border),
+										side: const BorderSide(color: Colors.transparent),
 									),
 								),
 								child: Text(
@@ -778,7 +778,7 @@ class _MethodCard extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: AppColors.white,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
 				shadows: const [
@@ -797,7 +797,7 @@ class _MethodCard extends StatelessWidget {
 									color: method.color.withValues(alpha: 0.15),
 									shape: RoundedRectangleBorder(
 										borderRadius: BorderRadius.circular(responsive.radius(12)),
-										side: const BorderSide(color: AppColors.border),
+										side: const BorderSide(color: Colors.transparent),
 									),
 								),
 								child: Icon(method.icon, color: method.color, size: responsive.text(20)),

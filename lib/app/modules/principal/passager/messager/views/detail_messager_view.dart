@@ -361,7 +361,7 @@ class _ConversationHeader extends StatelessWidget {
                     decoration: ShapeDecoration(
                       color: AppColors.primaryMedium,
                       shape: RoundedRectangleBorder(
-                        side: const BorderSide(color: AppColors.border),
+                        side: const BorderSide(color: Colors.transparent),
                         borderRadius: BorderRadius.circular(9999),
                       ),
                     ),
@@ -449,7 +449,7 @@ class _HeaderActionButton extends StatelessWidget {
         decoration: ShapeDecoration(
           color: backgroundColor,
           shape: RoundedRectangleBorder(
-            side: const BorderSide(color: AppColors.border),
+            side: const BorderSide(color: Colors.transparent),
             borderRadius: BorderRadius.circular(9999),
           ),
         ),
@@ -528,7 +528,7 @@ class _IncomingMessage extends StatelessWidget {
                   decoration: ShapeDecoration(
                     color: AppColors.surface,
                     shape: RoundedRectangleBorder(
-                      side: const BorderSide(color: AppColors.border),
+                      side: const BorderSide(color: Colors.transparent),
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(responsive.radius(6)),
                         topRight: Radius.circular(responsive.radius(16)),
@@ -618,7 +618,7 @@ class _OutgoingMessage extends StatelessWidget {
                 decoration: ShapeDecoration(
                   color: AppColors.primary,
                   shape: RoundedRectangleBorder(
-                    side: const BorderSide(color: AppColors.border),
+                    side: const BorderSide(color: Colors.transparent),
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(responsive.radius(16)),
                       topRight: Radius.circular(responsive.radius(6)),
@@ -715,7 +715,7 @@ class _LocationCard extends StatelessWidget {
           decoration: ShapeDecoration(
             color: Colors.white,
             shape: RoundedRectangleBorder(
-              side: const BorderSide(color: AppColors.border),
+              side: const BorderSide(color: Colors.transparent),
               borderRadius: BorderRadius.circular(responsive.radius(12)),
             ),
             shadows: const [
@@ -735,7 +735,7 @@ class _LocationCard extends StatelessWidget {
                     decoration: ShapeDecoration(
                       color: AppColors.primaryLight,
                       shape: RoundedRectangleBorder(
-                        side: const BorderSide(color: AppColors.border),
+                        side: const BorderSide(color: Colors.transparent),
                         borderRadius: BorderRadius.circular(responsive.radius(8)),
                       ),
                     ),
@@ -1227,7 +1227,7 @@ class _Avatar extends StatelessWidget {
       decoration: ShapeDecoration(
         color: AppColors.border,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Colors.transparent),
           borderRadius: BorderRadius.circular(9999),
         ),
       ),

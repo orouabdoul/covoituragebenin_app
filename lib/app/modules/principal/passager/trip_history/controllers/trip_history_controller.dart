@@ -184,7 +184,7 @@ class _TripDetailSheet extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: AppColors.surfaceMuted,
                     borderRadius: BorderRadius.circular(responsive.radius(14)),
-                    border: Border.all(color: AppColors.border),
+                    border: Border.all(color: Colors.transparent),
                   ),
                   child: Column(
                     children: [
@@ -268,7 +268,7 @@ class _InfoCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(responsive.radius(14)),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: Colors.transparent),
         boxShadow: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 6, offset: Offset(0, 2))],
       ),
       child: Column(children: children),

@@ -300,7 +300,7 @@ class _PromiseCard extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: AppColors.white,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
 				shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 6, offset: Offset(0, 2))],
@@ -380,7 +380,7 @@ class _RightsCard extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: AppColors.white,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
 				shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 6, offset: Offset(0, 2))],
@@ -469,7 +469,7 @@ class _VerificationSteps extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: AppColors.white,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
 				shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 6, offset: Offset(0, 2))],
@@ -747,7 +747,7 @@ class _EngagementFooter extends StatelessWidget {
 			decoration: BoxDecoration(
 				color: AppColors.surfaceMuted,
 				borderRadius: BorderRadius.circular(responsive.radius(16)),
-				border: Border.all(color: AppColors.border),
+				border: Border.all(color: Colors.transparent),
 			),
 			child: Row(
 				children: [
@@ -795,7 +795,7 @@ class _UserTrustStatus extends StatelessWidget {
 					decoration: ShapeDecoration(
 						color: AppColors.white,
 						shape: RoundedRectangleBorder(
-							side: const BorderSide(color: AppColors.border),
+							side: const BorderSide(color: Colors.transparent),
 							borderRadius: BorderRadius.circular(responsive.radius(16)),
 						),
 					),
@@ -817,7 +817,7 @@ class _UserTrustStatus extends StatelessWidget {
 					decoration: ShapeDecoration(
 						color: AppColors.white,
 						shape: RoundedRectangleBorder(
-							side: const BorderSide(color: AppColors.border),
+							side: const BorderSide(color: Colors.transparent),
 							borderRadius: BorderRadius.circular(responsive.radius(16)),
 						),
 					),
@@ -840,7 +840,7 @@ class _UserTrustStatus extends StatelessWidget {
 				decoration: ShapeDecoration(
 					color: AppColors.white,
 					shape: RoundedRectangleBorder(
-						side: const BorderSide(color: AppColors.border),
+						side: const BorderSide(color: Colors.transparent),
 						borderRadius: BorderRadius.circular(responsive.radius(16)),
 					),
 					shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 6, offset: Offset(0, 2))],
@@ -954,7 +954,7 @@ class _RoundBtn extends StatelessWidget {
 					decoration: BoxDecoration(
 						shape: BoxShape.circle,
 						color: AppColors.surfaceMuted,
-						border: Border.all(color: AppColors.border),
+						border: Border.all(color: Colors.transparent),
 					),
 					child: Icon(icon, size: responsive.text(20), color: AppColors.textPrimary),
 				),

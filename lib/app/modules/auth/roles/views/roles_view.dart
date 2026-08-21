@@ -212,7 +212,7 @@ class _RoleCard extends StatelessWidget {
                     shape: RoundedRectangleBorder(
                       side: BorderSide(
                         width: responsive.w(2),
-                        color: selected ? AppColors.primary : AppColors.borderStrong,
+                        color: selected ? AppColors.primary : Colors.transparent,
                       ),
                       borderRadius: BorderRadius.circular(9999),
                     ),
@@ -335,7 +335,7 @@ class _RoleAvatar extends StatelessWidget {
                 color: badgeColor,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(9999),
-                  side: const BorderSide(color: AppColors.border),
+                  side: const BorderSide(color: Colors.transparent),
                 ),
               ),
               child: Icon(
@@ -371,7 +371,7 @@ class _BenefitItem extends StatelessWidget {
             color: color,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(9999),
-              side: const BorderSide(color: AppColors.border),
+              side: const BorderSide(color: Colors.transparent),
             ),
           ),
           child: Center(

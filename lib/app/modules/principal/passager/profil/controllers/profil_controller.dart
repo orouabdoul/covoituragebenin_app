@@ -487,10 +487,10 @@ class _AddContactSheetState extends State<_AddContactSheet> {
                         vertical: responsive.h(12)),
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.border)),
+                        borderSide: const BorderSide(color: Colors.transparent)),
                     enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.border)),
+                        borderSide: const BorderSide(color: Colors.transparent)),
                     focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(
@@ -540,10 +540,10 @@ class _AddContactSheetState extends State<_AddContactSheet> {
                         vertical: responsive.h(12)),
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.border)),
+                        borderSide: const BorderSide(color: Colors.transparent)),
                     enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.border)),
+                        borderSide: const BorderSide(color: Colors.transparent)),
                     focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(
@@ -614,10 +614,10 @@ class _Field extends StatelessWidget {
                 horizontal: responsive.w(14), vertical: responsive.h(12)),
             border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.border)),
+                borderSide: const BorderSide(color: Colors.transparent)),
             enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.border)),
+                borderSide: const BorderSide(color: Colors.transparent)),
             focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide:
@@ -690,7 +690,7 @@ class _AddPaymentSheet extends StatelessWidget {
                     color: AppColors.surfaceMuted,
                     borderRadius:
                         BorderRadius.circular(responsive.radius(12)),
-                    border: Border.all(color: AppColors.border),
+                    border: Border.all(color: Colors.transparent),
                   ),
                   child: Row(
                     children: [
@@ -744,7 +744,7 @@ class _AddPaymentSheet extends StatelessWidget {
             child: OutlinedButton(
               onPressed: Get.back,
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: AppColors.border),
+                side: const BorderSide(color: Colors.transparent),
                 padding: EdgeInsets.symmetric(vertical: responsive.h(14)),
                 shape: RoundedRectangleBorder(
                     borderRadius:

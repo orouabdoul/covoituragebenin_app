@@ -299,11 +299,11 @@ class _Field extends StatelessWidget {
 						contentPadding: EdgeInsets.symmetric(horizontal: responsive.w(16), vertical: responsive.h(14)),
 						border: OutlineInputBorder(
 							borderRadius: BorderRadius.circular(responsive.radius(12)),
-							borderSide: const BorderSide(color: AppColors.border),
+							borderSide: const BorderSide(color: Colors.transparent),
 						),
 						enabledBorder: OutlineInputBorder(
 							borderRadius: BorderRadius.circular(responsive.radius(12)),
-							borderSide: const BorderSide(color: AppColors.border),
+							borderSide: const BorderSide(color: Colors.transparent),
 						),
 						focusedBorder: OutlineInputBorder(
 							borderRadius: BorderRadius.circular(responsive.radius(12)),
@@ -345,7 +345,7 @@ class _RoundBtn extends StatelessWidget {
 					decoration: BoxDecoration(
 						shape: BoxShape.circle,
 						color: AppColors.surfaceMuted,
-						border: Border.all(color: AppColors.border),
+						border: Border.all(color: Colors.transparent),
 					),
 					child: Icon(icon, size: responsive.text(20), color: AppColors.textPrimary),
 				),

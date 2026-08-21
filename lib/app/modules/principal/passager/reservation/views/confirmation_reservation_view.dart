@@ -120,7 +120,7 @@ class _RoundIconButton extends StatelessWidget {
 					decoration: ShapeDecoration(
 						color: AppColors.surface,
 						shape: RoundedRectangleBorder(
-							side: const BorderSide(color: AppColors.border),
+							side: const BorderSide(color: Colors.transparent),
 							borderRadius: BorderRadius.circular(9999),
 						),
 					),
@@ -145,7 +145,7 @@ class _SectionCard extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: AppColors.white,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 					borderRadius: BorderRadius.circular(responsive.radius(20)),
 				),
 				shadows: const [
@@ -502,7 +502,6 @@ class _PlainTextField extends StatelessWidget {
 			decoration: BoxDecoration(
 				color: AppColors.surfaceMuted,
 				borderRadius: BorderRadius.circular(responsive.radius(10)),
-				border: Border.all(color: AppColors.border),
 			),
 			child: Column(
 				crossAxisAlignment: CrossAxisAlignment.start,
@@ -524,6 +523,9 @@ class _PlainTextField extends StatelessWidget {
 							isDense: true,
 							contentPadding: EdgeInsets.zero,
 							border: InputBorder.none,
+							enabledBorder: InputBorder.none,
+							focusedBorder: InputBorder.none,
+							filled: false,
 						),
 					),
 				],
@@ -594,9 +596,6 @@ class _GpsStatusBadge extends StatelessWidget {
 }
 
 // ── Champ autocomplete ville/quartier ─────────────────────────────────────
-//
-// Implémentation via bottom-sheet pour éviter que le dropdown inline soit
-// masqué par le clavier logiciel sur téléphone physique.
 
 class _LocationAutocompleteField extends StatelessWidget {
 	const _LocationAutocompleteField({
@@ -647,7 +646,8 @@ class _LocationAutocompleteField extends StatelessWidget {
 	@override
 	Widget build(BuildContext context) {
 		final bool hasValue = controller.text.isNotEmpty;
-		final Color borderColor = isSelected ? iconColor : AppColors.border;
+		// Bordure transparente si non sélectionné (supprime le "petit contour")
+		final Color borderColor = isSelected ? iconColor : Colors.transparent;
 		final Color effectiveIconColor =
 				isSelected ? iconColor : AppColors.textHint;
 
@@ -856,7 +856,10 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
 										itemBuilder: (_, i) {
 											final item = _filtered[i];
 											return InkWell(
-												onTap: () => widget.onSelected(item),
+												onTap: () {
+													Navigator.pop(context);
+													widget.onSelected(item);
+												},
 												child: Padding(
 													padding: EdgeInsets.symmetric(
 														horizontal: responsive.w(16),
@@ -921,7 +924,7 @@ class _TripCard extends StatelessWidget {
 								decoration: ShapeDecoration(
 									color: AppColors.primaryLight,
 									shape: RoundedRectangleBorder(
-										side: const BorderSide(color: AppColors.border),
+										side: const BorderSide(color: Colors.transparent),
 										borderRadius: BorderRadius.circular(9999),
 									),
 								),
@@ -1009,7 +1012,7 @@ class _TimelineRow extends StatelessWidget {
 								decoration: ShapeDecoration(
 									color: AppColors.primary,
 									shape: RoundedRectangleBorder(
-										side: const BorderSide(color: AppColors.border),
+										side: const BorderSide(color: Colors.transparent),
 										borderRadius: BorderRadius.circular(9999),
 									),
 								),
@@ -1137,7 +1140,7 @@ class _Avatar extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: AppColors.surface,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 					borderRadius: BorderRadius.circular(16),
 				),
 			),
@@ -1170,7 +1173,7 @@ class _Pill extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: background,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 					borderRadius: BorderRadius.circular(9999),
 				),
 			),
@@ -1220,7 +1223,7 @@ class _SeatsCard extends StatelessWidget {
 						decoration: ShapeDecoration(
 							color: AppColors.surface,
 							shape: RoundedRectangleBorder(
-								side: const BorderSide(color: AppColors.border),
+								side: const BorderSide(color: Colors.transparent),
 								borderRadius: BorderRadius.circular(responsive.radius(16)),
 							),
 						),
@@ -1279,7 +1282,6 @@ class _SeatsCard extends StatelessWidget {
 											),
 										],
 									),
-									// Affiche la limite conducteur si elle est inférieure aux places dispo
 									if (!isLoading && cap > 0 && available > cap) ...[
 										SizedBox(height: responsive.h(10)),
 										Container(
@@ -1339,7 +1341,6 @@ class _PriceCard extends StatelessWidget {
 		return _SectionCard(
 			responsive: responsive,
 			child: Obx(() {
-				// Proratisé si les distances sont connues, plein sinon
 				final bool isProrated = controller.isPriceProrated;
 				final bool fromApi = controller.estimatedPricePerSeat > 0;
 				final int unitPrice = controller.estimatedProratedPricePerSeat > 0
@@ -1480,7 +1481,7 @@ class _PaymentCard extends StatelessWidget {
 												shape: RoundedRectangleBorder(
 													side: BorderSide(
 														width: selected ? 2 : 1,
-														color: selected ? AppColors.primary : AppColors.border,
+														color: selected ? AppColors.primary : Colors.transparent,
 													),
 													borderRadius: BorderRadius.circular(responsive.radius(16)),
 												),
@@ -1493,11 +1494,11 @@ class _PaymentCard extends StatelessWidget {
 														decoration: ShapeDecoration(
 															color: AppColors.surface,
 															shape: RoundedRectangleBorder(
-																side: const BorderSide(color: AppColors.border),
+																side: const BorderSide(color: Colors.transparent),
 																borderRadius: BorderRadius.circular(9999),
 															),
 														),
-																		child: Icon(_paymentMethodIcon(index, method.title), size: responsive.text(22), color: AppColors.primary),
+														child: Icon(_paymentMethodIcon(index, method.title), size: responsive.text(22), color: AppColors.primary),
 													),
 													SizedBox(width: responsive.w(12)),
 													Expanded(
@@ -1516,7 +1517,7 @@ class _PaymentCard extends StatelessWidget {
 														decoration: ShapeDecoration(
 															color: selected ? AppColors.primary : Colors.white,
 															shape: RoundedRectangleBorder(
-																side: BorderSide(color: selected ? AppColors.primary : AppColors.border),
+																side: BorderSide(color: selected ? AppColors.primary : Colors.transparent),
 																borderRadius: BorderRadius.circular(9999),
 															),
 														),
@@ -1553,7 +1554,7 @@ class _PolicyCard extends StatelessWidget {
 						decoration: ShapeDecoration(
 							color: AppColors.warningLight,
 							shape: RoundedRectangleBorder(
-								side: const BorderSide(color: AppColors.border),
+								side: const BorderSide(color: Colors.transparent),
 								borderRadius: BorderRadius.circular(9999),
 							),
 						),
@@ -1594,7 +1595,7 @@ class _SafetyCard extends StatelessWidget {
 						decoration: ShapeDecoration(
 							color: AppColors.primaryMedium,
 							shape: RoundedRectangleBorder(
-								side: const BorderSide(color: AppColors.border),
+								side: const BorderSide(color: Colors.transparent),
 								borderRadius: BorderRadius.circular(9999),
 							),
 						),

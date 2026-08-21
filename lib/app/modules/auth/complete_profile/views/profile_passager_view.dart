@@ -210,7 +210,7 @@ class _TopBar extends StatelessWidget {
       decoration: const ShapeDecoration(
         color: AppColors.white,
         shape: RoundedRectangleBorder(
-          side: BorderSide(width: 1, color: AppColors.border),
+          side: BorderSide(width: 1, color: Colors.transparent),
         ),
         shadows: [
           BoxShadow(
@@ -551,7 +551,7 @@ class _GenderSelector extends StatelessWidget {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(responsive.radius(10)),
                         side: BorderSide(
-                          color: isSelected ? AppColors.primary : AppColors.border,
+                          color: isSelected ? AppColors.primary : Colors.transparent,
                           width: isSelected ? 2 : 1,
                         ),
                       ),
@@ -620,7 +620,7 @@ class _LocationSelectField extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(responsive.radius(10)),
                 side: BorderSide(
-                  color: hasValue && !disabled ? AppColors.primary : AppColors.border,
+                  color: hasValue && !disabled ? AppColors.primary : Colors.transparent,
                   width: hasValue && !disabled ? 1.5 : 1,
                 ),
               ),
@@ -746,11 +746,11 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
                     EdgeInsets.symmetric(horizontal: r.w(12), vertical: r.h(10)),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(r.radius(10)),
-                  borderSide: const BorderSide(color: AppColors.border),
+                  borderSide: const BorderSide(color: Colors.transparent),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(r.radius(10)),
-                  borderSide: const BorderSide(color: AppColors.border),
+                  borderSide: const BorderSide(color: Colors.transparent),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(r.radius(10)),
@@ -863,7 +863,7 @@ class _EmergencyContactsRegSectionState
                 color: AppColors.surfaceMuted,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(r.radius(10)),
-                  side: const BorderSide(color: AppColors.border),
+                  side: const BorderSide(color: Colors.transparent),
                 ),
               ),
               child: Row(
@@ -1115,7 +1115,7 @@ class _SectionContainer extends StatelessWidget {
         color: AppColors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(responsive.radius(12)),
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Colors.transparent),
         ),
       ),
       child: Column(
@@ -1217,7 +1217,7 @@ class _RelationSelectField extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.surfaceMuted,
               borderRadius: BorderRadius.circular(r.radius(10)),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: Colors.transparent),
             ),
             child: Row(
               children: [
@@ -1385,7 +1385,7 @@ class _SourceTile extends StatelessWidget {
             color: AppColors.surfaceMuted,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(responsive.radius(16)),
-              side: const BorderSide(color: AppColors.border),
+              side: const BorderSide(color: Colors.transparent),
             ),
           ),
           child: Row(

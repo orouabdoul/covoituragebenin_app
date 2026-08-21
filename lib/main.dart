@@ -216,11 +216,11 @@ class MyApp extends StatelessWidget {
           labelStyle:  const TextStyle(color: AppColors.textSecondary, fontFamily: 'Inter'),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: AppColors.border, width: 2),
+            borderSide: const BorderSide(color: Colors.transparent, width: 2),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: AppColors.border, width: 2),
+            borderSide: const BorderSide(color: Colors.transparent, width: 2),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
@@ -270,7 +270,7 @@ class MyApp extends StatelessWidget {
           backgroundColor:  AppColors.surface,
           selectedColor:    AppColors.primarySurface,
           labelStyle: const TextStyle(color: AppColors.textPrimary, fontFamily: 'Inter'),
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Colors.transparent),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
 

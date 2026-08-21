@@ -212,7 +212,7 @@ class _FilterChips extends StatelessWidget {
 									decoration: BoxDecoration(
 										color: selected ? AppColors.primary : AppColors.surfaceMuted,
 										borderRadius: BorderRadius.circular(9999),
-										border: Border.all(color: selected ? AppColors.primary : AppColors.border),
+										border: Border.all(color: selected ? AppColors.primary : Colors.transparent),
 									),
 									child: Text(
 										label,
@@ -592,7 +592,7 @@ class _Avatar extends StatelessWidget {
 			decoration: BoxDecoration(
 				color: AppColors.surfaceMuted,
 				shape: BoxShape.circle,
-				border: Border.all(color: AppColors.border),
+				border: Border.all(color: Colors.transparent),
 			),
 			child: Center(
 				child: Text(
@@ -623,7 +623,7 @@ class _RoundBtn extends StatelessWidget {
 					decoration: BoxDecoration(
 						shape: BoxShape.circle,
 						color: AppColors.surfaceMuted,
-						border: Border.all(color: AppColors.border),
+						border: Border.all(color: Colors.transparent),
 					),
 					child: Icon(icon, size: responsive.text(20), color: AppColors.textPrimary),
 				),

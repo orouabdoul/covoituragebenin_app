@@ -252,7 +252,7 @@ class _RefundCard extends StatelessWidget {
 									decoration: BoxDecoration(
 										color: AppColors.surfaceMuted,
 										borderRadius: BorderRadius.circular(responsive.radius(8)),
-										border: Border.all(color: AppColors.border),
+										border: Border.all(color: Colors.transparent),
 									),
 									child: Text(
 										item.reason,
@@ -350,7 +350,7 @@ class _RoundBtn extends StatelessWidget {
 					decoration: BoxDecoration(
 						shape: BoxShape.circle,
 						color: AppColors.surfaceMuted,
-						border: Border.all(color: AppColors.border),
+						border: Border.all(color: Colors.transparent),
 					),
 					child: Icon(icon, size: responsive.text(20), color: AppColors.textPrimary),
 				),

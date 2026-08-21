@@ -139,7 +139,7 @@ class _SearchHeader extends StatelessWidget {
                   height: responsive.w(16),
                   decoration: ShapeDecoration(
                     shape: RoundedRectangleBorder(
-                      side: const BorderSide(color: AppColors.border),
+                      side: const BorderSide(color: Colors.transparent),
                       borderRadius: BorderRadius.circular(responsive.radius(4)),
                     ),
                   ),
@@ -199,7 +199,7 @@ class _FilterRow extends StatelessWidget {
                 height: responsive.h(40),
                 backgroundColor: selected ? AppColors.primary : AppColors.surface,
                 textColor: selected ? AppColors.white : AppColors.textPrimary,
-                borderColor: selected ? AppColors.primary : AppColors.border,
+                borderColor: selected ? AppColors.primary : Colors.transparent,
               ),
             );
           }),
@@ -226,7 +226,7 @@ class _ThreadCard extends StatelessWidget {
         decoration: ShapeDecoration(
           color: AppColors.white,
           shape: RoundedRectangleBorder(
-            side: const BorderSide(color: AppColors.border),
+            side: const BorderSide(color: Colors.transparent),
             borderRadius: BorderRadius.circular(responsive.radius(16)),
           ),
           shadows: const [
@@ -284,7 +284,7 @@ class _ThreadCard extends StatelessWidget {
                           decoration: ShapeDecoration(
                             color: Color(thread.statusBackgroundColor),
                             shape: RoundedRectangleBorder(
-                              side: const BorderSide(color: AppColors.border),
+                              side: const BorderSide(color: Colors.transparent),
                               borderRadius: BorderRadius.circular(responsive.radius(9999)),
                             ),
                           ),
@@ -349,7 +349,7 @@ class _Avatar extends StatelessWidget {
           decoration: ShapeDecoration(
             color: AppColors.border,
             shape: RoundedRectangleBorder(
-              side: const BorderSide(color: AppColors.border),
+              side: const BorderSide(color: Colors.transparent),
               borderRadius: BorderRadius.circular(9999),
             ),
           ),

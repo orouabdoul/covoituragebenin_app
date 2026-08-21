@@ -232,7 +232,7 @@ class RevenusController extends GetxController {
               Container(
                 decoration: BoxDecoration(color: AppColors.surface,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.border, width: 1.5)),
+                    border: Border.all(color: Colors.transparent, width: 1.5)),
                 child: Row(children: [
                   if (!isBank) Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
@@ -358,7 +358,7 @@ class RevenusController extends GetxController {
                           color: isSelected ? t.$3.withValues(alpha: 0.08) : AppColors.surface,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
-                              color: isSelected ? t.$3 : AppColors.border,
+                              color: isSelected ? t.$3 : Colors.transparent,
                               width: isSelected ? 2 : 1),
                         ),
                         child: Row(children: [
@@ -380,7 +380,7 @@ class RevenusController extends GetxController {
                     return Container(
                       decoration: BoxDecoration(color: AppColors.surface,
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: AppColors.border, width: 1.5)),
+                          border: Border.all(color: Colors.transparent, width: 1.5)),
                       child: Row(children: [
                         if (!isBankType) Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),

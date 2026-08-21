@@ -773,7 +773,7 @@ class _GenderSelector extends StatelessWidget {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(responsive.radius(10)),
                         side: BorderSide(
-                          color: isSelected ? AppColors.primary : AppColors.border,
+                          color: isSelected ? AppColors.primary : Colors.transparent,
                           width: isSelected ? 2 : 1,
                         ),
                       ),
@@ -848,7 +848,7 @@ class _VehicleTypeSelector extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(responsive.radius(10)),
             side: BorderSide(
-              color: isSelected ? AppColors.primary : AppColors.border,
+              color: isSelected ? AppColors.primary : Colors.transparent,
               width: isSelected ? 2 : 1,
             ),
           ),
@@ -1076,7 +1076,7 @@ class _VehiclePickerSheetState extends State<_VehiclePickerSheet> {
                 color: AppColors.surfaceMuted,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(r.radius(10)),
-                  side: const BorderSide(color: AppColors.border),
+                  side: const BorderSide(color: Colors.transparent),
                 ),
               ),
               child: Row(
@@ -1233,7 +1233,7 @@ class _EmergencyContactsRegSectionState
                 color: AppColors.surfaceMuted,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(r.radius(10)),
-                  side: const BorderSide(color: AppColors.border),
+                  side: const BorderSide(color: Colors.transparent),
                 ),
               ),
               child: Row(
@@ -1379,7 +1379,7 @@ class _RelationSelectField extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.surfaceMuted,
               borderRadius: BorderRadius.circular(r.radius(10)),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: Colors.transparent),
             ),
             child: Row(
               children: [
@@ -1851,7 +1851,7 @@ class _SourceTile extends StatelessWidget {
             color: AppColors.surfaceMuted,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(responsive.radius(16)),
-              side: const BorderSide(color: AppColors.border),
+              side: const BorderSide(color: Colors.transparent),
             ),
           ),
           child: Row(

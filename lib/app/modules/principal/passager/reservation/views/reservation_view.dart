@@ -102,7 +102,7 @@ class _Header extends StatelessWidget {
 						decoration: BoxDecoration(
 							color: AppColors.surfaceSoft,
 							shape: BoxShape.circle,
-							border: Border.all(color: AppColors.border),
+							border: Border.all(color: Colors.transparent),
 						),
 						child: Icon(Icons.tune_rounded, size: responsive.text(18), color: AppColors.textSecondary),
 					),
@@ -1270,7 +1270,7 @@ class _Avatar extends StatelessWidget {
 					colors: [AppColors.primary, AppColors.success],
 				),
 				shape: BoxShape.circle,
-				border: Border.all(color: AppColors.border),
+				border: Border.all(color: Colors.transparent),
 			),
 			child: Center(
 				child: Text(

@@ -809,7 +809,7 @@ class _ProfileField extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border, width: 1.5),
+        border: Border.all(color: Colors.transparent, width: 1.5),
       ),
       child: TextField(
         controller: controller,
@@ -936,7 +936,7 @@ class _LanguageOption extends StatelessWidget {
           color: selected ? AppColors.primary.withValues(alpha: 0.08) : AppColors.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: selected ? AppColors.primary : AppColors.border,
+            color: selected ? AppColors.primary : Colors.transparent,
             width: selected ? 2 : 1,
           ),
         ),

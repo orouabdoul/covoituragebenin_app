@@ -823,7 +823,7 @@ class _IconBtn extends StatelessWidget {
           decoration: BoxDecoration(
             color: bgColor,
             borderRadius: BorderRadius.circular(r.radius(12)),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: Colors.transparent),
           ),
           child: Icon(icon, size: r.text(18), color: iconColor),
         ),

@@ -136,7 +136,7 @@ class InputPhoneView extends GetView<InputPhoneController> {
 											SizedBox(height: responsive.h(16)),
 											OutlinedButton.icon(
 												style: OutlinedButton.styleFrom(
-													side: const BorderSide(width: 2, color: AppColors.border),
+													side: const BorderSide(width: 2, color: Colors.transparent),
 													shape: RoundedRectangleBorder(
 														borderRadius: BorderRadius.circular(responsive.radius(16)),
 													),

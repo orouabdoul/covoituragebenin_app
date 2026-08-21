@@ -338,7 +338,7 @@ class _PaymentMethodCard extends StatelessWidget {
 												shape: RoundedRectangleBorder(
 													side: BorderSide(
 														width: selected ? 2 : 1,
-														color: selected ? AppColors.primary : AppColors.border,
+														color: selected ? AppColors.primary : Colors.transparent,
 													),
 													borderRadius: BorderRadius.circular(responsive.radius(14)),
 												),
@@ -374,7 +374,7 @@ class _PaymentMethodCard extends StatelessWidget {
 															shape: BoxShape.circle,
 															color: selected ? AppColors.primary : Colors.white,
 															border: Border.all(
-																color: selected ? AppColors.primary : AppColors.border,
+																color: selected ? AppColors.primary : Colors.transparent,
 															),
 														),
 													),
@@ -822,7 +822,7 @@ class _SectionCard extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: AppColors.white,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 					borderRadius: BorderRadius.circular(responsive.radius(20)),
 				),
 				shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 12, offset: Offset(0, 2))],
@@ -856,7 +856,7 @@ class _InputField extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: AppColors.surfaceMuted,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 					borderRadius: BorderRadius.circular(responsive.radius(12)),
 				),
 			),

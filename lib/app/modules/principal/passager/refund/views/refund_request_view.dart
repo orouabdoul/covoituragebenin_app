@@ -172,7 +172,7 @@ class _TripCard extends StatelessWidget {
 							decoration: BoxDecoration(
 								color: AppColors.surfaceMuted,
 								borderRadius: BorderRadius.circular(12),
-								border: Border.all(color: AppColors.border),
+								border: Border.all(color: Colors.transparent),
 							),
 							child: Column(
 								children: [
@@ -453,7 +453,7 @@ class _InfoPill extends StatelessWidget {
 			decoration: BoxDecoration(
 				color: AppColors.white,
 				borderRadius: BorderRadius.circular(9999),
-				border: Border.all(color: AppColors.border),
+				border: Border.all(color: Colors.transparent),
 			),
 			child: Row(
 				mainAxisSize: MainAxisSize.min,
@@ -507,7 +507,7 @@ class _ReasonsCard extends StatelessWidget {
 									decoration: ShapeDecoration(
 										color: selected ? AppColors.successSurface : AppColors.surfaceMuted,
 										shape: RoundedRectangleBorder(
-											side: BorderSide(color: selected ? AppColors.primary : AppColors.border),
+											side: BorderSide(color: selected ? AppColors.primary : Colors.transparent),
 											borderRadius: BorderRadius.circular(12),
 										),
 									),
@@ -521,7 +521,7 @@ class _ReasonsCard extends StatelessWidget {
 													shape: BoxShape.circle,
 													color: selected ? AppColors.primary : Colors.transparent,
 													border: Border.all(
-														color: selected ? AppColors.primary : AppColors.border,
+														color: selected ? AppColors.primary : Colors.transparent,
 														width: selected ? 0 : 2,
 													),
 												),
@@ -581,11 +581,11 @@ class _NoteCard extends StatelessWidget {
 							fillColor: AppColors.surfaceMuted,
 							border: OutlineInputBorder(
 								borderRadius: BorderRadius.circular(12),
-								borderSide: const BorderSide(color: AppColors.border),
+								borderSide: const BorderSide(color: Colors.transparent),
 							),
 							enabledBorder: OutlineInputBorder(
 								borderRadius: BorderRadius.circular(12),
-								borderSide: const BorderSide(color: AppColors.border),
+								borderSide: const BorderSide(color: Colors.transparent),
 							),
 							focusedBorder: OutlineInputBorder(
 								borderRadius: BorderRadius.circular(12),
@@ -845,7 +845,7 @@ class _Card extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: AppColors.white,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
 				shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 8, offset: Offset(0, 2))],
@@ -874,7 +874,7 @@ class _RoundBtn extends StatelessWidget {
 					decoration: BoxDecoration(
 						shape: BoxShape.circle,
 						color: AppColors.surfaceMuted,
-						border: Border.all(color: AppColors.border),
+						border: Border.all(color: Colors.transparent),
 					),
 					child: Icon(icon, size: responsive.text(20), color: AppColors.textPrimary),
 				),

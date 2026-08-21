@@ -98,7 +98,7 @@ class _MainContent extends StatelessWidget {
 									onTap: controller.skipReview,
 									backgroundColor: AppColors.white,
 									textColor: AppColors.textHint,
-									borderColor: AppColors.border,
+									borderColor: Colors.transparent,
 									height: responsive.h(48),
 									borderRadius: responsive.radius(16),
 								),
@@ -111,7 +111,7 @@ class _MainContent extends StatelessWidget {
 						onTap: controller.skipReview,
 						backgroundColor: AppColors.white,
 						textColor: AppColors.textSecondary,
-						borderColor: AppColors.border,
+						borderColor: Colors.transparent,
 						height: responsive.h(48),
 						borderRadius: responsive.radius(16),
 					);
@@ -283,7 +283,7 @@ class _ConfirmCard extends StatelessWidget {
 															decoration: BoxDecoration(
 																color: selected ? AppColors.dangerSurface : AppColors.surfaceMuted,
 																borderRadius: BorderRadius.circular(9999),
-																border: Border.all(color: selected ? AppColors.danger : AppColors.border),
+																border: Border.all(color: selected ? AppColors.danger : Colors.transparent),
 															),
 															child: Text(
 																issue,
@@ -424,7 +424,7 @@ class _QuickTagsCard extends StatelessWidget {
 										color: selected ? AppColors.primaryLight : AppColors.surfaceMuted,
 										borderRadius: BorderRadius.circular(9999),
 										border: Border.all(
-											color: selected ? AppColors.primary : AppColors.border,
+											color: selected ? AppColors.primary : Colors.transparent,
 											width: selected ? 1.5 : 1,
 										),
 									),
@@ -466,7 +466,7 @@ class _ReviewField extends StatelessWidget {
 						decoration: BoxDecoration(
 							color: AppColors.surfaceMuted,
 							borderRadius: BorderRadius.circular(responsive.radius(12)),
-							border: Border.all(color: AppColors.border),
+							border: Border.all(color: Colors.transparent),
 						),
 						child: TextField(
 							controller: controller.reviewController,
@@ -547,7 +547,7 @@ class _SubmittedState extends StatelessWidget {
 						onTap: () => BottonNavController.goToTab(2),
 						backgroundColor: AppColors.white,
 						textColor: AppColors.textSecondary,
-						borderColor: AppColors.border,
+						borderColor: Colors.transparent,
 						height: responsive.h(48),
 						borderRadius: responsive.radius(16),
 					),
@@ -573,7 +573,7 @@ class _Card extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: AppColors.white,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 					borderRadius: BorderRadius.circular(responsive.radius(20)),
 				),
 				shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 8, offset: Offset(0, 2))],
@@ -601,7 +601,7 @@ class _DriverAvatar extends StatelessWidget {
 			decoration: BoxDecoration(
 				color: AppColors.surface,
 				borderRadius: BorderRadius.circular(16),
-				border: Border.all(color: AppColors.border),
+				border: Border.all(color: Colors.transparent),
 			),
 			child: Center(
 				child: Text(

@@ -145,7 +145,7 @@ class _Tab extends StatelessWidget {
 					decoration: BoxDecoration(
 						color: selected ? AppColors.primary : AppColors.surfaceMuted,
 						borderRadius: BorderRadius.circular(12),
-						border: Border.all(color: selected ? AppColors.primary : AppColors.border),
+						border: Border.all(color: selected ? AppColors.primary : Colors.transparent),
 					),
 					child: Row(
 						mainAxisAlignment: MainAxisAlignment.center,
@@ -205,7 +205,7 @@ class _FaqTab extends StatelessWidget {
 									decoration: ShapeDecoration(
 										color: AppColors.white,
 										shape: RoundedRectangleBorder(
-											side: const BorderSide(color: AppColors.border),
+											side: const BorderSide(color: Colors.transparent),
 											borderRadius: BorderRadius.circular(responsive.radius(16)),
 										),
 										shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 8, offset: Offset(0, 2))],
@@ -457,7 +457,7 @@ class _NewTicketForm extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: AppColors.white,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
 				shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 8, offset: Offset(0, 2))],
@@ -554,8 +554,8 @@ class _NewTicketForm extends StatelessWidget {
 			hintStyle: AppTextStyles.body(responsive).copyWith(color: AppColors.textHint),
 			filled: true,
 			fillColor: AppColors.surfaceMuted,
-			border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
-			enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+			border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.transparent)),
+			enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.transparent)),
 			focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
 			contentPadding: EdgeInsets.all(responsive.w(14)),
 		);
@@ -576,7 +576,7 @@ class _TicketCard extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: AppColors.white,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
 				shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 8, offset: Offset(0, 2))],
@@ -627,7 +627,7 @@ class _TicketCard extends StatelessWidget {
 							decoration: BoxDecoration(
 								color: AppColors.surfaceMuted,
 								borderRadius: BorderRadius.circular(10),
-								border: Border.all(color: AppColors.border),
+								border: Border.all(color: Colors.transparent),
 							),
 							child: Row(
 								children: [
@@ -699,7 +699,7 @@ class _RoundBtn extends StatelessWidget {
 					decoration: BoxDecoration(
 						shape: BoxShape.circle,
 						color: AppColors.surfaceMuted,
-						border: Border.all(color: AppColors.border),
+						border: Border.all(color: Colors.transparent),
 					),
 					child: Icon(icon, size: responsive.text(20), color: AppColors.textPrimary),
 				),

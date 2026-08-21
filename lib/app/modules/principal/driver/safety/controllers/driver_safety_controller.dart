@@ -386,7 +386,7 @@ class _ContactFormState extends State<_ContactForm> {
                       decoration: BoxDecoration(
                         color: AppColors.surface,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.border),
+                        border: Border.all(color: Colors.transparent),
                       ),
                       child: const Center(
                         child: Text('Annuler',
@@ -472,7 +472,7 @@ class _FormInput extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border, width: 1.5),
+            border: Border.all(color: Colors.transparent, width: 1.5),
           ),
           child: TextField(
             controller: controller,
@@ -577,7 +577,7 @@ class _IncidentReportSheetState extends State<_IncidentReportSheet> {
                             : AppColors.surface,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: isSelected ? c.$3 : AppColors.border,
+                          color: isSelected ? c.$3 : Colors.transparent,
                           width: isSelected ? 2 : 1,
                         ),
                       ),
@@ -607,7 +607,7 @@ class _IncidentReportSheetState extends State<_IncidentReportSheet> {
                 decoration: BoxDecoration(
                   color: AppColors.surface,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.border, width: 1.5),
+                  border: Border.all(color: Colors.transparent, width: 1.5),
                 ),
                 child: TextField(
                   controller: _descCtrl,

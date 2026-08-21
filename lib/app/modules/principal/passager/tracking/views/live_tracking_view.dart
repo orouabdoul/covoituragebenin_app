@@ -1150,7 +1150,7 @@ class _QuickMessages extends StatelessWidget {
 							decoration: BoxDecoration(
 								color: AppColors.surfaceMuted,
 								borderRadius: BorderRadius.circular(9999),
-								border: Border.all(color: AppColors.border),
+								border: Border.all(color: Colors.transparent),
 							),
 							child: Text(msg,
 									style: AppTextStyles.caption(responsive)
@@ -1238,7 +1238,7 @@ class _DriverAvatar extends StatelessWidget {
 			decoration: BoxDecoration(
 				color: AppColors.successSurface,
 				borderRadius: BorderRadius.circular(14),
-				border: Border.all(color: AppColors.border),
+				border: Border.all(color: Colors.transparent),
 			),
 			child: Center(
 				child: Text(

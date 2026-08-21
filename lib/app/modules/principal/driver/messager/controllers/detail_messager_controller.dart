@@ -737,7 +737,7 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
               decoration: BoxDecoration(
                 color: AppColors.surface,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: Colors.transparent),
               ),
               child: Text(
                 msg.message.isNotEmpty

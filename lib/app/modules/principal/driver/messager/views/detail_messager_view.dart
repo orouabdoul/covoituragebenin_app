@@ -370,7 +370,7 @@ class _ConversationHeader extends StatelessWidget {
                   decoration: ShapeDecoration(
                     color: AppColors.primaryMedium,
                     shape: RoundedRectangleBorder(
-                      side: const BorderSide(color: AppColors.border),
+                      side: const BorderSide(color: Colors.transparent),
                       borderRadius: BorderRadius.circular(9999),
                     ),
                   ),
@@ -517,7 +517,7 @@ class _HeaderActionButton extends StatelessWidget {
         decoration: ShapeDecoration(
           color: backgroundColor,
           shape: RoundedRectangleBorder(
-            side: const BorderSide(color: AppColors.border),
+            side: const BorderSide(color: Colors.transparent),
             borderRadius: BorderRadius.circular(9999),
           ),
         ),
@@ -601,7 +601,7 @@ class _IncomingMessage extends StatelessWidget {
                   decoration: ShapeDecoration(
                     color: AppColors.surface,
                     shape: RoundedRectangleBorder(
-                      side: const BorderSide(color: AppColors.border),
+                      side: const BorderSide(color: Colors.transparent),
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(responsive.radius(6)),
                         topRight: Radius.circular(responsive.radius(16)),
@@ -709,7 +709,7 @@ class _OutgoingMessage extends StatelessWidget {
                 decoration: ShapeDecoration(
                   color: AppColors.primary,
                   shape: RoundedRectangleBorder(
-                    side: const BorderSide(color: AppColors.border),
+                    side: const BorderSide(color: Colors.transparent),
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(responsive.radius(16)),
                       topRight: Radius.circular(responsive.radius(6)),
@@ -821,7 +821,7 @@ class _LocationCard extends StatelessWidget {
           decoration: ShapeDecoration(
             color: Colors.white,
             shape: RoundedRectangleBorder(
-              side: const BorderSide(color: AppColors.border),
+              side: const BorderSide(color: Colors.transparent),
               borderRadius: BorderRadius.circular(responsive.radius(12)),
             ),
             shadows: const [
@@ -843,7 +843,7 @@ class _LocationCard extends StatelessWidget {
                     decoration: ShapeDecoration(
                       color: AppColors.primaryLight,
                       shape: RoundedRectangleBorder(
-                        side: const BorderSide(color: AppColors.border),
+                        side: const BorderSide(color: Colors.transparent),
                         borderRadius:
                             BorderRadius.circular(responsive.radius(8)),
                       ),
@@ -943,11 +943,10 @@ class _ComposerState extends State<_Composer>
     with SingleTickerProviderStateMixin {
   final _recorder = AudioRecorder();
   bool _isRecording = false;
-  bool _isLocked = false;
-  bool _isCancelled = false;
   bool _isStopping = false;
   int _recordSeconds = 0;
   Timer? _chronoTimer;
+  Offset _panOrigin = Offset.zero;
   late final AnimationController _pulseCtrl;
   late final Animation<double> _pulseAnim;
 
@@ -964,10 +963,9 @@ class _ComposerState extends State<_Composer>
   }
 
   Future<void> _startRecording() async {
+    if (_isRecording || _isStopping) return;
     if (!await _recorder.hasPermission()) return;
-    _isCancelled = false;
     _isStopping = false;
-    _isLocked = false;
     _recordSeconds = 0;
     final dir = await getTemporaryDirectory();
     final path =
@@ -988,7 +986,6 @@ class _ComposerState extends State<_Composer>
     if (mounted) {
       setState(() {
         _isRecording = false;
-        _isLocked = false;
         _isStopping = false;
       });
     }
@@ -1033,11 +1030,11 @@ class _ComposerState extends State<_Composer>
         Stack(
           alignment: Alignment.center,
           children: [
-            // Barre normale — reste dans l'arbre (garde le GestureDetector actif pendant l'enregistrement)
+            // Barre normale
             Opacity(
-              opacity: (_isRecording || _isLocked) ? 0.0 : 1.0,
+              opacity: _isRecording ? 0.0 : 1.0,
               child: IgnorePointer(
-                ignoring: _isRecording || _isLocked,
+                ignoring: _isRecording,
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
@@ -1107,22 +1104,20 @@ class _ComposerState extends State<_Composer>
                               size: responsive.w(40),
                             );
                           }
+                          // Bouton micro : maintenir OU glisser vers le haut pour démarrer
                           return GestureDetector(
-                            onLongPressStart: (_) => _startRecording(),
-                            onLongPressMoveUpdate: (details) {
-                              if (!_isRecording || _isStopping) return;
-                              if (details.offsetFromOrigin.dx < -80) {
-                                _isCancelled = true;
-                                _stopAndSend(cancelled: true);
-                              }
-                              if (details.offsetFromOrigin.dy < -60 &&
-                                  !_isLocked) {
-                                setState(() => _isLocked = true);
+                            onPanStart: (d) {
+                              _panOrigin = d.localPosition;
+                            },
+                            onPanUpdate: (details) {
+                              final dy = details.localPosition.dy - _panOrigin.dy;
+                              if (!_isRecording && !_isStopping && dy < -15) {
+                                _startRecording();
                               }
                             },
+                            onLongPressStart: (_) => _startRecording(),
                             onLongPressEnd: (_) {
-                              if (_isLocked) return;
-                              if (!_isCancelled) _stopAndSend();
+                              // L'enregistrement continue — l'utilisateur tape Envoyer
                             },
                             child: Container(
                               width: responsive.w(40),
@@ -1143,11 +1138,12 @@ class _ComposerState extends State<_Composer>
                 ),
               ),
             ),
-            // Barre d'enregistrement WhatsApp — remplace entièrement la barre normale
-            if (_isRecording || _isLocked)
+            // Barre d'enregistrement — bouton Envoyer toujours visible
+            if (_isRecording)
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  // Bouton annuler (poubelle)
                   GestureDetector(
                     onTap: () => _stopAndSend(cancelled: true),
                     child: Container(
@@ -1163,84 +1159,73 @@ class _ComposerState extends State<_Composer>
                     ),
                   ),
                   SizedBox(width: responsive.w(12)),
+                  // Chrono + indication annuler par glissement gauche
                   Expanded(
-                    child: Container(
-                      height: responsive.w(40),
-                      padding: EdgeInsets.symmetric(
-                          horizontal: responsive.w(12)),
-                      decoration: BoxDecoration(
-                        color: _isLocked
-                            ? AppColors.primaryLight
-                            : AppColors.dangerSurface,
-                        borderRadius: BorderRadius.circular(9999),
-                        border: Border.all(
-                          color: _isLocked
-                              ? AppColors.primaryMedium
-                              : AppColors.dangerBorder,
+                    child: GestureDetector(
+                      onHorizontalDragUpdate: (d) {
+                        if (d.delta.dx < -3) _stopAndSend(cancelled: true);
+                      },
+                      child: Container(
+                        height: responsive.w(40),
+                        padding: EdgeInsets.symmetric(horizontal: responsive.w(12)),
+                        decoration: BoxDecoration(
+                          color: AppColors.dangerSurface,
+                          borderRadius: BorderRadius.circular(9999),
+                          border: Border.all(color: AppColors.dangerBorder),
                         ),
-                      ),
-                      child: Row(
-                        children: [
-                          AnimatedBuilder(
-                            animation: _pulseAnim,
-                            builder: (_, _) => Transform.scale(
-                              scale: _pulseAnim.value,
-                              child: Container(
-                                width: responsive.w(8),
-                                height: responsive.w(8),
-                                decoration: const BoxDecoration(
-                                    color: AppColors.danger,
-                                    shape: BoxShape.circle),
+                        child: Row(
+                          children: [
+                            AnimatedBuilder(
+                              animation: _pulseAnim,
+                              builder: (_, _) => Transform.scale(
+                                scale: _pulseAnim.value,
+                                child: Container(
+                                  width: responsive.w(8),
+                                  height: responsive.w(8),
+                                  decoration: const BoxDecoration(
+                                      color: AppColors.danger,
+                                      shape: BoxShape.circle),
+                                ),
                               ),
                             ),
-                          ),
-                          SizedBox(width: responsive.w(8)),
-                          Text(
-                            _chronoStr,
-                            style: TextStyle(
-                              fontSize: responsive.text(13),
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.danger,
+                            SizedBox(width: responsive.w(8)),
+                            Text(
+                              _chronoStr,
+                              style: TextStyle(
+                                fontSize: responsive.text(13),
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.danger,
+                              ),
                             ),
-                          ),
-                          const Spacer(),
-                          if (!_isLocked) ...[
+                            const Spacer(),
                             Icon(Icons.chevron_left_rounded,
                                 color: AppColors.danger.withValues(alpha: 0.7),
                                 size: responsive.text(16)),
                             Text(
-                              'Glisser pour annuler',
+                              'Annuler',
                               style: TextStyle(
-                                  fontSize: responsive.text(11),
-                                  color:
-                                      AppColors.danger.withValues(alpha: 0.7)),
+                                fontSize: responsive.text(11),
+                                color: AppColors.danger.withValues(alpha: 0.7),
+                              ),
                             ),
-                          ] else
-                            Icon(Icons.lock_rounded,
-                                color: AppColors.primary,
-                                size: responsive.text(16)),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
                   SizedBox(width: responsive.w(12)),
+                  // Bouton Envoyer — toujours visible dès que l'enregistrement démarre
                   GestureDetector(
-                    onTap: _isLocked ? () => _stopAndSend() : null,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
+                    onTap: () => _stopAndSend(),
+                    child: Container(
                       width: responsive.w(40),
                       height: responsive.w(40),
-                      decoration: BoxDecoration(
-                        color: _isLocked
-                            ? AppColors.primary
-                            : AppColors.danger,
+                      decoration: const BoxDecoration(
+                        color: AppColors.primary,
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(
-                        _isLocked ? Icons.send_rounded : Icons.mic_rounded,
-                        color: Colors.white,
-                        size: responsive.w(20),
-                      ),
+                      child: Icon(Icons.send_rounded,
+                          color: Colors.white, size: responsive.w(20)),
                     ),
                   ),
                 ],
@@ -1472,7 +1457,7 @@ class _Avatar extends StatelessWidget {
       decoration: ShapeDecoration(
         color: AppColors.surface,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Colors.transparent),
           borderRadius: BorderRadius.circular(9999),
         ),
       ),

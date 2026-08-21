@@ -25,7 +25,7 @@ class BottonNavHeader extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.white.withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(responsive.radius(16)),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: Colors.transparent),
         boxShadow: const [
           BoxShadow(color: AppColors.shadowSoft, blurRadius: 4, offset: Offset(0, 4)),
         ],

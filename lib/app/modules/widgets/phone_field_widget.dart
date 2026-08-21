@@ -53,7 +53,7 @@ class PhoneFieldWidget extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.surfaceMuted,
               borderRadius: BorderRadius.circular(responsive.radius(8)),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: Colors.transparent),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,

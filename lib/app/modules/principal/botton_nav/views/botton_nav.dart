@@ -322,7 +322,7 @@ void _showContactDialog({
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: Colors.transparent),
             ),
             child: Text(
               contact,
@@ -396,7 +396,7 @@ class _SuspendedContactCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(responsive.radius(12)),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: Colors.transparent),
         ),
         child: Row(
           children: [
@@ -653,7 +653,7 @@ class _BottonNavBar extends StatelessWidget {
         color: AppColors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(responsive.radius(24)),
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Colors.transparent),
         ),
         shadows: const [
           BoxShadow(
@@ -765,7 +765,7 @@ class _BottonNavItem extends StatelessWidget {
                               responsive.radius(12),
                             ),
                             side: BorderSide(
-                              color: selected ? AppColors.primary : AppColors.border,
+                              color: selected ? AppColors.primary : Colors.transparent,
                             ),
                           ),
                           shadows: selected

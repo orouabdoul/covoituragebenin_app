@@ -282,7 +282,7 @@ class WithdrawController extends GetxController {
                 decoration: BoxDecoration(
                   color: AppColors.surface,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.border),
+                  border: Border.all(color: Colors.transparent),
                 ),
                 child: Column(
                   children: [

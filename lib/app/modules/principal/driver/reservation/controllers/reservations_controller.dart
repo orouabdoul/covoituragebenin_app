@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
@@ -419,7 +418,7 @@ class ReservationsController extends GetxController {
               decoration: BoxDecoration(
                 color: AppColors.surface,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: Colors.transparent),
               ),
               child: Column(
                 children: [
@@ -663,7 +662,7 @@ class _ContactSheet extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.surfaceSoft,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: Colors.transparent),
               ),
               child: const Center(
                 child: Text('Annuler',
@@ -708,7 +707,7 @@ class _ContactOption extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: Colors.transparent),
           ),
           child: Row(
             children: [

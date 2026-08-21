@@ -258,7 +258,7 @@ class _TopBar extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.surfaceSoft,
               shape: BoxShape.circle,
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: Colors.transparent),
             ),
             child: Icon(Icons.notifications_outlined, color: AppColors.textSecondary, size: responsive.text(18)),
           ),
@@ -352,7 +352,7 @@ class _SearchBar extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(responsive.radius(14)),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: Colors.transparent),
           boxShadow: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 8, offset: Offset(0, 2))],
         ),
         child: Row(
@@ -375,7 +375,7 @@ class _SearchBar extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.surfaceMuted,
                 borderRadius: BorderRadius.circular(9999),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: Colors.transparent),
               ),
               child: Row(
                 children: [
@@ -550,7 +550,7 @@ class _TripTrackingCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: AppColors.surfaceMuted,
                     borderRadius: BorderRadius.circular(9999),
-                    border: Border.all(color: AppColors.border),
+                    border: Border.all(color: Colors.transparent),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -580,7 +580,7 @@ class _TripTrackingCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.surfaceMuted,
                 borderRadius: BorderRadius.circular(responsive.radius(8)),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: Colors.transparent),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -921,7 +921,7 @@ class _DriverLevelCard extends StatelessWidget {
       decoration: ShapeDecoration(
         color: AppColors.white,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Colors.transparent),
           borderRadius: BorderRadius.circular(responsive.radius(18)),
         ),
         shadows: const [
@@ -1019,7 +1019,7 @@ class _DriverLevelCard extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: AppColors.surfaceSoft,
                           borderRadius: BorderRadius.circular(9999),
-                          border: Border.all(color: AppColors.border),
+                          border: Border.all(color: Colors.transparent),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -1143,7 +1143,7 @@ class _HeroSection extends StatelessWidget {
           colors: [AppColors.primary, AppColors.primary],
         ),
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Colors.transparent),
           borderRadius: BorderRadius.circular(responsive.radius(22)),
         ),
         shadows: const [
@@ -1234,7 +1234,7 @@ class _HeroMetricCard extends StatelessWidget {
       decoration: ShapeDecoration(
         color: Colors.white.withValues(alpha: 0.20),
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Colors.transparent),
           borderRadius: BorderRadius.circular(responsive.radius(12)),
         ),
       ),
@@ -1305,7 +1305,7 @@ class _PopularRoutesRow extends StatelessWidget {
               height: responsive.h(40),
               backgroundColor: AppColors.white,
               textColor: AppColors.textPrimary,
-              borderColor: AppColors.border,
+              borderColor: Colors.transparent,
               shadows: const [
                 BoxShadow(
                   color: AppColors.shadow,
@@ -1375,7 +1375,7 @@ class _RideCard extends StatelessWidget {
       decoration: ShapeDecoration(
         color: Colors.transparent,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Colors.transparent),
           borderRadius: radius,
         ),
         shadows: const [
@@ -1463,7 +1463,7 @@ class _RideCard extends StatelessWidget {
                   decoration: ShapeDecoration(
                     color: AppColors.surfaceSoft,
                     shape: RoundedRectangleBorder(
-                      side: const BorderSide(color: AppColors.border),
+                      side: const BorderSide(color: Colors.transparent),
                       borderRadius: BorderRadius.circular(responsive.radius(8)),
                     ),
                   ),
@@ -1525,7 +1525,7 @@ class _DriverCard extends StatelessWidget {
       decoration: ShapeDecoration(
         color: AppColors.white,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Colors.transparent),
           borderRadius: BorderRadius.circular(responsive.radius(22)),
         ),
         shadows: const [
@@ -1624,7 +1624,7 @@ class _OfferCard extends StatelessWidget {
           colors: offer.colors,
         ),
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Colors.transparent),
           borderRadius: BorderRadius.circular(responsive.radius(22)),
         ),
         shadows: const [
@@ -1677,7 +1677,7 @@ class _RecentActivityList extends StatelessWidget {
       decoration: ShapeDecoration(
         color: AppColors.white,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Colors.transparent),
           borderRadius: BorderRadius.circular(responsive.radius(22)),
         ),
         shadows: const [
@@ -1723,7 +1723,7 @@ class _ActivityRow extends StatelessWidget {
             color: AppColors.surfaceSoft,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(9999),
-              side: const BorderSide(color: AppColors.border),
+              side: const BorderSide(color: Colors.transparent),
             ),
           ),
           child: Icon(Icons.route_rounded, size: responsive.text(18), color: AppColors.primary),
@@ -1777,7 +1777,7 @@ class _DriverAvatar extends StatelessWidget {
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(9999),
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Colors.transparent),
         ),
         shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 6, offset: Offset(0, 2))],
       ),

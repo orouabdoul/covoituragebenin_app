@@ -952,15 +952,29 @@ class TripDetailModel {
   final String? reservationUuid;
   final String? reservationStatus;
 
-  factory TripDetailModel.fromJson(Map<String, dynamic> j) => TripDetailModel(
-        ride: TripDetailRide.fromJson(
-            j['ride'] is Map<String, dynamic>
-                ? j['ride'] as Map<String, dynamic>
-                : const {}),
-        driverMetrics: TripDetailDriverMetrics.fromJson(
-            j['driver_metrics'] is Map<String, dynamic>
-                ? j['driver_metrics'] as Map<String, dynamic>
-                : const {}),
+  factory TripDetailModel.fromJson(Map<String, dynamic> j) {
+    // driver_metrics peut être imbriqué sous 'driver_metrics', au niveau racine,
+    // ou encore à l'intérieur de 'ride'. On fusionne les trois sources.
+    final nested  = j['driver_metrics'] is Map<String, dynamic>
+        ? j['driver_metrics'] as Map<String, dynamic>
+        : const <String, dynamic>{};
+    final rideMap = j['ride'] is Map<String, dynamic>
+        ? j['ride'] as Map<String, dynamic>
+        : const <String, dynamic>{};
+    final metricsJson = <String, dynamic>{
+      'acceptance_rate': nested['acceptance_rate']
+          ?? j['acceptance_rate']
+          ?? rideMap['acceptance_rate'],
+      'response_time':   nested['response_time']
+          ?? j['response_time']
+          ?? rideMap['response_time'],
+      'member_since':    nested['member_since']
+          ?? j['member_since']
+          ?? rideMap['member_since'],
+    };
+    return TripDetailModel(
+        ride: TripDetailRide.fromJson(rideMap),
+        driverMetrics: TripDetailDriverMetrics.fromJson(metricsJson),
         recentReviews: (j['recent_reviews'] as List? ?? [])
             .whereType<Map<String, dynamic>>()
             .map((e) => TripDetailReview.fromJson(e))
@@ -970,4 +984,5 @@ class TripDetailModel {
         reservationUuid: j['reservation_uuid']?.toString(),
         reservationStatus: j['reservation_status']?.toString(),
       );
+  }
 }

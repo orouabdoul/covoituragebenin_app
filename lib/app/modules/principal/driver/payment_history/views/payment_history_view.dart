@@ -158,7 +158,7 @@ class _FilterTabs extends StatelessWidget {
                         color: isSelected ? AppColors.primary : AppColors.surface,
                         borderRadius: BorderRadius.circular(r.adaptive(phone: 20, smallPhone: 18, tablet: 24, desktop: 28)),
                         border: Border.all(
-                          color: isSelected ? AppColors.primary : AppColors.border,
+                          color: isSelected ? AppColors.primary : Colors.transparent,
                         ),
                       ),
                       child: Text(
@@ -212,7 +212,7 @@ class _MonthSection extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.white,
             borderRadius: BorderRadius.circular(r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: Colors.transparent),
           ),
           child: Column(
             children: group.transactions.asMap().entries.map((entry) {

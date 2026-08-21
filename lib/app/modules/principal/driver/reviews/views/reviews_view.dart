@@ -177,7 +177,7 @@ class _RatingOverview extends StatelessWidget {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(
             r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: Colors.transparent),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -311,7 +311,7 @@ class _ReviewCard extends StatelessWidget {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(
             r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: Colors.transparent),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -490,7 +490,7 @@ class _ReviewReactButton extends StatelessWidget {
           border: Border.all(
             color: active
                 ? activeColor.withValues(alpha: 0.4)
-                : AppColors.border,
+                : Colors.transparent,
           ),
         ),
         child: Row(

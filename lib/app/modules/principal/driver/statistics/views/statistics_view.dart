@@ -475,7 +475,7 @@ class _MetricChip extends StatelessWidget {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(
             r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: Colors.transparent),
       ),
       child: Row(
         children: [
@@ -538,7 +538,7 @@ class _ChartCard extends StatelessWidget {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(
             r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: Colors.transparent),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -659,7 +659,7 @@ class _PerformanceCard extends StatelessWidget {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(
             r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: Colors.transparent),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -831,7 +831,7 @@ class _BadgesCard extends StatelessWidget {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(
             r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: Colors.transparent),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

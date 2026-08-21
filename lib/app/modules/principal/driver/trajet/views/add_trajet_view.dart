@@ -159,7 +159,7 @@ class AddTrajetView extends GetView<AddTrajetController> {
                     hintStyle: AppTextStyles.muted(responsive),
                     labelStyle: AppTextStyles.profileSectionLabel(responsive),
                     backgroundColor: AppColors.surface,
-                    borderColor: AppColors.border,
+                    borderColor: Colors.transparent,
                     borderRadius: responsive.radius(16),
                     padding: EdgeInsets.symmetric(
                       horizontal: responsive.w(16),
@@ -299,7 +299,7 @@ class _HeroSection extends StatelessWidget {
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(responsive.radius(24)),
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Colors.transparent),
         ),
         shadows: const [
           BoxShadow(color: AppColors.shadow, blurRadius: 20, offset: Offset(0, 4)),
@@ -315,7 +315,7 @@ class _HeroSection extends StatelessWidget {
               color: AppColors.white.withValues(alpha: 0.20),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(responsive.radius(16)),
-                side: const BorderSide(color: AppColors.border),
+                side: const BorderSide(color: Colors.transparent),
               ),
             ),
             child: Icon(Icons.route_rounded, color: AppColors.white, size: responsive.text(28)),
@@ -348,7 +348,7 @@ class _HeroSection extends StatelessWidget {
                 color: AppColors.white.withValues(alpha: 0.15),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(responsive.radius(16)),
-                  side: const BorderSide(color: AppColors.border),
+                  side: const BorderSide(color: Colors.transparent),
                 ),
               ),
               child: _HeroStat(
@@ -541,7 +541,7 @@ class _LocationForm extends StatelessWidget {
             hintStyle: AppTextStyles.muted(responsive),
             labelStyle: AppTextStyles.profileSectionLabel(responsive),
             backgroundColor: AppColors.surface,
-            borderColor: AppColors.border,
+            borderColor: Colors.transparent,
             borderRadius: responsive.radius(16),
             padding: EdgeInsets.symmetric(
               horizontal: responsive.w(16),
@@ -690,7 +690,7 @@ class _LocationAutocompleteFieldState
                     : widget.isSelected
                         ? AppColors.primary
                         : widget.enabled
-                            ? AppColors.border
+                            ? Colors.transparent
                             : AppColors.surfaceSoft,
               ),
               borderRadius:
@@ -756,7 +756,7 @@ class _LocationAutocompleteFieldState
                 shape: RoundedRectangleBorder(
                   borderRadius:
                       BorderRadius.circular(widget.responsive.radius(16)),
-                  side: const BorderSide(color: AppColors.border),
+                  side: const BorderSide(color: Colors.transparent),
                 ),
                 shadows: const [
                   BoxShadow(
@@ -807,7 +807,7 @@ class _LocationAutocompleteFieldState
                 shape: RoundedRectangleBorder(
                   borderRadius:
                       BorderRadius.circular(widget.responsive.radius(16)),
-                  side: const BorderSide(color: AppColors.border),
+                  side: const BorderSide(color: Colors.transparent),
                 ),
               ),
               child: Row(
@@ -856,7 +856,7 @@ class _DateTimeInputs extends StatelessWidget {
             hintStyle: AppTextStyles.muted(responsive),
             labelStyle: AppTextStyles.profileSectionLabel(responsive),
             backgroundColor: AppColors.surface,
-            borderColor: AppColors.border,
+            borderColor: Colors.transparent,
             borderRadius: responsive.radius(16),
             padding: EdgeInsets.symmetric(
               horizontal: responsive.w(16),
@@ -890,7 +890,7 @@ class _DateTimeInputs extends StatelessWidget {
             hintStyle: AppTextStyles.muted(responsive),
             labelStyle: AppTextStyles.profileSectionLabel(responsive),
             backgroundColor: AppColors.surface,
-            borderColor: AppColors.border,
+            borderColor: Colors.transparent,
             borderRadius: responsive.radius(16),
             padding: EdgeInsets.symmetric(
               horizontal: responsive.w(16),
@@ -983,7 +983,7 @@ class _VehicleSelector extends StatelessWidget {
                     borderRadius:
                         BorderRadius.circular(responsive.radius(16)),
                     side: BorderSide(
-                      color: isSelected ? AppColors.primary : AppColors.border,
+                      color: isSelected ? AppColors.primary : Colors.transparent,
                       width: 2,
                     ),
                   ),
@@ -1387,7 +1387,7 @@ class _PreferencesGrid extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(responsive.radius(16)),
                   side: BorderSide(
-                    color: selected ? AppColors.primary : AppColors.border,
+                    color: selected ? AppColors.primary : Colors.transparent,
                     width: selected ? 2 : 1,
                   ),
                 ),
@@ -1465,7 +1465,7 @@ class _BookingModeSelector extends StatelessWidget {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(responsive.radius(16)),
                     side: BorderSide(
-                      color: isSelected ? AppColors.primary : AppColors.border,
+                      color: isSelected ? AppColors.primary : Colors.transparent,
                       width: isSelected ? 2 : 1,
                     ),
                   ),
@@ -1718,7 +1718,7 @@ class _CancellationPolicySelector extends StatelessWidget {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(responsive.radius(16)),
                     side: BorderSide(
-                      color: isSelected ? color : AppColors.border,
+                      color: isSelected ? color : Colors.transparent,
                       width: isSelected ? 2 : 1,
                     ),
                   ),

@@ -213,7 +213,7 @@ class _VehicleInfoForm extends StatelessWidget {
         color: AppColors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(responsive.radius(24)),
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Colors.transparent),
         ),
         shadows: const [
           BoxShadow(color: AppColors.shadowSoft, blurRadius: 2, offset: Offset(0, 1)),
@@ -436,7 +436,7 @@ class _TypeChipField extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(responsive.radius(16)),
             side: BorderSide(
-              color: isSelected ? AppColors.primary : AppColors.border,
+              color: isSelected ? AppColors.primary : Colors.transparent,
               width: isSelected ? 2 : 1,
             ),
           ),
@@ -510,7 +510,7 @@ class _SelectField extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(responsive.radius(16)),
                 side: BorderSide(
-                  color: hasValue && !disabled ? AppColors.primary : AppColors.border,
+                  color: hasValue && !disabled ? AppColors.primary : Colors.transparent,
                 ),
               ),
             ),
@@ -657,7 +657,7 @@ class _PickerSheetState extends State<_PickerSheet> {
                 color: AppColors.surfaceMuted,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(r.radius(12)),
-                  side: const BorderSide(color: AppColors.border),
+                  side: const BorderSide(color: Colors.transparent),
                 ),
               ),
               child: Row(
@@ -790,7 +790,7 @@ class _ColorSelector extends StatelessWidget {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(responsive.radius(16)),
               side: BorderSide(
-                color: selected != null ? AppColors.primary : AppColors.border,
+                color: selected != null ? AppColors.primary : Colors.transparent,
               ),
             ),
           ),
@@ -807,7 +807,7 @@ class _ColorSelector extends StatelessWidget {
                                 label: '', color: Colors.transparent))
                         .color,
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.border),
+                    border: Border.all(color: Colors.transparent),
                   ),
                 ),
                 SizedBox(width: responsive.w(8)),
@@ -841,7 +841,7 @@ class _ColorSelector extends StatelessWidget {
                     color: opt.color,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: isSelected ? AppColors.primary : AppColors.border,
+                      color: isSelected ? AppColors.primary : Colors.transparent,
                       width: isSelected ? 2.5 : 1,
                     ),
                     boxShadow: isSelected
@@ -915,7 +915,7 @@ class _SeatsSelector extends StatelessWidget {
             color: AppColors.surface,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(responsive.radius(16)),
-              side: const BorderSide(color: AppColors.border),
+              side: const BorderSide(color: Colors.transparent),
             ),
           ),
           child: Row(
@@ -1051,7 +1051,7 @@ class _FormField extends StatelessWidget {
             color: AppColors.surface,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(responsive.radius(16)),
-              side: const BorderSide(color: AppColors.border),
+              side: const BorderSide(color: Colors.transparent),
             ),
           ),
           child: TextField(
@@ -1089,7 +1089,7 @@ class _PhotoUploadSection extends StatelessWidget {
         color: AppColors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(responsive.radius(24)),
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Colors.transparent),
         ),
         shadows: const [
           BoxShadow(color: AppColors.shadowSoft, blurRadius: 2, offset: Offset(0, 1)),
@@ -1128,7 +1128,7 @@ class _PhotoUploadSection extends StatelessWidget {
                     borderRadius: BorderRadius.circular(responsive.radius(16)),
                     side: BorderSide(
                       width: 2,
-                      color: hasAny ? AppColors.success : AppColors.border,
+                      color: hasAny ? AppColors.success : Colors.transparent,
                     ),
                   ),
                 ),
@@ -1233,7 +1233,7 @@ class _DocumentsSection extends StatelessWidget {
         color: AppColors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(responsive.radius(24)),
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Colors.transparent),
         ),
         shadows: const [
           BoxShadow(color: AppColors.shadowSoft, blurRadius: 2, offset: Offset(0, 1)),
@@ -1725,7 +1725,7 @@ class _ImageSourceTile extends StatelessWidget {
             color: AppColors.surfaceMuted,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(responsive.radius(16)),
-              side: const BorderSide(color: AppColors.border),
+              side: const BorderSide(color: Colors.transparent),
             ),
           ),
           child: Row(

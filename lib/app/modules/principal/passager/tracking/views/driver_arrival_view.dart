@@ -688,7 +688,7 @@ class _QuickMessages extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.surfaceMuted,
                 borderRadius: BorderRadius.circular(9999),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: Colors.transparent),
               ),
               child: Text(msg,
                   style: AppTextStyles.caption(r).copyWith(fontWeight: FontWeight.w500)),
@@ -718,7 +718,7 @@ class _Avatar extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: Colors.transparent),
       ),
       child: Center(
         child: Text(

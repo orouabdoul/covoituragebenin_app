@@ -393,7 +393,7 @@ class _AddContactSheet extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: AppColors.surfaceMuted,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.border),
+                    border: Border.all(color: Colors.transparent),
                   ),
                   padding: EdgeInsets.symmetric(horizontal: responsive.w(14)),
                   child: DropdownButton<String>(
@@ -434,8 +434,8 @@ class _AddContactSheet extends StatelessWidget {
       hintStyle: AppTextStyles.body(responsive).copyWith(color: AppColors.textHint),
       filled: true,
       fillColor: AppColors.surfaceMuted,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.transparent)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.transparent)),
       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
       contentPadding: EdgeInsets.all(responsive.w(14)),
     );

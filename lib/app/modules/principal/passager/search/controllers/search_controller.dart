@@ -485,7 +485,7 @@ class _FilterSheet extends StatelessWidget {
 																decoration: BoxDecoration(
 																	color: selected ? AppColors.primary : AppColors.surfaceMuted,
 																	shape: BoxShape.circle,
-																	border: Border.all(color: selected ? AppColors.primary : AppColors.border),
+																	border: Border.all(color: selected ? AppColors.primary : Colors.transparent),
 																),
 																child: Center(
 																	child: Text(
@@ -567,7 +567,7 @@ class _SortChip extends StatelessWidget {
 					color: selected ? AppColors.surfaceAccent : AppColors.surfaceMuted,
 					borderRadius: BorderRadius.circular(9999),
 					border: Border.all(
-						color: selected ? AppColors.primary : AppColors.border,
+						color: selected ? AppColors.primary : Colors.transparent,
 						width: selected ? 1.5 : 1,
 					),
 				),

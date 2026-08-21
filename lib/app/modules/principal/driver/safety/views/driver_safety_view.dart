@@ -165,7 +165,7 @@ class _LocationSharingCard extends StatelessWidget {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(
             r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: Colors.transparent),
       ),
       child: Obx(() => Row(
             children: [
@@ -229,7 +229,7 @@ class _EmergencyContactsCard extends StatelessWidget {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(
             r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: Colors.transparent),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -287,7 +287,7 @@ class _EmergencyContactsCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: AppColors.surface,
                       borderRadius: BorderRadius.circular(r.radius(10)),
-                      border: Border.all(color: AppColors.border),
+                      border: Border.all(color: Colors.transparent),
                     ),
                     child: Row(
                       children: [
@@ -347,7 +347,7 @@ class _EmergencyContactsCard extends StatelessWidget {
                       color: AppColors.surface,
                       borderRadius: BorderRadius.circular(
                           r.adaptive(phone: 10, smallPhone: 9, tablet: 12, desktop: 14)),
-                      border: Border.all(color: AppColors.border),
+                      border: Border.all(color: Colors.transparent),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -384,7 +384,7 @@ class _ActionsCard extends StatelessWidget {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(
             r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: Colors.transparent),
       ),
       child: Column(
         children: [

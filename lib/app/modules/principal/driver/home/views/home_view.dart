@@ -105,7 +105,7 @@ class DriverHomeView extends StatelessWidget {
                       decoration: ShapeDecoration(
                         color: AppColors.white,
                         shape: RoundedRectangleBorder(
-                          side: const BorderSide(color: AppColors.border),
+                          side: const BorderSide(color: Colors.transparent),
                           borderRadius: BorderRadius.circular(responsive.radius(22)),
                         ),
                         shadows: const [
@@ -174,7 +174,7 @@ class DriverHomeView extends StatelessWidget {
                       decoration: ShapeDecoration(
                         color: AppColors.white,
                         shape: RoundedRectangleBorder(
-                          side: const BorderSide(color: AppColors.border),
+                          side: const BorderSide(color: Colors.transparent),
                           borderRadius: BorderRadius.circular(responsive.radius(16)),
                         ),
                       ),
@@ -246,7 +246,7 @@ class _HeroSection extends StatelessWidget {
           colors: [AppColors.primary, AppColors.success],
         ),
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Colors.transparent),
           borderRadius: BorderRadius.circular(responsive.radius(22)),
         ),
         shadows: const [
@@ -330,7 +330,7 @@ class _HeroSection extends StatelessWidget {
             decoration: ShapeDecoration(
               color: AppColors.white.withValues(alpha: 0.10),
               shape: RoundedRectangleBorder(
-                side: const BorderSide(color: AppColors.border),
+                side: const BorderSide(color: Colors.transparent),
                 borderRadius: BorderRadius.circular(responsive.radius(16)),
               ),
             ),
@@ -411,7 +411,7 @@ class _TinyStatCard extends StatelessWidget {
       decoration: ShapeDecoration(
         color: AppColors.white.withValues(alpha: 0.10),
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Colors.transparent),
           borderRadius: BorderRadius.circular(responsive.radius(16)),
         ),
       ),
@@ -471,7 +471,7 @@ class _AvailabilitySection extends StatelessWidget {
       decoration: ShapeDecoration(
         color: AppColors.white,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Colors.transparent),
           borderRadius: BorderRadius.circular(responsive.radius(22)),
         ),
         shadows: const [
@@ -518,7 +518,7 @@ class _AvailabilitySection extends StatelessWidget {
                           : AppColors.surfaceSoft,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(9999),
-                        side: const BorderSide(color: AppColors.border),
+                        side: const BorderSide(color: Colors.transparent),
                       ),
                     ),
                     child: AnimatedAlign(
@@ -533,7 +533,7 @@ class _AvailabilitySection extends StatelessWidget {
                           color: AppColors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(9999),
-                            side: const BorderSide(color: AppColors.border),
+                            side: const BorderSide(color: Colors.transparent),
                           ),
                           shadows: const [
                             BoxShadow(
@@ -566,7 +566,7 @@ class _AvailabilitySection extends StatelessWidget {
                   height: responsive.adaptive(phone: 48, smallPhone: 44, tablet: 48, desktop: 48),
                   backgroundColor: AppColors.surfaceSoft,
                   textColor: AppColors.textPrimary,
-                  borderColor: AppColors.border,
+                  borderColor: Colors.transparent,
                 ),
               ),
               SizedBox(width: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
@@ -578,7 +578,7 @@ class _AvailabilitySection extends StatelessWidget {
                   height: responsive.adaptive(phone: 48, smallPhone: 44, tablet: 48, desktop: 48),
                   backgroundColor: AppColors.surfaceSoft,
                   textColor: AppColors.textPrimary,
-                  borderColor: AppColors.border,
+                  borderColor: Colors.transparent,
                 ),
               ),
             ],
@@ -628,7 +628,7 @@ class _MetricCard extends StatelessWidget {
       decoration: ShapeDecoration(
         color: AppColors.white,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Colors.transparent),
           borderRadius: BorderRadius.circular(responsive.radius(22)),
         ),
         shadows: const [
@@ -649,7 +649,7 @@ class _MetricCard extends StatelessWidget {
               color: metric.color,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(responsive.radius(16)),
-                side: const BorderSide(color: AppColors.border),
+                side: const BorderSide(color: Colors.transparent),
               ),
             ),
             child: Icon(
@@ -705,7 +705,7 @@ class _NextTripCard extends StatelessWidget {
       decoration: ShapeDecoration(
         color: AppColors.white,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Colors.transparent),
           borderRadius: BorderRadius.circular(responsive.radius(22)),
         ),
         shadows: const [
@@ -725,7 +725,7 @@ class _NextTripCard extends StatelessWidget {
                   color: trip.statusBg,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(responsive.radius(9999)),
-                    side: const BorderSide(color: AppColors.border),
+                    side: const BorderSide(color: Colors.transparent),
                   ),
                 ),
                 child: Text(
@@ -1014,7 +1014,7 @@ class _InlineActionButton extends StatelessWidget {
             color: backgroundColor,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(responsive.radius(12)),
-              side: const BorderSide(color: AppColors.border),
+              side: const BorderSide(color: Colors.transparent),
             ),
           ),
           alignment: Alignment.center,
@@ -1513,7 +1513,7 @@ class _RequestCard extends StatelessWidget {
               color: AppColors.surfaceSoft,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(responsive.radius(12)),
-                side: const BorderSide(color: AppColors.border),
+                side: const BorderSide(color: Colors.transparent),
               ),
             ),
             child: Column(
@@ -1631,7 +1631,7 @@ class _ActionCard extends StatelessWidget {
           decoration: ShapeDecoration(
             color: AppColors.white,
             shape: RoundedRectangleBorder(
-              side: const BorderSide(color: AppColors.border),
+              side: const BorderSide(color: Colors.transparent),
               borderRadius: BorderRadius.circular(responsive.radius(16)),
             ),
             shadows: const [
@@ -1704,7 +1704,7 @@ class _WalletSection extends StatelessWidget {
       decoration: ShapeDecoration(
         color: AppColors.primary,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Colors.transparent),
           borderRadius: BorderRadius.circular(responsive.radius(22)),
         ),
         shadows: const [
@@ -1768,7 +1768,7 @@ class _WalletSection extends StatelessWidget {
               color: AppColors.white.withValues(alpha: 0.10),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(responsive.radius(16)),
-                side: const BorderSide(color: AppColors.border),
+                side: const BorderSide(color: Colors.transparent),
               ),
             ),
             child: Column(
@@ -1842,7 +1842,7 @@ class _LevelSection extends StatelessWidget {
       decoration: ShapeDecoration(
         color: AppColors.white,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Colors.transparent),
           borderRadius: BorderRadius.circular(responsive.radius(22)),
         ),
         shadows: const [
@@ -1947,7 +1947,7 @@ class _BadgeCard extends StatelessWidget {
           color: AppColors.surfaceSoft,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(responsive.radius(12)),
-            side: const BorderSide(color: AppColors.border),
+            side: const BorderSide(color: Colors.transparent),
           ),
         ),
         child: Column(

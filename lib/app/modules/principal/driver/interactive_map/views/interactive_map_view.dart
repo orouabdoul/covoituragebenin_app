@@ -1510,7 +1510,7 @@ class _CenterDriverFab extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.white,
             shape: BoxShape.circle,
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: Colors.transparent),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.12),
@@ -1544,7 +1544,7 @@ class _FitAllFab extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.white,
             shape: BoxShape.circle,
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: Colors.transparent),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.12),

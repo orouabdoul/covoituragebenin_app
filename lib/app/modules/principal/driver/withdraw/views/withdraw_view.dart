@@ -225,7 +225,7 @@ class _AmountSection extends StatelessWidget {
             color: AppColors.white,
             borderRadius: BorderRadius.circular(
                 r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: Colors.transparent),
           ),
           child: Row(
             children: [
@@ -368,7 +368,7 @@ class _MethodsSection extends StatelessWidget {
                 color: AppColors.white,
                 borderRadius: BorderRadius.circular(
                     r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: Colors.transparent),
               ),
               child: Column(
                 children: controller.methods.asMap().entries.map((entry) {
@@ -464,7 +464,7 @@ class _MethodRow extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? AppColors.primary : AppColors.border,
+                  color: isSelected ? AppColors.primary : Colors.transparent,
                   width: 2,
                 ),
                 color: isSelected ? AppColors.primary : Colors.transparent,
@@ -570,7 +570,7 @@ class _PhoneField extends StatelessWidget {
             color: AppColors.white,
             borderRadius: BorderRadius.circular(
                 r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: Colors.transparent),
           ),
           child: Row(
             children: [
@@ -727,7 +727,7 @@ class _BankTextField extends StatelessWidget {
             color: AppColors.white,
             borderRadius: BorderRadius.circular(
                 r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: Colors.transparent),
           ),
           child: Row(
             children: [

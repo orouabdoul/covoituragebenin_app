@@ -128,7 +128,7 @@ class EndTripController extends GetxController {
                             color: isSelected ? c.$3.withValues(alpha: 0.12) : AppColors.surface,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: isSelected ? c.$3 : AppColors.border,
+                              color: isSelected ? c.$3 : Colors.transparent,
                               width: isSelected ? 2 : 1,
                             ),
                           ),
@@ -151,7 +151,7 @@ class EndTripController extends GetxController {
                     decoration: BoxDecoration(
                       color: AppColors.surface,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.border, width: 1.5),
+                      border: Border.all(color: Colors.transparent, width: 1.5),
                     ),
                     child: TextField(
                       controller: descCtrl,

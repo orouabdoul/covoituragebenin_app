@@ -401,7 +401,7 @@ class _FaqSheetState extends State<_FaqSheet> {
                 decoration: BoxDecoration(
                   color: AppColors.surface,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.border),
+                  border: Border.all(color: Colors.transparent),
                 ),
                 child: const Center(
                   child: Text('Fermer',
@@ -476,11 +476,11 @@ class _NewTicketSheet extends StatelessWidget {
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: AppColors.border),
+                    borderSide: const BorderSide(color: Colors.transparent),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: AppColors.border),
+                    borderSide: const BorderSide(color: Colors.transparent),
                   ),
                 ),
               ),
@@ -499,11 +499,11 @@ class _NewTicketSheet extends StatelessWidget {
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: AppColors.border),
+                    borderSide: const BorderSide(color: Colors.transparent),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: AppColors.border),
+                    borderSide: const BorderSide(color: Colors.transparent),
                   ),
                 ),
               ),
@@ -579,7 +579,7 @@ class _PriorityChip extends StatelessWidget {
           color: selected ? color.withValues(alpha: 0.12) : AppColors.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected ? color : AppColors.border,
+            color: selected ? color : Colors.transparent,
             width: selected ? 2 : 1,
           ),
         ),

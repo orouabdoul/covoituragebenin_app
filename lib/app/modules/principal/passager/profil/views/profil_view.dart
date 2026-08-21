@@ -165,7 +165,7 @@ class _HeaderSection extends StatelessWidget {
 					colors: [AppColors.primary, AppColors.primary],
 				),
 				shape: RoundedRectangleBorder(
-					side: BorderSide(color: AppColors.border),
+					side: BorderSide(color: Colors.transparent),
 					borderRadius: BorderRadius.only(
 						bottomLeft: Radius.circular(24),
 						bottomRight: Radius.circular(24),
@@ -213,7 +213,7 @@ class _SummaryCard extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: Colors.white,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 					borderRadius: BorderRadius.circular(responsive.radius(24)),
 				),
 				shadows: const [
@@ -265,7 +265,7 @@ class _SummaryCard extends StatelessWidget {
 										decoration: const ShapeDecoration(
 											color: AppColors.primary,
 											shape: RoundedRectangleBorder(
-												side: BorderSide(color: AppColors.border),
+												side: BorderSide(color: Colors.transparent),
 												borderRadius: BorderRadius.all(Radius.circular(9999)),
 											),
 											shadows: [
@@ -294,7 +294,7 @@ class _SummaryCard extends StatelessWidget {
 							decoration: ShapeDecoration(
 								color: AppColors.primaryLight,
 								shape: RoundedRectangleBorder(
-									side: const BorderSide(color: AppColors.border),
+									side: const BorderSide(color: Colors.transparent),
 									borderRadius: BorderRadius.circular(9999),
 								),
 							),
@@ -430,7 +430,7 @@ class _StatCard extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: AppColors.overlayLight,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
 			),
@@ -481,7 +481,7 @@ class _TrustCard extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: Colors.white,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 					borderRadius: BorderRadius.circular(responsive.radius(24)),
 				),
 				shadows: const [
@@ -504,7 +504,7 @@ class _TrustCard extends StatelessWidget {
 								decoration: ShapeDecoration(
 									color: AppColors.primaryLight,
 									shape: RoundedRectangleBorder(
-										side: const BorderSide(color: AppColors.border),
+										side: const BorderSide(color: Colors.transparent),
 										borderRadius: BorderRadius.circular(9999),
 									),
 								),
@@ -557,7 +557,7 @@ class _TrustLine extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: AppColors.overlayLight,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
 			),
@@ -601,7 +601,7 @@ class _SettingsCard extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: Colors.white,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 					borderRadius: BorderRadius.circular(responsive.radius(24)),
 				),
 				shadows: const [
@@ -659,7 +659,7 @@ class _SettingsTile extends StatelessWidget {
 				decoration: ShapeDecoration(
 					color: AppColors.overlayLight,
 					shape: RoundedRectangleBorder(
-						side: const BorderSide(color: AppColors.border),
+						side: const BorderSide(color: Colors.transparent),
 						borderRadius: BorderRadius.circular(responsive.radius(16)),
 					),
 				),
@@ -731,7 +731,7 @@ class _PaymentMethodsCard extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: Colors.white,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 					borderRadius: BorderRadius.circular(responsive.radius(24)),
 				),
 				shadows: const [
@@ -786,7 +786,7 @@ class _PaymentTile extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: AppColors.overlayMedium,
 				shape: RoundedRectangleBorder(
-					side: BorderSide(color: method.selected ? AppColors.primaryMedium : AppColors.border),
+					side: BorderSide(color: method.selected ? AppColors.primaryMedium : Colors.transparent),
 					borderRadius: BorderRadius.circular(responsive.radius(16)),
 				),
 			),
@@ -803,7 +803,7 @@ class _PaymentTile extends StatelessWidget {
 								colors: [Color(method.accentStart), Color(method.accentEnd)],
 							),
 							shape: RoundedRectangleBorder(
-								side: const BorderSide(color: AppColors.border),
+								side: const BorderSide(color: Colors.transparent),
 								borderRadius: BorderRadius.circular(responsive.radius(8)),
 							),
 						),
@@ -832,7 +832,7 @@ class _PaymentTile extends StatelessWidget {
 						decoration: ShapeDecoration(
 							color: method.selected ? AppColors.primary : Colors.white,
 							shape: RoundedRectangleBorder(
-								side: BorderSide(color: method.selected ? AppColors.primary : AppColors.border),
+								side: BorderSide(color: method.selected ? AppColors.primary : Colors.transparent),
 								borderRadius: BorderRadius.circular(9999),
 							),
 						),
@@ -861,7 +861,7 @@ class _RecentTripsCard extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: Colors.white,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 					borderRadius: BorderRadius.circular(responsive.radius(24)),
 				),
 				shadows: const [
@@ -924,7 +924,7 @@ class _RecentTripTile extends StatelessWidget {
 				decoration: ShapeDecoration(
 					color: AppColors.overlayLight,
 					shape: RoundedRectangleBorder(
-						side: const BorderSide(color: AppColors.border),
+						side: const BorderSide(color: Colors.transparent),
 						borderRadius: BorderRadius.circular(responsive.radius(16)),
 					),
 				),
@@ -1020,7 +1020,7 @@ class _EmergencyContactsCard extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: Colors.white,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 					borderRadius: BorderRadius.circular(responsive.radius(24)),
 				),
 				shadows: const [
@@ -1153,7 +1153,7 @@ class _ContactTile extends StatelessWidget {
 			decoration: BoxDecoration(
 				color: AppColors.surfaceMuted,
 				borderRadius: BorderRadius.circular(responsive.radius(12)),
-				border: Border.all(color: AppColors.border),
+				border: Border.all(color: Colors.transparent),
 			),
 			child: Row(
 				children: [
@@ -1262,7 +1262,7 @@ class _HeaderIconButton extends StatelessWidget {
 				decoration: ShapeDecoration(
 					color: Colors.white.withValues(alpha: 0.20),
 					shape: RoundedRectangleBorder(
-						side: const BorderSide(color: AppColors.border),
+						side: const BorderSide(color: Colors.transparent),
 						borderRadius: BorderRadius.circular(9999),
 					),
 				),

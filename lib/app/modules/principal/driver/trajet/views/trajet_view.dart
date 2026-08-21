@@ -121,7 +121,7 @@ class _HeaderSection extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: AppColors.white,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 					borderRadius: BorderRadius.circular(responsive.radius(24)),
 				),
 				shadows: const [
@@ -173,7 +173,7 @@ class _SummarySection extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: AppColors.white,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 					borderRadius: BorderRadius.circular(responsive.radius(24)),
 				),
 				shadows: const [
@@ -228,7 +228,7 @@ class _FilterChip extends StatelessWidget {
 					decoration: ShapeDecoration(
 						color: chipBackground,
 						shape: RoundedRectangleBorder(
-							side: const BorderSide(color: AppColors.border),
+							side: const BorderSide(color: Colors.transparent),
 							borderRadius: BorderRadius.circular(9999),
 						),
 					),
@@ -256,7 +256,7 @@ class _FilterChip extends StatelessWidget {
 									padding: EdgeInsets.symmetric(horizontal: responsive.w(5), vertical: responsive.h(2)),
 									decoration: ShapeDecoration(
 										shape: RoundedRectangleBorder(
-											side: const BorderSide(color: AppColors.border),
+											side: const BorderSide(color: Colors.transparent),
 											borderRadius: BorderRadius.circular(9999),
 										),
 									),
@@ -377,7 +377,7 @@ class _TripCard extends StatelessWidget {
 						decoration: ShapeDecoration(
 							color: AppColors.surfaceMuted,
 							shape: RoundedRectangleBorder(
-								side: const BorderSide(color: AppColors.border),
+								side: const BorderSide(color: Colors.transparent),
 								borderRadius: BorderRadius.circular(responsive.radius(16)),
 							),
 						),
@@ -417,7 +417,7 @@ class _TripCard extends StatelessWidget {
 								color: trip.noteBackground ?? AppColors.surfaceMuted,
 								shape: RoundedRectangleBorder(
 									borderRadius: BorderRadius.circular(responsive.radius(16)),
-									side: const BorderSide(color: AppColors.border),
+									side: const BorderSide(color: Colors.transparent),
 								),
 							),
 							child: Row(
@@ -559,7 +559,7 @@ class _StatusChip extends StatelessWidget {
 				color: trip.statusBackground,
 				shape: RoundedRectangleBorder(
 					borderRadius: BorderRadius.circular(9999),
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 				),
 			),
 			child: Text(
@@ -698,7 +698,7 @@ class _TinyAvatar extends StatelessWidget {
 				color: AppColors.successSurface,
 				shape: RoundedRectangleBorder(
 					borderRadius: BorderRadius.circular(9999),
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 				),
 			),
 			alignment: Alignment.center,
@@ -744,7 +744,7 @@ class _TripActionButton extends StatelessWidget {
 					decoration: ShapeDecoration(
 						color: backgroundColor,
 						shape: RoundedRectangleBorder(
-							side: const BorderSide(color: AppColors.border),
+							side: const BorderSide(color: Colors.transparent),
 							borderRadius: BorderRadius.circular(responsive.radius(20)),
 						),
 					),
@@ -776,7 +776,7 @@ class _EmptyTripsState extends StatelessWidget {
 			decoration: ShapeDecoration(
 				color: AppColors.white,
 				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: AppColors.border),
+					side: const BorderSide(color: Colors.transparent),
 					borderRadius: BorderRadius.circular(responsive.radius(24)),
 				),
 			),

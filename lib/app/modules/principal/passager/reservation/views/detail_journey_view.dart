@@ -205,7 +205,7 @@ class _CircleIconButton extends StatelessWidget {
           decoration: ShapeDecoration(
             color: AppColors.surface,
             shape: RoundedRectangleBorder(
-              side: const BorderSide(color: AppColors.border),
+              side: const BorderSide(color: Colors.transparent),
               borderRadius: BorderRadius.circular(9999),
             ),
           ),
@@ -235,7 +235,7 @@ class _SectionCard extends StatelessWidget {
       decoration: ShapeDecoration(
         color: Colors.white,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Colors.transparent),
           borderRadius: BorderRadius.circular(responsive.radius(24)),
         ),
         shadows: const [
@@ -509,7 +509,7 @@ class _DriverCard extends StatelessWidget {
                   decoration: ShapeDecoration(
                     color: AppColors.primary,
                     shape: RoundedRectangleBorder(
-                      side: const BorderSide(color: AppColors.border),
+                      side: const BorderSide(color: Colors.transparent),
                       borderRadius: BorderRadius.circular(9999),
                     ),
                   ),
@@ -536,7 +536,7 @@ class _DriverCard extends StatelessWidget {
                       decoration: ShapeDecoration(
                         color: AppColors.primaryLight,
                         shape: RoundedRectangleBorder(
-                          side: const BorderSide(color: AppColors.border),
+                          side: const BorderSide(color: Colors.transparent),
                           borderRadius: BorderRadius.circular(9999),
                         ),
                       ),
@@ -594,7 +594,7 @@ class _SmallChip extends StatelessWidget {
       decoration: ShapeDecoration(
         color: AppColors.surface,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Colors.transparent),
           borderRadius: BorderRadius.circular(9999),
         ),
       ),
@@ -660,7 +660,7 @@ class _MetricCard extends StatelessWidget {
       decoration: ShapeDecoration(
         color: Colors.white,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Colors.transparent),
           borderRadius: BorderRadius.circular(responsive.radius(16)),
         ),
       ),
@@ -715,7 +715,7 @@ class _VehicleCard extends StatelessWidget {
                 decoration: ShapeDecoration(
                   color: AppColors.surface,
                   shape: RoundedRectangleBorder(
-                    side: const BorderSide(color: AppColors.border),
+                    side: const BorderSide(color: Colors.transparent),
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
@@ -906,7 +906,7 @@ class _PassengerRouteCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.surfaceMuted,
                 borderRadius: BorderRadius.circular(responsive.radius(10)),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: Colors.transparent),
               ),
               child: Row(children: [
                 const Icon(Icons.directions_car_outlined,
@@ -1167,7 +1167,7 @@ class _ConditionRow extends StatelessWidget {
           decoration: ShapeDecoration(
             color: AppColors.primaryLight,
             shape: RoundedRectangleBorder(
-              side: const BorderSide(color: AppColors.border),
+              side: const BorderSide(color: Colors.transparent),
               borderRadius: BorderRadius.circular(9999),
             ),
           ),
@@ -1337,7 +1337,7 @@ class _PriceCard extends StatelessWidget {
               decoration: ShapeDecoration(
                 color: AppColors.primaryLight,
                 shape: RoundedRectangleBorder(
-                  side: const BorderSide(color: AppColors.border),
+                  side: const BorderSide(color: Colors.transparent),
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
@@ -1702,7 +1702,7 @@ class _ExistingReservationActions extends StatelessWidget {
           message:
               "Merci d'avoir voyagé avec MINIZON. N'oubliez pas d'évaluer votre conducteur !",
           bgColor: AppColors.surfaceMuted,
-          borderColor: AppColors.border,
+          borderColor: Colors.transparent,
           iconColor: AppColors.textSecondary,
           textColor: AppColors.textSecondary,
         ),
@@ -1835,7 +1835,7 @@ class _LocalAvatar extends StatelessWidget {
       decoration: ShapeDecoration(
         color: AppColors.surface,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Colors.transparent),
           borderRadius: BorderRadius.circular(circle ? 9999 : 16),
         ),
       ),

@@ -66,7 +66,7 @@ class PaymentSuccessView extends StatelessWidget {
 									onTap: controller.goHome,
 									backgroundColor: Colors.white,
 									textColor: AppColors.textSecondary,
-									borderColor: AppColors.border,
+									borderColor: Colors.transparent,
 									height: responsive.h(56),
 									borderRadius: responsive.radius(16),
 								),
@@ -269,7 +269,7 @@ class _ItineraryCard extends StatelessWidget {
 				decoration: ShapeDecoration(
 					color: AppColors.white,
 					shape: RoundedRectangleBorder(
-						side: const BorderSide(color: AppColors.border),
+						side: const BorderSide(color: Colors.transparent),
 						borderRadius: BorderRadius.circular(responsive.radius(16)),
 					),
 					shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 8, offset: Offset(0, 2))],
@@ -378,7 +378,7 @@ class _PaymentBreakdownCard extends StatelessWidget {
 				decoration: ShapeDecoration(
 					color: AppColors.white,
 					shape: RoundedRectangleBorder(
-						side: const BorderSide(color: AppColors.border),
+						side: const BorderSide(color: Colors.transparent),
 						borderRadius: BorderRadius.circular(responsive.radius(16)),
 					),
 					shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 8, offset: Offset(0, 2))],
@@ -539,7 +539,7 @@ class _TripDetailsCard extends StatelessWidget {
 				decoration: ShapeDecoration(
 					color: AppColors.white,
 					shape: RoundedRectangleBorder(
-						side: const BorderSide(color: AppColors.border),
+						side: const BorderSide(color: Colors.transparent),
 						borderRadius: BorderRadius.circular(responsive.radius(20)),
 					),
 					shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 12, offset: Offset(0, 2))],
@@ -731,7 +731,7 @@ class _ShareArrivalTileState extends State<_ShareArrivalTile> {
 			decoration: ShapeDecoration(
 				color: _sharing ? AppColors.successSurface : AppColors.white,
 				shape: RoundedRectangleBorder(
-					side: BorderSide(color: _sharing ? AppColors.primaryMedium : AppColors.border),
+					side: BorderSide(color: _sharing ? AppColors.primaryMedium : Colors.transparent),
 					borderRadius: BorderRadius.circular(14),
 				),
 			),

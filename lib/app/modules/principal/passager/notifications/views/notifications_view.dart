@@ -159,7 +159,7 @@ class _CategoryChips extends StatelessWidget {
 									decoration: BoxDecoration(
 										color: selected ? AppColors.primary : AppColors.surfaceMuted,
 										borderRadius: BorderRadius.circular(9999),
-										border: Border.all(color: selected ? AppColors.primary : AppColors.border),
+										border: Border.all(color: selected ? AppColors.primary : Colors.transparent),
 									),
 									child: Text(
 										label,
@@ -237,7 +237,7 @@ class _NotificationTile extends StatelessWidget {
 				decoration: ShapeDecoration(
 					color: notif.isRead ? AppColors.white : AppColors.successSurface,
 					shape: RoundedRectangleBorder(
-						side: BorderSide(color: notif.isRead ? AppColors.border : AppColors.primaryMedium),
+						side: BorderSide(color: notif.isRead ? Colors.transparent : AppColors.primaryMedium),
 						borderRadius: BorderRadius.circular(responsive.radius(16)),
 					),
 					shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 6, offset: Offset(0, 1))],
@@ -453,7 +453,7 @@ class _RoundBtn extends StatelessWidget {
 					decoration: BoxDecoration(
 						shape: BoxShape.circle,
 						color: AppColors.surfaceMuted,
-						border: Border.all(color: AppColors.border),
+						border: Border.all(color: Colors.transparent),
 					),
 					child: Icon(icon, size: responsive.text(20), color: AppColors.textPrimary),
 				),

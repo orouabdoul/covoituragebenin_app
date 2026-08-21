@@ -201,7 +201,7 @@ class _FilterChips extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: isSelected ? AppColors.primary : AppColors.surface,
                         borderRadius: BorderRadius.circular(r.adaptive(phone: 20, smallPhone: 18, tablet: 24, desktop: 28)),
-                        border: Border.all(color: isSelected ? AppColors.primary : AppColors.border),
+                        border: Border.all(color: isSelected ? AppColors.primary : Colors.transparent),
                       ),
                       child: Text(
                         _labels[f]!,

@@ -193,7 +193,7 @@ class _ReplySheetState extends State<_ReplySheet> {
               decoration: BoxDecoration(
                 color: AppColors.surface,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.border, width: 1.5),
+                border: Border.all(color: Colors.transparent, width: 1.5),
               ),
               child: TextField(
                 controller: _replyCtrl,
@@ -218,7 +218,7 @@ class _ReplySheetState extends State<_ReplySheet> {
                       decoration: BoxDecoration(
                         color: AppColors.surface,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.border),
+                        border: Border.all(color: Colors.transparent),
                       ),
                       child: const Center(
                         child: Text('Annuler',

@@ -88,20 +88,18 @@ class ConfirmationReservationController extends GetxController {
   final RxInt commissionRate = 5.obs;
   final RxInt maxPerBooking = 0.obs;
   final RxInt availableSeatsFromCtx = 0.obs;
-  final RxInt _pricePerSeat = 0.obs; // mis à jour par l'API → Obx se reconstruit
-  int _argsTotalAmount = 0;          // passé en args navigation — non-réactif
-  int _confirmedPrice = 0;           // prix confirmé par le sheet createBooking
+  final RxInt _pricePerSeat = 0.obs;
+  int _argsTotalAmount = 0;
+  int _confirmedPrice = 0;
   String _bookingMode = 'approval';
 
   // ── Distance / prorata ────────────────────────────────────────────────────
   final RoutingService _routing = RoutingService();
-  final RxDouble passengerDistanceKm = 0.0.obs; // pickup→dropoff du passager
-  final RxDouble _tripDistanceKm = 0.0.obs;     // trajet complet conducteur
+  final RxDouble passengerDistanceKm = 0.0.obs;
+  final RxDouble _tripDistanceKm = 0.0.obs;
 
   int get estimatedPricePerSeat => _pricePerSeat.value;
 
-  /// Prix par place au prorata de la distance passager / distance trajet.
-  /// Retourne le prix plein si les distances ne sont pas encore disponibles.
   int get estimatedProratedPricePerSeat {
     final perSeat = _pricePerSeat.value;
     if (perSeat == 0) return 0;
@@ -112,16 +110,15 @@ class ConfirmationReservationController extends GetxController {
     return (ratio * perSeat).round().clamp(1, perSeat);
   }
 
-  /// Vrai si on a calculé un prix proratisé (pickup/dropoff connus).
   bool get isPriceProrated =>
       passengerDistanceKm.value > 0 &&
       _tripDistanceKm.value > 0 &&
       _pricePerSeat.value > 0;
 
   String _bookingUuid = '';
-  String _paymentStatus = ''; // 'escrow_locked' = déjà payé, évite un 2e appel /pay
+  String _paymentStatus = '';
   bool _priceConfirmed = false;
-  bool _paymentInFlight = false; // guard synchrone anti-double-tap
+  bool _paymentInFlight = false;
 
   Timer? _otpCountdownTimer;
 
@@ -144,12 +141,11 @@ class ConfirmationReservationController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    // Initialise avec toutes les villes (sans priorité tant que le trajet n'est pas connu)
     final allCities = BeninLocations.cities;
     pickupCityItems.assignAll(allCities);
     dropoffCityItems.assignAll(allCities);
 
-    _autoLocate(); // Détection GPS automatique dès l'ouverture de la page
+    _autoLocate();
 
     final dynamic savedArgs = Get.arguments;
     if (savedArgs is Map<String, dynamic>) {
@@ -157,8 +153,8 @@ class ConfirmationReservationController extends GetxController {
       if (selectedRide is SearchRide) {
         ride.value = selectedRide;
         _buildCityLists(selectedRide);
-        _tripDistanceKm.value = selectedRide.distanceKm; // Haversine déjà calculé
-        unawaited(_fetchTripDistanceOsrm(selectedRide)); // affine via OSRM
+        _tripDistanceKm.value = selectedRide.distanceKm;
+        unawaited(_fetchTripDistanceOsrm(selectedRide));
         if (selectedRide.uuid.isNotEmpty) _fetchContext(selectedRide.uuid);
         final available = selectedRide.seatsAvailable;
         if (available > 0 && reservedSeats.value > available) {
@@ -177,8 +173,6 @@ class ConfirmationReservationController extends GetxController {
       if (bUuid is String) _bookingUuid = bUuid;
       final dynamic pStatus = savedArgs['paymentStatus'];
       if (pStatus is String) _paymentStatus = pStatus;
-      // Montant passé par navigation → stocké sans mise à jour réactive
-      // (évite un setState-during-build quand le contrôleur est initialisé lazily)
       final dynamic passedTotal = savedArgs['totalAmount'];
       if (passedTotal is int && passedTotal > 0) {
         _argsTotalAmount = passedTotal;
@@ -189,14 +183,12 @@ class ConfirmationReservationController extends GetxController {
   // ── Listes de villes ordonnées selon le trajet ────────────────────────────
 
   void _buildCityLists(SearchRide r) {
-    // Villes définies dans le trajet du conducteur
     final tripCities = <String>[
       r.origin,
       if (r.waypointCity != null && r.waypointCity!.isNotEmpty) r.waypointCity!,
       r.destination,
     ].where((c) => BeninLocations.citiesWithDistricts.containsKey(c)).toList();
 
-    // Pickup : villes du trajet sauf la destination (généralement)
     final pickupPriority = tripCities
         .where((c) => c != r.destination)
         .toList();
@@ -205,7 +197,6 @@ class ConfirmationReservationController extends GetxController {
     pickupCityItems.assignAll(
         BeninLocations.orderedCities(pickupPriority));
 
-    // Dropoff : toutes les villes du trajet, destination en premier
     final dropoffPriority = [
       if (tripCities.contains(r.destination)) r.destination,
       ...tripCities.where((c) => c != r.destination),
@@ -223,8 +214,6 @@ class ConfirmationReservationController extends GetxController {
     pickupCityController.text = city;
     pickupSelectedNeighborhood.value = null;
     pickupNeighborhoodController.text = '';
-    // Toujours utiliser les coords centre-ville quand l'utilisateur choisit
-    // explicitement une ville. Le GPS ne doit pas bloquer cette mise à jour.
     final coords = BeninLocations.getCityCoords(city);
     if (coords != null) {
       pickupLat.value = coords.lat;
@@ -285,7 +274,6 @@ class ConfirmationReservationController extends GetxController {
 
   // ── GPS auto-détection ────────────────────────────────────────────────────
 
-  // Vérifie que les coordonnées sont dans les limites du Bénin
   bool _isInBenin(double lat, double lng) =>
       lat >= 6.0 && lat <= 12.5 && lng >= 0.8 && lng <= 3.8;
 
@@ -295,14 +283,12 @@ class ConfirmationReservationController extends GetxController {
       final pos = await _getPosition();
       if (pos != null && _isInBenin(pos.latitude, pos.longitude)) {
         _gpsPosition = pos;
-        // Ne pas écraser les coords si l'utilisateur a déjà sélectionné une ville.
         if (pickupSelectedCity.value == null) {
           pickupLat.value = pos.latitude;
           pickupLng.value = pos.longitude;
         }
         logger.d('GPS Bénin: (${pos.latitude}, ${pos.longitude})');
       } else if (pos != null) {
-        // Position hors Bénin (émulateur) → ignorée, les coords de ville seront utilisées
         logger.w('GPS hors Bénin ignoré: (${pos.latitude}, ${pos.longitude})');
       }
     } finally {
@@ -321,11 +307,9 @@ class ConfirmationReservationController extends GetxController {
       return null;
     }
     try {
-      // Essayer la dernière position connue d'abord (instantané)
       final last = await Geolocator.getLastKnownPosition();
       if (last != null) return last;
 
-      // Sinon demander une position fraîche (medium = GPS + réseau, fonctionne sur émulateur)
       return await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.medium,
@@ -417,17 +401,14 @@ class ConfirmationReservationController extends GetxController {
     maxPerBooking.value = ctx.trip.maxPerBooking;
     _pricePerSeat.value = ctx.trip.pricePerSeat;
     _bookingMode = ctx.trip.bookingMode;
-    // Distance trajet depuis le backend (si OSRM n'a pas encore répondu)
     final ctxDist = double.tryParse(ctx.trip.distanceKm) ?? 0.0;
     if (ctxDist > 0 && _tripDistanceKm.value <= 0) {
       _tripDistanceKm.value = ctxDist;
       logger.d('Trip distance from context: ${ctxDist.toStringAsFixed(1)}km');
     }
-    // Source authoritative pour les places disponibles
     if (ctx.trip.availableSeats > 0) {
       availableSeatsFromCtx.value = ctx.trip.availableSeats;
     }
-    // Clamp la sélection courante au nouveau max
     final newMax = maxSeats;
     if (newMax > 0 && reservedSeats.value > newMax) {
       reservedSeats.value = newMax;
@@ -483,20 +464,18 @@ class ConfirmationReservationController extends GetxController {
   String get cardCodeLabel => AppStrings.reservationCardCodeLabel;
   String get cardCodeHint => AppStrings.reservationCardCodeHint;
 
-  // Nombre de places réellement disponibles (contexte API prioritaire sur recherche)
   int get effectiveAvailable =>
       availableSeatsFromCtx.value > 0
           ? availableSeatsFromCtx.value
           : (ride.value?.seatsAvailable ?? 0);
 
-  // Max sélectionnable = min(places dispo, cap conducteur) ; 0 dans l'un = ignoré
   int get maxSeats {
     final available = effectiveAvailable;
-    final cap = maxPerBooking.value; // 0 = pas de cap côté conducteur
+    final cap = maxPerBooking.value;
     if (available > 0 && cap > 0) return available < cap ? available : cap;
     if (available > 0) return available;
     if (cap > 0) return cap;
-    return 0; // indéterminé (contexte pas encore chargé)
+    return 0;
   }
 
   void incrementSeats() {
@@ -609,11 +588,9 @@ class ConfirmationReservationController extends GetxController {
   void _showPriceSheet(CreateBookingResult booking) {
     _priceConfirmed = false;
 
-    // Prix confirmé = price_total retourné par le backend (inclut frais de service)
     if (booking.priceTotal > 0) {
       _confirmedPrice = booking.priceTotal;
     } else if (booking.calculatedPrice > 0) {
-      // Fallback : recalcul local si price_total absent
       final subtotal = booking.calculatedPrice * reservedSeats.value;
       _confirmedPrice = subtotal + (subtotal * commissionRate.value / 100).round();
     } else if (_pricePerSeat.value > 0) {
@@ -644,7 +621,6 @@ class ConfirmationReservationController extends GetxController {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
     ).then((_) {
-      // Déclenché sur fermeture par swipe (ni Annuler ni Continuer pressés)
       if (!_priceConfirmed && _bookingUuid.isNotEmpty) _cancelAndDismiss();
     });
   }
@@ -653,13 +629,13 @@ class ConfirmationReservationController extends GetxController {
     Get.back();
     if (_bookingUuid.isEmpty) return;
     final uuid = _bookingUuid;
-    _bookingUuid = ''; // reset immédiat pour permettre un nouvel essai
+    _bookingUuid = '';
     await _service.cancelBooking(uuid);
     AppSync.i.refreshPassenger();
   }
 
   void _proceedToNextStep() {
-    _priceConfirmed = true; // empêche l'annulation automatique via .then()
+    _priceConfirmed = true;
     Get.back();
     if (_bookingUuid.isEmpty) return;
 
@@ -673,9 +649,6 @@ class ConfirmationReservationController extends GetxController {
         'totalAmount': totalAmount,
       });
     } else {
-      // Mode approbation : retour direct à l'accueil, la notification push
-      // 'reservation_accepted' ramènera le passager vers le paiement quand
-      // le conducteur valide.
       AppSync.i.refreshPassenger();
       BottonNavController.goToTab(0);
       UIHelper().showSnackBar(
@@ -709,17 +682,13 @@ class ConfirmationReservationController extends GetxController {
   }
 
   int get totalAmount {
-    // Priorité 0 : prix confirmé par le sheet (calculatedPrice du backend)
     if (_confirmedPrice > 0) return _confirmedPrice;
-    // Priorité 1 : prix proratisé (ou plein si pas de distances) depuis l'API
     final perSeat = estimatedProratedPricePerSeat;
     if (perSeat > 0) {
       final base = perSeat * reservedSeats.value;
       return base + (base * commissionRate.value / 100).round();
     }
-    // Priorité 2 : montant transmis par les arguments de navigation (non-réactif)
     if (_argsTotalAmount > 0) return _argsTotalAmount;
-    // Priorité 3 : fallback depuis la chaîne de prix du trajet
     final price = ride.value?.price ?? '';
     if (price.isNotEmpty) {
       final digits = price.replaceAll(RegExp(r'[^0-9]'), '');
@@ -740,9 +709,6 @@ class ConfirmationReservationController extends GetxController {
         UIHelper().showSnackBar('MINIZON', 'Réservation introuvable. Veuillez recommencer.', 3);
         return;
       }
-      // Si la réservation est déjà en escrow (paiement précédent validé par FedaPay),
-      // on ne rappelle pas /pay pour éviter de créer une 2e transaction FedaPay.
-      // On va directement à l'écran de succès avec les données disponibles.
       if (_paymentStatus == 'escrow_locked') {
         Get.offNamed(AppRoutes.passengerPaymentSuccess, arguments: {
           'ride': ride.value,
@@ -757,10 +723,8 @@ class ConfirmationReservationController extends GetxController {
       String provider;
 
       if (isCardPayment) {
-        // Carte bancaire : FedaPay gère la saisie des infos sur sa page de paiement
         provider = 'card';
       } else {
-        // Mobile Money : téléphone obligatoire
         final rawPhone = paymentContactController.text.trim().replaceAll(RegExp(r'\s'), '');
         if (rawPhone.isEmpty) {
           UIHelper().showSnackBar('MINIZON', 'Veuillez entrer votre numéro de téléphone.', 2);
@@ -789,7 +753,6 @@ class ConfirmationReservationController extends GetxController {
         return;
       }
 
-      // Le WebView gère le polling et la navigation vers le succès en interne
       Get.toNamed(AppRoutes.passengerPaymentWebview, arguments: {
         'paymentUrl': result.data!.paymentUrl,
         'paymentUuid': result.data!.paymentUuid,
@@ -899,7 +862,7 @@ class _PriceConfirmSheet extends StatelessWidget {
             booking.passengerDistanceKm > 0
                 ? 'Calculé sur ${booking.formattedPassengerDistance} de trajet'
                 : 'Basé sur le tarif du conducteur',
-            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
           ),
           // ── Prise et dépôt ───────────────────────────────────────────────
           if (pickupCity.isNotEmpty || dropoffCity.isNotEmpty) ...[
@@ -911,11 +874,10 @@ class _PriceConfirmSheet extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.surface,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: Colors.transparent),
               ),
               child: Column(
                 children: [
-                  // Prise
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -925,7 +887,7 @@ class _PriceConfirmSheet extends StatelessWidget {
                           Container(
                             width: 10,
                             height: 10,
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                               color: AppColors.primary,
                               shape: BoxShape.circle,
                             ),
@@ -961,7 +923,6 @@ class _PriceConfirmSheet extends StatelessWidget {
                       ),
                     ],
                   ),
-                  // Dépôt
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -970,8 +931,8 @@ class _PriceConfirmSheet extends StatelessWidget {
                           Container(
                             width: 10,
                             height: 10,
-                            decoration: BoxDecoration(
-                              color: AppColors.danger,
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -1065,20 +1026,19 @@ class _PriceConfirmSheet extends StatelessWidget {
                   seats > 1 && booking.calculatedPrice > 0
                       ? '${_fmt(booking.calculatedPrice)} FCFA × $seats places + frais'
                       : 'pour 1 place (frais inclus)',
-                  style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 16),
-          // ── Détail tarifaire ─────────────────────────────────────────
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: Colors.transparent),
             ),
             child: Column(
               children: [
@@ -1164,7 +1124,7 @@ class _PriceConfirmSheet extends StatelessWidget {
             child: Text(
               'Annuler',
               style: TextStyle(
-                  color: AppColors.textSecondary,
+                  color: Colors.grey[600],
                   fontSize: 14,
                   fontWeight: FontWeight.w600),
             ),
@@ -1190,11 +1150,11 @@ class _DetailRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: AppColors.textHint),
+        Icon(icon, size: 16, color: Colors.grey[500]),
         const SizedBox(width: 8),
         Expanded(
           child: Text(label,
-              style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+              style: TextStyle(fontSize: 13, color: Colors.grey[600])),
         ),
         Text(
           value,

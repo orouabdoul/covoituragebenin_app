@@ -102,7 +102,7 @@ class _Header extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.surface,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: Colors.transparent),
               ),
               child: const Icon(Icons.arrow_back_ios_new_rounded,
                   size: 18, color: AppColors.textPrimary),
@@ -194,7 +194,7 @@ class _SummaryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: Colors.transparent),
         boxShadow: const [
           BoxShadow(
               color: AppColors.shadowSoft,
@@ -298,7 +298,7 @@ class _ReviewCard extends StatelessWidget {
         border: Border.all(
           color: review.needsReply
               ? AppColors.warningLight
-              : AppColors.border,
+              : Colors.transparent,
           width: review.needsReply ? 1.5 : 1,
         ),
         boxShadow: const [
@@ -487,7 +487,7 @@ class _ReactButton extends StatelessWidget {
           border: Border.all(
             color: active
                 ? activeColor.withValues(alpha: 0.4)
-                : AppColors.border,
+                : Colors.transparent,
           ),
         ),
         child: Row(

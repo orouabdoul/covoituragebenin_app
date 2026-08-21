@@ -156,7 +156,7 @@ class _SearchBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: Colors.transparent),
       ),
       child: Row(
         children: [
@@ -279,7 +279,7 @@ class _TopicCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: Colors.transparent),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -324,7 +324,7 @@ class _ContactCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.white,
               borderRadius: BorderRadius.circular(r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: Colors.transparent),
             ),
             child: Row(
               children: [
@@ -379,7 +379,7 @@ class _ContactCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.white,
               borderRadius: BorderRadius.circular(r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: Colors.transparent),
             ),
             child: Row(
               children: [
@@ -432,7 +432,7 @@ class _TicketsSection extends StatelessWidget {
         color: AppColors.white,
         borderRadius:
             BorderRadius.circular(r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: Colors.transparent),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -527,7 +527,7 @@ class _TicketCard extends StatelessWidget {
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(
               r.adaptive(phone: 10, smallPhone: 9, tablet: 12, desktop: 14)),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: Colors.transparent),
         ),
         child: Row(
           children: [

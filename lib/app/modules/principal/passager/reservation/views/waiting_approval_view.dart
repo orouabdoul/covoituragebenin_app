@@ -295,7 +295,7 @@ class _RoundIconButton extends StatelessWidget {
 					decoration: ShapeDecoration(
 						color: AppColors.white,
 						shape: RoundedRectangleBorder(
-							side: const BorderSide(color: AppColors.border),
+							side: const BorderSide(color: Colors.transparent),
 							borderRadius: BorderRadius.circular(9999),
 						),
 					),
@@ -435,7 +435,7 @@ class _TripInfoCard extends StatelessWidget {
 				decoration: ShapeDecoration(
 					color: AppColors.white,
 					shape: RoundedRectangleBorder(
-						side: const BorderSide(color: AppColors.border),
+						side: const BorderSide(color: Colors.transparent),
 						borderRadius: BorderRadius.circular(responsive.radius(20)),
 					),
 					shadows: const [

@@ -513,7 +513,7 @@ class _CancellationDialog extends StatelessWidget {
 									child: OutlinedButton(
 										onPressed: Get.back,
 										style: OutlinedButton.styleFrom(
-											side: const BorderSide(color: AppColors.border),
+											side: const BorderSide(color: Colors.transparent),
 											padding: EdgeInsets.symmetric(vertical: responsive.h(14)),
 											shape: RoundedRectangleBorder(
 												borderRadius: BorderRadius.circular(responsive.radius(12)),
@@ -715,7 +715,7 @@ class _InvoiceSheetState extends State<_InvoiceSheet> {
 						decoration: BoxDecoration(
 							color: AppColors.surfaceMuted,
 							borderRadius: BorderRadius.circular(responsive.radius(14)),
-							border: Border.all(color: AppColors.border),
+							border: Border.all(color: Colors.transparent),
 						),
 						child: Column(
 							children: [
