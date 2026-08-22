@@ -41,6 +41,12 @@ class SearchView extends StatelessWidget {
 												);
 											}
 											final rides = controller.filteredSortedRides;
+											if (controller.hasError.value && rides.isEmpty) {
+												return _SearchErrorState(
+													responsive: responsive,
+													onRetry: controller.search,
+												);
+											}
 											if (rides.isEmpty && controller.hasSearched.value) {
 												return Column(
 													children: [
@@ -102,6 +108,49 @@ class SearchView extends StatelessWidget {
 					),
 				),
 			),
+		);
+	}
+}
+
+class _SearchErrorState extends StatelessWidget {
+	const _SearchErrorState({required this.responsive, required this.onRetry});
+
+	final AppResponsive responsive;
+	final VoidCallback onRetry;
+
+	@override
+	Widget build(BuildContext context) {
+		return Column(
+			children: [
+				_ResultsHeader(responsive: responsive, controller: Get.find<SearchController>()),
+				Expanded(
+					child: Center(
+						child: Padding(
+							padding: EdgeInsets.all(responsive.w(32)),
+							child: Column(
+								mainAxisSize: MainAxisSize.min,
+								children: [
+									Icon(Icons.wifi_off_rounded, size: responsive.text(52), color: AppColors.textHint),
+									SizedBox(height: responsive.h(16)),
+									Text(
+										'Impossible de rechercher un trajet',
+										style: AppTextStyles.homeSectionTitle(responsive),
+										textAlign: TextAlign.center,
+									),
+									SizedBox(height: responsive.h(8)),
+									Text(
+										'Vérifiez votre connexion puis réessayez.',
+										style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textSecondary),
+										textAlign: TextAlign.center,
+									),
+									SizedBox(height: responsive.h(20)),
+									AppPrimaryButton(responsive: responsive, label: 'Réessayer', onTap: onRetry),
+								],
+							),
+						),
+					),
+				),
+			],
 		);
 	}
 }

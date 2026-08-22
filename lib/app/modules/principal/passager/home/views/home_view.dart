@@ -243,6 +243,14 @@ class _TopBar extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
+                controller.greeting,
+                style: AppTextStyles.caption(responsive).copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: responsive.h(2)),
+              Text(
                 'Où allez-vous ?',
                 style: AppTextStyles.h6(responsive).copyWith(fontWeight: FontWeight.w700),
               ),
@@ -345,9 +353,13 @@ class _SearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: controller.openSearch,
-      child: Container(
+    return Semantics(
+      button: true,
+      label: 'Rechercher un trajet',
+      hint: 'Choisir une ville de départ, une destination et une date',
+      child: GestureDetector(
+        onTap: controller.openSearch,
+        child: Container(
         padding: EdgeInsets.symmetric(horizontal: responsive.w(16), vertical: responsive.h(13)),
         decoration: BoxDecoration(
           color: AppColors.white,
@@ -386,6 +398,7 @@ class _SearchBar extends StatelessWidget {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

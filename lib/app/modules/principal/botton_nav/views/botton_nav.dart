@@ -717,14 +717,21 @@ class _BottonNavItem extends StatelessWidget {
     final Color activeColor = AppColors.primary;
     final Color inactiveColor = AppColors.textGhost;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        splashColor: AppColors.surfaceAccentStrong,
-        highlightColor: Colors.transparent,
-        borderRadius: BorderRadius.circular(responsive.radius(18)),
-        child: Padding(
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: item.label,
+      hint: item.description,
+      child: Tooltip(
+        message: item.description,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            splashColor: AppColors.surfaceAccentStrong,
+            highlightColor: Colors.transparent,
+            borderRadius: BorderRadius.circular(responsive.radius(18)),
+            child: Padding(
           padding: EdgeInsets.symmetric(
             horizontal: responsive.w(6),
             vertical: responsive.h(4),
@@ -820,8 +827,10 @@ class _BottonNavItem extends StatelessWidget {
               ],
             ),
           ),
+            ),
           ),
         ),
+      ),
     );
   }
 }

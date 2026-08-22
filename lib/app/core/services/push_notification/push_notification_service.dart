@@ -78,8 +78,9 @@ const _allChannels = [
     _chGeneral,
     'Informations générales',
     description: 'Actualités et informations de la plateforme',
-    importance: Importance.defaultImportance,
-    playSound: false,
+    importance: Importance.high,
+    playSound: true,
+    enableVibration: true,
   ),
 ];
 
@@ -89,23 +90,31 @@ String _channelForType(String type) {
   switch (type) {
     // Trajets & réservations
     case 'reservation_new':
+    case 'new_reservation':
     case 'reservation_accepted':
+    case 'reservation_confirmed':
     case 'reservation_rejected':
+    case 'reservation_cancelled':
     case 'booking_cancelled':
     case 'trip_cancelled':
     case 'trip_published':
     case 'trip_started':
     case 'trip_proximity':
+    case 'driver_nearby':
+    case 'driver_arriving':
     case 'trip_ended':
     case 'trip_reminder':
     case 'trip_completed':
     case 'new_booking_request':
     case 'booking_status_changed':
+    case 'booking_created':
     case 'new_dispute':
       return _chTrip;
     // Paiements
     case 'payment_success':
     case 'payment_confirmed':
+    case 'payment_failed':
+    case 'payment_pending':
     case 'withdrawal_approved':
     case 'withdrawal_rejected':
     case 'withdrawal_requested':
@@ -114,6 +123,7 @@ String _channelForType(String type) {
     case 'refund_approved':
     case 'refund_rejected':
     case 'dispute_status_changed':
+    case 'commission_paid':
       return _chPayment;
     // Messagerie
     case 'message_new':
@@ -132,6 +142,8 @@ String _channelForType(String type) {
       return _chAccount;
     // Général (promos, infos)
     case 'promo_code_published':
+    case 'promotion_published':
+    case 'new_promotion':
     default:
       return _chGeneral;
   }
@@ -147,14 +159,19 @@ String _channelNameForId(String id) {
 Color _colorForType(String type) {
   switch (type) {
     case 'reservation_new':
+    case 'new_reservation':
     case 'reservation_accepted':
+    case 'reservation_confirmed':
     case 'trip_published':
     case 'trip_reminder':
     case 'new_booking_request':
+    case 'booking_created':
     case 'trip_completed':
       return AppColors.blueDark;
     case 'trip_started':
     case 'trip_proximity':
+    case 'driver_nearby':
+    case 'driver_arriving':
     case 'booking_status_changed':
       return AppColors.success;
     case 'trip_ended':
@@ -191,6 +208,8 @@ Color _colorForType(String type) {
     case 'sos_triggered':
       return AppColors.dangerDark;
     case 'promo_code_published':
+    case 'promotion_published':
+    case 'new_promotion':
       return AppColors.warning;
     default:
       return AppColors.blueDark;
@@ -206,7 +225,7 @@ String? _groupKeyForType(String type, Map<String, dynamic> data) {
 String _buildPayload(Map<String, dynamic> data) =>
     data.entries.map((e) => '${e.key}=${e.value}').join('&');
 
-int _notifId() => DateTime.now().millisecondsSinceEpoch ~/ 1000 % 100000;
+int _notifId() => DateTime.now().millisecondsSinceEpoch.remainder(1 << 31);
 
 // Notifs critiques : Priority.max + fullScreenIntent (visibles sur écran verrouillé)
 bool _isCriticalType(String type) {
@@ -419,9 +438,11 @@ class PushNotificationService {
         return true;
       case 'new_message':
       case 'message_new':
-        // Si l'utilisateur est déjà dans ce chat, on rafraîchit silencieusement
-        if (convUuid.isNotEmpty && _refreshActiveChat(convUuid)) return true;
-        return false; // pas dans le chat → afficher la notification
+        // Le chat est rafraîchi s'il est ouvert, mais l'alerte reste visible
+        // pour garantir un retour sonore même lorsque l'utilisateur consulte
+        // déjà la conversation.
+        if (convUuid.isNotEmpty) _refreshActiveChat(convUuid);
+        return false;
       default:
         return false;
     }
@@ -484,6 +505,18 @@ class PushNotificationService {
       if (message != null) {
         Future.delayed(const Duration(milliseconds: 800), () {
           _navigateFromMessage(message);
+        });
+      }
+    });
+
+    // Les notifications data-only sont affichées par le handler background
+    // via flutter_local_notifications et ne passent donc pas par FCM
+    // getInitialMessage().
+    _localNotifications.getNotificationAppLaunchDetails().then((details) {
+      final payload = details?.notificationResponse?.payload;
+      if (details?.didNotificationLaunchApp == true && payload != null) {
+        Future.delayed(const Duration(milliseconds: 800), () {
+          _navigate(_parsePayload(payload));
         });
       }
     });
@@ -573,6 +606,7 @@ class PushNotificationService {
       // ── Nouvelle réservation → conducteur ────────────────────────────────
       case 'new_booking_request':
       case 'reservation_new':
+      case 'new_reservation':
         if (isDriver) Get.toNamed(AppRoutes.driverReservations);
 
       // ── Changement de statut réservation (les deux rôles) ─────────────────
@@ -591,6 +625,7 @@ class PushNotificationService {
         }
 
       case 'reservation_accepted':
+      case 'reservation_confirmed':
         if (!isDriver) {
           Get.toNamed(
             AppRoutes.passengerWaitingApproval,
@@ -599,6 +634,7 @@ class PushNotificationService {
         }
 
       case 'reservation_rejected':
+      case 'reservation_cancelled':
         if (!isDriver) Get.toNamed(AppRoutes.passengerReservations);
 
       case 'booking_cancelled':
@@ -617,6 +653,8 @@ class PushNotificationService {
         }
 
       case 'trip_proximity':
+      case 'driver_nearby':
+      case 'driver_arriving':
         if (!isDriver) {
           Get.toNamed(
             AppRoutes.passengerDriverArrival,
@@ -666,6 +704,11 @@ class PushNotificationService {
         Get.toNamed(
           isDriver ? AppRoutes.driverPaymentHistory : AppRoutes.passengerReservations,
         );
+
+      case 'payment_failed':
+      case 'payment_pending':
+        if (!isDriver) Get.toNamed(AppRoutes.passengerReservations);
+        if (isDriver) Get.toNamed(AppRoutes.driverPaymentHistory);
 
       case 'payment_confirmed':
         if (!isDriver) {
@@ -730,6 +773,8 @@ class PushNotificationService {
 
       // ── Code promo ────────────────────────────────────────────────────────
       case 'promo_code_published':
+      case 'promotion_published':
+      case 'new_promotion':
         _showPromoBottomSheet(
           data['promo_code'] as String? ?? '',
           data['discount_value'] as String? ?? '',

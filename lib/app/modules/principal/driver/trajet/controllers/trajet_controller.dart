@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -38,6 +40,8 @@ class TrajetController extends GetxController {
     TrajetFilterType.completed: [],
     TrajetFilterType.canceled: [],
   };
+  bool _autoCancelInProgress = false;
+  Timer? _autoCancelTimer;
 
   // ── Getters used by the view (inside Obx — reads _tripsVersion) ──────────
 
@@ -83,10 +87,19 @@ class TrajetController extends GetxController {
   void onInit() {
     super.onInit();
     _loadTrips(selectedFilter.value);
+    _autoCancelTimer = Timer.periodic(const Duration(minutes: 5), (_) {
+      _loadTrips(selectedFilter.value);
+    });
     ever(AppSync.i.driverTrips, (_) {
       _tripsByFilter.clear();
       _loadTrips(selectedFilter.value);
     });
+  }
+
+  @override
+  void onClose() {
+    _autoCancelTimer?.cancel();
+    super.onClose();
   }
 
   // ── API ───────────────────────────────────────────────────────────────────
@@ -96,11 +109,46 @@ class TrajetController extends GetxController {
     final result = await _service.fetchTrips(status: _filterStatus(filter));
     isLoading.value = false;
     if (result.isSuccess) {
-      _applyTripsData(result.data!, filter);
+      final autoCancelled = await _autoCancelExpiredTrips(result.data!.trips);
+      _applyTripsData(
+        autoCancelled ? (await _service.fetchTrips(status: _filterStatus(filter))).data ?? result.data! : result.data!,
+        filter,
+      );
     } else {
       logger.w('driverTrips failed: ${result.error}');
       UIHelper().showSnackBar('MINIZON', result.error?.message ?? 'Impossible de charger les trajets.', 2);
     }
+  }
+
+  Future<bool> _autoCancelExpiredTrips(List<TripItemData> trips) async {
+    if (_autoCancelInProgress) return false;
+    _autoCancelInProgress = true;
+    var cancelledCount = 0;
+
+    for (final trip in trips) {
+      if (trip.uuid.isEmpty || trip.status != 'pending') continue;
+      final departure = DateTime.tryParse(trip.departureTime)?.toLocal();
+      if (departure == null ||
+          DateTime.now().isBefore(departure.add(const Duration(hours: 3)))) {
+        continue;
+      }
+
+      final cancellation = await _service.cancelTrip(trip.uuid);
+      if (cancellation.isSuccess) cancelledCount++;
+    }
+
+    _autoCancelInProgress = false;
+    if (cancelledCount == 0) return false;
+
+    UIHelper().showSnackBar(
+      'Trajet annulé',
+      cancelledCount == 1
+          ? 'Votre trajet a été annulé automatiquement après 3 heures.'
+          : '$cancelledCount trajets ont été annulés automatiquement après 3 heures.',
+      4,
+    );
+    AppSync.i.refreshDriverTrips();
+    return true;
   }
 
   void _applyTripsData(TripsModel data, TrajetFilterType filter) {

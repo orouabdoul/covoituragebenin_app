@@ -832,9 +832,9 @@ class _ComposerState extends State<_Composer>
   final _recorder = AudioRecorder();
   bool _isRecording = false;
   bool _isLocked = false;
-  bool _isCancelled = false;
   bool _isStopping = false;
   int _recordSeconds = 0;
+  Offset _panOrigin = Offset.zero;
   Timer? _chronoTimer;
   late final AnimationController _pulseCtrl;
   late final Animation<double> _pulseAnim;
@@ -853,7 +853,6 @@ class _ComposerState extends State<_Composer>
 
   Future<void> _startRecording() async {
     if (!await _recorder.hasPermission()) return;
-    _isCancelled = false;
     _isStopping = false;
     _isLocked = false;
     _recordSeconds = 0;
@@ -995,11 +994,18 @@ class _ComposerState extends State<_Composer>
                             );
                           }
                           return GestureDetector(
+                            onPanStart: (details) {
+                              _panOrigin = details.localPosition;
+                            },
+                            onPanUpdate: (details) {
+                              if (_isRecording || _isStopping) return;
+                              final dy = details.localPosition.dy - _panOrigin.dy;
+                              if (dy < -15) _startRecording();
+                            },
                             onLongPressStart: (_) => _startRecording(),
                             onLongPressMoveUpdate: (details) {
                               if (!_isRecording || _isStopping) return;
                               if (details.offsetFromOrigin.dx < -80) {
-                                _isCancelled = true;
                                 _stopAndSend(cancelled: true);
                               }
                               if (details.offsetFromOrigin.dy < -60 &&
@@ -1008,8 +1014,8 @@ class _ComposerState extends State<_Composer>
                               }
                             },
                             onLongPressEnd: (_) {
-                              if (_isLocked) return;
-                              if (!_isCancelled) _stopAndSend();
+                              // L'enregistrement reste actif pour permettre de
+                              // verifier l'audio avant d'appuyer sur Envoyer.
                             },
                             child: Container(
                               width: responsive.w(40),
@@ -1112,19 +1118,17 @@ class _ComposerState extends State<_Composer>
                   ),
                   SizedBox(width: responsive.w(12)),
                   GestureDetector(
-                    onTap: _isLocked ? () => _stopAndSend() : null,
+                    onTap: () => _stopAndSend(),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       width: responsive.w(40),
                       height: responsive.w(40),
                       decoration: BoxDecoration(
-                        color: _isLocked
-                            ? AppColors.primary
-                            : AppColors.danger,
+                        color: AppColors.primary,
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        _isLocked ? Icons.send_rounded : Icons.mic_rounded,
+                        Icons.send_rounded,
                         color: Colors.white,
                         size: responsive.w(20),
                       ),

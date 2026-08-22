@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
 import 'app_responsive.dart';
-import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 
 class AppTextStyles {
   static const String _fontFamily = 'Inter';

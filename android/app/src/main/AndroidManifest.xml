@@ -33,14 +33,6 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <!-- FCM : réception des notifications même app fermée -->
-        <service
-            android:name="com.google.firebase.messaging.FirebaseMessagingService"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.google.firebase.MESSAGING_EVENT"/>
-            </intent-filter>
-        </service>
         <!-- Icône monochrome blanche pour le statut bar (obligatoire Android 5+) -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"

@@ -167,7 +167,7 @@ class FaceVerificationService {
       if (cardFaces.isEmpty) {
         // Fallback : essayer sur la carte complète si la zone recadrée a échoué
         if (idCardFaceZone != null) {
-          return verify(
+          return await verify(
               selfieFront: selfieFront, idCardFront: idCardFront);
         }
         return const IdentityVerificationResult(

@@ -38,6 +38,7 @@ class ReservationController extends GetxController {
 	static const _kPaidIdsKey = 'confirmed_paid_booking_ids';
 	// Bloque _fetch() via ever() jusqu'à ce que les IDs persistés soient chargés
 	bool _idsLoaded = false;
+	bool _autoCancelInProgress = false;
 
 	String? activeTripUuid;
 
@@ -391,12 +392,16 @@ class ReservationController extends GetxController {
 	// Annule silencieusement toute réservation pending/confirmée dont le départ
 	// était il y a plus de 3 heures sans que le conducteur ait démarré.
 	Future<void> _checkAndAutoCancelExpired() async {
+		if (_autoCancelInProgress) return;
+		_autoCancelInProgress = true;
 		final now = DateTime.now();
 		const grace = Duration(hours: 3);
 
 		final expired = _allReservations.where((r) {
 			if (r.status != ReservationStatus.pending &&
-			    r.status != ReservationStatus.confirmed) return false;
+			    r.status != ReservationStatus.confirmed) {
+				return false;
+			}
 			final raw = r.departureDateTime;
 			if (raw == null || raw.isEmpty) return false;
 			try {
@@ -406,9 +411,11 @@ class ReservationController extends GetxController {
 			}
 		}).toList();
 
+		var cancelledCount = 0;
 		for (final r in expired) {
 			final result = await _service.cancelBooking(r.id);
 			if (!result.isSuccess) continue;
+			cancelledCount++;
 			final idx = _allReservations.indexWhere((item) => item.id == r.id);
 			if (idx >= 0) {
 				_allReservations[idx] = r.copyWith(
@@ -418,12 +425,15 @@ class ReservationController extends GetxController {
 				);
 			}
 		}
+		_autoCancelInProgress = false;
 
-		if (expired.isNotEmpty) {
+		if (cancelledCount > 0) {
 			_updateTabCounts();
 			UIHelper().showSnackBar(
 				'Réservation annulée',
-				'Le conducteur n\'a pas démarré dans les 3 heures prévues.',
+				cancelledCount == 1
+						? 'Le conducteur n\'a pas démarré dans les 3 heures prévues.'
+						: '$cancelledCount réservations ont été annulées automatiquement.',
 				4,
 			);
 			AppSync.i.refreshPassenger();

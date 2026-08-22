@@ -5,26 +5,26 @@
 // gestures. You can also use WidgetTester to find child widgets in the widget
 // tree, read text, and verify that the values of widget properties are correct.
 
-import 'package:flutter/material.dart';
+import 'package:covoiturage_benin_app/app/routes/app_pages.dart';
+import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:covoiturage_benin_app/main.dart';
-
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  test('les routes principales sont enregistrees', () {
+    final routeNames = AppPages.pages.map((page) => page.name).toSet();
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    expect(routeNames, containsAll(<String>[
+      AppRoutes.splash,
+      AppRoutes.onboarding,
+      AppRoutes.roles,
+      AppRoutes.register,
+      AppRoutes.dashboardDriver,
+      AppRoutes.dashboardPassenger,
+    ]));
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  test('les routes conducteur et passager restent distinctes', () {
+    expect(AppRoutes.dashboardDriver, isNot(AppRoutes.dashboardPassenger));
+    expect(AppRoutes.driverTrips, isNot(AppRoutes.passengerReservations));
   });
 }

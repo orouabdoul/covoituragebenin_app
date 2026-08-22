@@ -342,25 +342,25 @@ class ProfileDriverController extends GetxController {
     final errors = data['errors'];
     if (errors is! Map) return;
 
-    String _first(dynamic v) {
+    String firstError(dynamic v) {
       if (v is List && v.isNotEmpty) return v.first.toString();
       if (v is String) return v;
       return '';
     }
 
-    if (errors['first_name'] != null) firstNameError.value = _first(errors['first_name']);
-    if (errors['last_name'] != null) lastNameError.value = _first(errors['last_name']);
-    if (errors['phone'] != null) phoneError.value = _first(errors['phone']);
-    if (errors['brand'] != null) brandError.value = _first(errors['brand']);
-    if (errors['model'] != null) modelError.value = _first(errors['model']);
-    if (errors['color'] != null) colorError.value = _first(errors['color']);
-    if (errors['license_plate'] != null) plateError.value = _first(errors['license_plate']);
-    if (errors['selfie_front'] != null) selfieError.value = _first(errors['selfie_front']);
-    if (errors['id_card_front'] != null) idCardError.value = _first(errors['id_card_front']);
-    if (errors['vehicle_photo'] != null) vehiclePhotoError.value = _first(errors['vehicle_photo']);
-    if (errors['registration_doc'] != null) registrationError.value = _first(errors['registration_doc']);
-    if (errors['driving_license_photo'] != null) licenseDocError.value = _first(errors['driving_license_photo']);
-    if (errors['insurance_doc'] != null) insuranceError.value = _first(errors['insurance_doc']);
+    if (errors['first_name'] != null) firstNameError.value = firstError(errors['first_name']);
+    if (errors['last_name'] != null) lastNameError.value = firstError(errors['last_name']);
+    if (errors['phone'] != null) phoneError.value = firstError(errors['phone']);
+    if (errors['brand'] != null) brandError.value = firstError(errors['brand']);
+    if (errors['model'] != null) modelError.value = firstError(errors['model']);
+    if (errors['color'] != null) colorError.value = firstError(errors['color']);
+    if (errors['license_plate'] != null) plateError.value = firstError(errors['license_plate']);
+    if (errors['selfie_front'] != null) selfieError.value = firstError(errors['selfie_front']);
+    if (errors['id_card_front'] != null) idCardError.value = firstError(errors['id_card_front']);
+    if (errors['vehicle_photo'] != null) vehiclePhotoError.value = firstError(errors['vehicle_photo']);
+    if (errors['registration_doc'] != null) registrationError.value = firstError(errors['registration_doc']);
+    if (errors['driving_license_photo'] != null) licenseDocError.value = firstError(errors['driving_license_photo']);
+    if (errors['insurance_doc'] != null) insuranceError.value = firstError(errors['insurance_doc']);
     update();
   }
 
@@ -602,8 +602,11 @@ class ProfileDriverController extends GetxController {
     final size = await File(file.path).length();
     if (size > _maxDocBytes) {
       final msg = 'Fichier trop lourd — max 10 Mo (actuel : ${(size / 1048576).toStringAsFixed(1)} Mo)';
-      if (isLicense) licenseDocError.value = msg;
-      else registrationError.value = msg;
+      if (isLicense) {
+        licenseDocError.value = msg;
+      } else {
+        registrationError.value = msg;
+      }
       update();
       return;
     }

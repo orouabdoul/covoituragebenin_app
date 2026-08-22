@@ -496,6 +496,12 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
   Future<void> loadMore() => _fetchThread(loadMore: true);
 
   Future<void> sendAudio(String filePath) async {
+    if (_uuid.isEmpty) {
+      UIHelper().showSnackBar('MINIZON', 'Conversation non initialisée.', 2);
+      return;
+    }
+    if (isSending.value) return;
+
     final optimistic = DetailMessage(
       kind: DetailMessageKind.outgoing,
       message: '',
@@ -548,6 +554,12 @@ class DriverDetailMessagerController extends GetxController with WidgetsBindingO
       }
       return;
     }
+
+    if (_uuid.isEmpty) {
+      UIHelper().showSnackBar('MINIZON', 'Conversation non initialisée.', 2);
+      return;
+    }
+    if (isSending.value) return;
 
     // ── Envoi normal ─────────────────────────────────────────────────────────
     messageController.clear();

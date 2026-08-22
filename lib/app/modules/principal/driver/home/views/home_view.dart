@@ -505,9 +505,14 @@ class _AvailabilitySection extends StatelessWidget {
                 ),
               ),
               Obx(
-                () => GestureDetector(
-                  onTap: controller.toggleAvailability,
-                  child: AnimatedContainer(
+                () => Semantics(
+                  toggled: controller.isOnline.value,
+                  label: 'Disponibilité conducteur',
+                  value: controller.isOnline.value ? 'En ligne' : 'Hors ligne',
+                  hint: 'Activer ou désactiver la réception de demandes',
+                  child: GestureDetector(
+                    onTap: controller.toggleAvailability,
+                    child: AnimatedContainer(
                     duration: const Duration(milliseconds: 220),
                     width: responsive.adaptive(phone: 64, smallPhone: 60, tablet: 66, desktop: 66),
                     height: responsive.adaptive(phone: 36, smallPhone: 34, tablet: 36, desktop: 36),
@@ -549,6 +554,7 @@ class _AvailabilitySection extends StatelessWidget {
                           ],
                         ),
                       ),
+                    ),
                     ),
                   ),
                 ),
