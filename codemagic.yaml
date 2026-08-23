@@ -1,6 +1,6 @@
  workflows:
   ios-unsigned:
-    name: iOS Unsigned Build
+    name: iOS Unsigned Build (IPA)
     max_build_duration: 30
     instance_type: mac_mini_m2
     environment:
@@ -10,6 +10,32 @@
     scripts:
       - name: Get Flutter packages
         script: flutter pub get
+      - name: Build unsigned iOS app (real device)
+        script: |
+          flutter build ios --release --no-codesign
+      - name: Create unsigned IPA
+        script: |
+          mkdir -p build/ios/iphoneos/Payload
+          cp -r build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/Runner.app
+          cd build/ios/iphoneos
+          zip -r covoituragebenin_app.ipa Payload
+    artifacts:
+      - build/ios/iphoneos/*.ipa
+
+  ios-simulator-preview:
+    name: iOS Simulator Preview
+    max_build_duration: 30
+    instance_type: mac_mini_m2
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Get Flutter packages
+        script: flutter pub get
+      - name: Disable Swift Package Manager
+        script: |
+          flutter config --no-enable-swift-package-manager
       - name: Build for simulator
         script: |
           flutter build ios --debug --simulator
@@ -24,15 +50,5 @@
           sleep 8
           mkdir -p screenshots
           xcrun simctl io booted screenshot screenshots/app_screenshot.png
-      - name: Build unsigned iOS app (real device)
-        script: |
-          flutter build ios --release --no-codesign
-      - name: Create unsigned IPA
-        script: |
-          mkdir -p build/ios/iphoneos/Payload
-          cp -r build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/Runner.app
-          cd build/ios/iphoneos
-          zip -r covoituragebenin_app.ipa Payload
     artifacts:
-      - build/ios/iphoneos/*.ipa
       - screenshots/*.png
