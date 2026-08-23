@@ -10,7 +10,21 @@ workflows:
     scripts:
       - name: Get Flutter packages
         script: flutter pub get
-      - name: Build unsigned iOS app
+      - name: Build for simulator
+        script: |
+          flutter build ios --debug --simulator
+      - name: Boot simulator and install app
+        script: |
+          xcrun simctl boot "iPhone 15" || true
+          sleep 10
+          xcrun simctl install booted build/ios/iphonesimulator/Runner.app
+      - name: Launch app and screenshot
+        script: |
+          xcrun simctl launch booted com.minizon.app
+          sleep 8
+          mkdir -p screenshots
+          xcrun simctl io booted screenshot screenshots/app_screenshot.png
+      - name: Build unsigned iOS app (real device)
         script: |
           flutter build ios --release --no-codesign
       - name: Create unsigned IPA
@@ -21,3 +35,4 @@ workflows:
           zip -r covoituragebenin_app.ipa Payload
     artifacts:
       - build/ios/iphoneos/*.ipa
+      - screenshots/*.png
