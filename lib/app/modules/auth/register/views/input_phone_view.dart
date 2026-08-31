@@ -132,16 +132,11 @@ class InputPhoneView extends GetView<InputPhoneController> {
 											Obx(() {
 												if (!controller.hasStartedTyping.value) return const SizedBox.shrink();
 												return Padding(
-													padding: EdgeInsets.only(top: responsive.h(8)),
-													child: Column(
-														crossAxisAlignment: CrossAxisAlignment.start,
-														children: [
-															_PhoneCondHint(ok: controller.condStartsWith01.value, label: 'Commence par 01'),
-															SizedBox(height: responsive.h(4)),
-															_PhoneCondHint(ok: controller.condLength.value, label: '10 chiffres au total'),
-															SizedBox(height: responsive.h(4)),
-															_PhoneCondHint(ok: controller.condPrefix.value, label: 'Préfixe opérateur valide (MTN, Moov, Celtiis)'),
-														],
+													padding: EdgeInsets.only(top: responsive.h(10)),
+													child: _PhoneValidationBar(
+														cond1: controller.condStartsWith01.value,
+														cond2: controller.condPrefix.value,
+														cond3: controller.condLength.value,
 													),
 												);
 											}),
@@ -206,30 +201,99 @@ class InputPhoneView extends GetView<InputPhoneController> {
 	}
 }
 
-class _PhoneCondHint extends StatelessWidget {
-	final bool ok;
-	final String label;
-	const _PhoneCondHint({required this.ok, required this.label});
+class _PhoneValidationBar extends StatelessWidget {
+	final bool cond1; // commence par 01
+	final bool cond2; // préfixe opérateur valide
+	final bool cond3; // 10 chiffres
+
+	const _PhoneValidationBar({
+		required this.cond1,
+		required this.cond2,
+		required this.cond3,
+	});
+
+	bool get _allValid => cond1 && cond2 && cond3;
+
+	String get _message {
+		if (!cond1) return 'Le numéro doit commencer par 01';
+		if (!cond2) return 'Préfixe opérateur non reconnu (MTN, Moov, Celtiis)';
+		if (!cond3) return 'Continuez la saisie…';
+		return 'Numéro valide';
+	}
 
 	@override
 	Widget build(BuildContext context) {
-		return Row(
+		return Column(
+			crossAxisAlignment: CrossAxisAlignment.start,
+			mainAxisSize: MainAxisSize.min,
 			children: [
-				Icon(
-					ok ? Icons.check_circle_rounded : Icons.cancel_rounded,
-					size: 14,
-					color: ok ? AppColors.success : AppColors.danger,
+				Row(
+					children: [
+						_PhoneSegment(filled: cond1),
+						const SizedBox(width: 5),
+						_PhoneSegment(filled: cond2),
+						const SizedBox(width: 5),
+						_PhoneSegment(filled: cond3),
+					],
 				),
-				const SizedBox(width: 6),
-				Text(
-					label,
-					style: TextStyle(
-						fontSize: 12,
-						color: ok ? AppColors.success : AppColors.danger,
-						fontWeight: FontWeight.w500,
+				const SizedBox(height: 7),
+				AnimatedSwitcher(
+					duration: const Duration(milliseconds: 250),
+					transitionBuilder: (child, anim) => FadeTransition(
+						opacity: anim,
+						child: SlideTransition(
+							position: Tween<Offset>(
+								begin: const Offset(0, 0.3),
+								end: Offset.zero,
+							).animate(anim),
+							child: child,
+						),
+					),
+					child: Row(
+						key: ValueKey(_message),
+						mainAxisSize: MainAxisSize.min,
+						children: [
+							if (_allValid)
+								Padding(
+									padding: const EdgeInsets.only(right: 5),
+									child: Icon(
+										Icons.check_circle_rounded,
+										size: 13,
+										color: AppColors.success,
+									),
+								),
+							Text(
+								_message,
+								style: TextStyle(
+									fontSize: 12,
+									color: _allValid ? AppColors.success : AppColors.textSecondary,
+									fontWeight: _allValid ? FontWeight.w600 : FontWeight.w400,
+								),
+							),
+						],
 					),
 				),
 			],
+		);
+	}
+}
+
+class _PhoneSegment extends StatelessWidget {
+	final bool filled;
+	const _PhoneSegment({required this.filled});
+
+	@override
+	Widget build(BuildContext context) {
+		return Expanded(
+			child: AnimatedContainer(
+				duration: const Duration(milliseconds: 350),
+				curve: Curves.easeOut,
+				height: 3.5,
+				decoration: BoxDecoration(
+					color: filled ? AppColors.success : AppColors.border,
+					borderRadius: BorderRadius.circular(9999),
+				),
+			),
 		);
 	}
 }

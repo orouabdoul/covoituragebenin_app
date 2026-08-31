@@ -179,6 +179,10 @@ class NotificationsController extends GetxController {
           data['discount_value'] as String? ?? '',
         );
 
+      // ── Avis ─────────────────────────────────────────────────────────────
+      case 'review_reply':
+        Get.toNamed(AppRoutes.passengerMyReviews);
+
       // ── Compte ───────────────────────────────────────────────────────────
       case 'kyc_status_changed':
         Get.toNamed(AppRoutes.passengerProfile);

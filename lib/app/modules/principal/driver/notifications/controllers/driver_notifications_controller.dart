@@ -156,6 +156,12 @@ class DriverNotificationsController extends GetxController {
         );
         return;
 
+      // ── Avis ─────────────────────────────────────────────────────────────
+      case 'review_new':
+      case 'review_reply':
+        Get.toNamed(AppRoutes.driverReviews);
+        return;
+
       // ── Compte & KYC ─────────────────────────────────────────────────────
       case 'kyc_status_changed':
       case 'account_verified':

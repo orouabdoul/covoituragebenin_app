@@ -98,7 +98,7 @@ class DriverNotificationModel {
       rawType:     resolvedType,
       title:       title,
       body:        body,
-      time:        (j['time'] ?? _formatCreatedAt(j['created_at'])).toString(),
+      time:        _formatCreatedAt(j['created_at']),
       isRead:      isRead,
       iconData:    icon,
       iconBg:      bg,
@@ -110,20 +110,24 @@ class DriverNotificationModel {
   // ── Mapping type → catégorie ──────────────────────────────────────────────
 
   static String _categoryFromType(String type) => switch (type) {
-        'new_booking_request' || 'booking_status_changed' ||
+        'new_booking_request' || 'booking_status_changed' || 'booking_status' ||
+        'booking_created' ||
         'reservation_new' || 'reservation_accepted' || 'reservation_rejected' ||
-        'booking_cancelled' || 'trip_cancelled'
+        'booking_cancelled' || 'trip_cancelled' || 'passenger_cancelled'
             => 'reservations',
         'trip_started' || 'trip_completed' || 'trip_ended' ||
-        'trip_proximity' || 'trip_reminder' || 'trip_published'
+        'trip_proximity' || 'trip_reminder' || 'trip_published' ||
+        'driver_approaching' || 'departure_reminder' || 'vehicle_status'
             => 'trips',
         'payment_confirmed' || 'payment_success' ||
         'withdrawal_requested' || 'withdrawal_processed' ||
         'withdrawal_approved' || 'withdrawal_rejected' ||
-        'payout_paid' || 'refund_approved' || 'refund_rejected'
+        'payout_paid' || 'refund_approved' || 'refund_rejected' ||
+        'passenger_payment' || 'commission_paid' ||
+        'dispute_against_driver' || 'dispute_update' || 'dispute_resolved'
             => 'payments',
         'message_new' || 'new_message' => 'messages',
-        'promo_code_published'          => 'promotions',
+        'promo_code_published' || 'promo_published' => 'promotions',
         _ => 'support',
       };
 

@@ -100,22 +100,26 @@ class PassengerNotificationModel {
   // ── Mapping type → catégorie ──────────────────────────────────────────────
 
   static String _categoryFromType(String type) => switch (type) {
-        'new_booking_request' || 'booking_status_changed' ||
+        'new_booking_request' || 'booking_status_changed' || 'booking_status' ||
+        'booking_created' ||
         'reservation_new' || 'reservation_accepted' || 'reservation_rejected' ||
-        'booking_cancelled' || 'trip_cancelled'
+        'booking_cancelled' || 'trip_cancelled' || 'passenger_cancelled'
             => 'reservations',
         'trip_started' || 'trip_completed' || 'trip_ended' ||
-        'trip_proximity' || 'trip_reminder' || 'trip_published'
+        'trip_proximity' || 'trip_reminder' || 'trip_published' ||
+        'driver_approaching' || 'departure_reminder'
             => 'trips',
         'payment_confirmed' || 'payment_success' ||
         'withdrawal_requested' || 'withdrawal_processed' ||
         'withdrawal_approved' || 'withdrawal_rejected' ||
         'payout_paid' || 'refund_approved' || 'refund_rejected' ||
-        'dispute_status_changed'
+        'dispute_status_changed' || 'dispute_update' || 'dispute_resolved' ||
+        'passenger_payment'
             => 'payments',
         'message_new' || 'new_message' => 'messages',
-        'promo_code_published'          => 'promotions',
-        'account_status_changed' || 'kyc_status_changed' ||
+        'promo_code_published' || 'promo_published' => 'promotions',
+        'account_status_changed' || 'account_status' ||
+        'kyc_status_changed' || 'kyc_status' ||
         'account_verified' || 'account_blocked'
             => 'account',
         _ => 'general',

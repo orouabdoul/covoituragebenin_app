@@ -102,19 +102,28 @@ String _channelForType(String type) {
     case 'trip_proximity':
     case 'driver_nearby':
     case 'driver_arriving':
+    case 'driver_approaching':       // backend v2
     case 'trip_ended':
     case 'trip_reminder':
+    case 'departure_reminder':       // backend v2
     case 'trip_completed':
     case 'new_booking_request':
     case 'booking_status_changed':
+    case 'booking_status':           // backend v2
     case 'booking_created':
+    case 'passenger_cancelled':      // backend v2
+    case 'vehicle_status':           // backend v2
     case 'new_dispute':
+    case 'dispute_against_driver':   // backend v2
+    case 'dispute_update':           // backend v2
+    case 'dispute_resolved':         // backend v2
       return _chTrip;
     // Paiements
     case 'payment_success':
     case 'payment_confirmed':
     case 'payment_failed':
     case 'payment_pending':
+    case 'passenger_payment':        // backend v2
     case 'withdrawal_approved':
     case 'withdrawal_rejected':
     case 'withdrawal_requested':
@@ -137,13 +146,17 @@ String _channelForType(String type) {
     case 'account_verified':
     case 'account_blocked':
     case 'account_status_changed':
+    case 'account_status':           // backend v2
     case 'kyc_status_changed':
+    case 'kyc_status':               // backend v2
     case 'sos_triggered':
       return _chAccount;
     // Général (promos, infos)
     case 'promo_code_published':
     case 'promotion_published':
     case 'new_promotion':
+    case 'promo_published':          // backend v2
+    case 'welcome':                  // backend v2
     default:
       return _chGeneral;
   }
@@ -172,15 +185,21 @@ Color _colorForType(String type) {
     case 'trip_proximity':
     case 'driver_nearby':
     case 'driver_arriving':
+    case 'driver_approaching':
     case 'booking_status_changed':
+    case 'booking_status':
+    case 'passenger_payment':
       return AppColors.success;
     case 'trip_ended':
       return AppColors.blueDark;
     case 'reservation_rejected':
     case 'booking_cancelled':
     case 'trip_cancelled':
+    case 'passenger_cancelled':
     case 'account_blocked':
     case 'account_status_changed':
+    case 'account_status':
+    case 'dispute_against_driver':
       return AppColors.dangerDark;
     case 'payment_success':
     case 'payment_confirmed':
@@ -192,6 +211,9 @@ Color _colorForType(String type) {
     case 'refund_rejected':
     case 'dispute_status_changed':
     case 'new_dispute':
+    case 'dispute_update':
+    case 'dispute_resolved':
+    case 'vehicle_status':
       return AppColors.accent;
     case 'withdrawal_requested':
     case 'withdrawal_processed':
@@ -204,12 +226,15 @@ Color _colorForType(String type) {
       return AppColors.warning;
     case 'account_verified':
     case 'kyc_status_changed':
+    case 'kyc_status':
+    case 'welcome':
       return AppColors.success;
     case 'sos_triggered':
       return AppColors.dangerDark;
     case 'promo_code_published':
     case 'promotion_published':
     case 'new_promotion':
+    case 'promo_published':
       return AppColors.warning;
     default:
       return AppColors.blueDark;
@@ -234,6 +259,8 @@ bool _isCriticalType(String type) {
     case 'reservation_new':
     case 'trip_started':
     case 'trip_proximity':
+    case 'driver_approaching':
+    case 'dispute_against_driver':
     case 'sos_triggered':
       return true;
     default:
@@ -267,73 +294,94 @@ const _silentTypes = {'messages_read', 'message_edited', 'message_deleted'};
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
+  try {
+    // L'isolate background est vide — Firebase n'est pas encore initialisé ici.
+    if (Firebase.apps.isEmpty) await Firebase.initializeApp();
 
-  if (message.notification != null) return;
+    // Message avec bloc notification → le système l'affiche déjà, on ne double pas.
+    if (message.notification != null) return;
 
-  final data = message.data;
-  final type = data['type'] as String? ?? '';
+    final data = message.data;
+    final type = data['type'] as String? ?? '';
 
-  if (_silentTypes.contains(type)) return;
+    if (_silentTypes.contains(type)) return;
 
-  final title = _extractTitle(data, type);
-  final body  = _extractBody(data, type);
-  if (body.isEmpty && title == 'MINIZON') return;
+    final title = _extractTitle(data, type);
+    final body  = _extractBody(data, type);
+    if (title.isEmpty) return;
 
-  final channelId = _channelForType(type);
-  final chName    = _channelNameForId(channelId);
-  final color     = _colorForType(type);
-  final groupKey  = _groupKeyForType(type, data);
+    final channelId = _channelForType(type);
+    final chName    = _channelNameForId(channelId);
+    final color     = _colorForType(type);
+    final groupKey  = _groupKeyForType(type, data);
+    final critical  = _isCriticalType(type);
 
-  final plugin = FlutterLocalNotificationsPlugin();
+    final plugin = FlutterLocalNotificationsPlugin();
 
-  await plugin.initialize(const InitializationSettings(
-    android: AndroidInitializationSettings('@drawable/ic_notification'),
-    iOS: DarwinInitializationSettings(),
-  ));
+    await plugin.initialize(const InitializationSettings(
+      android: AndroidInitializationSettings('@drawable/ic_notification'),
+      iOS: DarwinInitializationSettings(
+        requestAlertPermission: false,
+        requestBadgePermission: false,
+        requestSoundPermission: false,
+      ),
+    ));
 
-  if (Platform.isAndroid) {
-    final impl = plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
-    for (final ch in _allChannels) {
-      await impl?.createNotificationChannel(ch);
+    if (Platform.isAndroid) {
+      final impl = plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      // Supprimer anciens canaux v1 (sans son). Android refuse de mettre à jour
+      // un canal existant ; les ids _v2 forcent la recréation avec son activé.
+      const oldChannelIds = [
+        'ch_trip', 'ch_payment', 'ch_message',
+        'ch_review', 'ch_account', 'ch_general',
+      ];
+      for (final id in oldChannelIds) {
+        await impl?.deleteNotificationChannel(id);
+      }
+      for (final ch in _allChannels) {
+        await impl?.createNotificationChannel(ch);
+      }
     }
+
+    await plugin.show(
+      _notifId(),
+      title,
+      body.isNotEmpty ? body : null,
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          channelId,
+          chName,
+          importance: Importance.max,
+          priority: critical ? Priority.max : Priority.high,
+          playSound: true,
+          enableVibration: true,
+          color: color,
+          icon: '@drawable/ic_notification',
+          ticker: title,
+          autoCancel: true,
+          groupKey: groupKey,
+          setAsGroupSummary: false,
+          fullScreenIntent: critical,
+          styleInformation: body.length > 40
+              ? BigTextStyleInformation(body, contentTitle: title)
+              : DefaultStyleInformation(true, true),
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+          // timeSensitive : perce le mode Focus/Concentration sur iPhone.
+          interruptionLevel: critical
+              ? InterruptionLevel.timeSensitive
+              : InterruptionLevel.active,
+        ),
+      ),
+      payload: _buildPayload(data),
+    );
+  } catch (_) {
+    // Isolate background : impossible de logger normalement, on absorbe en silence.
   }
-
-  final critical = _isCriticalType(type);
-
-  await plugin.show(
-    _notifId(),
-    title,
-    body,
-    NotificationDetails(
-      android: AndroidNotificationDetails(
-        channelId,
-        chName,
-        importance: Importance.max,
-        priority: critical ? Priority.max : Priority.high,
-        playSound: true,
-        enableVibration: true,
-        color: color,
-        icon: '@drawable/ic_notification',
-        ticker: title,
-        autoCancel: true,
-        groupKey: groupKey,
-        setAsGroupSummary: false,
-        fullScreenIntent: critical,
-        styleInformation: body.length > 40
-            ? BigTextStyleInformation(body, contentTitle: title)
-            : DefaultStyleInformation(true, true),
-      ),
-      iOS: const DarwinNotificationDetails(
-        presentAlert: true,
-        presentBadge: true,
-        presentSound: true,
-        interruptionLevel: InterruptionLevel.active,
-      ),
-    ),
-    payload: _buildPayload(data),
-  );
 }
 
 // ── Service principal ─────────────────────────────────────────────────────────
@@ -392,16 +440,28 @@ class PushNotificationService {
     }
   }
 
-  // ── Permissions FCM ─────────────────────────────────────────────────────────
+  // ── Permissions ─────────────────────────────────────────────────────────────
 
   Future<void> _requestPermission() async {
+    // iOS — demande la permission d'afficher des alertes avec son.
     final settings = await _fcm.requestPermission(
       alert: true,
       badge: true,
       sound: true,
+      announcement: true,
+      provisional: false,
       criticalAlert: false,
     );
     logger.d('FCM permission: ${settings.authorizationStatus}');
+
+    // Android 13+ (API 33) — POST_NOTIFICATIONS doit aussi être demandé au runtime.
+    // Sans cela, aucune notification ne s'affiche même si le manifest le déclare.
+    if (Platform.isAndroid) {
+      final androidPlugin = _localNotifications
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+      await androidPlugin?.requestNotificationsPermission();
+    }
   }
 
   // ── Foreground ──────────────────────────────────────────────────────────────
@@ -534,7 +594,7 @@ class PushNotificationService {
     final body  = notif?.body?.trim().isNotEmpty == true
         ? notif!.body!
         : _extractBody(data, type);
-    if (body.isEmpty && title == 'MINIZON') return;
+    if (title.isEmpty) return;
 
     final channelId = _channelForType(type);
     final chName    = _channelNameForId(channelId);
@@ -545,7 +605,7 @@ class PushNotificationService {
     _localNotifications.show(
       _notifId(),
       title,
-      body,
+      body.isNotEmpty ? body : null,
       NotificationDetails(
         android: AndroidNotificationDetails(
           channelId,
@@ -569,7 +629,7 @@ class PushNotificationService {
           presentAlert: true,
           presentBadge: true,
           presentSound: true,
-          interruptionLevel: InterruptionLevel.active,
+          interruptionLevel: InterruptionLevel.timeSensitive,
         ),
       ),
       payload: _buildPayload(data),
@@ -609,7 +669,12 @@ class PushNotificationService {
       case 'new_reservation':
         if (isDriver) Get.toNamed(AppRoutes.driverReservations);
 
+      // ── Bienvenue ─────────────────────────────────────────────────────────
+      case 'welcome':
+        Get.toNamed(isDriver ? AppRoutes.dashboardDriver : AppRoutes.dashboardPassenger);
+
       // ── Changement de statut réservation (les deux rôles) ─────────────────
+      case 'booking_status':           // backend v2
       case 'booking_status_changed':
         if (isDriver) {
           Get.toNamed(AppRoutes.driverReservations);
@@ -637,7 +702,15 @@ class PushNotificationService {
       case 'reservation_cancelled':
         if (!isDriver) Get.toNamed(AppRoutes.passengerReservations);
 
+      case 'booking_created':
+        if (isDriver) {
+          Get.toNamed(AppRoutes.driverReservations);
+        } else {
+          Get.toNamed(AppRoutes.passengerReservations);
+        }
+
       case 'booking_cancelled':
+      case 'passenger_cancelled':      // backend v2 — passager annule, conducteur reçoit
         if (isDriver) Get.toNamed(AppRoutes.driverReservations);
 
       case 'trip_cancelled':
@@ -655,6 +728,7 @@ class PushNotificationService {
       case 'trip_proximity':
       case 'driver_nearby':
       case 'driver_arriving':
+      case 'driver_approaching':       // backend v2
         if (!isDriver) {
           Get.toNamed(
             AppRoutes.passengerDriverArrival,
@@ -680,6 +754,7 @@ class PushNotificationService {
 
       // ── Rappel trajet ─────────────────────────────────────────────────────
       case 'trip_reminder':
+      case 'departure_reminder':       // backend v2
         Get.toNamed(
           isDriver ? AppRoutes.driverActiveTrip : AppRoutes.passengerReservations,
         );
@@ -722,6 +797,13 @@ class PushNotificationService {
           }
         }
 
+      // ── Paiement passager reçu → conducteur ──────────────────────────────
+      case 'passenger_payment':        // backend v2
+        if (isDriver) Get.toNamed(AppRoutes.driverPaymentHistory);
+
+      case 'commission_paid':
+        if (isDriver) Get.toNamed(AppRoutes.driverPaymentHistory);
+
       // ── Retraits conducteur ───────────────────────────────────────────────
       case 'withdrawal_requested':
       case 'withdrawal_approved':
@@ -736,10 +818,23 @@ class PushNotificationService {
       case 'dispute_status_changed':
         if (!isDriver) Get.toNamed(AppRoutes.passengerRefundHistory);
 
-      // ── Litige (admin) ────────────────────────────────────────────────────
+      // ── Litiges ───────────────────────────────────────────────────────────
       case 'new_dispute':
         // Pas de route admin dans cette app — ignorer
         break;
+
+      case 'dispute_against_driver':   // conducteur : litige ouvert sur son trajet
+        if (isDriver) Get.toNamed(AppRoutes.driverTrips);
+
+      case 'dispute_update':           // passager : litige en cours d'examen
+        if (!isDriver) Get.toNamed(AppRoutes.passengerRefundHistory);
+
+      case 'dispute_resolved':         // les deux rôles
+        if (isDriver) {
+          Get.toNamed(AppRoutes.driverTrips);
+        } else {
+          Get.toNamed(AppRoutes.passengerRefundHistory);
+        }
 
       // ── Avis ──────────────────────────────────────────────────────────────
       case 'review_new':
@@ -748,7 +843,12 @@ class PushNotificationService {
       case 'review_reply':
         if (!isDriver) Get.toNamed(AppRoutes.passengerMyReviews);
 
+      // ── Statut véhicule → conducteur ─────────────────────────────────────
+      case 'vehicle_status':           // backend v2
+        if (isDriver) Get.toNamed(AppRoutes.driverTrips);
+
       // ── KYC ──────────────────────────────────────────────────────────────
+      case 'kyc_status':               // backend v2
       case 'kyc_status_changed':
         Get.toNamed(
           isDriver ? AppRoutes.driverProfile : AppRoutes.passengerProfile,
@@ -763,6 +863,7 @@ class PushNotificationService {
       case 'account_blocked':
         _showAccountSuspendedDialog();
 
+      case 'account_status':             // backend v2
       case 'account_status_changed':
         final blocked = (data['is_blocked'] ?? '').toString() == 'true';
         if (blocked) {
@@ -772,6 +873,7 @@ class PushNotificationService {
         }
 
       // ── Code promo ────────────────────────────────────────────────────────
+      case 'promo_published':            // backend v2
       case 'promo_code_published':
       case 'promotion_published':
       case 'new_promotion':
