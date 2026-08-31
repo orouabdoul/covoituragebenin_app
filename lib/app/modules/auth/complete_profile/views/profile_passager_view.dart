@@ -10,6 +10,7 @@ import 'package:covoiturage_benin_app/app/modules/widgets/face_verification_sect
 import 'package:covoiturage_benin_app/app/modules/widgets/id_card_preview_tile.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/phone_field_widget.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/selfie_capture_widget.dart';
+import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -140,14 +141,6 @@ class ProfilePassagerView extends GetView<ProfilePassagerController> {
                           enabled: !controller.isSubmitting.value,
                           onTap: controller.createProfile,
                         ),
-                        SizedBox(height: responsive.h(12)),
-                        Center(
-                          child: AppTextButton(
-                            responsive: responsive,
-                            label: AppStrings.passengerSecondaryAction,
-                            onTap: controller.continueLater,
-                          ),
-                        ),
                       ],
                     );
                   },
@@ -226,7 +219,7 @@ class _TopBar extends StatelessWidget {
           AppCircularButton(
             responsive: responsive,
             icon: Icons.arrow_back_ios_new_rounded,
-            onTap: Get.back,
+            onTap: () => Get.offAllNamed(AppRoutes.roles),
             size: responsive.w(40),
           ),
           Text(

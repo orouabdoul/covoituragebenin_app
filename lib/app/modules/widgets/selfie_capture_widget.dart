@@ -31,6 +31,8 @@ class _SelfieCaptureWidgetState extends State<SelfieCaptureWidget>
   XFile? _left;
   XFile? _right;
   bool _isCapturing = false;
+  // Slots où la caméra a retourné null (visage rejeté ou annulé après erreur)
+  final Set<SelfieStep> _rejectedSteps = {};
 
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
@@ -79,9 +81,10 @@ class _SelfieCaptureWidgetState extends State<SelfieCaptureWidget>
   Future<void> _captureCurrentStep() async {
     setState(() => _isCapturing = true);
 
-    XFile? picked;
+    // Retour possible : XFile (succès), false (visage rejeté), null (annulation)
+    Object? result;
     try {
-      picked = await Navigator.of(context).push<XFile>(
+      result = await Navigator.of(context).push<Object?>(
         MaterialPageRoute(
           fullscreenDialog: true,
           builder: (_) => SelfieCameraScreen(step: _currentStep),
@@ -92,14 +95,22 @@ class _SelfieCaptureWidgetState extends State<SelfieCaptureWidget>
       return;
     }
 
-    if (picked == null || !mounted) {
-      if (mounted) setState(() => _isCapturing = false);
+    if (!mounted) return;
+
+    if (result is! XFile) {
+      setState(() {
+        _isCapturing = false;
+        // false = refus ML Kit ; null = annulation simple (ne pas marquer)
+        if (result == false) _rejectedSteps.add(_currentStep);
+      });
       return;
     }
 
+    final picked = result;
     final capturedStep = _currentStep;
     setState(() {
       _isCapturing = false;
+      _rejectedSteps.remove(capturedStep);
       switch (capturedStep) {
         case SelfieStep.front:
           _front = picked;
@@ -144,6 +155,7 @@ class _SelfieCaptureWidgetState extends State<SelfieCaptureWidget>
             final circleSize =
                 done ? r.w(52) : (isActive ? r.w(44) : r.w(36));
 
+            final rejected = !done && _rejectedSteps.contains(step);
             return GestureDetector(
               onTap: () => setState(() => _currentStep = step),
               child: Padding(
@@ -151,39 +163,67 @@ class _SelfieCaptureWidgetState extends State<SelfieCaptureWidget>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 250),
-                      width: circleSize,
-                      height: circleSize,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: done
-                            ? AppColors.success
-                            : isActive
-                                ? AppColors.primary
-                                : AppColors.border,
-                        border: isActive && !done
-                            ? Border.all(
-                                color: AppColors.primary
-                                    .withValues(alpha: 0.35),
-                                width: 3,
-                              )
-                            : null,
-                      ),
-                      child: done
-                          ? ClipOval(
-                              child: Image.file(
-                                File(img.path),
-                                fit: BoxFit.cover,
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          width: circleSize,
+                          height: circleSize,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: done
+                                ? AppColors.success
+                                : rejected
+                                    ? AppColors.dangerSurface
+                                    : isActive
+                                        ? AppColors.primary
+                                        : AppColors.border,
+                            border: rejected
+                                ? Border.all(color: AppColors.danger, width: 2)
+                                : isActive && !done
+                                    ? Border.all(
+                                        color: AppColors.primary.withValues(alpha: 0.35),
+                                        width: 3,
+                                      )
+                                    : null,
+                          ),
+                          child: done
+                              ? ClipOval(
+                                  child: Image.file(
+                                    File(img.path),
+                                    fit: BoxFit.cover,
+                                  ),
+                                )
+                              : Center(
+                                  child: _HeadStepIcon(
+                                    step: step,
+                                    color: rejected
+                                        ? AppColors.danger
+                                        : AppColors.white,
+                                    size: circleSize * 0.58,
+                                  ),
+                                ),
+                        ),
+                        if (rejected)
+                          Positioned(
+                            top: -4,
+                            right: -4,
+                            child: Container(
+                              width: 18,
+                              height: 18,
+                              decoration: const BoxDecoration(
+                                color: AppColors.danger,
+                                shape: BoxShape.circle,
                               ),
-                            )
-                          : Center(
-                              child: _HeadStepIcon(
-                                step: step,
-                                color: AppColors.white,
-                                size: circleSize * 0.58,
+                              child: const Icon(
+                                Icons.warning_rounded,
+                                color: Colors.white,
+                                size: 11,
                               ),
                             ),
+                          ),
+                      ],
                     ),
                     SizedBox(height: r.h(6)),
                     Text(
@@ -193,9 +233,11 @@ class _SelfieCaptureWidgetState extends State<SelfieCaptureWidget>
                         fontSize: r.text(10),
                         color: done
                             ? AppColors.success
-                            : isActive
-                                ? AppColors.primary
-                                : AppColors.textGhost,
+                            : rejected
+                                ? AppColors.danger
+                                : isActive
+                                    ? AppColors.primary
+                                    : AppColors.textGhost,
                         fontWeight:
                             isActive ? FontWeight.w600 : FontWeight.w400,
                       ),
@@ -276,6 +318,36 @@ class _SelfieCaptureWidgetState extends State<SelfieCaptureWidget>
           ),
         ),
         SizedBox(height: r.h(14)),
+
+        // Message d'erreur ciblé sur le slot actif
+        if (_rejectedSteps.contains(_currentStep)) ...[
+          Container(
+            margin: EdgeInsets.only(bottom: r.h(10)),
+            padding: EdgeInsets.symmetric(horizontal: r.w(14), vertical: r.h(10)),
+            decoration: BoxDecoration(
+              color: AppColors.dangerSurface,
+              borderRadius: BorderRadius.circular(r.radius(12)),
+              border: Border.all(color: AppColors.dangerBorder),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.face_retouching_off_rounded,
+                    color: AppColors.danger, size: 18),
+                SizedBox(width: r.w(10)),
+                Expanded(
+                  child: Text(
+                    'Aucun visage détecté pour « ${_labelFor(_currentStep)} ».\nReprenez cette photo en centrant votre visage.',
+                    style: TextStyle(
+                      fontSize: r.text(11.5),
+                      color: AppColors.dangerDark,
+                      height: 1.45,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
 
         Text(
           _labelFor(_currentStep),

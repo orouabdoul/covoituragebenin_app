@@ -50,7 +50,11 @@ class InputPhoneView extends GetView<InputPhoneController> {
 											Text(AppStrings.registerWelcome, textAlign: TextAlign.center, style: AppTextStyles.registerHeroTitle(responsive).copyWith(color: AppColors.white)),
 											Text(AppStrings.appName, textAlign: TextAlign.center, style: AppTextStyles.registerBrand(responsive).copyWith(color: AppColors.white)),
 											SizedBox(height: responsive.h(8)),
-											Text(AppStrings.registerTagline, textAlign: TextAlign.center, style: AppTextStyles.registerTagline(responsive).copyWith(color: Colors.white.withAlpha(217))),
+											Obx(() => Text(
+									'Votre covoiturage sécurisé en \n${controller.selectedCountryName.value}',
+									textAlign: TextAlign.center,
+									style: AppTextStyles.registerTagline(responsive).copyWith(color: Colors.white.withAlpha(217)),
+								)),
 										],
 									),
 								),
@@ -78,17 +82,20 @@ class InputPhoneView extends GetView<InputPhoneController> {
 											SizedBox(height: responsive.h(8)),
 											Text(AppStrings.registerSubtitle, style: AppTextStyles.registerBody(responsive)),
 											SizedBox(height: responsive.h(24)),
-											AppField(
-												responsive: responsive,
-												label: AppStrings.registerCountryLabel,
-												labelStyle: AppTextStyles.registerLabel(responsive),
-												child: Row(
-													children: [
-														Text('🇧🇯', style: AppTextStyles.registerSectionTitle(responsive).copyWith(fontSize: responsive.text(24))),
-														SizedBox(width: responsive.w(12)),
-														Expanded(child: Text(AppStrings.registerCountryValue, style: AppTextStyles.registerBody(responsive).copyWith(color: AppColors.textStrong, fontWeight: FontWeight.w500))),
-														Icon(Icons.keyboard_arrow_down_rounded, size: responsive.text(20), color: AppColors.textHint),
-													],
+											GestureDetector(
+												onTap: controller.selectCountry,
+												child: AppField(
+													responsive: responsive,
+													label: AppStrings.registerCountryLabel,
+													labelStyle: AppTextStyles.registerLabel(responsive),
+													child: Obx(() => Row(
+														children: [
+															Text(controller.selectedCountryFlag.value, style: AppTextStyles.registerSectionTitle(responsive).copyWith(fontSize: responsive.text(24))),
+															SizedBox(width: responsive.w(12)),
+															Expanded(child: Text(controller.selectedCountryDisplay.value, style: AppTextStyles.registerBody(responsive).copyWith(color: AppColors.textStrong, fontWeight: FontWeight.w500))),
+															Icon(Icons.keyboard_arrow_down_rounded, size: responsive.text(20), color: AppColors.textHint),
+														],
+													)),
 												),
 											),
 											SizedBox(height: responsive.h(16)),
@@ -122,6 +129,22 @@ class InputPhoneView extends GetView<InputPhoneController> {
 													),
 												),
 											),
+											Obx(() {
+												if (!controller.hasStartedTyping.value) return const SizedBox.shrink();
+												return Padding(
+													padding: EdgeInsets.only(top: responsive.h(8)),
+													child: Column(
+														crossAxisAlignment: CrossAxisAlignment.start,
+														children: [
+															_PhoneCondHint(ok: controller.condStartsWith01.value, label: 'Commence par 01'),
+															SizedBox(height: responsive.h(4)),
+															_PhoneCondHint(ok: controller.condLength.value, label: '10 chiffres au total'),
+															SizedBox(height: responsive.h(4)),
+															_PhoneCondHint(ok: controller.condPrefix.value, label: 'Préfixe opérateur valide (MTN, Moov, Celtiis)'),
+														],
+													),
+												);
+											}),
 											SizedBox(height: responsive.h(24)),
 											Obx(
 												() => AppPrimaryButton(
@@ -179,6 +202,34 @@ class InputPhoneView extends GetView<InputPhoneController> {
 					),
 				),
 			),
+		);
+	}
+}
+
+class _PhoneCondHint extends StatelessWidget {
+	final bool ok;
+	final String label;
+	const _PhoneCondHint({required this.ok, required this.label});
+
+	@override
+	Widget build(BuildContext context) {
+		return Row(
+			children: [
+				Icon(
+					ok ? Icons.check_circle_rounded : Icons.cancel_rounded,
+					size: 14,
+					color: ok ? AppColors.success : AppColors.danger,
+				),
+				const SizedBox(width: 6),
+				Text(
+					label,
+					style: TextStyle(
+						fontSize: 12,
+						color: ok ? AppColors.success : AppColors.danger,
+						fontWeight: FontWeight.w500,
+					),
+				),
+			],
 		);
 	}
 }

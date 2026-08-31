@@ -100,9 +100,10 @@ class ProfileDriverController extends GetxController {
   final RxString licenseDocError    = ''.obs;
   final RxString insuranceError     = ''.obs;
 
-  // Taille max autorisée : 5 Mo images, 10 Mo documents
-  static const int _maxImageBytes = 5 * 1024 * 1024;
-  static const int _maxDocBytes   = 10 * 1024 * 1024;
+  // Taille max autorisée (aligné backend)
+  static const int _maxSelfieBytes = 2 * 1024 * 1024;  // 2 Mo
+  static const int _maxImageBytes  = 5 * 1024 * 1024;  // 5 Mo (id_card, vehicle_photo)
+  static const int _maxDocBytes    = 5 * 1024 * 1024;  // 5 Mo (documents)
 
   // register_token (nouveau compte) ou null (utilisateur existant avec auth token)
   String? _registerToken;
@@ -256,9 +257,24 @@ class ProfileDriverController extends GetxController {
   }
 
   void onSelfiesChanged(XFile? front, XFile? left, XFile? right) {
-    selfieFront.value = front;
-    selfieLeft.value = left;
-    selfieRight.value = right;
+    _storeValidatedSelfies(front, left, right);
+  }
+
+  Future<void> _storeValidatedSelfies(XFile? front, XFile? left, XFile? right) async {
+    bool rejected = false;
+    Future<XFile?> check(XFile? f) async {
+      if (f == null) return null;
+      if (await File(f.path).length() > _maxSelfieBytes) { rejected = true; return null; }
+      return f;
+    }
+    selfieFront.value = await check(front);
+    selfieLeft.value  = await check(left);
+    selfieRight.value = await check(right);
+    if (rejected) {
+      selfieError.value = 'La photo ne doit pas dépasser 2 Mo.';
+    } else {
+      selfieError.value = '';
+    }
     _resetVerification();
     update();
     _tryAutoVerify();
@@ -280,6 +296,14 @@ class ProfileDriverController extends GetxController {
     }
 
     if (file == null) return;
+
+    final size = await File(file.path).length();
+    if (size > _maxImageBytes) {
+      idCardError.value = 'La photo ne doit pas dépasser 5 Mo.';
+      update();
+      return;
+    }
+    idCardError.value = '';
 
     if (isFront) {
       _idCardFrontFile = file;
@@ -572,7 +596,7 @@ class ProfileDriverController extends GetxController {
     if (file == null) return;
     final size = await File(file.path).length();
     if (size > _maxImageBytes) {
-      vehiclePhotoError.value = 'Image trop lourde — max 5 Mo (actuel : ${(size / 1048576).toStringAsFixed(1)} Mo)';
+      vehiclePhotoError.value = 'La photo ne doit pas dépasser 5 Mo (actuel : ${(size / 1048576).toStringAsFixed(1)} Mo)';
       update();
       return;
     }
@@ -601,7 +625,7 @@ class ProfileDriverController extends GetxController {
     if (file == null) return;
     final size = await File(file.path).length();
     if (size > _maxDocBytes) {
-      final msg = 'Fichier trop lourd — max 10 Mo (actuel : ${(size / 1048576).toStringAsFixed(1)} Mo)';
+      final msg = 'Le document ne doit pas dépasser 5 Mo (actuel : ${(size / 1048576).toStringAsFixed(1)} Mo)';
       if (isLicense) {
         licenseDocError.value = msg;
       } else {
@@ -635,7 +659,7 @@ class ProfileDriverController extends GetxController {
     if (file == null) return;
     final size = await File(file.path).length();
     if (size > _maxDocBytes) {
-      insuranceError.value = 'Fichier trop lourd — max 10 Mo (actuel : ${(size / 1048576).toStringAsFixed(1)} Mo)';
+      insuranceError.value = 'Le document ne doit pas dépasser 5 Mo (actuel : ${(size / 1048576).toStringAsFixed(1)} Mo)';
       update();
       return;
     }

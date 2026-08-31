@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -119,11 +121,19 @@ class AddVehicleController extends GetxController {
     filesVersion.value++;
   }
 
+  static const int _maxPhotoBytes = 5 * 1024 * 1024;  // 5 Mo
+  static const int _maxDocBytes   = 5 * 1024 * 1024;  // 5 Mo
+
   // ── File picking ──────────────────────────────────────────────────────────
 
   Future<void> pickVehiclePhoto(ImageSource source) async {
     final file = await ImagePicker().pickImage(source: source, imageQuality: 80);
     if (file == null) return;
+    final size = await File(file.path).length();
+    if (size > _maxPhotoBytes) {
+      UIHelper().showSnackBar('MINIZON', 'La photo ne doit pas dépasser 5 Mo.', 2);
+      return;
+    }
     _vehiclePhoto = file;
     filesVersion.value++;
   }
@@ -131,6 +141,11 @@ class AddVehicleController extends GetxController {
   Future<void> pickDoc(String apiKey, ImageSource source) async {
     final file = await ImagePicker().pickImage(source: source, imageQuality: 85);
     if (file == null) return;
+    final size = await File(file.path).length();
+    if (size > _maxDocBytes) {
+      UIHelper().showSnackBar('MINIZON', 'Le document ne doit pas dépasser 5 Mo.', 2);
+      return;
+    }
     _docFiles[apiKey] = file;
     filesVersion.value++;
   }
@@ -138,9 +153,14 @@ class AddVehicleController extends GetxController {
   Future<void> pickDocFromFiles(String apiKey) async {
     final pFile = await FilePicker.pickFile(
       type: FileType.custom,
-      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png', 'webp'],
     );
     if (pFile == null || pFile.path == null) return;
+    final size = await File(pFile.path!).length();
+    if (size > _maxDocBytes) {
+      UIHelper().showSnackBar('MINIZON', 'Le document ne doit pas dépasser 5 Mo.', 2);
+      return;
+    }
     _docFiles[apiKey] = XFile(pFile.path!, name: pFile.name);
     filesVersion.value++;
   }

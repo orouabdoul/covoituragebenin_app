@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:camera/camera.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:image/image.dart' as img;
 
 enum SelfieStep { front, left, right }
@@ -23,6 +24,7 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
   CameraController? _controller;
   bool _initialized = false;
   bool _capturing = false;
+  bool _noFaceDetected = false;
 
   // Oval border pulse animation
   late AnimationController _pulseCtrl;
@@ -96,13 +98,34 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
     super.dispose();
   }
 
+  Future<bool> _detectFace(String imagePath) async {
+    final detector = FaceDetector(
+      options: FaceDetectorOptions(performanceMode: FaceDetectorMode.fast),
+    );
+    try {
+      final faces = await detector.processImage(InputImage.fromFilePath(imagePath));
+      return faces.isNotEmpty;
+    } catch (_) {
+      return true; // ne pas bloquer si la détection échoue
+    } finally {
+      detector.close();
+    }
+  }
+
   Future<void> _capture() async {
     if (!_initialized || _capturing || _controller == null) return;
-    setState(() => _capturing = true);
-    // Capture screen size before the async gap (layout stays stable)
+    setState(() {
+      _capturing = true;
+      _noFaceDetected = false;
+    });
     final screenSize = MediaQuery.of(context).size;
     try {
       final photo = await _controller!.takePicture();
+      final hasFace = await _detectFace(photo.path);
+      if (!hasFace) {
+        if (mounted) setState(() { _capturing = false; _noFaceDetected = true; });
+        return;
+      }
       final cropped = await _cropToHead(photo.path, screenSize);
       if (mounted) Navigator.of(context).pop(cropped);
     } catch (_) {
@@ -207,6 +230,7 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
                   borderOpacity: _pulseAnim.value,
                   arrowOffset:
                       widget.step == SelfieStep.front ? 0 : _arrowAnim.value,
+                  noFace: _noFaceDetected,
                 ),
               ),
             ),
@@ -226,7 +250,10 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
                       children: [
                         _CircleIconButton(
                           icon: Icons.arrow_back_ios_new_rounded,
-                          onTap: () => Navigator.of(context).pop(),
+                          // false = rejeté (visage non détecté) ; null = simple annulation
+                          onTap: () => Navigator.of(context).pop(
+                            _noFaceDetected ? false : null,
+                          ),
                         ),
                         const SizedBox(width: 14),
                         Text(
@@ -267,6 +294,64 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
               ),
             ),
           ),
+
+          // ── No-face error banner ────────────────────────────────────────
+          if (_noFaceDetected)
+            Positioned(
+              bottom: 160,
+              left: 24,
+              right: 24,
+              child: AnimatedOpacity(
+                opacity: _noFaceDetected ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 250),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFB91C1C).withValues(alpha: 0.93),
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.30),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.face_retouching_off_rounded,
+                          color: Colors.white, size: 24),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Aucun visage détecté',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13.5,
+                              ),
+                            ),
+                            SizedBox(height: 3),
+                            Text(
+                              'Centrez bien votre visage dans l\'ovale et réessayez',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 11.5,
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
 
           // ── Step dots (which of 3 steps we're on) ──────────────────────
           Positioned(
@@ -429,11 +514,13 @@ class _CameraOverlayPainter extends CustomPainter {
     required this.step,
     required this.borderOpacity,
     required this.arrowOffset,
+    this.noFace = false,
   });
 
   final SelfieStep step;
   final double borderOpacity;
   final double arrowOffset;
+  final bool noFace;
 
   Rect _oval(Size s) {
     final w = s.width * 0.72;
@@ -460,13 +547,16 @@ class _CameraOverlayPainter extends CustomPainter {
       Paint()..color = Colors.black.withValues(alpha: 0.60),
     );
 
-    // Pulsing oval border
+    // Pulsing oval border — rouge si aucun visage détecté
+    final ovalColor = noFace
+        ? const Color(0xFFEF4444).withValues(alpha: borderOpacity)
+        : Colors.white.withValues(alpha: borderOpacity);
     canvas.drawOval(
       oval,
       Paint()
-        ..color = Colors.white.withValues(alpha: borderOpacity)
+        ..color = ovalColor
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.8,
+        ..strokeWidth = noFace ? 3.5 : 2.8,
     );
 
     // Corner brackets
@@ -526,5 +616,6 @@ class _CameraOverlayPainter extends CustomPainter {
   bool shouldRepaint(covariant _CameraOverlayPainter o) =>
       o.step != step ||
       o.borderOpacity != borderOpacity ||
-      o.arrowOffset != arrowOffset;
+      o.arrowOffset != arrowOffset ||
+      o.noFace != noFace;
 }

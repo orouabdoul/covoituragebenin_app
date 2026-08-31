@@ -81,15 +81,6 @@ class RolesView extends GetView<RolesController> {
                             enabled: controller.hasSelection,
                             onTap: controller.continueAction,
                           ),
-                          SizedBox(height: responsive.h(12)),
-                          Center(
-                            child: AppTextButton(
-                              responsive: responsive,
-                              label: AppStrings.rolesChooseLater,
-                              onTap: controller.chooseLater,
-                              underlined: true,
-                            ),
-                          ),
                         ],
                       );
                     },

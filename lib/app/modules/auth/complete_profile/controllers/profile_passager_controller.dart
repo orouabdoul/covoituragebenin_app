@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
@@ -72,6 +74,9 @@ class ProfilePassagerController extends GetxController {
   XFile? _idCardFaceZoneFile; // recadrage de la zone visage (côté gauche CNI)
 
   final RxBool isSubmitting = false.obs;
+
+  static const int _maxSelfieBytes = 2 * 1024 * 1024;  // 2 Mo
+  static const int _maxIdCardBytes = 5 * 1024 * 1024;   // 5 Mo
 
   // register_token (nouveau compte) ou null (utilisateur existant avec auth token)
   String? _registerToken;
@@ -150,9 +155,20 @@ class ProfilePassagerController extends GetxController {
   }
 
   void onSelfiesChanged(XFile? front, XFile? left, XFile? right) {
-    selfieFront.value = front;
-    selfieLeft.value = left;
-    selfieRight.value = right;
+    _storeValidatedSelfies(front, left, right);
+  }
+
+  Future<void> _storeValidatedSelfies(XFile? front, XFile? left, XFile? right) async {
+    bool rejected = false;
+    Future<XFile?> check(XFile? f) async {
+      if (f == null) return null;
+      if (await File(f.path).length() > _maxSelfieBytes) { rejected = true; return null; }
+      return f;
+    }
+    selfieFront.value = await check(front);
+    selfieLeft.value  = await check(left);
+    selfieRight.value = await check(right);
+    if (rejected) UIHelper().showSnackBar('MINIZON', 'La photo ne doit pas dépasser 2 Mo.', 2);
     _resetVerification();
     update();
     _tryAutoVerify();
@@ -174,6 +190,12 @@ class ProfilePassagerController extends GetxController {
     }
 
     if (file == null) return;
+
+    final size = await File(file.path).length();
+    if (size > _maxIdCardBytes) {
+      UIHelper().showSnackBar('MINIZON', 'La photo ne doit pas dépasser 5 Mo.', 2);
+      return;
+    }
 
     if (isFront) {
       _idCardFrontFile = file;
