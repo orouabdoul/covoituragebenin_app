@@ -117,7 +117,8 @@ class DriverNotificationModel {
             => 'reservations',
         'trip_started' || 'trip_completed' || 'trip_ended' ||
         'trip_proximity' || 'trip_reminder' || 'trip_published' ||
-        'driver_approaching' || 'departure_reminder' || 'vehicle_status'
+        'driver_approaching' || 'departure_reminder' || 'vehicle_status' ||
+        'admin_alert' || 'trip_delay' || 'trip_emergency'
             => 'trips',
         'payment_confirmed' || 'payment_success' ||
         'withdrawal_requested' || 'withdrawal_processed' ||
@@ -128,6 +129,7 @@ class DriverNotificationModel {
             => 'payments',
         'message_new' || 'new_message' => 'messages',
         'promo_code_published' || 'promo_published' => 'promotions',
+        'ticket_resolved' || 'admin_broadcast' => 'support',
         _ => 'support',
       };
 

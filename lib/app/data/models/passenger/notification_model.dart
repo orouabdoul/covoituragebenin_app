@@ -107,7 +107,8 @@ class PassengerNotificationModel {
             => 'reservations',
         'trip_started' || 'trip_completed' || 'trip_ended' ||
         'trip_proximity' || 'trip_reminder' || 'trip_published' ||
-        'driver_approaching' || 'departure_reminder'
+        'driver_approaching' || 'departure_reminder' ||
+        'admin_alert' || 'trip_delay' || 'trip_emergency'
             => 'trips',
         'payment_confirmed' || 'payment_success' ||
         'withdrawal_requested' || 'withdrawal_processed' ||
@@ -122,6 +123,7 @@ class PassengerNotificationModel {
         'kyc_status_changed' || 'kyc_status' ||
         'account_verified' || 'account_blocked'
             => 'account',
+        'ticket_resolved' || 'admin_broadcast' => 'general',
         _ => 'general',
       };
 

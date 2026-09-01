@@ -117,6 +117,9 @@ String _channelForType(String type) {
     case 'dispute_against_driver':   // backend v2
     case 'dispute_update':           // backend v2
     case 'dispute_resolved':         // backend v2
+    case 'admin_alert':
+    case 'trip_delay':
+    case 'trip_emergency':
       return _chTrip;
     // Paiements
     case 'payment_success':
@@ -151,12 +154,15 @@ String _channelForType(String type) {
     case 'kyc_status':               // backend v2
     case 'sos_triggered':
       return _chAccount;
-    // Général (promos, infos)
+    // Support tickets
+    case 'ticket_resolved':
+    // Général (promos, infos, broadcast)
     case 'promo_code_published':
     case 'promotion_published':
     case 'new_promotion':
     case 'promo_published':          // backend v2
     case 'welcome':                  // backend v2
+    case 'admin_broadcast':
     default:
       return _chGeneral;
   }
@@ -865,7 +871,9 @@ class PushNotificationService {
 
       case 'account_status':             // backend v2
       case 'account_status_changed':
-        final blocked = (data['is_blocked'] ?? '').toString() == 'true';
+        // v2 envoie is_suspended, ancien format envoie is_blocked
+        final blockedRaw = data['is_suspended'] ?? data['is_blocked'] ?? '';
+        final blocked = blockedRaw.toString() == 'true';
         if (blocked) {
           _showAccountSuspendedDialog();
         } else {
@@ -877,9 +885,10 @@ class PushNotificationService {
       case 'promo_code_published':
       case 'promotion_published':
       case 'new_promotion':
+        // v2 envoie "code"/"discount", ancien format "promo_code"/"discount_value"
         _showPromoBottomSheet(
-          data['promo_code'] as String? ?? '',
-          data['discount_value'] as String? ?? '',
+          (data['code'] ?? data['promo_code'] ?? '') as String,
+          (data['discount'] ?? data['discount_value'] ?? '') as String,
         );
 
       // ── SOS ──────────────────────────────────────────────────────────────
@@ -887,6 +896,27 @@ class PushNotificationService {
         Get.toNamed(
           isDriver ? AppRoutes.driverSafetyCenter : AppRoutes.passengerSafetyCenter,
         );
+
+      // ── Support ticket résolu ─────────────────────────────────────────────
+      case 'ticket_resolved':
+        Get.toNamed(
+          isDriver ? AppRoutes.driverSupportCenter : AppRoutes.passengerSupportCenter,
+        );
+
+      // ── Alertes admin (suivi trajet en direct) ────────────────────────────
+      case 'admin_alert':
+      case 'trip_delay':
+      case 'trip_emergency':
+        if (!isDriver) {
+          Get.toNamed(
+            tripUuid != null ? AppRoutes.passengerLiveTracking : AppRoutes.passengerReservations,
+            arguments: tripUuid != null ? {'tripUuid': tripUuid} : null,
+          );
+        }
+
+      // ── Broadcast admin (pas de navigation forcée) ────────────────────────
+      case 'admin_broadcast':
+        break;
 
       // ── Listes générales ──────────────────────────────────────────────────
       case 'driver_notifications':
