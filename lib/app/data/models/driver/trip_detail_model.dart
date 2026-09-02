@@ -3,36 +3,65 @@ class TripDetailRouteData {
     required this.origin,
     required this.originPoint,
     this.departureArrondissement = '',
+    this.departureNeighborhood = '',
     required this.destination,
     required this.destinationPoint,
     this.arrivalArrondissement = '',
+    this.arrivalNeighborhood = '',
     required this.departureTime,
     required this.departureDate,
     required this.departureDateLabel,
+    this.departureAt = '',
   });
 
   final String origin;
   final String originPoint;
   final String departureArrondissement;
+  final String departureNeighborhood;
   final String destination;
   final String destinationPoint;
   final String arrivalArrondissement;
+  final String arrivalNeighborhood;
   final String departureTime;
   final String departureDate;
   final String departureDateLabel;
+  // ISO datetime pour la règle des 5 min avant départ
+  final String departureAt;
 
-  factory TripDetailRouteData.fromJson(Map<String, dynamic> json) =>
-      TripDetailRouteData(
-        origin: (json['origin'] as String?) ?? '',
-        originPoint: (json['origin_point'] as String?) ?? '',
-        departureArrondissement: (json['departure_arrondissement'] as String?) ?? '',
-        destination: (json['destination'] as String?) ?? '',
-        destinationPoint: (json['destination_point'] as String?) ?? '',
-        arrivalArrondissement: (json['arrival_arrondissement'] as String?) ?? '',
-        departureTime: (json['departure_time'] as String?) ?? '',
-        departureDate: (json['departure_date'] as String?) ?? '',
-        departureDateLabel: (json['departure_date_label'] as String?) ?? '',
-      );
+  factory TripDetailRouteData.fromJson(Map<String, dynamic> json) {
+    final depDate = (json['departure_date'] as String?) ?? '';
+    final depTime = (json['departure_time'] as String?) ?? '';
+    // Priorité à departure_at ISO, sinon construit depuis date+heure (DD/MM/YYYY + HH:mm)
+    String departureAt = (json['departure_at'] as String?) ?? '';
+    if (departureAt.isEmpty && depDate.isNotEmpty && depTime.isNotEmpty) {
+      departureAt = _buildIso(depDate, depTime);
+    }
+    return TripDetailRouteData(
+      origin: (json['origin'] as String?) ?? '',
+      originPoint: (json['origin_point'] as String?) ?? '',
+      departureArrondissement: (json['departure_arrondissement'] as String?) ?? '',
+      departureNeighborhood: (json['departure_neighborhood'] as String?) ?? '',
+      destination: (json['destination'] as String?) ?? '',
+      destinationPoint: (json['destination_point'] as String?) ?? '',
+      arrivalArrondissement: (json['arrival_arrondissement'] as String?) ?? '',
+      arrivalNeighborhood: (json['arrival_neighborhood'] as String?) ?? '',
+      departureTime: depTime,
+      departureDate: depDate,
+      departureDateLabel: (json['departure_date_label'] as String?) ?? '',
+      departureAt: departureAt,
+    );
+  }
+
+  // "15/08/2025" + "08:00" → "2025-08-15T08:00:00"
+  static String _buildIso(String date, String time) {
+    try {
+      final p = date.split('/');
+      if (p.length != 3) return '';
+      return '${p[2]}-${p[1].padLeft(2, '0')}-${p[0].padLeft(2, '0')}T$time:00';
+    } catch (_) {
+      return '';
+    }
+  }
 }
 
 class TripDetailVehicleData {

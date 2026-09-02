@@ -37,10 +37,13 @@ class TripModel {
     required this.origin,
     this.originArrondissement,
     this.originNeighborhood,
+    this.originPoint,
     required this.destination,
     this.destinationArrondissement,
     this.destinationNeighborhood,
+    this.destinationPoint,
     required this.departureTime,
+    this.departureAt,
     required this.totalSeats,
     required this.status,
     required this.passengers,
@@ -59,19 +62,27 @@ class TripModel {
   final String origin;
   final String? originArrondissement;
   final String? originNeighborhood;
+  final String? originPoint;
   final String destination;
   final String? destinationArrondissement;
   final String? destinationNeighborhood;
+  final String? destinationPoint;
   final String departureTime;
+  // ISO datetime pour la règle des 5 min avant départ
+  final String? departureAt;
   final int totalSeats;
 
   String get displayOrigin {
-    final parts = [origin, originArrondissement, originNeighborhood].where((p) => p != null && p.isNotEmpty).toList();
+    final parts = [origin, originArrondissement, originNeighborhood, originPoint]
+        .where((p) => p != null && p.isNotEmpty)
+        .toList();
     return parts.join(', ');
   }
 
   String get displayDestination {
-    final parts = [destination, destinationArrondissement, destinationNeighborhood].where((p) => p != null && p.isNotEmpty).toList();
+    final parts = [destination, destinationArrondissement, destinationNeighborhood, destinationPoint]
+        .where((p) => p != null && p.isNotEmpty)
+        .toList();
     return parts.join(', ');
   }
   final TripStatus status;

@@ -414,25 +414,51 @@ class _TerminateButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: () => _confirmTerminate(context, r, ctrl),
-        icon: const Icon(Icons.flag_rounded, size: 20),
-        label: const Text('Terminer le trajet'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.danger,
-          foregroundColor: Colors.white,
-          padding: EdgeInsets.symmetric(vertical: r.h(14)),
-          shape: RoundedRectangleBorder(
+    return Obx(() {
+      final near = ctrl.nearArrival.value;
+      if (!near) {
+        return Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(horizontal: r.w(16), vertical: r.h(14)),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceMuted,
             borderRadius: BorderRadius.circular(r.radius(14)),
           ),
-          elevation: 0,
-          textStyle: AppTextStyles.subtitle(r)
-              .copyWith(fontWeight: FontWeight.w700),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.location_searching_rounded,
+                  size: r.text(16), color: AppColors.textMuted),
+              SizedBox(width: r.w(8)),
+              Text(
+                'Terminer — disponible à moins de 300m',
+                style: AppTextStyles.subtitle(r)
+                    .copyWith(color: AppColors.textMuted),
+              ),
+            ],
+          ),
+        );
+      }
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: () => _confirmTerminate(context, r, ctrl),
+          icon: const Icon(Icons.flag_rounded, size: 20),
+          label: const Text('Terminer le trajet'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.danger,
+            foregroundColor: Colors.white,
+            padding: EdgeInsets.symmetric(vertical: r.h(14)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(r.radius(14)),
+            ),
+            elevation: 0,
+            textStyle: AppTextStyles.subtitle(r)
+                .copyWith(fontWeight: FontWeight.w700),
+          ),
         ),
-      ),
-    );
+      );
+    });
   }
 
   void _confirmTerminate(

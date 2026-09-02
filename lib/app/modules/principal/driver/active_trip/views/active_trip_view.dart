@@ -551,10 +551,35 @@ class _StartButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() => AppButton(
-          label: controller.isStarting.value ? 'Démarrage…' : 'Démarrer la navigation',
-          onPressed: controller.isStarting.value ? null : controller.onStartNavigation,
-          icon: Icons.navigation_rounded,
-        ));
+    return Obx(() {
+      final starting = controller.isStarting.value;
+      final canStart = controller.canStart.value;
+      final wait = controller.minutesUntilStart.value;
+      return Column(
+        children: [
+          AppButton(
+            label: starting ? 'Démarrage…' : 'Démarrer la navigation',
+            onPressed: (starting || !canStart) ? null : controller.onStartNavigation,
+            icon: Icons.navigation_rounded,
+          ),
+          if (!canStart && wait != null) ...[
+            SizedBox(height: r.h(8)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.schedule_rounded,
+                    size: r.text(14), color: AppColors.textMuted),
+                SizedBox(width: r.w(4)),
+                Text(
+                  'Disponible dans $wait min (5 min avant le départ)',
+                  style: AppTextStyles.caption(r)
+                      .copyWith(color: AppColors.textMuted),
+                ),
+              ],
+            ),
+          ],
+        ],
+      );
+    });
   }
 }

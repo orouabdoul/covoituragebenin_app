@@ -65,11 +65,14 @@ class PreDepartureTripSummary {
     required this.passengersCount,
     required this.bookingMode,
     this.estimatedArrivalTime,
+    this.departureAt,
+    this.arrivalLatitude,
+    this.arrivalLongitude,
   });
 
   final String uuid;
-  final String origin;
   final String? originArrondissement;
+  final String origin;
   final String destination;
   final String? destinationArrondissement;
   final String departureTimeFormatted;
@@ -78,6 +81,11 @@ class PreDepartureTripSummary {
   final int passengersCount;
   final String bookingMode;
   final String? estimatedArrivalTime;
+  // ISO datetime pour vérifier la fenêtre de 5 min avant démarrage
+  final String? departureAt;
+  // Coordonnées d'arrivée pour la vérification GPS des 300m
+  final double? arrivalLatitude;
+  final double? arrivalLongitude;
 
   factory PreDepartureTripSummary.fromJson(Map<String, dynamic> j) =>
       PreDepartureTripSummary(
@@ -92,6 +100,9 @@ class PreDepartureTripSummary {
         passengersCount: j['passengers_count'] as int? ?? 0,
         bookingMode: j['booking_mode'] as String? ?? '',
         estimatedArrivalTime: j['estimated_arrival_time'] as String?,
+        departureAt: j['departure_at'] as String?,
+        arrivalLatitude: (j['arrival_latitude'] as num?)?.toDouble(),
+        arrivalLongitude: (j['arrival_longitude'] as num?)?.toDouble(),
       );
 }
 

@@ -237,7 +237,7 @@ class _RouteCard extends StatelessWidget {
             icon: Icons.radio_button_checked_rounded,
             iconColor: AppColors.primary,
             label: 'Départ',
-            value: trip.origin,
+            value: trip.displayOrigin,
             time: trip.departureTime,
           ),
           Padding(
@@ -261,8 +261,8 @@ class _RouteCard extends StatelessWidget {
             icon: Icons.location_on_rounded,
             iconColor: AppColors.danger,
             label: 'Arrivée',
-            value: trip.destination,
-            time: '~16:35',
+            value: trip.displayDestination,
+            time: '',
           ),
           if (trip.vehicleLabel != null) ...[
             Divider(height: r.adaptive(phone: 20, smallPhone: 16, tablet: 24, desktop: 28), color: AppColors.border),

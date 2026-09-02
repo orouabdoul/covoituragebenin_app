@@ -68,8 +68,25 @@ class TripDetailController extends GetxController {
     trip = TripModel(
       id: data.uuid,
       origin: data.route.origin,
+      originArrondissement: data.route.departureArrondissement.isNotEmpty
+          ? data.route.departureArrondissement
+          : null,
+      originNeighborhood: data.route.departureNeighborhood.isNotEmpty
+          ? data.route.departureNeighborhood
+          : null,
+      originPoint: data.route.originPoint.isNotEmpty ? data.route.originPoint : null,
       destination: data.route.destination,
+      destinationArrondissement: data.route.arrivalArrondissement.isNotEmpty
+          ? data.route.arrivalArrondissement
+          : null,
+      destinationNeighborhood: data.route.arrivalNeighborhood.isNotEmpty
+          ? data.route.arrivalNeighborhood
+          : null,
+      destinationPoint: data.route.destinationPoint.isNotEmpty
+          ? data.route.destinationPoint
+          : null,
       departureTime: data.route.departureDateLabel,
+      departureAt: data.route.departureAt.isNotEmpty ? data.route.departureAt : null,
       totalSeats: data.seats.total,
       status: _parseStatus(data.status),
       passengers: passengers,

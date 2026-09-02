@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -18,10 +20,16 @@ class ActiveTripController extends GetxController {
   final RxBool hasError   = false.obs;
   final RxBool isStarting = false.obs;
 
+  // Réactifs — mis à jour par _updateStartState() chaque minute
+  final RxBool canStart = true.obs;
+  final Rxn<int> minutesUntilStart = Rxn<int>();
+
   final Rxn<PreDepartureModel> _data = Rxn<PreDepartureModel>();
   PreDepartureModel? get data => _data.value;
 
   late final String _uuid;
+  DateTime? _departureTime;
+  Timer? _startTimer;
 
   @override
   void onInit() {
@@ -29,7 +37,34 @@ class ActiveTripController extends GetxController {
     final args = Get.arguments as Map<String, dynamic>?;
     final trip = args?['trip'] as TripModel?;
     _uuid = trip?.id ?? (args?['uuid'] as String? ?? '');
+    // departureAt est l'ISO datetime du départ (ex: "2025-08-15T08:00:00")
+    if (trip != null && (trip.departureAt?.isNotEmpty ?? false)) {
+      _departureTime = DateTime.tryParse(trip.departureAt!)?.toLocal();
+    }
+    _updateStartState();
+    // Recalcule toutes les minutes pour mettre à jour le compte à rebours
+    _startTimer = Timer.periodic(const Duration(minutes: 1), (_) => _updateStartState());
     _fetchPreDeparture();
+  }
+
+  @override
+  void onClose() {
+    _startTimer?.cancel();
+    super.onClose();
+  }
+
+  void _updateStartState() {
+    final dep = _departureTime;
+    if (dep == null) {
+      canStart.value = true;
+      minutesUntilStart.value = null;
+      return;
+    }
+    final cutoff = dep.subtract(const Duration(minutes: 5));
+    final now = DateTime.now();
+    final allowed = !now.isBefore(cutoff);
+    canStart.value = allowed;
+    minutesUntilStart.value = allowed ? null : (cutoff.difference(now).inMinutes + 1);
   }
 
   @override

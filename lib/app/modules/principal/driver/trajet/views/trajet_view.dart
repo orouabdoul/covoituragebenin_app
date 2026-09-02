@@ -350,6 +350,16 @@ class _TripCard extends StatelessWidget {
 												color: AppColors.textPrimary,
 											),
 										),
+										if (trip.originPoint.isNotEmpty)
+											Text(
+												trip.originPoint,
+												maxLines: 1,
+												overflow: TextOverflow.ellipsis,
+												style: AppTextStyles.caption(responsive).copyWith(
+													color: AppColors.primary,
+													fontWeight: FontWeight.w500,
+												),
+											),
 										SizedBox(height: responsive.h(2)),
 										Text(
 											trip.destination,
@@ -360,6 +370,16 @@ class _TripCard extends StatelessWidget {
 												color: AppColors.textPrimary,
 											),
 										),
+										if (trip.destinationPoint.isNotEmpty)
+											Text(
+												trip.destinationPoint,
+												maxLines: 1,
+												overflow: TextOverflow.ellipsis,
+												style: AppTextStyles.caption(responsive).copyWith(
+													color: AppColors.danger,
+													fontWeight: FontWeight.w500,
+												),
+											),
 										SizedBox(height: responsive.h(2)),
 										Text(
 											'${trip.departureLabel}: ${trip.departureTime}',

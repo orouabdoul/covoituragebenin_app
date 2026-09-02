@@ -184,11 +184,14 @@ class TrajetController extends GetxController {
       statusColor: statusStyle.$2,
       publishedAgo: t.publishedAgo,
       origin: t.displayOrigin,
+      originPoint: t.originPoint,
       destination: t.displayDestination,
+      destinationPoint: t.destinationPoint,
       departureLabel: AppStrings.trajetDeparture,
       departureTime: t.departureTimeLabel.isNotEmpty
           ? t.departureTimeLabel
           : _formatTime(t.departureTime),
+      departureAt: t.departureAt,
       seatsLabel: AppStrings.trajetSeats,
       seatsValue: '${t.seatsBooked}/${t.seatsTotal}',
       priceLabel: AppStrings.trajetPrice,
@@ -306,8 +309,11 @@ class TrajetController extends GetxController {
   TripModel _toTripModel(TrajetCardData t) => TripModel(
         id: t.uuid,
         origin: t.origin,
+        originPoint: t.originPoint.isNotEmpty ? t.originPoint : null,
         destination: t.destination,
+        destinationPoint: t.destinationPoint.isNotEmpty ? t.destinationPoint : null,
         departureTime: t.departureTime,
+        departureAt: t.departureAt.isNotEmpty ? t.departureAt : null,
         totalSeats: 4,
         status: TripStatus.active,
         passengers: t.passengers
@@ -642,9 +648,12 @@ class TrajetCardData {
     required this.statusColor,
     required this.publishedAgo,
     required this.origin,
+    this.originPoint = '',
     required this.destination,
+    this.destinationPoint = '',
     required this.departureLabel,
     required this.departureTime,
+    this.departureAt = '',
     required this.seatsLabel,
     required this.seatsValue,
     required this.priceLabel,
@@ -669,9 +678,12 @@ class TrajetCardData {
   final Color statusColor;
   final String publishedAgo;
   final String origin;
+  final String originPoint;
   final String destination;
+  final String destinationPoint;
   final String departureLabel;
   final String departureTime;
+  final String departureAt;
   final String seatsLabel;
   final String seatsValue;
   final String priceLabel;

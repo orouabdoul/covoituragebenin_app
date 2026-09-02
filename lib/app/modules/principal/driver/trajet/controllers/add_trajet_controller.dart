@@ -727,15 +727,6 @@ class AddTrajetController extends GetxController {
     final dep = selectedDepartureCity.value!;
     final dest = selectedDestinationCity.value!;
 
-    // Priorité aux coordonnées précises (géocodées au niveau quartier/arrondissement).
-    // Fallback sur les coordonnées statiques de la commune.
-    final depCoordsStatic = BeninLocationHelpers.getCityCoords(dep);
-    final destCoordsStatic = BeninLocationHelpers.getCityCoords(dest);
-    final depLat = _depPreciseLat ?? depCoordsStatic?.lat;
-    final depLng = _depPreciseLng ?? depCoordsStatic?.lng;
-    final destLat = _destPreciseLat ?? destCoordsStatic?.lat;
-    final destLng = _destPreciseLng ?? destCoordsStatic?.lng;
-
     final depNeighborhood = departureDistrictController.text.trim();
     final destNeighborhood = destinationDistrictController.text.trim();
 
@@ -748,8 +739,6 @@ class AddTrajetController extends GetxController {
         'departure_neighborhood': depNeighborhood,
       if (departurePointController.text.trim().isNotEmpty)
         'departure_point': departurePointController.text.trim(),
-      'departure_latitude': ?depLat,
-      'departure_longitude': ?depLng,
       'arrival_city': dest,
       if (selectedDestinationArrondissement.value?.isNotEmpty == true)
         'arrival_arrondissement': selectedDestinationArrondissement.value,
@@ -757,19 +746,16 @@ class AddTrajetController extends GetxController {
         'arrival_neighborhood': destNeighborhood,
       if (destinationPointController.text.trim().isNotEmpty)
         'arrival_point': destinationPointController.text.trim(),
-      'arrival_latitude': ?destLat,
-      'arrival_longitude': ?destLng,
       'departure_date': dateController.text,
       'departure_time': timeController.text,
       'total_seats': availableSeats.value,
       'price_per_seat': price,
       'booking_mode': selectedBookingMode.value,
-      'max_per_booking': 2,
       'cancellation_policy': selectedCancellationPolicy.value,
       'is_recurring': false,
-      'description': descriptionController.text.trim(),
+      if (descriptionController.text.trim().isNotEmpty)
+        'description': descriptionController.text.trim(),
       'preferences': _buildPreferencesList(),
-      'is_published': true,
       if (_durationModifiedByUser && estimatedDurationMinutes != null)
         'estimated_duration_minutes': estimatedDurationMinutes,
     };

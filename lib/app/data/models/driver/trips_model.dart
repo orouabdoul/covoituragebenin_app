@@ -89,6 +89,7 @@ class TripItemData {
     this.arrivalNeighborhood,
     required this.departureTime,
     required this.departureTimeLabel,
+    this.departureAt = '',
     required this.seatsTotal,
     required this.seatsBooked,
     required this.pricePerSeat,
@@ -125,6 +126,7 @@ class TripItemData {
     return parts.join(', ');
   }
   final String departureTimeLabel;
+  final String departureAt;
   final int seatsTotal;
   final int seatsBooked;
   final int pricePerSeat;
@@ -151,6 +153,7 @@ class TripItemData {
         arrivalNeighborhood: json['arrival_neighborhood'] as String?,
         departureTime: (json['departure_time'] as String?) ?? '',
         departureTimeLabel: (json['departure_time_label'] as String?) ?? '',
+        departureAt: (json['departure_at'] as String?) ?? '',
         seatsTotal: (json['seats_total'] as num?)?.toInt() ?? 0,
         seatsBooked: (json['seats_booked'] as num?)?.toInt() ?? 0,
         pricePerSeat: (json['price_per_seat'] as num?)?.toInt() ?? 0,
