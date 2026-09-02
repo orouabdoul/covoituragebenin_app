@@ -514,6 +514,7 @@ class ReservationApiItem {
     this.arrivalLng,
     this.departureDateTime,
     this.priceBreakdown,
+    this.pickedUpAt,
   });
 
   final String uuid;
@@ -562,6 +563,7 @@ class ReservationApiItem {
   final double? arrivalLng;
   final String? departureDateTime;
   final PriceBreakdown? priceBreakdown;
+  final String? pickedUpAt;
 
   // Alias pour la compatibilité avec le code existant
   String get pickupCity => departureCity;
@@ -618,6 +620,7 @@ class ReservationApiItem {
         priceBreakdown:       j['price_breakdown'] is Map<String, dynamic>
             ? PriceBreakdown.fromJson(j['price_breakdown'] as Map<String, dynamic>)
             : null,
+        pickedUpAt:           j['picked_up_at']?.toString(),
       );
 }
 

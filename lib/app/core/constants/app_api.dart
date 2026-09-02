@@ -117,6 +117,7 @@ class AppApi {
   static String cancelBooking(String bookingUuid) => '/bookings/$bookingUuid/cancel';
   static String fetchPaymentStatus(String paymentUuid) => '/payments/$paymentUuid';
   static String confirmArrival(String bookingUuid) => '/bookings/$bookingUuid/confirm-arrival';
+  static String confirmPickup(String bookingUuid) => '/passenger/bookings/$bookingUuid/pickup-confirm';
 
   // Recherche — passager (public)
   static const String passengerSearch = '/passenger/search';

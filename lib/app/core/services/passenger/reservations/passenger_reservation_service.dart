@@ -23,6 +23,8 @@ abstract class PassengerReservationService {
 
   Future<ApiResult<void>> cancelBooking(String bookingUuid);
 
+  Future<ApiResult<void>> confirmPickup(String bookingUuid);
+
   Future<ApiResult<PaymentStatusModel>> fetchPaymentStatus(String paymentUuid);
 
   Future<ApiResult<void>> confirmArrival(String bookingUuid);

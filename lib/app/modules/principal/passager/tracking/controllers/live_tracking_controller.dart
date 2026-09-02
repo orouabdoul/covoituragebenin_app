@@ -53,6 +53,8 @@ class LiveTrackingController extends GetxController {
   final tripEnded           = false.obs;
   final hasDriverCoords     = false.obs; // true dès qu'on reçoit lat/lng valides
   final apiTripStatus       = ''.obs;   // statut brut reçu de l'API
+  final isConfirmingPickup  = false.obs;
+  final pickedUpConfirmed   = false.obs;
 
   // ── Voix ────────────────────────────────────────────────────────────────────
   final voiceEnabled = true.obs;
@@ -267,6 +269,7 @@ class LiveTrackingController extends GetxController {
       }
     }
     driverLatLng.value = pickupLatLng.value;
+    pickedUpConfirmed.value = reservation.value?.pickedUpAt != null;
     _fitMapToBounds();
   }
 
@@ -549,6 +552,27 @@ class LiveTrackingController extends GetxController {
         padding: const EdgeInsets.fromLTRB(56, 96, 56, 280),
       ));
     } catch (_) {}
+  }
+
+  bool get showPickupButton => tripStarted.value && !pickedUpConfirmed.value;
+
+  Future<void> confirmPickup() async {
+    if (isConfirmingPickup.value || pickedUpConfirmed.value) return;
+    if (_bookingUuid.isEmpty) return;
+    isConfirmingPickup.value = true;
+    try {
+      final result = await _service.confirmPickup(_bookingUuid);
+      if (result.isSuccess) {
+        pickedUpConfirmed.value = true;
+        _speak('Confirmation enregistrée. Bon trajet !');
+      } else {
+        Get.snackbar('Erreur', 'Impossible de confirmer. Réessayez.',
+            snackPosition: SnackPosition.TOP,
+            duration: const Duration(seconds: 2));
+      }
+    } finally {
+      isConfirmingPickup.value = false;
+    }
   }
 
   void callDriver() => PhoneUtils.call(_driverPhone);

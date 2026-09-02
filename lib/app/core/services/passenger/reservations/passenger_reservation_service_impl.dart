@@ -76,15 +76,15 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
             'pickup_arrondissement': pickupArrondissement,
           'pickup_neighborhood': pickupNeighborhood,
           'pickup_address': pickupAddress,
-          if (pickupLat != null) 'pickup_latitude': pickupLat,
-          if (pickupLng != null) 'pickup_longitude': pickupLng,
+          'pickup_latitude': ?pickupLat,
+          'pickup_longitude': ?pickupLng,
           'dropoff_city': dropoffCity,
           if (dropoffArrondissement != null && dropoffArrondissement.isNotEmpty)
             'dropoff_arrondissement': dropoffArrondissement,
           'dropoff_neighborhood': dropoffNeighborhood,
           'dropoff_address': dropoffAddress,
-          if (dropoffLat != null) 'dropoff_latitude': dropoffLat,
-          if (dropoffLng != null) 'dropoff_longitude': dropoffLng,
+          'dropoff_latitude': ?dropoffLat,
+          'dropoff_longitude': ?dropoffLng,
         },
         options: opts,
       );
@@ -136,6 +136,26 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
       logger.e('cancelBooking: $e');
+      return ApiResult.failure(AppError.unexpected);
+    }
+  }
+
+  @override
+  Future<ApiResult<void>> confirmPickup(String bookingUuid) async {
+    try {
+      final opts = await _authOptions();
+      final res = await _dio.post(AppApi.confirmPickup(bookingUuid), options: opts);
+      logger.d('confirmPickup[$bookingUuid] [${res.statusCode}]');
+      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
+      if (res.statusCode == 404) return ApiResult.failure(AppError.tripNotFound);
+      if (res.statusCode == 200 || res.statusCode == 201) return ApiResult.success(null);
+      return ApiResult.failure(AppError.unexpected);
+    } on DioException catch (e) {
+      logger.e('confirmPickup: $e');
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
+      logger.e('confirmPickup: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }

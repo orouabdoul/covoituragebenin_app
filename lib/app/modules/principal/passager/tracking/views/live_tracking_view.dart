@@ -842,6 +842,11 @@ class _BottomPanel extends StatelessWidget {
 					_DriverRow(responsive: responsive, controller: controller),
 					SizedBox(height: responsive.h(12)),
 
+					// Bouton "Je suis à bord" — visible quand le trajet démarre
+					Obx(() => controller.showPickupButton
+							? _BoardButton(responsive: responsive, controller: controller)
+							: const SizedBox.shrink()),
+
 					// Messages rapides
 					_QuickMessages(responsive: responsive, controller: controller),
 				],
@@ -1213,6 +1218,62 @@ class _TripEndedOverlay extends StatelessWidget {
 				),
 			),
 		);
+	}
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// BOUTON "JE SUIS À BORD"
+// ════════════════════════════════════════════════════════════════════════════
+
+class _BoardButton extends StatelessWidget {
+	const _BoardButton({required this.responsive, required this.controller});
+
+	final AppResponsive          responsive;
+	final LiveTrackingController controller;
+
+	@override
+	Widget build(BuildContext context) {
+		return Obx(() {
+			final loading = controller.isConfirmingPickup.value;
+			return Padding(
+				padding: EdgeInsets.only(bottom: responsive.h(10)),
+				child: SizedBox(
+					width: double.infinity,
+					height: responsive.h(48),
+					child: ElevatedButton(
+						onPressed: loading ? null : controller.confirmPickup,
+						style: ElevatedButton.styleFrom(
+							backgroundColor: AppColors.primary,
+							disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.60),
+							foregroundColor: Colors.white,
+							elevation: 0,
+							shape: RoundedRectangleBorder(
+								borderRadius: BorderRadius.circular(responsive.radius(14)),
+							),
+						),
+						child: loading
+								? const SizedBox(
+										width: 20, height: 20,
+										child: CircularProgressIndicator(
+												color: Colors.white, strokeWidth: 2.0),
+									)
+								: Row(
+										mainAxisAlignment: MainAxisAlignment.center,
+										children: [
+											const Icon(Icons.check_circle_outline_rounded, size: 20),
+											SizedBox(width: responsive.w(8)),
+											Text(
+												'Je suis à bord',
+												style: AppTextStyles.body(responsive).copyWith(
+														color: Colors.white,
+														fontWeight: FontWeight.w700),
+											),
+										],
+									),
+					),
+				),
+			);
+		});
 	}
 }
 

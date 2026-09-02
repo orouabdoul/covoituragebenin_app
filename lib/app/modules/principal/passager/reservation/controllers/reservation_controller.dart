@@ -234,6 +234,7 @@ class ReservationController extends GetxController {
 			dropoffLat: a.arrivalLat,
 			dropoffLng: a.arrivalLng,
 			departureDateTime: a.departureDateTime,
+			pickedUpAt: a.pickedUpAt,
 		);
 	}
 
@@ -881,6 +882,7 @@ class ReservationItem {
 		this.dropoffLat,
 		this.dropoffLng,
 		this.departureDateTime,
+		this.pickedUpAt,
 	});
 
 	final String id;
@@ -931,6 +933,7 @@ class ReservationItem {
 	final double? dropoffLat;
 	final double? dropoffLng;
 	final String? departureDateTime;
+	final String? pickedUpAt;
 
 	// Alias pour compatibilité avec le code existant
 	String get pickupCity => departureCity;
@@ -1008,6 +1011,7 @@ class ReservationItem {
 			dropoffLat: dropoffLat,
 			dropoffLng: dropoffLng,
 			departureDateTime: departureDateTime,
+			pickedUpAt: pickedUpAt,
 		);
 	}
 }

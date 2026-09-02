@@ -414,7 +414,9 @@ class AddTrajetController extends GetxController {
         perm = await Geolocator.requestPermission();
       }
       if (perm == LocationPermission.denied ||
-          perm == LocationPermission.deniedForever) return;
+          perm == LocationPermission.deniedForever) {
+        return;
+      }
       final pos = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
       );
@@ -602,10 +604,17 @@ class AddTrajetController extends GetxController {
     }
   }
 
+  // Display format DD/MM/YYYY ↔ API format YYYY-MM-DD
   static String _fromIsoDate(String yyyymmdd) {
     final parts = yyyymmdd.split('-');
     if (parts.length != 3) return yyyymmdd;
     return '${parts[2]}/${parts[1]}/${parts[0]}';
+  }
+
+  static String _toIsoDate(String ddmmyyyy) {
+    final parts = ddmmyyyy.split('/');
+    if (parts.length != 3) return ddmmyyyy;
+    return '${parts[2]}-${parts[1]}-${parts[0]}';
   }
 
   void _onPriceChanged() {
@@ -727,22 +736,29 @@ class AddTrajetController extends GetxController {
     final destLat = _destPreciseLat ?? destCoordsStatic?.lat;
     final destLng = _destPreciseLng ?? destCoordsStatic?.lng;
 
+    final depNeighborhood = departureDistrictController.text.trim();
+    final destNeighborhood = destinationDistrictController.text.trim();
+
     final payload = <String, dynamic>{
       'vehicle_id': selectedVehicle.value!.id,
       'departure_city': dep,
       if (selectedDepartureArrondissement.value?.isNotEmpty == true)
         'departure_arrondissement': selectedDepartureArrondissement.value,
-      'departure_neighborhood': departureDistrictController.text.trim(),
-      'departure_point': departurePointController.text.trim(),
-      if (depLat != null) 'departure_latitude': depLat,
-      if (depLng != null) 'departure_longitude': depLng,
+      if (depNeighborhood.isNotEmpty)
+        'departure_neighborhood': depNeighborhood,
+      if (departurePointController.text.trim().isNotEmpty)
+        'departure_point': departurePointController.text.trim(),
+      'departure_latitude': ?depLat,
+      'departure_longitude': ?depLng,
       'arrival_city': dest,
       if (selectedDestinationArrondissement.value?.isNotEmpty == true)
         'arrival_arrondissement': selectedDestinationArrondissement.value,
-      'arrival_neighborhood': destinationDistrictController.text.trim(),
-      'arrival_point': destinationPointController.text.trim(),
-      if (destLat != null) 'arrival_latitude': destLat,
-      if (destLng != null) 'arrival_longitude': destLng,
+      if (destNeighborhood.isNotEmpty)
+        'arrival_neighborhood': destNeighborhood,
+      if (destinationPointController.text.trim().isNotEmpty)
+        'arrival_point': destinationPointController.text.trim(),
+      'arrival_latitude': ?destLat,
+      'arrival_longitude': ?destLng,
       'departure_date': dateController.text,
       'departure_time': timeController.text,
       'total_seats': availableSeats.value,
