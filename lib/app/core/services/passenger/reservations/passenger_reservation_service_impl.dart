@@ -53,15 +53,17 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
     String tripUuid, {
     required int seats,
     required String pickupCity,
+    String? pickupArrondissement,
     required String pickupNeighborhood,
     required String pickupAddress,
-    required double pickupLat,
-    required double pickupLng,
+    double? pickupLat,
+    double? pickupLng,
     required String dropoffCity,
+    String? dropoffArrondissement,
     required String dropoffNeighborhood,
     required String dropoffAddress,
-    required double dropoffLat,
-    required double dropoffLng,
+    double? dropoffLat,
+    double? dropoffLng,
   }) async {
     try {
       final opts = await _authOptions();
@@ -70,15 +72,19 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
         data: {
           'seats_booked': seats,
           'pickup_city': pickupCity,
+          if (pickupArrondissement != null && pickupArrondissement.isNotEmpty)
+            'pickup_arrondissement': pickupArrondissement,
           'pickup_neighborhood': pickupNeighborhood,
           'pickup_address': pickupAddress,
-          'pickup_latitude': pickupLat,
-          'pickup_longitude': pickupLng,
+          if (pickupLat != null) 'pickup_latitude': pickupLat,
+          if (pickupLng != null) 'pickup_longitude': pickupLng,
           'dropoff_city': dropoffCity,
+          if (dropoffArrondissement != null && dropoffArrondissement.isNotEmpty)
+            'dropoff_arrondissement': dropoffArrondissement,
           'dropoff_neighborhood': dropoffNeighborhood,
           'dropoff_address': dropoffAddress,
-          'dropoff_latitude': dropoffLat,
-          'dropoff_longitude': dropoffLng,
+          if (dropoffLat != null) 'dropoff_latitude': dropoffLat,
+          if (dropoffLng != null) 'dropoff_longitude': dropoffLng,
         },
         options: opts,
       );

@@ -35,7 +35,11 @@ class TripModel {
   const TripModel({
     required this.id,
     required this.origin,
+    this.originArrondissement,
+    this.originNeighborhood,
     required this.destination,
+    this.destinationArrondissement,
+    this.destinationNeighborhood,
     required this.departureTime,
     required this.totalSeats,
     required this.status,
@@ -53,9 +57,23 @@ class TripModel {
 
   final String id;
   final String origin;
+  final String? originArrondissement;
+  final String? originNeighborhood;
   final String destination;
+  final String? destinationArrondissement;
+  final String? destinationNeighborhood;
   final String departureTime;
   final int totalSeats;
+
+  String get displayOrigin {
+    final parts = [origin, originArrondissement, originNeighborhood].where((p) => p != null && p.isNotEmpty).toList();
+    return parts.join(', ');
+  }
+
+  String get displayDestination {
+    final parts = [destination, destinationArrondissement, destinationNeighborhood].where((p) => p != null && p.isNotEmpty).toList();
+    return parts.join(', ');
+  }
   final TripStatus status;
   final List<TripPassengerModel> passengers;
   final double pricePerSeat;

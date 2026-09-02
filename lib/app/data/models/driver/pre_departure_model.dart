@@ -56,7 +56,9 @@ class PreDepartureTripSummary {
   const PreDepartureTripSummary({
     required this.uuid,
     required this.origin,
+    this.originArrondissement,
     required this.destination,
+    this.destinationArrondissement,
     required this.departureTimeFormatted,
     required this.distanceKm,
     required this.durationLabel,
@@ -67,7 +69,9 @@ class PreDepartureTripSummary {
 
   final String uuid;
   final String origin;
+  final String? originArrondissement;
   final String destination;
+  final String? destinationArrondissement;
   final String departureTimeFormatted;
   final double distanceKm;
   final String durationLabel;
@@ -79,7 +83,9 @@ class PreDepartureTripSummary {
       PreDepartureTripSummary(
         uuid: j['uuid'] as String? ?? '',
         origin: j['origin'] as String? ?? '',
+        originArrondissement: j['origin_arrondissement'] as String?,
         destination: j['destination'] as String? ?? '',
+        destinationArrondissement: j['destination_arrondissement'] as String?,
         departureTimeFormatted: j['departure_time_formatted'] as String? ?? '',
         distanceKm: (j['distance_km'] as num?)?.toDouble() ?? 0.0,
         durationLabel: j['duration_label'] as String? ?? '',

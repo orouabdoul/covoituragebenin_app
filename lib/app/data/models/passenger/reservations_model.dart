@@ -374,8 +374,10 @@ class PaymentSuccessModel {
     this.bookingRef = '',
     this.priceBreakdown,
     this.pickupCity = '',
+    this.pickupArrondissement = '',
     this.pickupAddress = '',
     this.dropoffCity = '',
+    this.dropoffArrondissement = '',
     this.dropoffAddress = '',
     this.passengerDistanceKm,
   });
@@ -391,8 +393,10 @@ class PaymentSuccessModel {
   final String  bookingRef;
   final PriceBreakdown? priceBreakdown;
   final String  pickupCity;
+  final String  pickupArrondissement;
   final String  pickupAddress;
   final String  dropoffCity;
+  final String  dropoffArrondissement;
   final String  dropoffAddress;
   final double? passengerDistanceKm;
 
@@ -414,8 +418,10 @@ class PaymentSuccessModel {
             ? PriceBreakdown.fromJson(j['price_breakdown'] as Map<String, dynamic>)
             : null,
         pickupCity:          (j['pickup_city'] ?? '').toString(),
+        pickupArrondissement:(j['pickup_arrondissement'] ?? '').toString(),
         pickupAddress:       (j['pickup_address'] ?? '').toString(),
         dropoffCity:         (j['dropoff_city'] ?? '').toString(),
+        dropoffArrondissement:(j['dropoff_arrondissement'] ?? '').toString(),
         dropoffAddress:      (j['dropoff_address'] ?? '').toString(),
         passengerDistanceKm: (j['passenger_distance_km'] as num?)?.toDouble(),
       );
@@ -475,9 +481,13 @@ class ReservationApiItem {
     required this.seatsCount,
     // Points passager (prise en charge / dépose)
     required this.departureCity,
+    this.departureArrondissement = '',
+    this.departureNeighborhood = '',
     required this.departureNote,
     required this.departureAddress,
     required this.arrivalCity,
+    this.arrivalArrondissement = '',
+    this.arrivalNeighborhood = '',
     required this.arrivalNote,
     required this.arrivalAddress,
     // Trajet complet du conducteur (contexte)
@@ -519,9 +529,13 @@ class ReservationApiItem {
   final int seatsCount;
   // Points passager — ville, quartier, adresse exacte
   final String departureCity;
+  final String departureArrondissement;
+  final String departureNeighborhood;
   final String departureNote;
   final String departureAddress;
   final String arrivalCity;
+  final String arrivalArrondissement;
+  final String arrivalNeighborhood;
   final String arrivalNote;
   final String arrivalAddress;
   // Trajet complet conducteur (info contextuelle)
@@ -569,9 +583,13 @@ class ReservationApiItem {
         totalPrice: (j['total_price'] ?? '').toString(),
         seatsCount: (j['seats_count'] as num?)?.toInt() ?? 1,
         departureCity: (j['departure_city'] ?? '').toString(),
+        departureArrondissement: (j['departure_arrondissement'] ?? '').toString(),
+        departureNeighborhood: (j['departure_neighborhood'] ?? '').toString(),
         departureNote: (j['departure_note'] ?? '').toString(),
         departureAddress: (j['departure_address'] ?? '').toString(),
         arrivalCity: (j['arrival_city'] ?? '').toString(),
+        arrivalArrondissement: (j['arrival_arrondissement'] ?? '').toString(),
+        arrivalNeighborhood: (j['arrival_neighborhood'] ?? '').toString(),
         arrivalNote: (j['arrival_note'] ?? '').toString(),
         arrivalAddress: (j['arrival_address'] ?? '').toString(),
         tripOrigin: (j['trip_origin'] ?? '').toString(),
@@ -745,9 +763,11 @@ class ApprovalStatusRide {
     // Nouveaux champs
     this.departureDate = '',
     this.pickupCity = '',
+    this.pickupArrondissement = '',
     this.pickupNeighborhood = '',
     this.pickupAddress = '',
     this.dropoffCity = '',
+    this.dropoffArrondissement = '',
     this.dropoffNeighborhood = '',
     this.dropoffAddress = '',
     this.passengerDistanceKm,
@@ -763,9 +783,11 @@ class ApprovalStatusRide {
   // Nouveaux champs
   final String  departureDate;
   final String  pickupCity;
+  final String  pickupArrondissement;
   final String  pickupNeighborhood;
   final String  pickupAddress;
   final String  dropoffCity;
+  final String  dropoffArrondissement;
   final String  dropoffNeighborhood;
   final String  dropoffAddress;
   final double? passengerDistanceKm;
@@ -782,9 +804,11 @@ class ApprovalStatusRide {
         // Nouveaux champs
         departureDate:       (j['departure_date'] ?? '').toString(),
         pickupCity:          (j['pickup_city'] ?? '').toString(),
+        pickupArrondissement: (j['pickup_arrondissement'] ?? '').toString(),
         pickupNeighborhood:  (j['pickup_neighborhood'] ?? '').toString(),
         pickupAddress:       (j['pickup_address'] ?? '').toString(),
         dropoffCity:         (j['dropoff_city'] ?? '').toString(),
+        dropoffArrondissement:(j['dropoff_arrondissement'] ?? '').toString(),
         dropoffNeighborhood: (j['dropoff_neighborhood'] ?? '').toString(),
         dropoffAddress:      (j['dropoff_address'] ?? '').toString(),
         passengerDistanceKm: (j['passenger_distance_km'] as num?)?.toDouble(),

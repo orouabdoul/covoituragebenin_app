@@ -183,8 +183,8 @@ class TrajetController extends GetxController {
       statusBackground: statusStyle.$1,
       statusColor: statusStyle.$2,
       publishedAgo: t.publishedAgo,
-      origin: t.origin,
-      destination: t.destination,
+      origin: t.displayOrigin,
+      destination: t.displayDestination,
       departureLabel: AppStrings.trajetDeparture,
       departureTime: t.departureTimeLabel.isNotEmpty
           ? t.departureTimeLabel

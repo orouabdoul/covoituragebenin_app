@@ -244,11 +244,35 @@ class _StopsCard extends StatelessWidget {
 					)),
 					SizedBox(height: responsive.h(8)),
 
-					// Quartier (filtré selon la ville sélectionnée)
+					// Arrondissement
 					Obx(() {
+						return Column(
+							children: [
+								_LocationAutocompleteField(
+									key: ValueKey('pickup-arr-${controller.pickupSelectedCity.value}'),
+									responsive: responsive,
+									label: 'Arrondissement *',
+									icon: Icons.grid_view_rounded,
+									iconColor: AppColors.primary,
+									controller: controller.pickupArrondissementController,
+									items: controller.pickupArrondissementItems,
+									isSelected: controller.pickupSelectedArrondissement.value != null,
+									onSelected: controller.onPickupArrondissementSelected,
+									onTextChanged: controller.onPickupArrondissementTyped,
+									enabled: controller.pickupSelectedCity.value != null,
+									emptyHint: 'Choisissez un arrondissement',
+								),
+								SizedBox(height: responsive.h(8)),
+							],
+						);
+					}),
+
+					// Quartier (filtré selon l'arrondissement)
+					Obx(() {
+						final arrSelected = controller.pickupSelectedArrondissement.value;
 						final districts = controller.pickupNeighborhoodItems;
 						return _LocationAutocompleteField(
-							key: ValueKey('pickup-district-${controller.pickupSelectedCity.value}'),
+							key: ValueKey('pickup-district-${controller.pickupSelectedCity.value}-$arrSelected'),
 							responsive: responsive,
 							label: 'Quartier *',
 							icon: Icons.map_rounded,
@@ -258,10 +282,12 @@ class _StopsCard extends StatelessWidget {
 							isSelected: controller.pickupSelectedNeighborhood.value != null,
 							onSelected: controller.onPickupNeighborhoodSelected,
 							onTextChanged: controller.onPickupNeighborhoodTyped,
-							enabled: controller.pickupSelectedCity.value != null,
-							emptyHint: controller.pickupSelectedCity.value == null
-									? 'Choisissez d\'abord une ville'
-									: 'Saisissez votre quartier',
+							enabled: arrSelected != null,
+							emptyHint: arrSelected == null
+									? 'Choisissez d\'abord un arrondissement'
+									: controller.pickupSelectedCity.value == null
+											? 'Choisissez d\'abord une ville'
+											: 'Saisissez votre quartier',
 						);
 					}),
 					SizedBox(height: responsive.h(8)),
@@ -334,11 +360,35 @@ class _StopsCard extends StatelessWidget {
 					)),
 					SizedBox(height: responsive.h(8)),
 
+					// Arrondissement
+					Obx(() {
+						return Column(
+							children: [
+								_LocationAutocompleteField(
+									key: ValueKey('dropoff-arr-${controller.dropoffSelectedCity.value}'),
+									responsive: responsive,
+									label: 'Arrondissement *',
+									icon: Icons.grid_view_rounded,
+									iconColor: AppColors.danger,
+									controller: controller.dropoffArrondissementController,
+									items: controller.dropoffArrondissementItems,
+									isSelected: controller.dropoffSelectedArrondissement.value != null,
+									onSelected: controller.onDropoffArrondissementSelected,
+									onTextChanged: controller.onDropoffArrondissementTyped,
+									enabled: controller.dropoffSelectedCity.value != null,
+									emptyHint: 'Choisissez un arrondissement',
+								),
+								SizedBox(height: responsive.h(8)),
+							],
+						);
+					}),
+
 					// Quartier
 					Obx(() {
+						final arrSelected = controller.dropoffSelectedArrondissement.value;
 						final districts = controller.dropoffNeighborhoodItems;
 						return _LocationAutocompleteField(
-							key: ValueKey('dropoff-district-${controller.dropoffSelectedCity.value}'),
+							key: ValueKey('dropoff-district-${controller.dropoffSelectedCity.value}-$arrSelected'),
 							responsive: responsive,
 							label: 'Quartier *',
 							icon: Icons.map_rounded,
@@ -348,10 +398,12 @@ class _StopsCard extends StatelessWidget {
 							isSelected: controller.dropoffSelectedNeighborhood.value != null,
 							onSelected: controller.onDropoffNeighborhoodSelected,
 							onTextChanged: controller.onDropoffNeighborhoodTyped,
-							enabled: controller.dropoffSelectedCity.value != null,
-							emptyHint: controller.dropoffSelectedCity.value == null
-									? 'Choisissez d\'abord une ville'
-									: 'Saisissez votre quartier',
+							enabled: arrSelected != null,
+							emptyHint: arrSelected == null
+									? 'Choisissez d\'abord un arrondissement'
+									: controller.dropoffSelectedCity.value == null
+											? 'Choisissez d\'abord une ville'
+											: 'Saisissez votre quartier',
 						);
 					}),
 					SizedBox(height: responsive.h(8)),
@@ -900,8 +952,8 @@ class _TripCard extends StatelessWidget {
 
 	@override
 	Widget build(BuildContext context) {
-		final String departureCity = ride?.origin ?? 'Cotonou, Cadjèhoun';
-		final String arrivalCity = ride?.destination ?? 'Porto-Novo, Centre-ville';
+		final String departureCity = ride?.displayOrigin ?? 'Cotonou, Cadjèhoun';
+		final String arrivalCity = ride?.displayDestination ?? 'Porto-Novo, Centre-ville';
 		final String departureTime = ride?.departureTime ?? 'Aujourd\'hui, 14:30';
 		final String arrivalTime = ride?.arrivalTime ?? 'Aujourd\'hui, 15:45';
 		final String departureNote = ride?.departureNote ?? 'Départ';

@@ -8,15 +8,17 @@ abstract class PassengerReservationService {
     String tripUuid, {
     required int seats,
     required String pickupCity,
+    String? pickupArrondissement,
     required String pickupNeighborhood,
     required String pickupAddress,
-    required double pickupLat,
-    required double pickupLng,
+    double? pickupLat,
+    double? pickupLng,
     required String dropoffCity,
+    String? dropoffArrondissement,
     required String dropoffNeighborhood,
     required String dropoffAddress,
-    required double dropoffLat,
-    required double dropoffLng,
+    double? dropoffLat,
+    double? dropoffLng,
   });
 
   Future<ApiResult<void>> cancelBooking(String bookingUuid);

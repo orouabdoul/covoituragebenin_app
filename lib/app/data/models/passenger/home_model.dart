@@ -8,7 +8,9 @@ class PassengerUpcomingTripData {
     this.originPoint = '',
     this.destinationPoint = '',
     this.pickupCity = '',
+    this.pickupArrondissement = '',
     this.dropoffCity = '',
+    this.dropoffArrondissement = '',
     this.pickupNote = '',
     this.dropoffNote = '',
     this.proratedPrice = 0,
@@ -38,7 +40,9 @@ class PassengerUpcomingTripData {
   final String originPoint;
   final String destinationPoint;
   final String pickupCity;
+  final String pickupArrondissement;
   final String dropoffCity;
+  final String dropoffArrondissement;
   final String pickupNote;
   final String dropoffNote;
   final int proratedPrice;
@@ -84,9 +88,11 @@ class PassengerUpcomingTripData {
       pickupCity: (json['pickup_city'] as String?)?.isNotEmpty == true
           ? json['pickup_city'] as String
           : originPoint,
+      pickupArrondissement: (json['pickup_arrondissement'] as String?) ?? '',
       dropoffCity: (json['dropoff_city'] as String?)?.isNotEmpty == true
           ? json['dropoff_city'] as String
           : destinationPoint,
+      dropoffArrondissement: (json['dropoff_arrondissement'] as String?) ?? '',
       pickupNote: (json['pickup_note'] as String?) ?? '',
       dropoffNote: (json['dropoff_note'] as String?) ?? '',
       proratedPrice: (json['calculated_price'] as num?)?.toInt() ??

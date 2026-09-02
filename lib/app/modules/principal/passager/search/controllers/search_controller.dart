@@ -6,7 +6,7 @@ import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/search/passenger_search_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
-import 'package:covoiturage_benin_app/app/data/benin_locations_data.dart';
+import 'package:covoiturage_benin_app/app/data/benin_location_helpers.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
@@ -21,15 +21,15 @@ class SearchController extends GetxController {
 
 	// Selection state
 	final RxnString selectedOriginCity = RxnString();
-	final RxnString selectedOriginDistrict = RxnString();
+	final RxnString selectedOriginArrondissement = RxnString();
 	final RxnString selectedDestinationCity = RxnString();
-	final RxnString selectedDestinationDistrict = RxnString();
+	final RxnString selectedDestinationArrondissement = RxnString();
 
 	// Text controllers for autocomplete fields
 	final TextEditingController originCityController = TextEditingController();
-	final TextEditingController originDistrictController = TextEditingController();
+	final TextEditingController originArrondissementController = TextEditingController();
 	final TextEditingController destinationCityController = TextEditingController();
-	final TextEditingController destinationDistrictController = TextEditingController();
+	final TextEditingController destinationArrondissementController = TextEditingController();
 
 	final RxString selectedDateLabel = 'Aujourd\'hui'.obs;
 	final RxInt passengerCount = 1.obs;
@@ -94,51 +94,52 @@ class SearchController extends GetxController {
 
 	// ── Location data ─────────────────────────────────────────────────────────
 
-	List<String> get beninCities => BeninLocations.cities;
-	List<String> getDistricts(String? city) => BeninLocations.getDistricts(city);
+	List<String> get beninCities => BeninLocationHelpers.cities;
+	List<String> getArrondissements(String? city) => BeninLocationHelpers.getArrondissements(city);
+	List<String> getQuartiers(String? city, String? arr) => BeninLocationHelpers.getQuartiers(city, arr);
 
 	// ── Location: selection callbacks ─────────────────────────────────────────
 
 	void onOriginCityChanged(String? city) {
 		selectedOriginCity.value = city;
-		selectedOriginDistrict.value = null;
+		selectedOriginArrondissement.value = null;
 		originCityController.text = city ?? '';
-		originDistrictController.text = '';
+		originArrondissementController.text = '';
 	}
 
 	void onDestinationCityChanged(String? city) {
 		selectedDestinationCity.value = city;
-		selectedDestinationDistrict.value = null;
+		selectedDestinationArrondissement.value = null;
 		destinationCityController.text = city ?? '';
-		destinationDistrictController.text = '';
+		destinationArrondissementController.text = '';
 	}
 
-	void onOriginDistrictChanged(String? district) {
-		selectedOriginDistrict.value = district;
-		originDistrictController.text = district ?? '';
+	void onOriginArrondissementChanged(String? arrondissement) {
+		selectedOriginArrondissement.value = arrondissement;
+		originArrondissementController.text = arrondissement ?? '';
 	}
 
-	void onDestinationDistrictChanged(String? district) {
-		selectedDestinationDistrict.value = district;
-		destinationDistrictController.text = district ?? '';
+	void onDestinationArrondissementChanged(String? arrondissement) {
+		selectedDestinationArrondissement.value = arrondissement;
+		destinationArrondissementController.text = arrondissement ?? '';
 	}
 
 	// ── Location: typing callbacks (invalidate current selection) ────────────
 
 	void onOriginCityTyped() {
 		selectedOriginCity.value = null;
-		selectedOriginDistrict.value = null;
-		originDistrictController.text = '';
+		selectedOriginArrondissement.value = null;
+		originArrondissementController.text = '';
 	}
 
 	void onDestinationCityTyped() {
 		selectedDestinationCity.value = null;
-		selectedDestinationDistrict.value = null;
-		destinationDistrictController.text = '';
+		selectedDestinationArrondissement.value = null;
+		destinationArrondissementController.text = '';
 	}
 
-	void onOriginDistrictTyped() => selectedOriginDistrict.value = null;
-	void onDestinationDistrictTyped() => selectedDestinationDistrict.value = null;
+	void onOriginArrondissementTyped() => selectedOriginArrondissement.value = null;
+	void onDestinationArrondissementTyped() => selectedDestinationArrondissement.value = null;
 
 	// ── Actions ───────────────────────────────────────────────────────────────
 
@@ -152,11 +153,11 @@ class SearchController extends GetxController {
 		selectedDestinationCity.value = tmpSelectedCity;
 		destinationCityController.text = tmpCityText;
 
-		// Districts are city-specific; clear both after swap
-		selectedOriginDistrict.value = null;
-		originDistrictController.text = '';
-		selectedDestinationDistrict.value = null;
-		destinationDistrictController.text = '';
+		// Arrondissements are city-specific; clear both after swap
+		selectedOriginArrondissement.value = null;
+		originArrondissementController.text = '';
+		selectedDestinationArrondissement.value = null;
+		destinationArrondissementController.text = '';
 	}
 
 	void incrementPassengers() {
@@ -245,13 +246,13 @@ class SearchController extends GetxController {
 
 	void resetSearch() {
 		selectedOriginCity.value = null;
-		selectedOriginDistrict.value = null;
+		selectedOriginArrondissement.value = null;
 		selectedDestinationCity.value = null;
-		selectedDestinationDistrict.value = null;
+		selectedDestinationArrondissement.value = null;
 		originCityController.text = '';
-		originDistrictController.text = '';
+		originArrondissementController.text = '';
 		destinationCityController.text = '';
-		destinationDistrictController.text = '';
+		destinationArrondissementController.text = '';
 		originCity.value = '';
 		destinationCity.value = '';
 		selectedDateLabel.value = "Aujourd'hui";
@@ -339,9 +340,9 @@ class SearchController extends GetxController {
 	@override
 	void onClose() {
 		originCityController.dispose();
-		originDistrictController.dispose();
+		originArrondissementController.dispose();
 		destinationCityController.dispose();
-		destinationDistrictController.dispose();
+		destinationArrondissementController.dispose();
 		super.onClose();
 	}
 }
@@ -657,7 +658,11 @@ class SearchRide {
 		required this.price,
 		required this.priceValue,
 		required this.origin,
+		this.departureArrondissement = '',
+		this.departureNeighborhood = '',
 		required this.destination,
+		this.arrivalArrondissement = '',
+		this.arrivalNeighborhood = '',
 		required this.departureTime,
 		required this.departureNote,
 		required this.arrivalTime,
@@ -682,7 +687,11 @@ class SearchRide {
 	final String price;
 	final int priceValue;
 	final String origin;
+	final String departureArrondissement;
+	final String departureNeighborhood;
 	final String destination;
+	final String arrivalArrondissement;
+	final String arrivalNeighborhood;
 	final String departureTime;
 	final String departureNote;
 	final String arrivalTime;
@@ -697,4 +706,14 @@ class SearchRide {
 	final String? waypointCity;
 	final String? waypointNote;
 	final double distanceKm;
+
+	String get displayOrigin {
+		final parts = [origin, departureArrondissement, departureNeighborhood].where((p) => p.isNotEmpty).toList();
+		return parts.join(', ');
+	}
+
+	String get displayDestination {
+		final parts = [destination, arrivalArrondissement, arrivalNeighborhood].where((p) => p.isNotEmpty).toList();
+		return parts.join(', ');
+	}
 }

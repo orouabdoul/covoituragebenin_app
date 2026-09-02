@@ -201,9 +201,13 @@ class ReservationController extends GetxController {
 			totalPrice: displayPrice,
 			totalPriceValue: totalPriceValue,
 			departureCity: a.departureCity,
+			departureArrondissement: a.departureArrondissement,
+			departureNeighborhood: a.departureNeighborhood,
 			departureNote: a.departureNote,
 			departureAddress: a.departureAddress,
 			arrivalCity: a.arrivalCity,
+			arrivalArrondissement: a.arrivalArrondissement,
+			arrivalNeighborhood: a.arrivalNeighborhood,
 			arrivalNote: a.arrivalNote,
 			arrivalAddress: a.arrivalAddress,
 			tripOrigin: a.tripOrigin,
@@ -841,9 +845,13 @@ class ReservationItem {
 		required this.totalPriceValue,
 		// Points passager (prise / dépose)
 		required this.departureCity,
+		this.departureArrondissement = '',
+		this.departureNeighborhood = '',
 		required this.departureNote,
 		this.departureAddress = '',
 		required this.arrivalCity,
+		this.arrivalArrondissement = '',
+		this.arrivalNeighborhood = '',
 		required this.arrivalNote,
 		this.arrivalAddress = '',
 		// Trajet complet conducteur (contexte)
@@ -887,9 +895,13 @@ class ReservationItem {
 	final int totalPriceValue;
 	// Points passager — ville, quartier, adresse exacte
 	final String departureCity;
+	final String departureArrondissement;
+	final String departureNeighborhood;
 	final String departureNote;
 	final String departureAddress;
 	final String arrivalCity;
+	final String arrivalArrondissement;
+	final String arrivalNeighborhood;
 	final String arrivalNote;
 	final String arrivalAddress;
 	// Trajet complet conducteur (info contextuelle)
@@ -926,9 +938,15 @@ class ReservationItem {
 	String get pickupNote => departureNote;
 	String get dropoffNote => arrivalNote;
 
-	// Getters d'affichage (les points passager sont maintenant directs)
-	String get displayPickupCity => departureCity;
-	String get displayDropoffCity => arrivalCity;
+	// Getters d'affichage
+	String get displayPickupCity {
+		final parts = [departureCity, departureArrondissement, departureNeighborhood].where((p) => p.isNotEmpty).toList();
+		return parts.join(', ');
+	}
+	String get displayDropoffCity {
+		final parts = [arrivalCity, arrivalArrondissement, arrivalNeighborhood].where((p) => p.isNotEmpty).toList();
+		return parts.join(', ');
+	}
 	String get displayPickupNote => departureNote;
 	String get displayDropoffNote => arrivalNote;
 	String get displayPickupAddress => departureAddress;
@@ -956,9 +974,13 @@ class ReservationItem {
 			totalPrice: totalPrice,
 			totalPriceValue: totalPriceValue,
 			departureCity: departureCity,
+			departureArrondissement: departureArrondissement,
+			departureNeighborhood: departureNeighborhood,
 			departureNote: departureNote,
 			departureAddress: departureAddress,
 			arrivalCity: arrivalCity,
+			arrivalArrondissement: arrivalArrondissement,
+			arrivalNeighborhood: arrivalNeighborhood,
 			arrivalNote: arrivalNote,
 			arrivalAddress: arrivalAddress,
 			tripOrigin: tripOrigin,

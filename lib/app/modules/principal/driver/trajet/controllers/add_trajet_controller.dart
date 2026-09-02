@@ -5,10 +5,12 @@ import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/trips/trips_service.dart';
+import 'package:covoiturage_benin_app/app/core/services/routing/geocoding_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/routing/routing_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/api_result.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
+import 'package:covoiturage_benin_app/app/data/benin_location_helpers.dart';
 import 'package:covoiturage_benin_app/app/data/benin_locations_data.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/vehicle_model.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
@@ -16,6 +18,7 @@ import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controlle
 class AddTrajetController extends GetxController {
   TripsService get _tripsService => Get.find<TripsService>();
   final RoutingService _routing = RoutingService();
+  final GeocodingService _geocoding = GeocodingService();
 
   String? _editUuid;
   bool get isEditMode => _editUuid != null;
@@ -33,10 +36,7 @@ class AddTrajetController extends GetxController {
   final RxBool isPublishing = false.obs;
   final RxBool isLoadingEdit = false.obs;
 
-  // ── Price suggestion from API ─────────────────────────────────────────────
   int priceDefault = 5000;
-  int priceMin = 500;
-  int priceMax = 50000;
 
   // ── Commission from API ───────────────────────────────────────────────────
   int commissionRatePercent = 10;
@@ -79,9 +79,11 @@ class AddTrajetController extends GetxController {
 
   // ── Text controllers ──────────────────────────────────────────────────────
   final TextEditingController departureCityController = TextEditingController();
+  final TextEditingController departureArrondissementController = TextEditingController();
   final TextEditingController departureDistrictController = TextEditingController();
   final TextEditingController departurePointController = TextEditingController();
   final TextEditingController destinationCityController = TextEditingController();
+  final TextEditingController destinationArrondissementController = TextEditingController();
   final TextEditingController destinationDistrictController = TextEditingController();
   final TextEditingController destinationPointController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
@@ -90,7 +92,6 @@ class AddTrajetController extends GetxController {
   final TextEditingController priceController = TextEditingController(text: '5000');
 
   int get totalAmount => availableSeats.value * pricePerSeat.value.toInt();
-  // Total vehicle seats minus 1 (driver seat) = max passenger seats for this trip.
   int get maxPassengers {
     final seats = selectedVehicle.value?.availableSeats ?? 5;
     return (seats - 1).clamp(1, 99);
@@ -101,11 +102,16 @@ class AddTrajetController extends GetxController {
     return '${v.brand} ${v.model} — $maxPassengers place${maxPassengers > 1 ? 's' : ''} passager max';
   }
 
-  // ── Villes & quartiers ────────────────────────────────────────────────────
+  // ── Villes, arrondissements & quartiers ───────────────────────────────────
   final RxList<String> _apiCities = <String>[].obs;
+  // Arrondissements retournés par l'API (ville → liste arrondissements)
+  final Map<String, List<String>> _apiArrondissements = {};
+
   final RxnString selectedDepartureCity = RxnString();
+  final RxnString selectedDepartureArrondissement = RxnString();
   final RxnString selectedDepartureDistrict = RxnString();
   final RxnString selectedDestinationCity = RxnString();
+  final RxnString selectedDestinationArrondissement = RxnString();
   final RxnString selectedDestinationDistrict = RxnString();
 
   // ── Trip estimate ─────────────────────────────────────────────────────────
@@ -117,16 +123,22 @@ class AddTrajetController extends GetxController {
   bool _durationModifiedByUser = false;
   bool _updatingDurationProgrammatically = false;
 
+  // Coordonnées précises calculées lors du géocodage (quartier/arrondissement/ville)
+  double? _depPreciseLat;
+  double? _depPreciseLng;
+  double? _destPreciseLat;
+  double? _destPreciseLng;
+
   // ── GPS ───────────────────────────────────────────────────────────────────
   double? _deviceLat;
   double? _deviceLng;
 
   static Map<String, List<String>> get beninCitiesWithDistricts =>
-      BeninLocations.citiesWithDistricts;
+      BeninLocationHelpers.citiesWithArrondissements;
 
   List<String> get beninCities {
     final api = _apiCities.toList();
-    return api.isNotEmpty ? api : BeninLocations.cities;
+    return api.isNotEmpty ? api : BeninLocationHelpers.cities;
   }
 
   bool get formTouched =>
@@ -135,24 +147,76 @@ class AddTrajetController extends GetxController {
       departureCityController.text.isNotEmpty ||
       destinationCityController.text.isNotEmpty;
 
-  List<String> getDistricts(String? city) => BeninLocations.getDistricts(city);
+  List<String> getArrondissements(String? city) {
+    if (city == null) return [];
+    // API keys are lowercase (e.g., "cotonou"), display names are title-case
+    final apiResult = _apiArrondissements[city.toLowerCase()] ?? _apiArrondissements[city];
+    if (apiResult != null) return apiResult;
+    return BeninLocations.getArrondissements(city);
+  }
+
+  List<String> getQuartiers(String? city, String? arrondissement) =>
+      BeninLocations.getQuartiers(city, arrondissement);
+
+  bool cityHasArrondissements(String? city) =>
+      BeninLocations.hasArrondissements(city);
 
   void onDepartureCityChanged(String? city) {
     selectedDepartureCity.value = city;
+    selectedDepartureArrondissement.value = null;
     selectedDepartureDistrict.value = null;
     departureCityController.text = city ?? '';
+    departureArrondissementController.text = '';
     departureDistrictController.text = '';
+    _depPreciseLat = null;
+    _depPreciseLng = null;
     _durationModifiedByUser = false;
     _triggerEstimate();
   }
 
   void onDestinationCityChanged(String? city) {
     selectedDestinationCity.value = city;
+    selectedDestinationArrondissement.value = null;
     selectedDestinationDistrict.value = null;
     destinationCityController.text = city ?? '';
+    destinationArrondissementController.text = '';
     destinationDistrictController.text = '';
+    _destPreciseLat = null;
+    _destPreciseLng = null;
     _durationModifiedByUser = false;
     _triggerEstimate();
+  }
+
+  void onDepartureArrondissementChanged(String? arr) {
+    selectedDepartureArrondissement.value = arr;
+    selectedDepartureDistrict.value = null;
+    departureArrondissementController.text = arr ?? '';
+    departureDistrictController.text = '';
+    _depPreciseLat = null;
+    _depPreciseLng = null;
+    _triggerEstimate();
+  }
+
+  void onDestinationArrondissementChanged(String? arr) {
+    selectedDestinationArrondissement.value = arr;
+    selectedDestinationDistrict.value = null;
+    destinationArrondissementController.text = arr ?? '';
+    destinationDistrictController.text = '';
+    _destPreciseLat = null;
+    _destPreciseLng = null;
+    _triggerEstimate();
+  }
+
+  void onDepartureArrondissementTyped() {
+    selectedDepartureArrondissement.value = null;
+    selectedDepartureDistrict.value = null;
+    departureDistrictController.text = '';
+  }
+
+  void onDestinationArrondissementTyped() {
+    selectedDestinationArrondissement.value = null;
+    selectedDestinationDistrict.value = null;
+    destinationDistrictController.text = '';
   }
 
   Future<void> _triggerEstimate() async {
@@ -168,16 +232,38 @@ class AddTrajetController extends GetxController {
     estimatedDistanceKm.value = null;
     estimatedDurationLabel.value = null;
 
-    final depCoords = BeninLocations.getCityCoords(dep);
-    final destCoords = BeninLocations.getCityCoords(dest);
+    final depCoordsStatic = BeninLocationHelpers.getCityCoords(dep);
+    final destCoordsStatic = BeninLocationHelpers.getCityCoords(dest);
 
-    // ── Étape 1: OSRM (routage routier réel via OpenStreetMap) ──────────────
-    if (depCoords != null && destCoords != null) {
+    // Géocodage précis : Quartier → Arrondissement → Commune
+    final depArr = selectedDepartureArrondissement.value;
+    final depDist = selectedDepartureDistrict.value;
+    final depQuery = [depDist, depArr, dep].where((e) => e != null && e.isNotEmpty).join(', ');
+    final depPrecise = await _geocoding.geocodeAddress('$depQuery, Benin');
+
+    final destArr = selectedDestinationArrondissement.value;
+    final destDist = selectedDestinationDistrict.value;
+    final destQuery = [destDist, destArr, dest].where((e) => e != null && e.isNotEmpty).join(', ');
+    final destPrecise = await _geocoding.geocodeAddress('$destQuery, Benin');
+
+    final depLat = depPrecise?.lat ?? depCoordsStatic?.lat;
+    final depLng = depPrecise?.lng ?? depCoordsStatic?.lng;
+    final destLat = destPrecise?.lat ?? destCoordsStatic?.lat;
+    final destLng = destPrecise?.lng ?? destCoordsStatic?.lng;
+
+    // Stocker les coordonnées précises pour les utiliser dans publishTrip()
+    _depPreciseLat = depLat;
+    _depPreciseLng = depLng;
+    _destPreciseLat = destLat;
+    _destPreciseLng = destLng;
+
+    // Routage routier réel via OSRM (OpenStreetMap)
+    if (depLat != null && depLng != null && destLat != null && destLng != null) {
       final route = await _routing.computeRoute(
-        departureLat: depCoords.lat,
-        departureLng: depCoords.lng,
-        arrivalLat: destCoords.lat,
-        arrivalLng: destCoords.lng,
+        departureLat: depLat,
+        departureLng: depLng,
+        arrivalLat: destLat,
+        arrivalLng: destLng,
       );
       if (route != null) {
         isLoadingEstimate.value = false;
@@ -191,24 +277,28 @@ class AddTrajetController extends GetxController {
           durationController.text = estimatedDurationMinutes.toString();
           _updatingDurationProgrammatically = false;
         }
-        return; // OSRM succeeded — skip backend estimate
+        return;
       }
       logger.w('OSRM unavailable for $dep→$dest, falling back to backend');
     }
 
-    // ── Étape 2: Fallback — estimation backend ───────────────────────────────
+    // Fallback : estimation backend
     final payload = <String, dynamic>{
       'departure_city': dep,
       'arrival_city': dest,
-      if (depCoords != null) ...{
-        'departure_latitude': depCoords.lat,
-        'departure_longitude': depCoords.lng,
-      },
-      if (destCoords != null) ...{
-        'arrival_latitude': destCoords.lat,
-        'arrival_longitude': destCoords.lng,
-      },
     };
+    if (depArr != null) payload['departure_arrondissement'] = depArr;
+    if (depDist != null) payload['departure_neighborhood'] = depDist;
+    if (destArr != null) payload['arrival_arrondissement'] = destArr;
+    if (destDist != null) payload['arrival_neighborhood'] = destDist;
+    if (depLat != null && depLng != null) {
+      payload['departure_latitude'] = depLat;
+      payload['departure_longitude'] = depLng;
+    }
+    if (destLat != null && destLng != null) {
+      payload['arrival_latitude'] = destLat;
+      payload['arrival_longitude'] = destLng;
+    }
 
     final result = await _tripsService.estimateTrip(payload);
     isLoadingEstimate.value = false;
@@ -231,23 +321,33 @@ class AddTrajetController extends GetxController {
   void onDepartureDistrictChanged(String? district) {
     selectedDepartureDistrict.value = district;
     departureDistrictController.text = district ?? '';
+    _depPreciseLat = null;
+    _depPreciseLng = null;
+    _triggerEstimate();
   }
 
   void onDestinationDistrictChanged(String? district) {
     selectedDestinationDistrict.value = district;
     destinationDistrictController.text = district ?? '';
+    _destPreciseLat = null;
+    _destPreciseLng = null;
+    _triggerEstimate();
   }
 
   void onDepartureCityTyped() {
     selectedDepartureCity.value = null;
+    selectedDepartureArrondissement.value = null;
     selectedDepartureDistrict.value = null;
+    departureArrondissementController.text = '';
     departureDistrictController.text = '';
     _clearEstimate();
   }
 
   void onDestinationCityTyped() {
     selectedDestinationCity.value = null;
+    selectedDestinationArrondissement.value = null;
     selectedDestinationDistrict.value = null;
+    destinationArrondissementController.text = '';
     destinationDistrictController.text = '';
     _clearEstimate();
   }
@@ -256,6 +356,10 @@ class AddTrajetController extends GetxController {
     estimatedDistanceKm.value = null;
     estimatedDurationLabel.value = null;
     estimatedDurationMinutes = null;
+    _depPreciseLat = null;
+    _depPreciseLng = null;
+    _destPreciseLat = null;
+    _destPreciseLng = null;
     _durationModifiedByUser = false;
     _updatingDurationProgrammatically = true;
     durationController.text = '';
@@ -265,7 +369,7 @@ class AddTrajetController extends GetxController {
   void onDepartureDistrictTyped() => selectedDepartureDistrict.value = null;
   void onDestinationDistrictTyped() => selectedDestinationDistrict.value = null;
 
-  // ── Preferences (static — driven by API trip-form icons) ──────────────────
+  // ── Preferences ───────────────────────────────────────────────────────────
   final List<TripPreferenceData> preferences = const [
     TripPreferenceData(option: 'no_smoking', title: 'Non-fumeur', subtitle: 'Cigarettes interdites dans le véhicule', icon: Icons.smoke_free_rounded),
     TripPreferenceData(option: 'music', title: 'Musique', subtitle: 'Musique autorisée en trajet', icon: Icons.music_note_rounded),
@@ -310,7 +414,7 @@ class AddTrajetController extends GetxController {
         perm = await Geolocator.requestPermission();
       }
       if (perm == LocationPermission.denied ||
-          perm == LocationPermission.deniedForever) { return; }
+          perm == LocationPermission.deniedForever) return;
       final pos = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
       );
@@ -336,7 +440,7 @@ class AddTrajetController extends GetxController {
   void _applyFormData(Map<String, dynamic> body) {
     hasApprovedVehicle = (body['has_approved_vehicle'] as bool?) ?? true;
 
-    // Vehicles (approved only)
+    // Véhicules approuvés
     final rawVehicles = body['vehicles'] as List<dynamic>? ?? [];
     availableVehicles.assignAll(
       rawVehicles
@@ -347,11 +451,22 @@ class AddTrajetController extends GetxController {
       selectedVehicle.value = availableVehicles.first;
     }
 
-    // Cities from API
+    // Villes depuis l'API
     final rawCities = body['cities'] as List<dynamic>? ?? [];
     _apiCities.assignAll(rawCities.whereType<String>().toList());
 
-    // Booking modes from API
+    // Arrondissements depuis l'API (map ville → liste) — clés normalisées en lowercase
+    final rawArr = body['arrondissements'] as Map<String, dynamic>?;
+    if (rawArr != null) {
+      _apiArrondissements.clear();
+      rawArr.forEach((city, list) {
+        if (list is List) {
+          _apiArrondissements[city.toLowerCase()] = list.whereType<String>().toList();
+        }
+      });
+    }
+
+    // Modes de réservation
     final rawModes = body['booking_modes'] as List<dynamic>? ?? [];
     if (rawModes.isNotEmpty) {
       bookingModes.assignAll(rawModes.map((m) {
@@ -365,7 +480,7 @@ class AddTrajetController extends GetxController {
       }).toList());
     }
 
-    // Cancellation policies from API
+    // Politiques d'annulation
     final rawPolicies = body['cancellation_policies'] as List<dynamic>? ?? [];
     if (rawPolicies.isNotEmpty) {
       cancellationPolicies.assignAll(rawPolicies.map((p) {
@@ -378,19 +493,7 @@ class AddTrajetController extends GetxController {
       }).toList());
     }
 
-    // Price suggestion from API
-    final priceSuggestion = body['price_suggestion'] as Map<String, dynamic>?;
-    if (priceSuggestion != null) {
-      priceDefault = (priceSuggestion['default'] as num?)?.toInt() ?? 5000;
-      priceMin = (priceSuggestion['min'] as num?)?.toInt() ?? 500;
-      priceMax = (priceSuggestion['max'] as num?)?.toInt() ?? 50000;
-      if (!isEditMode) {
-        pricePerSeat.value = priceDefault.toDouble();
-        priceController.text = priceDefault.toString();
-      }
-    }
-
-    // Commission from API
+    // Commission
     final commission = body['commission'] as Map<String, dynamic>?;
     if (commission != null) {
       commissionRatePercent = (commission['rate_percent'] as num?)?.toInt() ?? 10;
@@ -417,9 +520,11 @@ class AddTrajetController extends GetxController {
   void _prefillFromJson(Map<String, dynamic> j) {
     final depCity = j['departure_city'] as String? ?? '';
     departureCityController.text = depCity;
-    if (depCity.isNotEmpty) {
-      selectedDepartureCity.value = depCity;
-    }
+    if (depCity.isNotEmpty) selectedDepartureCity.value = depCity;
+
+    final depArr = (j['departure_arrondissement'] as String?) ?? '';
+    departureArrondissementController.text = depArr;
+    if (depArr.isNotEmpty) selectedDepartureArrondissement.value = depArr;
 
     final depDistrict = ((j['departure_neighborhood'] ?? j['departure_district']) as String?) ?? '';
     departureDistrictController.text = depDistrict;
@@ -427,11 +532,17 @@ class AddTrajetController extends GetxController {
 
     departurePointController.text = j['departure_point'] as String? ?? '';
 
+    // Restaurer les coords précises si disponibles dans les données du trajet
+    _depPreciseLat = (j['departure_latitude'] as num?)?.toDouble();
+    _depPreciseLng = (j['departure_longitude'] as num?)?.toDouble();
+
     final destCity = ((j['arrival_city'] ?? j['destination_city']) as String?) ?? '';
     destinationCityController.text = destCity;
-    if (destCity.isNotEmpty) {
-      selectedDestinationCity.value = destCity;
-    }
+    if (destCity.isNotEmpty) selectedDestinationCity.value = destCity;
+
+    final destArr = (j['arrival_arrondissement'] as String?) ?? '';
+    destinationArrondissementController.text = destArr;
+    if (destArr.isNotEmpty) selectedDestinationArrondissement.value = destArr;
 
     final destDistrict = ((j['arrival_neighborhood'] ?? j['destination_district']) as String?) ?? '';
     destinationDistrictController.text = destDistrict;
@@ -440,7 +551,10 @@ class AddTrajetController extends GetxController {
     destinationPointController.text =
         ((j['arrival_point'] ?? j['destination_point']) as String?) ?? '';
 
-    // Handles both ISO datetime ("2026-07-24T07:00:00Z") and separate date/time fields
+    _destPreciseLat = (j['arrival_latitude'] as num?)?.toDouble();
+    _destPreciseLng = (j['arrival_longitude'] as num?)?.toDouble();
+
+    // Date/heure
     final rawDepTime = j['departure_time'] as String? ?? '';
     final rawDepDate = j['departure_date'] as String? ?? '';
     if (rawDepDate.isEmpty && rawDepTime.contains('T')) {
@@ -464,13 +578,11 @@ class AddTrajetController extends GetxController {
 
     descriptionController.text = j['description'] as String? ?? '';
 
-    // Booking mode & cancellation policy from trip data
     final bm = j['booking_mode'] as String?;
     if (bm != null && bm.isNotEmpty) selectedBookingMode.value = bm;
     final cp = j['cancellation_policy'] as String?;
     if (cp != null && cp.isNotEmpty) selectedCancellationPolicy.value = cp;
 
-    // Match vehicle: try by integer id first, then by uuid
     final vehicleId = (j['vehicle_id'] as num?)?.toInt();
     if (vehicleId != null) {
       final match = availableVehicles.firstWhereOrNull((v) => v.id == vehicleId);
@@ -483,7 +595,6 @@ class AddTrajetController extends GetxController {
       }
     }
 
-    // Preferences: list of API option strings
     final rawPrefs = j['preferences'];
     if (rawPrefs is List) {
       selectedOptions.clear();
@@ -561,18 +672,26 @@ class AddTrajetController extends GetxController {
       return;
     }
     if (selectedDepartureCity.value == null) {
-      UIHelper().showSnackBar(AppStrings.appName, 'Veuillez sélectionner la ville de départ.', 2);
+      UIHelper().showSnackBar(AppStrings.appName, 'Veuillez sélectionner la commune de départ.', 2);
       return;
     }
-    if (selectedDepartureDistrict.value == null) {
+    if (selectedDepartureArrondissement.value == null) {
+      UIHelper().showSnackBar(AppStrings.appName, 'Veuillez sélectionner l\'arrondissement de départ.', 2);
+      return;
+    }
+    if (selectedDepartureDistrict.value == null && departureDistrictController.text.trim().isEmpty) {
       UIHelper().showSnackBar(AppStrings.appName, 'Veuillez sélectionner le quartier de départ.', 2);
       return;
     }
     if (selectedDestinationCity.value == null) {
-      UIHelper().showSnackBar(AppStrings.appName, 'Veuillez sélectionner la ville de destination.', 2);
+      UIHelper().showSnackBar(AppStrings.appName, 'Veuillez sélectionner la commune de destination.', 2);
       return;
     }
-    if (selectedDestinationDistrict.value == null) {
+    if (selectedDestinationArrondissement.value == null) {
+      UIHelper().showSnackBar(AppStrings.appName, 'Veuillez sélectionner l\'arrondissement de destination.', 2);
+      return;
+    }
+    if (selectedDestinationDistrict.value == null && destinationDistrictController.text.trim().isEmpty) {
       UIHelper().showSnackBar(AppStrings.appName, 'Veuillez sélectionner le quartier de destination.', 2);
       return;
     }
@@ -589,12 +708,8 @@ class AddTrajetController extends GetxController {
       return;
     }
     final price = pricePerSeat.value.toInt();
-    if (price < priceMin) {
-      UIHelper().showSnackBar(AppStrings.appName, 'Le prix minimum est de $priceMin FCFA.', 2);
-      return;
-    }
-    if (price > priceMax) {
-      UIHelper().showSnackBar(AppStrings.appName, 'Le prix maximum est de $priceMax FCFA.', 2);
+    if (price <= 0) {
+      UIHelper().showSnackBar(AppStrings.appName, 'Veuillez saisir un prix valide.', 2);
       return;
     }
 
@@ -602,17 +717,32 @@ class AddTrajetController extends GetxController {
 
     final dep = selectedDepartureCity.value!;
     final dest = selectedDestinationCity.value!;
-    final depCoords = BeninLocations.getCityCoords(dep);
-    final destCoords = BeninLocations.getCityCoords(dest);
+
+    // Priorité aux coordonnées précises (géocodées au niveau quartier/arrondissement).
+    // Fallback sur les coordonnées statiques de la commune.
+    final depCoordsStatic = BeninLocationHelpers.getCityCoords(dep);
+    final destCoordsStatic = BeninLocationHelpers.getCityCoords(dest);
+    final depLat = _depPreciseLat ?? depCoordsStatic?.lat;
+    final depLng = _depPreciseLng ?? depCoordsStatic?.lng;
+    final destLat = _destPreciseLat ?? destCoordsStatic?.lat;
+    final destLng = _destPreciseLng ?? destCoordsStatic?.lng;
 
     final payload = <String, dynamic>{
       'vehicle_id': selectedVehicle.value!.id,
       'departure_city': dep,
+      if (selectedDepartureArrondissement.value?.isNotEmpty == true)
+        'departure_arrondissement': selectedDepartureArrondissement.value,
       'departure_neighborhood': departureDistrictController.text.trim(),
       'departure_point': departurePointController.text.trim(),
+      if (depLat != null) 'departure_latitude': depLat,
+      if (depLng != null) 'departure_longitude': depLng,
       'arrival_city': dest,
+      if (selectedDestinationArrondissement.value?.isNotEmpty == true)
+        'arrival_arrondissement': selectedDestinationArrondissement.value,
       'arrival_neighborhood': destinationDistrictController.text.trim(),
       'arrival_point': destinationPointController.text.trim(),
+      if (destLat != null) 'arrival_latitude': destLat,
+      if (destLng != null) 'arrival_longitude': destLng,
       'departure_date': dateController.text,
       'departure_time': timeController.text,
       'total_seats': availableSeats.value,
@@ -624,15 +754,6 @@ class AddTrajetController extends GetxController {
       'description': descriptionController.text.trim(),
       'preferences': _buildPreferencesList(),
       'is_published': true,
-      if (depCoords != null) ...{
-        'departure_latitude': depCoords.lat,
-        'departure_longitude': depCoords.lng,
-      },
-      if (destCoords != null) ...{
-        'arrival_latitude': destCoords.lat,
-        'arrival_longitude': destCoords.lng,
-      },
-      // Send duration only if driver manually edited it; backend computes it otherwise
       if (_durationModifiedByUser && estimatedDurationMinutes != null)
         'estimated_duration_minutes': estimatedDurationMinutes,
     };
@@ -670,9 +791,11 @@ class AddTrajetController extends GetxController {
     priceController.removeListener(_onPriceChanged);
     durationController.removeListener(_onDurationChanged);
     departureCityController.dispose();
+    departureArrondissementController.dispose();
     departureDistrictController.dispose();
     departurePointController.dispose();
     destinationCityController.dispose();
+    destinationArrondissementController.dispose();
     destinationDistrictController.dispose();
     destinationPointController.dispose();
     descriptionController.dispose();

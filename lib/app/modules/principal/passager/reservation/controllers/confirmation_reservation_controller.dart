@@ -12,6 +12,7 @@ import 'package:covoiturage_benin_app/app/core/services/routing/routing_service.
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
+import 'package:covoiturage_benin_app/app/data/benin_location_helpers.dart';
 import 'package:covoiturage_benin_app/app/data/benin_locations_data.dart';
 import 'package:covoiturage_benin_app/app/data/models/passenger/reservations_model.dart';
 import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
@@ -37,6 +38,10 @@ class ConfirmationReservationController extends GetxController {
   final RxnString pickupSelectedCity = RxnString();
   final RxList<String> pickupCityItems = <String>[].obs;
 
+  // ── Pickup — arrondissement ────────────────────────────────────────────────
+  final TextEditingController pickupArrondissementController = TextEditingController();
+  final RxnString pickupSelectedArrondissement = RxnString();
+
   // ── Pickup — quartier ──────────────────────────────────────────────────────
   final TextEditingController pickupNeighborhoodController =
       TextEditingController();
@@ -50,6 +55,10 @@ class ConfirmationReservationController extends GetxController {
   final RxnString dropoffSelectedCity = RxnString();
   final RxList<String> dropoffCityItems = <String>[].obs;
 
+  // ── Dropoff — arrondissement ───────────────────────────────────────────────
+  final TextEditingController dropoffArrondissementController = TextEditingController();
+  final RxnString dropoffSelectedArrondissement = RxnString();
+
   // ── Dropoff — quartier ─────────────────────────────────────────────────────
   final TextEditingController dropoffNeighborhoodController =
       TextEditingController();
@@ -58,7 +67,7 @@ class ConfirmationReservationController extends GetxController {
   // ── Dropoff — adresse libre ────────────────────────────────────────────────
   final TextEditingController dropoffController = TextEditingController();
 
-  // ── GPS coordinates ────s───────────────────────────────────────────────────
+  // ── GPS coordinates ────────────────────────────────────────────────────────
   final Rx<double?> pickupLat = Rx<double?>(null);
   final Rx<double?> pickupLng = Rx<double?>(null);
   final Rx<double?> dropoffLat = Rx<double?>(null);
@@ -66,12 +75,35 @@ class ConfirmationReservationController extends GetxController {
   Position? _gpsPosition;
   final RxBool isAutoLocating = false.obs;
 
-  // ── Quartiers disponibles (réactif à la ville sélectionnée) ───────────────
-  List<String> get pickupNeighborhoodItems =>
-      BeninLocations.getDistricts(pickupSelectedCity.value);
+  // ── Arrondissements disponibles ────────────────────────────────────────────
+  bool pickupCityHasArrondissements() =>
+      BeninLocations.hasArrondissements(pickupSelectedCity.value);
 
-  List<String> get dropoffNeighborhoodItems =>
-      BeninLocations.getDistricts(dropoffSelectedCity.value);
+  bool dropoffCityHasArrondissements() =>
+      BeninLocations.hasArrondissements(dropoffSelectedCity.value);
+
+  List<String> get pickupArrondissementItems =>
+      BeninLocations.getArrondissements(pickupSelectedCity.value);
+
+  List<String> get dropoffArrondissementItems =>
+      BeninLocations.getArrondissements(dropoffSelectedCity.value);
+
+  // ── Quartiers disponibles (réactif à la ville et à l'arrondissement) ───────
+  List<String> get pickupNeighborhoodItems {
+    if (BeninLocations.hasArrondissements(pickupSelectedCity.value)) {
+      return BeninLocations.getQuartiers(
+          pickupSelectedCity.value, pickupSelectedArrondissement.value);
+    }
+    return BeninLocationHelpers.getQuartiers(pickupSelectedCity.value, null);
+  }
+
+  List<String> get dropoffNeighborhoodItems {
+    if (BeninLocations.hasArrondissements(dropoffSelectedCity.value)) {
+      return BeninLocations.getQuartiers(
+          dropoffSelectedCity.value, dropoffSelectedArrondissement.value);
+    }
+    return BeninLocationHelpers.getQuartiers(dropoffSelectedCity.value, null);
+  }
 
   // ── Payment fields ─────────────────────────────────────────────────────────
   final TextEditingController paymentContactController =
@@ -141,7 +173,7 @@ class ConfirmationReservationController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    final allCities = BeninLocations.cities;
+    final allCities = BeninLocationHelpers.cities;
     pickupCityItems.assignAll(allCities);
     dropoffCityItems.assignAll(allCities);
 
@@ -187,7 +219,7 @@ class ConfirmationReservationController extends GetxController {
       r.origin,
       if (r.waypointCity != null && r.waypointCity!.isNotEmpty) r.waypointCity!,
       r.destination,
-    ].where((c) => BeninLocations.citiesWithDistricts.containsKey(c)).toList();
+    ].where((c) => BeninLocations.hasArrondissements(c)).toList();
 
     final pickupPriority = tripCities
         .where((c) => c != r.destination)
@@ -195,7 +227,7 @@ class ConfirmationReservationController extends GetxController {
     if (pickupPriority.isEmpty) pickupPriority.addAll(tripCities);
 
     pickupCityItems.assignAll(
-        BeninLocations.orderedCities(pickupPriority));
+        BeninLocationHelpers.orderedCities(pickupPriority));
 
     final dropoffPriority = [
       if (tripCities.contains(r.destination)) r.destination,
@@ -204,7 +236,7 @@ class ConfirmationReservationController extends GetxController {
     if (dropoffPriority.isEmpty) dropoffPriority.addAll(tripCities);
 
     dropoffCityItems.assignAll(
-        BeninLocations.orderedCities(dropoffPriority));
+        BeninLocationHelpers.orderedCities(dropoffPriority));
   }
 
   // ── Sélection ville prise en charge ───────────────────────────────────────
@@ -212,9 +244,11 @@ class ConfirmationReservationController extends GetxController {
   void onPickupCitySelected(String city) {
     pickupSelectedCity.value = city;
     pickupCityController.text = city;
+    pickupSelectedArrondissement.value = null;
+    pickupArrondissementController.text = '';
     pickupSelectedNeighborhood.value = null;
     pickupNeighborhoodController.text = '';
-    final coords = BeninLocations.getCityCoords(city);
+    final coords = BeninLocationHelpers.getCityCoords(city);
     if (coords != null) {
       pickupLat.value = coords.lat;
       pickupLng.value = coords.lng;
@@ -227,6 +261,8 @@ class ConfirmationReservationController extends GetxController {
 
   void onPickupCityTyped() {
     pickupSelectedCity.value = null;
+    pickupSelectedArrondissement.value = null;
+    pickupArrondissementController.text = '';
     pickupSelectedNeighborhood.value = null;
     pickupNeighborhoodController.text = '';
     if (_gpsPosition == null) {
@@ -234,6 +270,19 @@ class ConfirmationReservationController extends GetxController {
       pickupLng.value = null;
     }
     passengerDistanceKm.value = 0.0;
+  }
+
+  void onPickupArrondissementSelected(String arr) {
+    pickupSelectedArrondissement.value = arr;
+    pickupArrondissementController.text = arr;
+    pickupSelectedNeighborhood.value = null;
+    pickupNeighborhoodController.text = '';
+  }
+
+  void onPickupArrondissementTyped() {
+    pickupSelectedArrondissement.value = null;
+    pickupSelectedNeighborhood.value = null;
+    pickupNeighborhoodController.text = '';
   }
 
   void onPickupNeighborhoodSelected(String district) {
@@ -248,9 +297,11 @@ class ConfirmationReservationController extends GetxController {
   void onDropoffCitySelected(String city) {
     dropoffSelectedCity.value = city;
     dropoffCityController.text = city;
+    dropoffSelectedArrondissement.value = null;
+    dropoffArrondissementController.text = '';
     dropoffSelectedNeighborhood.value = null;
     dropoffNeighborhoodController.text = '';
-    final coords = BeninLocations.getCityCoords(city);
+    final coords = BeninLocationHelpers.getCityCoords(city);
     dropoffLat.value = coords?.lat;
     dropoffLng.value = coords?.lng;
     unawaited(_updatePassengerDistance());
@@ -258,11 +309,26 @@ class ConfirmationReservationController extends GetxController {
 
   void onDropoffCityTyped() {
     dropoffSelectedCity.value = null;
+    dropoffSelectedArrondissement.value = null;
+    dropoffArrondissementController.text = '';
     dropoffSelectedNeighborhood.value = null;
     dropoffNeighborhoodController.text = '';
     dropoffLat.value = null;
     dropoffLng.value = null;
     passengerDistanceKm.value = 0.0;
+  }
+
+  void onDropoffArrondissementSelected(String arr) {
+    dropoffSelectedArrondissement.value = arr;
+    dropoffArrondissementController.text = arr;
+    dropoffSelectedNeighborhood.value = null;
+    dropoffNeighborhoodController.text = '';
+  }
+
+  void onDropoffArrondissementTyped() {
+    dropoffSelectedArrondissement.value = null;
+    dropoffSelectedNeighborhood.value = null;
+    dropoffNeighborhoodController.text = '';
   }
 
   void onDropoffNeighborhoodSelected(String district) {
@@ -337,8 +403,8 @@ class ConfirmationReservationController extends GetxController {
   // ── Distance trajet complet (OSRM) ───────────────────────────────────────
 
   Future<void> _fetchTripDistanceOsrm(SearchRide r) async {
-    final dep = BeninLocations.getCityCoords(r.origin);
-    final dest = BeninLocations.getCityCoords(r.destination);
+    final dep = BeninLocationHelpers.getCityCoords(r.origin);
+    final dest = BeninLocationHelpers.getCityCoords(r.destination);
     if (dep == null || dest == null) return;
     final route = await _routing.computeRoute(
       departureLat: dep.lat,
@@ -505,31 +571,12 @@ class ConfirmationReservationController extends GetxController {
       UIHelper().showSnackBar('MINIZON', 'Choisissez le quartier de prise en charge.', 2);
       return false;
     }
-    if (pickupLat.value == null) {
-      if (isAutoLocating.value) {
-        UIHelper().showSnackBar(
-            'MINIZON', 'Localisation GPS en cours. Attendez un instant.', 3);
-      } else {
-        UIHelper().showSnackBar(
-            'MINIZON',
-            'Position GPS introuvable. Vérifiez que la localisation est activée.',
-            3);
-      }
-      return false;
-    }
     if (dCity.isEmpty) {
       UIHelper().showSnackBar('MINIZON', 'Choisissez la ville de dépose.', 2);
       return false;
     }
     if (dNbh.isEmpty) {
       UIHelper().showSnackBar('MINIZON', 'Choisissez le quartier de dépose.', 2);
-      return false;
-    }
-    if (dropoffLat.value == null) {
-      UIHelper().showSnackBar(
-          'MINIZON',
-          'Ville de dépose "$dCity" non reconnue. Choisissez une ville de la liste.',
-          3);
       return false;
     }
     return true;
@@ -556,15 +603,17 @@ class ConfirmationReservationController extends GetxController {
       tripUuid,
       seats: reservedSeats.value,
       pickupCity: pickupCityController.text.trim(),
+      pickupArrondissement: pickupSelectedArrondissement.value,
       pickupNeighborhood: pickupNeighborhoodController.text.trim(),
       pickupAddress: pickupController.text.trim(),
-      pickupLat: pickupLat.value!,
-      pickupLng: pickupLng.value!,
+      pickupLat: pickupLat.value,
+      pickupLng: pickupLng.value,
       dropoffCity: dropoffCityController.text.trim(),
+      dropoffArrondissement: dropoffSelectedArrondissement.value,
       dropoffNeighborhood: dropoffNeighborhoodController.text.trim(),
       dropoffAddress: dropoffController.text.trim(),
-      dropoffLat: dropoffLat.value!,
-      dropoffLng: dropoffLng.value!,
+      dropoffLat: dropoffLat.value,
+      dropoffLng: dropoffLng.value,
     );
     isProcessingPayment.value = false;
 
@@ -770,9 +819,11 @@ class ConfirmationReservationController extends GetxController {
   @override
   void onClose() {
     pickupCityController.dispose();
+    pickupArrondissementController.dispose();
     pickupNeighborhoodController.dispose();
     pickupController.dispose();
     dropoffCityController.dispose();
+    dropoffArrondissementController.dispose();
     dropoffNeighborhoodController.dispose();
     dropoffController.dispose();
     paymentContactController.dispose();

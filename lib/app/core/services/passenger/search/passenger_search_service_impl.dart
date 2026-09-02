@@ -5,7 +5,8 @@ import 'package:covoiturage_benin_app/app/core/utils/api_result.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_dio.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
-import 'package:covoiturage_benin_app/app/data/benin_locations_data.dart';
+import 'package:covoiturage_benin_app/app/data/benin_location_helpers.dart';
+
 import 'package:covoiturage_benin_app/app/modules/principal/passager/search/controllers/search_controller.dart';
 import 'package:dio/dio.dart';
 import 'passenger_search_service.dart';
@@ -123,9 +124,13 @@ class PassengerSearchServiceImpl implements PassengerSearchService {
       origin: origin,
       destination: destination,
       departureTime: (j['departure_time'] ?? '') as String? ?? '',
-      departureNote: (j['departure_note'] ?? j['departure_neighborhood'] ?? '') as String? ?? '',
+      departureArrondissement: (j['departure_arrondissement'] ?? '') as String? ?? '',
+      departureNeighborhood: (j['departure_neighborhood'] ?? '') as String? ?? '',
+      departureNote: (j['departure_note'] ?? '') as String? ?? '',
       arrivalTime: (j['arrival_time'] ?? '') as String? ?? '',
-      arrivalNote: (j['arrival_note'] ?? j['arrival_neighborhood'] ?? '') as String? ?? '',
+      arrivalArrondissement: (j['arrival_arrondissement'] ?? '') as String? ?? '',
+      arrivalNeighborhood: (j['arrival_neighborhood'] ?? '') as String? ?? '',
+      arrivalNote: (j['arrival_note'] ?? '') as String? ?? '',
       duration: (j['duration'] ?? '') as String? ?? '',
       price: priceStr,
       priceValue: priceValue,
@@ -142,8 +147,8 @@ class PassengerSearchServiceImpl implements PassengerSearchService {
   double _resolveDistanceKm(Map<String, dynamic> j, String origin, String destination) {
     final apiDist = (j['distance_km'] as num?)?.toDouble();
     if (apiDist != null && apiDist > 0) return apiDist;
-    final dep = BeninLocations.getCityCoords(origin);
-    final dest = BeninLocations.getCityCoords(destination);
+    final dep = BeninLocationHelpers.getCityCoords(origin);
+    final dest = BeninLocationHelpers.getCityCoords(destination);
     if (dep == null || dest == null) return 0.0;
     const R = 6371.0;
     final lat1 = dep.lat * (pi / 180);

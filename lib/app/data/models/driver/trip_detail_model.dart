@@ -2,8 +2,10 @@ class TripDetailRouteData {
   const TripDetailRouteData({
     required this.origin,
     required this.originPoint,
+    this.departureArrondissement = '',
     required this.destination,
     required this.destinationPoint,
+    this.arrivalArrondissement = '',
     required this.departureTime,
     required this.departureDate,
     required this.departureDateLabel,
@@ -11,8 +13,10 @@ class TripDetailRouteData {
 
   final String origin;
   final String originPoint;
+  final String departureArrondissement;
   final String destination;
   final String destinationPoint;
+  final String arrivalArrondissement;
   final String departureTime;
   final String departureDate;
   final String departureDateLabel;
@@ -21,8 +25,10 @@ class TripDetailRouteData {
       TripDetailRouteData(
         origin: (json['origin'] as String?) ?? '',
         originPoint: (json['origin_point'] as String?) ?? '',
+        departureArrondissement: (json['departure_arrondissement'] as String?) ?? '',
         destination: (json['destination'] as String?) ?? '',
         destinationPoint: (json['destination_point'] as String?) ?? '',
+        arrivalArrondissement: (json['arrival_arrondissement'] as String?) ?? '',
         departureTime: (json['departure_time'] as String?) ?? '',
         departureDate: (json['departure_date'] as String?) ?? '',
         departureDateLabel: (json['departure_date_label'] as String?) ?? '',

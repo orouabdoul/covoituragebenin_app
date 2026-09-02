@@ -81,8 +81,12 @@ class TripItemData {
     required this.statusLabel,
     required this.origin,
     required this.originPoint,
+    this.departureArrondissement,
+    this.departureNeighborhood,
     required this.destination,
     required this.destinationPoint,
+    this.arrivalArrondissement,
+    this.arrivalNeighborhood,
     required this.departureTime,
     required this.departureTimeLabel,
     required this.seatsTotal,
@@ -103,9 +107,23 @@ class TripItemData {
   final String statusLabel;
   final String origin;
   final String originPoint;
+  final String? departureArrondissement;
+  final String? departureNeighborhood;
   final String destination;
   final String destinationPoint;
+  final String? arrivalArrondissement;
+  final String? arrivalNeighborhood;
   final String departureTime;
+
+  String get displayOrigin {
+    final parts = [origin, departureArrondissement, departureNeighborhood].where((p) => p != null && p.isNotEmpty).toList();
+    return parts.join(', ');
+  }
+
+  String get displayDestination {
+    final parts = [destination, arrivalArrondissement, arrivalNeighborhood].where((p) => p != null && p.isNotEmpty).toList();
+    return parts.join(', ');
+  }
   final String departureTimeLabel;
   final int seatsTotal;
   final int seatsBooked;
@@ -125,8 +143,12 @@ class TripItemData {
         statusLabel: (json['status_label'] as String?) ?? '',
         origin: (json['origin'] as String?) ?? '',
         originPoint: (json['origin_point'] as String?) ?? '',
+        departureArrondissement: json['departure_arrondissement'] as String?,
+        departureNeighborhood: json['departure_neighborhood'] as String?,
         destination: (json['destination'] as String?) ?? '',
         destinationPoint: (json['destination_point'] as String?) ?? '',
+        arrivalArrondissement: json['arrival_arrondissement'] as String?,
+        arrivalNeighborhood: json['arrival_neighborhood'] as String?,
         departureTime: (json['departure_time'] as String?) ?? '',
         departureTimeLabel: (json['departure_time_label'] as String?) ?? '',
         seatsTotal: (json['seats_total'] as num?)?.toInt() ?? 0,

@@ -483,10 +483,15 @@ class _LocationForm extends StatelessWidget {
       final selectedCity = isDeparture
           ? controller.selectedDepartureCity.value
           : controller.selectedDestinationCity.value;
+      final selectedArr = isDeparture
+          ? controller.selectedDepartureArrondissement.value
+          : controller.selectedDestinationArrondissement.value;
       final selectedDistrict = isDeparture
           ? controller.selectedDepartureDistrict.value
           : controller.selectedDestinationDistrict.value;
-      final districts = controller.getDistricts(selectedCity);
+
+      final arrItems = controller.getArrondissements(selectedCity);
+      final List<String> districts = controller.getQuartiers(selectedCity, selectedArr);
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -494,7 +499,7 @@ class _LocationForm extends StatelessWidget {
           _LocationAutocompleteField(
             key: ValueKey(isDeparture ? 'dep-city' : 'dest-city'),
             responsive: responsive,
-            label: 'Ville',
+            label: 'Commune',
             controller: isDeparture
                 ? controller.departureCityController
                 : controller.destinationCityController,
@@ -510,6 +515,27 @@ class _LocationForm extends StatelessWidget {
           ),
           SizedBox(height: responsive.h(12)),
           _LocationAutocompleteField(
+            key: ValueKey(isDeparture ? 'dep-arr' : 'dest-arr'),
+            responsive: responsive,
+            label: 'Arrondissement',
+            controller: isDeparture
+                ? controller.departureArrondissementController
+                : controller.destinationArrondissementController,
+            items: arrItems,
+            isSelected: selectedArr != null,
+            hint: selectedCity == null
+                ? "Choisir d'abord une commune"
+                : 'Ex: 1er Arrondissement',
+            enabled: selectedCity != null,
+            onSelected: (v) => isDeparture
+                ? controller.onDepartureArrondissementChanged(v)
+                : controller.onDestinationArrondissementChanged(v),
+            onTextChanged: isDeparture
+                ? controller.onDepartureArrondissementTyped
+                : controller.onDestinationArrondissementTyped,
+          ),
+          SizedBox(height: responsive.h(12)),
+          _LocationAutocompleteField(
             key: ValueKey(isDeparture ? 'dep-district' : 'dest-district'),
             responsive: responsive,
             label: 'Quartier',
@@ -518,10 +544,12 @@ class _LocationForm extends StatelessWidget {
                 : controller.destinationDistrictController,
             items: districts,
             isSelected: selectedDistrict != null,
-            hint: selectedCity == null
-                ? "Choisir d'abord une ville"
-                : 'Ex: Akpakpa',
-            enabled: selectedCity != null,
+            hint: selectedArr == null
+                ? "Choisir d'abord un arrondissement"
+                : selectedCity == null
+                    ? "Choisir d'abord une commune"
+                    : 'Ex: Akpakpa',
+            enabled: selectedArr != null,
             onSelected: (v) => isDeparture
                 ? controller.onDepartureDistrictChanged(v)
                 : controller.onDestinationDistrictChanged(v),
@@ -625,7 +653,6 @@ class _LocationAutocompleteFieldState
         _filtered = _filterItems(widget.controller.text);
       });
     } else {
-      // Délai pour laisser le tap sur un item s'enregistrer
       Future.delayed(const Duration(milliseconds: 150), () {
         if (mounted) setState(() => _showList = false);
       });
@@ -633,7 +660,6 @@ class _LocationAutocompleteFieldState
   }
 
   void _onControllerChanged() {
-    // Mise à jour de la liste filtrée quand le texte change de l'extérieur
     final filtered = _filterItems(widget.controller.text);
     if (filtered.length != _filtered.length && mounted) {
       setState(() => _filtered = filtered);
@@ -1104,7 +1130,6 @@ class _SeatsPicker extends StatelessWidget {
             ],
           ),
           SizedBox(height: responsive.h(14)),
-          // Barre de progression max légal
           Row(
             children: [
               Text(
@@ -1130,9 +1155,7 @@ class _SeatsPicker extends StatelessWidget {
               Text(
                 '$max max',
                 style: AppTextStyles.caption(responsive).copyWith(
-                  color: atMax
-                      ? AppColors.danger
-                      : AppColors.textGhost,
+                  color: atMax ? AppColors.danger : AppColors.textGhost,
                   fontWeight: atMax ? FontWeight.w700 : FontWeight.w400,
                 ),
               ),
@@ -1173,30 +1196,6 @@ class _PricingCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Suggested price hint — inside Obx so it reacts when API loads
-        Obx(() {
-          // Reading pricePerSeat triggers rebuild when _applyFormData runs
-          controller.pricePerSeat.value;
-          return Row(
-            children: [
-              Icon(Icons.lightbulb_outline_rounded,
-                  size: responsive.text(14), color: AppColors.primary),
-              SizedBox(width: responsive.w(6)),
-              Flexible(
-                child: Text(
-                  'Suggéré : ${_formatAmount(controller.priceDefault)} FCFA'
-                  '  •  min ${_formatAmount(controller.priceMin)}'
-                  '  •  max ${_formatAmount(controller.priceMax)}',
-                  style: AppTextStyles.profileSectionLabel(responsive)
-                      .copyWith(color: AppColors.primary),
-                ),
-              ),
-            ],
-          );
-        }),
-        SizedBox(height: responsive.h(12)),
-
-        // Editable price field
         AppField(
           responsive: responsive,
           label: 'Montant par place',
@@ -1257,10 +1256,7 @@ class _PricingCard extends StatelessWidget {
             ],
           ),
         ),
-
         SizedBox(height: responsive.h(12)),
-
-        // Reactive total recap
         Obx(() {
           final seats = controller.availableSeats.value;
           final price = controller.pricePerSeat.value.toInt();
@@ -1271,83 +1267,79 @@ class _PricingCard extends StatelessWidget {
           final fmtTotal = _formatAmount(total);
           final fmtNet = _formatAmount(net);
           final fmtFee = _formatAmount(fee);
-          return Column(
-            children: [
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(responsive.w(16)),
-                decoration: ShapeDecoration(
-                  color: AppColors.surfaceAccentStrong,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(responsive.radius(16)),
-                    side: BorderSide(color: AppColors.primary.withValues(alpha: 0.2)),
-                  ),
-                ),
-                child: Column(
+          return Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(responsive.w(16)),
+            decoration: ShapeDecoration(
+              color: AppColors.surfaceAccentStrong,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(responsive.radius(16)),
+                side: BorderSide(color: AppColors.primary.withValues(alpha: 0.2)),
+              ),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          '$seats place${seats > 1 ? 's' : ''} × $fmtPrice FCFA',
-                          style: AppTextStyles.profileSectionLabel(responsive),
-                        ),
-                        Text(
-                          '$fmtTotal FCFA',
-                          style: AppTextStyles.profileSectionLabel(responsive).copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      '$seats place${seats > 1 ? 's' : ''} × $fmtPrice FCFA',
+                      style: AppTextStyles.profileSectionLabel(responsive),
                     ),
-                    Divider(
-                      height: responsive.h(16),
-                      color: AppColors.primary.withValues(alpha: 0.15),
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.account_balance_wallet_rounded,
-                                size: responsive.text(14),
-                                color: AppColors.success),
-                            SizedBox(width: responsive.w(6)),
-                            Text(
-                              'Vous recevez (${controller.driverSharePercent}%)',
-                              style: AppTextStyles.caption(responsive)
-                                  .copyWith(color: AppColors.success),
-                            ),
-                          ],
-                        ),
-                        Text(
-                          '$fmtNet FCFA',
-                          style: AppTextStyles.profileSectionLabel(responsive).copyWith(
-                            color: AppColors.success,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: responsive.h(4)),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Commission plateforme (${controller.commissionRatePercent}%)',
-                          style: AppTextStyles.caption(responsive),
-                        ),
-                        Text(
-                          '$fmtFee FCFA',
-                          style: AppTextStyles.caption(responsive),
-                        ),
-                      ],
+                    Text(
+                      '$fmtTotal FCFA',
+                      style: AppTextStyles.profileSectionLabel(responsive).copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ],
                 ),
-              ),
-            ],
+                Divider(
+                  height: responsive.h(16),
+                  color: AppColors.primary.withValues(alpha: 0.15),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.account_balance_wallet_rounded,
+                            size: responsive.text(14),
+                            color: AppColors.success),
+                        SizedBox(width: responsive.w(6)),
+                        Text(
+                          'Vous recevez (${controller.driverSharePercent}%)',
+                          style: AppTextStyles.caption(responsive)
+                              .copyWith(color: AppColors.success),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      '$fmtNet FCFA',
+                      style: AppTextStyles.profileSectionLabel(responsive).copyWith(
+                        color: AppColors.success,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: responsive.h(4)),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Commission plateforme (${controller.commissionRatePercent}%)',
+                      style: AppTextStyles.caption(responsive),
+                    ),
+                    Text(
+                      '$fmtFee FCFA',
+                      style: AppTextStyles.caption(responsive),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           );
         }),
       ],
@@ -1576,7 +1568,6 @@ class _EstimateBanner extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Distance + duration row ───────────────────────────────────
             Row(
               children: [
                 Container(
@@ -1615,7 +1606,6 @@ class _EstimateBanner extends StatelessWidget {
                     size: responsive.text(16)),
               ],
             ),
-            // ── Editable duration ─────────────────────────────────────────
             Divider(
               height: responsive.h(16),
               color: AppColors.primary.withValues(alpha: 0.15),

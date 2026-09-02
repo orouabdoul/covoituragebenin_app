@@ -301,16 +301,16 @@ class _SearchPanel extends StatelessWidget {
 						onSelected: controller.onOriginCityChanged,
 					)),
 					SizedBox(height: responsive.h(6)),
-					// Quartier de départ (optionnel)
+					// Arrondissement de départ (optionnel)
 					Obx(() => _LocationPickerField(
 						responsive: responsive,
-						label: 'Quartier de départ (optionnel)',
+						label: 'Arrondissement de départ (optionnel)',
 						icon: Icons.location_on_outlined,
 						iconColor: AppColors.primary,
-						value: controller.selectedOriginDistrict.value ?? '',
-						items: controller.getDistricts(controller.selectedOriginCity.value),
-						isSelected: controller.selectedOriginDistrict.value != null,
-						onSelected: controller.onOriginDistrictChanged,
+						value: controller.selectedOriginArrondissement.value ?? '',
+						items: controller.getArrondissements(controller.selectedOriginCity.value),
+						isSelected: controller.selectedOriginArrondissement.value != null,
+						onSelected: controller.onOriginArrondissementChanged,
 						enabled: controller.selectedOriginCity.value != null,
 						optional: true,
 					)),
@@ -348,16 +348,16 @@ class _SearchPanel extends StatelessWidget {
 						onSelected: controller.onDestinationCityChanged,
 					)),
 					SizedBox(height: responsive.h(6)),
-					// Quartier d'arrivée (optionnel)
+					// Arrondissement d'arrivée (optionnel)
 					Obx(() => _LocationPickerField(
 						responsive: responsive,
-						label: "Quartier d'arrivée (optionnel)",
+						label: "Arrondissement d'arrivée (optionnel)",
 						icon: Icons.location_on_outlined,
 						iconColor: AppColors.danger,
-						value: controller.selectedDestinationDistrict.value ?? '',
-						items: controller.getDistricts(controller.selectedDestinationCity.value),
-						isSelected: controller.selectedDestinationDistrict.value != null,
-						onSelected: controller.onDestinationDistrictChanged,
+						value: controller.selectedDestinationArrondissement.value ?? '',
+						items: controller.getArrondissements(controller.selectedDestinationCity.value),
+						isSelected: controller.selectedDestinationArrondissement.value != null,
+						onSelected: controller.onDestinationArrondissementChanged,
 						enabled: controller.selectedDestinationCity.value != null,
 						optional: true,
 					)),
@@ -1213,7 +1213,7 @@ class _RouteTimeline extends StatelessWidget {
 							children: [
 								Row(
 									children: [
-										Expanded(child: Text(ride.origin, style: AppTextStyles.subtitle(responsive))),
+										Expanded(child: Text(ride.displayOrigin, style: AppTextStyles.subtitle(responsive))),
 										Text(
 											ride.departureTime,
 											style: AppTextStyles.caption(responsive).copyWith(fontWeight: FontWeight.w700),
@@ -1262,7 +1262,7 @@ class _RouteTimeline extends StatelessWidget {
 								SizedBox(height: responsive.h(8)),
 								Row(
 									children: [
-										Expanded(child: Text(ride.destination, style: AppTextStyles.subtitle(responsive))),
+										Expanded(child: Text(ride.displayDestination, style: AppTextStyles.subtitle(responsive))),
 										Text(
 											ride.arrivalTime,
 											style: AppTextStyles.caption(responsive)

@@ -940,9 +940,9 @@ class _ItineraryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final String origin =
-        (ride?.origin.isNotEmpty ?? false) ? ride!.origin : '—';
+        (ride?.displayOrigin.isNotEmpty ?? false) ? ride!.displayOrigin : '—';
     final String destination =
-        (ride?.destination.isNotEmpty ?? false) ? ride!.destination : '—';
+        (ride?.displayDestination.isNotEmpty ?? false) ? ride!.displayDestination : '—';
     final String departureTime = ride?.departureTime ?? '';
     final String arrivalTime = ride?.arrivalTime ?? '';
     final String departureNote = ride?.departureNote ?? '';

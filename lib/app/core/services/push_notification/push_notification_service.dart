@@ -907,7 +907,12 @@ class PushNotificationService {
       case 'admin_alert':
       case 'trip_delay':
       case 'trip_emergency':
-        if (!isDriver) {
+        if (isDriver) {
+          Get.toNamed(
+            tripUuid != null ? AppRoutes.driverActiveTrip : AppRoutes.driverTrips,
+            arguments: tripUuid != null ? {'tripUuid': tripUuid} : null,
+          );
+        } else {
           Get.toNamed(
             tripUuid != null ? AppRoutes.passengerLiveTracking : AppRoutes.passengerReservations,
             arguments: tripUuid != null ? {'tripUuid': tripUuid} : null,
