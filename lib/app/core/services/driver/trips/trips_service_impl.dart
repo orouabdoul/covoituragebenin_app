@@ -204,8 +204,9 @@ class TripsServiceImpl implements TripsService {
   Future<ApiResult<void>> updateTrip(String uuid, Map<String, dynamic> data) async {
     try {
       final opts = await _authOptions();
-      final response = await _dio.put(AppApi.driverTripUpdate(uuid), data: data, options: opts);
-      logger.d('updateTrip [$uuid] [${response.statusCode}]');
+      logger.d('updateTrip PAYLOAD [$uuid]: $data');
+      final response = await _dio.patch(AppApi.driverTripUpdate(uuid), data: data, options: opts);
+      logger.d('updateTrip [$uuid] [${response.statusCode}] RESPONSE: ${response.data}');
       if (response.statusCode == 200) return ApiResult.success(null);
       if (response.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       if (response.statusCode == 403) {

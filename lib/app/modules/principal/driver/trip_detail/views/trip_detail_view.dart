@@ -64,8 +64,8 @@ class TripDetailView extends StatelessWidget {
                           _MapButton(r: r, controller: controller),
                           SizedBox(height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
                         ],
-                        if (controller.canStart) ...[
-                          _StartButton(r: r, controller: controller),
+                        if (controller.canStart || trip.status == TripStatus.pending) ...[
+                          _StartButton(r: r, controller: controller, canStartNow: controller.canStartNow.value),
                           SizedBox(height: r.adaptive(phone: 8, smallPhone: 6, tablet: 10, desktop: 12)),
                         ],
                         if (controller.canCancel)
@@ -800,15 +800,16 @@ class _MapButton extends StatelessWidget {
 }
 
 class _StartButton extends StatelessWidget {
-  const _StartButton({required this.r, required this.controller});
+  const _StartButton({required this.r, required this.controller, required this.canStartNow});
   final AppResponsive r;
   final TripDetailController controller;
+  final bool canStartNow;
 
   @override
   Widget build(BuildContext context) {
     return AppButton(
       label: 'Démarrer le trajet',
-      onPressed: controller.onStartTrip,
+      onPressed: canStartNow ? controller.onStartTrip : null,
       icon: Icons.play_arrow_rounded,
     );
   }

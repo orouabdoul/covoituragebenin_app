@@ -521,7 +521,9 @@ class _TripCard extends StatelessWidget {
 							SizedBox(width: responsive.adaptive(phone: 8, smallPhone: 8, tablet: 8, desktop: 8)),
 							Expanded(
 								child: Text(
-									trip.passengerActionLabel,
+									trip.passengers.isEmpty
+										? 'Aucun passager'
+										: '${trip.passengers.length} passager${trip.passengers.length > 1 ? 's' : ''}',
 									style: AppTextStyles.homeCardTitle(responsive).copyWith(
 										fontSize: responsive.text(14),
 										color: AppColors.textPrimary,
@@ -534,13 +536,23 @@ class _TripCard extends StatelessWidget {
 					Row(
 						children: [
 							Expanded(
-								child: _TripActionButton(
-									responsive: responsive,
-									label: trip.passengerActionLabel,
-									backgroundColor: trip.passengerActionEnabled ? AppColors.primary : AppColors.surfaceMuted,
-									textColor: trip.passengerActionEnabled ? AppColors.white : AppColors.textHint,
-									onTap: onPrimaryAction,
-								),
+								child: Obx(() {
+									// Abonnement direct à clockTick : toutes les 5 s ce widget
+									// réévalue isStartEnabled avec DateTime.now() frais, sans
+									// dépendre de l'Obx parent.
+									final _ = Get.find<TrajetController>().clockTick.value;
+									final enabled = trip.isStartEnabled;
+									return AbsorbPointer(
+										absorbing: !enabled,
+										child: _TripActionButton(
+											responsive: responsive,
+											label: trip.passengerActionLabel,
+											backgroundColor: enabled ? AppColors.primary : AppColors.surfaceMuted,
+											textColor: enabled ? AppColors.white : AppColors.textHint,
+											onTap: enabled ? onPrimaryAction : null,
+										),
+									);
+								}),
 							),
 							SizedBox(width: responsive.adaptive(phone: 8, smallPhone: 8, tablet: 8, desktop: 8)),
 							AppCircularButton(
@@ -742,14 +754,14 @@ class _TripActionButton extends StatelessWidget {
 		required this.label,
 		required this.backgroundColor,
 		required this.textColor,
-		required this.onTap,
+		this.onTap,
 	});
 
 	final AppResponsive responsive;
 	final String label;
 	final Color backgroundColor;
 	final Color textColor;
-	final VoidCallback onTap;
+	final VoidCallback? onTap;
 
 	@override
 	Widget build(BuildContext context) {

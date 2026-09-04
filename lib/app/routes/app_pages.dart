@@ -115,6 +115,8 @@ import '../modules/principal/driver/support/bindings/driver_support_binding.dart
 import '../modules/principal/driver/support/views/driver_support_view.dart';
 import '../modules/principal/driver/trip_reviews/bindings/trip_reviews_binding.dart';
 import '../modules/principal/driver/trip_reviews/views/trip_reviews_view.dart';
+import '../modules/principal/driver/edit_trajet/bindings/edit_trajet_binding.dart';
+import '../modules/principal/driver/edit_trajet/views/edit_trajet_view.dart';
 
 import 'app_routes.dart';
 
@@ -399,6 +401,11 @@ class AppPages {
       name: AppRoutes.passengerPaymentWebview,
       page: () => const PaymentWebviewView(),
       binding: PaymentWebviewBinding(),
+    ),
+    _page(
+      name: AppRoutes.driverEditTrip,
+      page: () => const EditTrajetView(),
+      binding: EditTrajetBinding(),
     ),
   ];
 }

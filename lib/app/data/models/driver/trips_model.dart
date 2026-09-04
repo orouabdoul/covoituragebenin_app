@@ -153,7 +153,14 @@ class TripItemData {
         arrivalNeighborhood: json['arrival_neighborhood'] as String?,
         departureTime: (json['departure_time'] as String?) ?? '',
         departureTimeLabel: (json['departure_time_label'] as String?) ?? '',
-        departureAt: (json['departure_at'] as String?) ?? '',
+        departureAt: () {
+          final at = (json['departure_at'] as String?) ?? '';
+          if (at.isNotEmpty) return at;
+          final t = (json['departure_time'] as String?) ?? '';
+          // Accept any string that Dart can parse as a DateTime (ISO 8601 with
+          // T or space separator, e.g. "2026-09-05 07:00:00" or "2026-09-05T07:00:00Z")
+          return DateTime.tryParse(t) != null ? t : '';
+        }(),
         seatsTotal: (json['seats_total'] as num?)?.toInt() ?? 0,
         seatsBooked: (json['seats_booked'] as num?)?.toInt() ?? 0,
         pricePerSeat: (json['price_per_seat'] as num?)?.toInt() ?? 0,

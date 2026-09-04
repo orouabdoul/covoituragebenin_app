@@ -37,6 +37,7 @@ class BottonNavController extends GetxController with WidgetsBindingObserver {
 
   final BottonNavRole role;
   final RxInt currentIndex = 0.obs;
+  final RxInt messageBadgeCount = 0.obs;
 
   List<BottonNavItemData> get items =>
       role == BottonNavRole.driver ? _driverItems : _passengerItems;
@@ -297,7 +298,6 @@ class BottonNavController extends GetxController with WidgetsBindingObserver {
       label: AppStrings.navMessages,
       description: 'Messages reçus',
       icon: Icons.chat_bubble_outline_rounded,
-      hasBadge: true,
     ),
     BottonNavItemData(
       label: AppStrings.navProfile,

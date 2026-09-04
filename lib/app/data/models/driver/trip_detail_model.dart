@@ -33,8 +33,14 @@ class TripDetailRouteData {
     final depTime = (json['departure_time'] as String?) ?? '';
     // Priorité à departure_at ISO, sinon construit depuis date+heure (DD/MM/YYYY + HH:mm)
     String departureAt = (json['departure_at'] as String?) ?? '';
-    if (departureAt.isEmpty && depDate.isNotEmpty && depTime.isNotEmpty) {
-      departureAt = _buildIso(depDate, depTime);
+    if (departureAt.isEmpty) {
+      // Si departure_time est un ISO parseable (avec T ou espace), l'utiliser directement
+      if (DateTime.tryParse(depTime) != null) {
+        departureAt = depTime;
+      } else if (depDate.isNotEmpty && depTime.isNotEmpty) {
+        // Sinon construire l'ISO depuis date (DD/MM/YYYY) + heure (HH:mm)
+        departureAt = _buildIso(depDate, depTime);
+      }
     }
     return TripDetailRouteData(
       origin: (json['origin'] as String?) ?? '',

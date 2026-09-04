@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -17,6 +19,11 @@ class TripDetailController extends GetxController {
 
   final RxBool isLoading = false.obs;
   final RxInt tripVersion = 0.obs;
+  final RxBool canStartNow = false.obs;
+
+  Timer? _startTimer;
+  Timer? _activationTimer; // one-shot : se déclenche précisément à departureAt-5min
+  String _departureIso = '';
 
   late final String _tripUuid;
 
@@ -104,7 +111,30 @@ class TripDetailController extends GetxController {
     canEdit = data.actions.canEdit;
     canCancel = data.actions.canCancel;
     checklist = _buildChecklist(data);
+    // Stocker l'ISO directement depuis la route (bypass TripModel)
+    _departureIso = data.route.departureAt;
     tripVersion.value++;
+    _updateCanStartNow();
+    _startTimer?.cancel();
+    _activationTimer?.cancel();
+    if (canStart || trip.status == TripStatus.pending) {
+      _startTimer = Timer.periodic(const Duration(seconds: 30), (_) => _updateCanStartNow());
+      _scheduleActivation();
+    }
+  }
+
+  /// Timer one-shot qui se déclenche exactement à departureAt-5min pour
+  /// activer le bouton sans attendre le tick de 30s.
+  void _scheduleActivation() {
+    _activationTimer?.cancel();
+    final raw = _departureIso.isNotEmpty ? _departureIso : (trip.departureAt ?? '');
+    if (raw.isEmpty) return;
+    final dt = DateTime.tryParse(raw);
+    if (dt == null) return;
+    final window = dt.toUtc().subtract(const Duration(minutes: 5));
+    final delay = window.difference(DateTime.now().toUtc());
+    if (delay.isNegative) return; // fenêtre déjà ouverte
+    _activationTimer = Timer(delay, _updateCanStartNow);
   }
 
   TripPassengerModel _passengerToModel(TripDetailPassengerData p) {
@@ -153,10 +183,45 @@ class TripDetailController extends GetxController {
     ];
   }
 
-  void onStartTrip() {
+  void _updateCanStartNow() {
+    final raw = _departureIso.isNotEmpty ? _departureIso : (trip.departureAt ?? '');
+    if (raw.isEmpty) {
+      canStartNow.value = false;
+      return;
+    }
+    final dt = DateTime.tryParse(raw);
+    if (dt == null) {
+      canStartNow.value = false;
+      return;
+    }
+    final depUtc = dt.isUtc ? dt : dt.toUtc();
+    final nowUtc = DateTime.now().toUtc();
+    final inWindow = nowUtc.isAfter(depUtc.subtract(const Duration(minutes: 5)));
+    // Si l'API retourne canStart=false mais que le trajet est pending et dans
+    // la fenêtre de démarrage (≤ 5 min ou passé), on autorise quand même.
     if (!canStart) {
+      canStartNow.value = trip.status == TripStatus.pending && inWindow;
+      return;
+    }
+    canStartNow.value = inWindow;
+  }
+
+  @override
+  void onClose() {
+    _startTimer?.cancel();
+    _activationTimer?.cancel();
+    super.onClose();
+  }
+
+  void onStartTrip() {
+    if (!canStartNow.value) {
       UIHelper().showSnackBar(
-          'MINIZON', 'Attendez que tous les passagers aient payé.', 2);
+        'MINIZON',
+        canStart
+            ? 'Le départ est prévu dans plus de 5 minutes.'
+            : 'Attendez que tous les passagers aient payé.',
+        canStart ? 1 : 2,
+      );
       return;
     }
     Get.toNamed(AppRoutes.driverActiveTrip, arguments: {'trip': trip});
@@ -178,109 +243,9 @@ class TripDetailController extends GetxController {
     _showEditTripSheet();
   }
 
-  void _showEditTripSheet() {
-    final priceCtrl =
-        TextEditingController(text: '${trip.pricePerSeat.toInt()}');
-    final durationCtrl = TextEditingController(text: '${trip.durationMin}');
-    final descCtrl = TextEditingController();
-
-    Get.bottomSheet(
-      Container(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.border,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Modifier le trajet',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 20),
-              _EditField(
-                  label: 'Prix par siège (FCFA)',
-                  controller: priceCtrl,
-                  keyboardType: TextInputType.number),
-              const SizedBox(height: 12),
-              _EditField(
-                  label: 'Durée estimée (minutes)',
-                  controller: durationCtrl,
-                  keyboardType: TextInputType.number),
-              const SizedBox(height: 12),
-              _EditField(
-                  label: 'Description',
-                  controller: descCtrl,
-                  keyboardType: TextInputType.multiline,
-                  maxLines: 3),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  onPressed: () => _submitEditTrip(
-                    pricePerSeat: int.tryParse(priceCtrl.text),
-                    estimatedDurationMinutes: int.tryParse(durationCtrl.text),
-                    description: descCtrl.text.trim().isEmpty
-                        ? null
-                        : descCtrl.text.trim(),
-                  ),
-                  child: const Text(
-                    'Enregistrer',
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-    );
-  }
-
-  Future<void> _submitEditTrip({
-    int? pricePerSeat,
-    int? estimatedDurationMinutes,
-    String? description,
-  }) async {
-    Get.back();
-    final fields = <String, dynamic>{};
-    if (pricePerSeat != null) fields['price_per_seat'] = pricePerSeat;
-    if (estimatedDurationMinutes != null) {
-      fields['estimated_duration_minutes'] = estimatedDurationMinutes;
-    }
-    if (description != null) fields['description'] = description;
-    if (fields.isEmpty) return;
-
-    final result = await _service.updateTrip(_tripUuid, fields: fields);
-    if (result.isSuccess) {
-      UIHelper().showSnackBar('MINIZON', 'Trajet mis à jour avec succès.', 0);
-      _loadTripDetail();
-    } else {
-      UIHelper().showSnackBar('MINIZON', result.displayMessage, 2);
-    }
+  Future<void> _showEditTripSheet() async {
+    await Get.toNamed(AppRoutes.driverEditTrip, arguments: {'uuid': _tripUuid});
+    if (!isClosed) _loadTripDetail();
   }
 
   void onCancelTrip() {
@@ -361,51 +326,3 @@ class ChecklistItem {
   final bool isWarning;
 }
 
-class _EditField extends StatelessWidget {
-  const _EditField({
-    required this.label,
-    required this.controller,
-    required this.keyboardType,
-    this.maxLines = 1,
-  });
-
-  final String label;
-  final TextEditingController controller;
-  final TextInputType keyboardType;
-  final int maxLines;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 13,
-            color: AppColors.textSecondary,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 6),
-        TextField(
-          controller: controller,
-          keyboardType: keyboardType,
-          maxLines: maxLines,
-          decoration: InputDecoration(
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Colors.transparent),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Colors.transparent),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}

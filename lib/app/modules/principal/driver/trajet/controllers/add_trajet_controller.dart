@@ -124,14 +124,18 @@ class AddTrajetController extends GetxController {
   bool _updatingDurationProgrammatically = false;
 
   // Coordonnées précises calculées lors du géocodage (quartier/arrondissement/ville)
+  // ignore: unused_field
   double? _depPreciseLat;
+  // ignore: unused_field
   double? _depPreciseLng;
+  // ignore: unused_field
   double? _destPreciseLat;
-  double? _destPreciseLng;
 
   // ── GPS ───────────────────────────────────────────────────────────────────
   double? _deviceLat;
   double? _deviceLng;
+  // ignore: unused_field
+  double? _destPreciseLng;
 
   static Map<String, List<String>> get beninCitiesWithDistricts =>
       BeninLocationHelpers.citiesWithArrondissements;
@@ -182,7 +186,6 @@ class AddTrajetController extends GetxController {
     destinationArrondissementController.text = '';
     destinationDistrictController.text = '';
     _destPreciseLat = null;
-    _destPreciseLng = null;
     _durationModifiedByUser = false;
     _triggerEstimate();
   }
@@ -203,7 +206,6 @@ class AddTrajetController extends GetxController {
     destinationArrondissementController.text = arr ?? '';
     destinationDistrictController.text = '';
     _destPreciseLat = null;
-    _destPreciseLng = null;
     _triggerEstimate();
   }
 
@@ -255,7 +257,6 @@ class AddTrajetController extends GetxController {
     _depPreciseLat = depLat;
     _depPreciseLng = depLng;
     _destPreciseLat = destLat;
-    _destPreciseLng = destLng;
 
     // Routage routier réel via OSRM (OpenStreetMap)
     if (depLat != null && depLng != null && destLat != null && destLng != null) {
@@ -330,7 +331,6 @@ class AddTrajetController extends GetxController {
     selectedDestinationDistrict.value = district;
     destinationDistrictController.text = district ?? '';
     _destPreciseLat = null;
-    _destPreciseLng = null;
     _triggerEstimate();
   }
 
@@ -359,7 +359,6 @@ class AddTrajetController extends GetxController {
     _depPreciseLat = null;
     _depPreciseLng = null;
     _destPreciseLat = null;
-    _destPreciseLng = null;
     _durationModifiedByUser = false;
     _updatingDurationProgrammatically = true;
     durationController.text = '';
@@ -554,7 +553,6 @@ class AddTrajetController extends GetxController {
         ((j['arrival_point'] ?? j['destination_point']) as String?) ?? '';
 
     _destPreciseLat = (j['arrival_latitude'] as num?)?.toDouble();
-    _destPreciseLng = (j['arrival_longitude'] as num?)?.toDouble();
 
     // Date/heure
     final rawDepTime = j['departure_time'] as String? ?? '';
@@ -611,11 +609,6 @@ class AddTrajetController extends GetxController {
     return '${parts[2]}/${parts[1]}/${parts[0]}';
   }
 
-  static String _toIsoDate(String ddmmyyyy) {
-    final parts = ddmmyyyy.split('/');
-    if (parts.length != 3) return ddmmyyyy;
-    return '${parts[2]}-${parts[1]}-${parts[0]}';
-  }
 
   void _onPriceChanged() {
     final raw = priceController.text.replaceAll(RegExp(r'[^0-9]'), '');

@@ -91,6 +91,7 @@ class BottonNavView extends GetView<BottonNavController> {
             items: controller.items,
             currentIndex: controller.currentIndex.value,
             onTap: controller.onTabSelected,
+            messageBadgeCount: controller.messageBadgeCount.value,
           ),
         ),
       );
@@ -630,12 +631,14 @@ class _BottonNavBar extends StatelessWidget {
     required this.items,
     required this.currentIndex,
     required this.onTap,
+    this.messageBadgeCount = 0,
   });
 
   final AppResponsive responsive;
   final List<BottonNavItemData> items;
   final int currentIndex;
   final ValueChanged<int> onTap;
+  final int messageBadgeCount;
 
   @override
   Widget build(BuildContext context) {
@@ -687,6 +690,7 @@ class _BottonNavBar extends StatelessWidget {
                       item: item,
                       selected: selected,
                       onTap: () => onTap(index),
+                      badgeCount: index == 3 ? messageBadgeCount : 0,
                     ),
                   );
                 }),
@@ -705,12 +709,14 @@ class _BottonNavItem extends StatelessWidget {
     required this.item,
     required this.selected,
     required this.onTap,
+    this.badgeCount = 0,
   });
 
   final AppResponsive responsive;
   final BottonNavItemData item;
   final bool selected;
   final VoidCallback onTap;
+  final int badgeCount;
 
   @override
   Widget build(BuildContext context) {
@@ -792,17 +798,30 @@ class _BottonNavItem extends StatelessWidget {
                         ),
                       ),
                     ),
-                    if (item.hasBadge)
+                    if (badgeCount > 0)
                       Positioned(
-                        right: -2,
-                        top: -2,
+                        right: -4,
+                        top: -4,
                         child: Container(
-                          width: responsive.w(8),
-                          height: responsive.w(8),
-                          decoration: ShapeDecoration(
+                          constraints: BoxConstraints(
+                            minWidth: responsive.w(16),
+                            minHeight: responsive.w(16),
+                          ),
+                          padding: EdgeInsets.symmetric(horizontal: responsive.w(4)),
+                          decoration: BoxDecoration(
                             color: AppColors.danger,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(9999),
+                            borderRadius: BorderRadius.circular(9999),
+                            border: Border.all(color: AppColors.white, width: 1.5),
+                          ),
+                          child: Center(
+                            child: Text(
+                              badgeCount > 99 ? '99+' : '$badgeCount',
+                              style: TextStyle(
+                                color: AppColors.white,
+                                fontSize: responsive.text(9),
+                                fontWeight: FontWeight.w700,
+                                height: 1,
+                              ),
                             ),
                           ),
                         ),

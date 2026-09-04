@@ -5,6 +5,7 @@ import 'package:covoiturage_benin_app/app/core/services/driver/messaging/messagi
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/messenger_model.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 class MessagerController extends GetxController {
@@ -38,6 +39,11 @@ class MessagerController extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(() => searchQuery.value = searchController.text);
+    ever(totalUnread, (count) {
+      if (Get.isRegistered<BottonNavController>()) {
+        Get.find<BottonNavController>().messageBadgeCount.value = count;
+      }
+    });
     _fetch('all');
   }
 

@@ -22,6 +22,9 @@ class TrajetController extends GetxController {
   final Rx<TrajetFilterType> selectedFilter = TrajetFilterType.all.obs;
   final RxBool isLoading = false.obs;
   final RxInt _tripsVersion = 0.obs;
+  // Horloge réactive : utilisée par chaque carte pour surveiller isStartEnabled
+  // indépendamment de l'Obx parent. Incrémentée toutes les 5 s.
+  final RxInt clockTick = 0.obs;
 
   // ── Filter counts (updated from API filter_counts) ────────────────────────
   var _filterCounts = const {
@@ -42,6 +45,7 @@ class TrajetController extends GetxController {
   };
   bool _autoCancelInProgress = false;
   Timer? _autoCancelTimer;
+  Timer? _refreshTimer; // 15 s : recalcule isStartEnabled pour les trajets pending
 
   // ── Getters used by the view (inside Obx — reads _tripsVersion) ──────────
 
@@ -90,6 +94,12 @@ class TrajetController extends GetxController {
     _autoCancelTimer = Timer.periodic(const Duration(minutes: 5), (_) {
       _loadTrips(selectedFilter.value);
     });
+    // Toutes les 5 s : clockTick force chaque carte à réévaluer isStartEnabled
+    // dans son propre Obx, sans passer par l'Obx parent.
+    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      clockTick.value++;
+      _tripsVersion.value = clockTick.value;
+    });
     ever(AppSync.i.driverTrips, (_) {
       _tripsByFilter.clear();
       _loadTrips(selectedFilter.value);
@@ -99,6 +109,7 @@ class TrajetController extends GetxController {
   @override
   void onClose() {
     _autoCancelTimer?.cancel();
+    _refreshTimer?.cancel();
     super.onClose();
   }
 
@@ -175,8 +186,7 @@ class TrajetController extends GetxController {
     final statusStyle = _statusStyle(t.status);
     final actionLabel = t.primaryAction?.label ?? _defaultActionLabel(t.status);
     final actionEnabled = t.primaryAction?.enabled ?? t.passengers.isNotEmpty;
-
-    return TrajetCardData(
+    final card = TrajetCardData(
       uuid: t.uuid,
       status: t.status,
       statusLabel: t.statusLabel.isNotEmpty ? t.statusLabel : _defaultStatusLabel(t.status),
@@ -208,6 +218,7 @@ class TrajetController extends GetxController {
       reviewsCount: t.reviewsSummary?.count,
       hasPendingReply: t.reviewsSummary?.hasPendingReply ?? false,
     );
+    return card;
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -261,10 +272,18 @@ class TrajetController extends GetxController {
   void onCreateTrip() => Get.toNamed(AppRoutes.driverAddTrip);
 
   void onPrimaryAction(TrajetCardData trip) {
+    // Les trajets pending dont isStartEnabled=true → toujours démarrer,
+    // peu importe ce que l'API a mis dans primaryActionCode.
+    if (trip.status == 'pending' && trip.isStartEnabled) {
+      Get.toNamed(AppRoutes.driverActiveTrip,
+          arguments: {'trip': _toTripModel(trip)});
+      return;
+    }
     switch (trip.primaryActionCode) {
       case 'start':
-        Get.toNamed(AppRoutes.driverActiveTrip,
-            arguments: {'trip': _toTripModel(trip)});
+        // Sécurité : si le bouton est cliqué mais fenêtre pas encore ouverte
+        UIHelper().showSnackBar(
+            'MINIZON', 'Le départ est prévu dans plus de 5 minutes.', 1);
       case 'navigate':
         Get.toNamed(AppRoutes.driverRunningTrip,
             arguments: {'uuid': trip.uuid});
@@ -272,17 +291,15 @@ class TrajetController extends GetxController {
         Get.toNamed(AppRoutes.driverTripDetail,
             arguments: {'uuid': trip.uuid});
       case 'none':
-        break; // Bouton désactivé — rien à faire
+        break;
       default:
         switch (trip.status) {
           case 'active' || 'in_progress':
             Get.toNamed(AppRoutes.driverRunningTrip,
                 arguments: {'uuid': trip.uuid});
-          case 'completed' || 'cancelled':
+          default:
             Get.toNamed(AppRoutes.driverTripDetail,
                 arguments: {'uuid': trip.uuid});
-          default:
-            break;
         }
     }
   }
@@ -295,9 +312,8 @@ class TrajetController extends GetxController {
         Get.toNamed(AppRoutes.driverInteractiveMap,
             arguments: {'uuid': trip.uuid, 'trip': _toTripModel(trip)});
       case 'pending':
-        // Trajet à venir → pré-départ
-        Get.toNamed(AppRoutes.driverActiveTrip,
-            arguments: {'trip': _toTripModel(trip)});
+        Get.toNamed(AppRoutes.driverTripDetail,
+            arguments: {'uuid': trip.uuid});
       default:
         // Terminé ou annulé → détail
         Get.toNamed(AppRoutes.driverTripDetail,
@@ -498,8 +514,8 @@ class TrajetController extends GetxController {
                 onTap: () {
                   Get.back();
                   Get.toNamed(
-                    AppRoutes.driverAddTrip,
-                    arguments: {'uuid': trip.uuid, 'isEdit': true},
+                    AppRoutes.driverEditTrip,
+                    arguments: {'uuid': trip.uuid},
                   );
                 },
               ),
@@ -701,4 +717,18 @@ class TrajetCardData {
   final bool hasPendingReply;
 
   String get routeLabel => '$origin → $destination';
+
+  /// Bouton "Démarrer" actif si le trajet est pending ET qu'on est dans la
+  /// fenêtre de démarrage (maintenant ≥ departureAt − 5 min).
+  /// L'API peut changer primaryActionCode après l'heure → on se base
+  /// uniquement sur status + departureAt pour décider.
+  bool get isStartEnabled {
+    if (status != 'pending') return passengerActionEnabled;
+    if (departureAt.isEmpty) return passengerActionEnabled;
+    final dt = DateTime.tryParse(departureAt);
+    if (dt == null) return passengerActionEnabled;
+    final depUtc = dt.isUtc ? dt : dt.toUtc();
+    final windowUtc = depUtc.subtract(const Duration(minutes: 5));
+    return DateTime.now().toUtc().isAfter(windowUtc);
+  }
 }

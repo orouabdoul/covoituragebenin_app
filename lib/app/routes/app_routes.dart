@@ -53,5 +53,6 @@ abstract class AppRoutes {
   static const driverSafetyCenter = '/driver-safety-center';
   static const driverSupportCenter = '/driver-support-center';
   static const driverTripReviews = '/driver-trip-reviews';
+  static const driverEditTrip = '/driver-edit-trip';
   static const passengerPaymentWebview = '/passenger-payment-webview';
 }
