@@ -117,8 +117,10 @@ class TripDetailController extends GetxController {
     _updateCanStartNow();
     _startTimer?.cancel();
     _activationTimer?.cancel();
-    if (canStart || trip.status == TripStatus.pending) {
-      _startTimer = Timer.periodic(const Duration(seconds: 30), (_) => _updateCanStartNow());
+    // Timers actifs pour tout trajet pending : canStart peut démarrer à false
+    // (backend calcule la fenêtre de 5 min) mais on vérifie localement toutes les 10 s.
+    if (trip.status == TripStatus.pending) {
+      _startTimer = Timer.periodic(const Duration(seconds: 10), (_) => _updateCanStartNow());
       _scheduleActivation();
     }
   }
@@ -197,8 +199,6 @@ class TripDetailController extends GetxController {
     final depUtc = dt.isUtc ? dt : dt.toUtc();
     final nowUtc = DateTime.now().toUtc();
     final inWindow = nowUtc.isAfter(depUtc.subtract(const Duration(minutes: 5)));
-    // Si l'API retourne canStart=false mais que le trajet est pending et dans
-    // la fenêtre de démarrage (≤ 5 min ou passé), on autorise quand même.
     if (!canStart) {
       canStartNow.value = trip.status == TripStatus.pending && inWindow;
       return;

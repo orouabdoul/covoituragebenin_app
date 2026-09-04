@@ -159,7 +159,19 @@ class TripItemData {
           final t = (json['departure_time'] as String?) ?? '';
           // Accept any string that Dart can parse as a DateTime (ISO 8601 with
           // T or space separator, e.g. "2026-09-05 07:00:00" or "2026-09-05T07:00:00Z")
-          return DateTime.tryParse(t) != null ? t : '';
+          if (DateTime.tryParse(t) != null) return t;
+          final d = (json['departure_date'] as String?) ?? '';
+          if (d.isNotEmpty && t.isNotEmpty) {
+            try {
+              final p = d.split('/');
+              if (p.length == 3) {
+                final time = t.length == 5 ? '$t:00' : t;
+                final iso = '${p[2]}-${p[1].padLeft(2, '0')}-${p[0].padLeft(2, '0')}T$time';
+                if (DateTime.tryParse(iso) != null) return iso;
+              }
+            } catch (_) {}
+          }
+          return '';
         }(),
         seatsTotal: (json['seats_total'] as num?)?.toInt() ?? 0,
         seatsBooked: (json['seats_booked'] as num?)?.toInt() ?? 0,

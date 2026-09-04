@@ -45,7 +45,8 @@ class TrajetController extends GetxController {
   };
   bool _autoCancelInProgress = false;
   Timer? _autoCancelTimer;
-  Timer? _refreshTimer; // 15 s : recalcule isStartEnabled pour les trajets pending
+  Timer? _refreshTimer;       // 5 s  : clockTick → Obx bouton réévalue isStartEnabled
+  Timer? _pendingRefreshTimer; // 60 s : recharge les données API pour les trajets pending proches
 
   // ── Getters used by the view (inside Obx — reads _tripsVersion) ──────────
 
@@ -100,6 +101,11 @@ class TrajetController extends GetxController {
       clockTick.value++;
       _tripsVersion.value = clockTick.value;
     });
+    // Toutes les 60 s : si des trajets pending ont leur départ dans l'heure,
+    // recharge silencieusement pour capturer enabled=true du backend.
+    _pendingRefreshTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+      _silentRefreshIfPendingNear();
+    });
     ever(AppSync.i.driverTrips, (_) {
       _tripsByFilter.clear();
       _loadTrips(selectedFilter.value);
@@ -110,6 +116,7 @@ class TrajetController extends GetxController {
   void onClose() {
     _autoCancelTimer?.cancel();
     _refreshTimer?.cancel();
+    _pendingRefreshTimer?.cancel();
     super.onClose();
   }
 
@@ -180,6 +187,30 @@ class TrajetController extends GetxController {
 
     _tripsByFilter[filter] = data.trips.map(_tripItemToCard).toList();
     _tripsVersion.value++;
+  }
+
+  /// Vérifie si au moins un trajet pending part dans l'heure.
+  bool _hasPendingNearDeparture() {
+    final trips = <TrajetCardData>[
+      ...?_tripsByFilter[TrajetFilterType.pending],
+      ...?_tripsByFilter[TrajetFilterType.all],
+    ];
+    return trips.any((t) {
+      if (t.status != 'pending' || t.departureAt.isEmpty) return false;
+      final dt = DateTime.tryParse(t.departureAt);
+      if (dt == null) return false;
+      return dt.toUtc().difference(DateTime.now().toUtc()).inMinutes <= 60;
+    });
+  }
+
+  /// Recharge silencieusement la liste courante (sans indicateur de chargement)
+  /// pour mettre à jour primary_action.enabled depuis le backend.
+  Future<void> _silentRefreshIfPendingNear() async {
+    if (!_hasPendingNearDeparture()) return;
+    final result = await _service.fetchTrips(status: _filterStatus(selectedFilter.value));
+    if (result.isSuccess) {
+      _applyTripsData(result.data!, selectedFilter.value);
+    }
   }
 
   TrajetCardData _tripItemToCard(TripItemData t) {
@@ -719,16 +750,17 @@ class TrajetCardData {
   String get routeLabel => '$origin → $destination';
 
   /// Bouton "Démarrer" actif si le trajet est pending ET qu'on est dans la
-  /// fenêtre de démarrage (maintenant ≥ departureAt − 5 min).
-  /// L'API peut changer primaryActionCode après l'heure → on se base
-  /// uniquement sur status + departureAt pour décider.
+  /// fenêtre de 5 min avant le départ (calculé localement depuis departureAt)
+  /// OU si le backend a déjà confirmé enabled=true (passengerActionEnabled).
   bool get isStartEnabled {
     if (status != 'pending') return passengerActionEnabled;
-    if (departureAt.isEmpty) return passengerActionEnabled;
+    // Signal backend : si l'API a déjà calculé enabled=true, respecter ce choix.
+    if (passengerActionEnabled) return true;
+    // Signal local : calcul temps-réel (actif dès le tick de 5 s suivant).
+    if (departureAt.isEmpty) return false;
     final dt = DateTime.tryParse(departureAt);
-    if (dt == null) return passengerActionEnabled;
+    if (dt == null) return false;
     final depUtc = dt.isUtc ? dt : dt.toUtc();
-    final windowUtc = depUtc.subtract(const Duration(minutes: 5));
-    return DateTime.now().toUtc().isAfter(windowUtc);
+    return DateTime.now().toUtc().isAfter(depUtc.subtract(const Duration(minutes: 5)));
   }
 }

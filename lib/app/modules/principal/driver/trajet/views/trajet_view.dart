@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -536,23 +538,11 @@ class _TripCard extends StatelessWidget {
 					Row(
 						children: [
 							Expanded(
-								child: Obx(() {
-									// Abonnement direct à clockTick : toutes les 5 s ce widget
-									// réévalue isStartEnabled avec DateTime.now() frais, sans
-									// dépendre de l'Obx parent.
-									final _ = Get.find<TrajetController>().clockTick.value;
-									final enabled = trip.isStartEnabled;
-									return AbsorbPointer(
-										absorbing: !enabled,
-										child: _TripActionButton(
-											responsive: responsive,
-											label: trip.passengerActionLabel,
-											backgroundColor: enabled ? AppColors.primary : AppColors.surfaceMuted,
-											textColor: enabled ? AppColors.white : AppColors.textHint,
-											onTap: enabled ? onPrimaryAction : null,
-										),
-									);
-								}),
+								child: _StartButtonLive(
+									responsive: responsive,
+									trip: trip,
+									onPrimaryAction: onPrimaryAction,
+								),
 							),
 							SizedBox(width: responsive.adaptive(phone: 8, smallPhone: 8, tablet: 8, desktop: 8)),
 							AppCircularButton(
@@ -790,6 +780,72 @@ class _TripActionButton extends StatelessWidget {
 						),
 					),
 				),
+			),
+		);
+	}
+}
+
+/// Bouton "Démarrer" avec timer Flutter natif.
+/// Utilise setState() toutes les 3 s pour réévaluer isStartEnabled avec
+/// DateTime.now() frais — mécanisme le plus bas niveau, impossible d'échouer.
+class _StartButtonLive extends StatefulWidget {
+	const _StartButtonLive({
+		required this.responsive,
+		required this.trip,
+		required this.onPrimaryAction,
+	});
+
+	final AppResponsive responsive;
+	final TrajetCardData trip;
+	final VoidCallback onPrimaryAction;
+
+	@override
+	State<_StartButtonLive> createState() => _StartButtonLiveState();
+}
+
+class _StartButtonLiveState extends State<_StartButtonLive> {
+	Timer? _timer;
+
+	@override
+	void initState() {
+		super.initState();
+		_startTimerIfNeeded();
+	}
+
+	@override
+	void didUpdateWidget(_StartButtonLive old) {
+		super.didUpdateWidget(old);
+		if (old.trip.departureAt != widget.trip.departureAt ||
+				old.trip.status != widget.trip.status) {
+			_timer?.cancel();
+			_startTimerIfNeeded();
+		}
+	}
+
+	void _startTimerIfNeeded() {
+		if (widget.trip.status != 'pending') return;
+		_timer = Timer.periodic(const Duration(seconds: 3), (_) {
+			if (mounted) setState(() {});
+		});
+	}
+
+	@override
+	void dispose() {
+		_timer?.cancel();
+		super.dispose();
+	}
+
+	@override
+	Widget build(BuildContext context) {
+		final enabled = widget.trip.isStartEnabled;
+		return AbsorbPointer(
+			absorbing: !enabled,
+			child: _TripActionButton(
+				responsive: widget.responsive,
+				label: widget.trip.passengerActionLabel,
+				backgroundColor: enabled ? AppColors.primary : AppColors.surfaceMuted,
+				textColor: enabled ? AppColors.white : AppColors.textHint,
+				onTap: enabled ? widget.onPrimaryAction : null,
 			),
 		);
 	}

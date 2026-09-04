@@ -609,6 +609,11 @@ class AddTrajetController extends GetxController {
     return '${parts[2]}/${parts[1]}/${parts[0]}';
   }
 
+  static String _toIsoDate(String ddmmyyyy) {
+    final parts = ddmmyyyy.split('/');
+    if (parts.length != 3) return ddmmyyyy;
+    return '${parts[2]}-${parts[1]}-${parts[0]}';
+  }
 
   void _onPriceChanged() {
     final raw = priceController.text.replaceAll(RegExp(r'[^0-9]'), '');
