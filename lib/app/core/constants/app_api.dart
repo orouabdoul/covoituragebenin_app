@@ -59,8 +59,9 @@ class AppApi {
   static const String driverAvailability = '/driver/availability';
 
   // Profil — conducteur
-  static const String driverProfile     = '/driver/profile';
-  static const String driverPreferences = '/driver/preferences';
+  static const String driverProfile         = '/driver/profile';
+  static const String driverProfileDocument = '/driver/profile/document';
+  static const String driverPreferences     = '/driver/preferences';
 
   // Trajets — conducteur
   static const String driverTrips = '/driver/trips';

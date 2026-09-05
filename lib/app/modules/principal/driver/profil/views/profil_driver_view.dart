@@ -135,11 +135,6 @@ class ProfilDriverView extends StatelessWidget {
                 SizedBox(height: responsive.h(20)),
                 _PerformanceSection(responsive: responsive, controller: controller),
                 SizedBox(height: responsive.h(20)),
-                _PreferencesSection(
-                  responsive: responsive,
-                  controller: controller,
-                ),
-                SizedBox(height: responsive.h(20)),
                 _SettingsSection(
                   responsive: responsive,
                   controller: controller,
@@ -1050,40 +1045,43 @@ class _DocumentRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      onTap: onTap,
-      contentPadding: EdgeInsets.zero,
-      leading: Container(
-        width: responsive.w(40),
-        height: responsive.w(40),
-        decoration: ShapeDecoration(
-          color: AppColors.surfaceAccentStrong,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(9999),
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        onTap: onTap,
+        contentPadding: EdgeInsets.zero,
+        leading: Container(
+          width: responsive.w(40),
+          height: responsive.w(40),
+          decoration: ShapeDecoration(
+            color: AppColors.surfaceAccentStrong,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(9999),
+            ),
+          ),
+          child: Icon(
+            item.icon,
+            color: AppColors.primary,
+            size: responsive.text(18),
           ),
         ),
-        child: Icon(
-          item.icon,
-          color: AppColors.primary,
+        title: Text(
+          item.title,
+          style: AppTextStyles.profileSectionLabel(
+            responsive,
+          ).copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+        ),
+        subtitle: Text(
+          item.subtitle,
+          style: AppTextStyles.caption(
+            responsive,
+          ).copyWith(color: AppColors.primary),
+        ),
+        trailing: Icon(
+          Icons.chevron_right_rounded,
+          color: AppColors.textHint,
           size: responsive.text(18),
         ),
-      ),
-      title: Text(
-        item.title,
-        style: AppTextStyles.profileSectionLabel(
-          responsive,
-        ).copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
-      ),
-      subtitle: Text(
-        item.subtitle,
-        style: AppTextStyles.caption(
-          responsive,
-        ).copyWith(color: AppColors.primary),
-      ),
-      trailing: Icon(
-        Icons.chevron_right_rounded,
-        color: AppColors.textHint,
-        size: responsive.text(18),
       ),
     );
   }
@@ -1267,112 +1265,6 @@ class _RewardChip extends StatelessWidget {
   }
 }
 
-class _PreferencesSection extends StatelessWidget {
-  const _PreferencesSection({
-    required this.responsive,
-    required this.controller,
-  });
-
-  final AppResponsive responsive;
-  final DriverProfileController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _SectionTitle(
-          responsive: responsive,
-          title: AppStrings.driverProfileSectionPreferences,
-        ),
-        SizedBox(height: responsive.h(12)),
-        Container(
-          decoration: ShapeDecoration(
-            color: AppColors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(responsive.radius(16)),
-              side: const BorderSide(color: AppColors.surfaceSoft),
-            ),
-          ),
-          child: Column(
-            children: [
-              Obx(
-                () => _PreferenceSwitchRow(
-                  responsive: responsive,
-                  title: AppStrings.driverProfileAutoAvailability,
-                  subtitle: AppStrings.driverProfileAutoAvailabilityHint,
-                  icon: Icons.schedule_rounded,
-                  value: controller.autoAvailability.value,
-                  onChanged: controller.toggleAutoAvailability,
-                ),
-              ),
-              const Divider(height: 1, color: AppColors.surfaceSoft),
-              Obx(
-                () => _PreferenceSwitchRow(
-                  responsive: responsive,
-                  title: AppStrings.driverProfileNotifications,
-                  subtitle: AppStrings.driverProfileNotificationsHint,
-                  icon: Icons.notifications_rounded,
-                  value: controller.notificationsEnabled.value,
-                  onChanged: controller.toggleNotifications,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _PreferenceSwitchRow extends StatelessWidget {
-  const _PreferenceSwitchRow({
-    required this.responsive,
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final AppResponsive responsive;
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Container(
-        width: responsive.w(40),
-        height: responsive.w(40),
-        decoration: ShapeDecoration(
-          color: AppColors.surfaceSoft,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(9999),
-          ),
-        ),
-        child: Icon(icon, color: AppColors.textHint, size: responsive.text(18)),
-      ),
-      title: Text(
-        title,
-        style: AppTextStyles.profileSectionLabel(
-          responsive,
-        ).copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
-      ),
-      subtitle: Text(subtitle, style: AppTextStyles.caption(responsive)),
-      trailing: Switch.adaptive(
-        value: value,
-        // ignore: deprecated_member_use
-        activeColor: AppColors.primary,
-        onChanged: onChanged,
-      ),
-    );
-  }
-}
-
 class _SettingsSection extends StatelessWidget {
   const _SettingsSection({required this.responsive, required this.controller});
 
@@ -1407,40 +1299,43 @@ class _SettingsSection extends StatelessWidget {
           child: Column(
             children: controller.settings
                 .map((setting) {
-                  return ListTile(
-                    onTap: () => controller.onSettingTap(setting),
-                    leading: Icon(
-                      setting.icon,
-                      color: AppColors.textPrimary,
-                      size: responsive.text(18),
+                  return Material(
+                    color: Colors.transparent,
+                    child: ListTile(
+                      onTap: () => controller.onSettingTap(setting),
+                      leading: Icon(
+                        setting.icon,
+                        color: AppColors.textPrimary,
+                        size: responsive.text(18),
+                      ),
+                      title: Text(
+                        setting.title,
+                        style: AppTextStyles.profileSectionLabel(
+                          responsive,
+                        ).copyWith(color: AppColors.textPrimary),
+                      ),
+                      trailing: setting.trailing == null
+                          ? Icon(
+                              Icons.chevron_right_rounded,
+                              color: AppColors.textHint,
+                              size: responsive.text(18),
+                            )
+                          : Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  setting.trailing!,
+                                  style: AppTextStyles.caption(responsive),
+                                ),
+                                SizedBox(width: responsive.w(6)),
+                                Icon(
+                                  Icons.chevron_right_rounded,
+                                  color: AppColors.textHint,
+                                  size: responsive.text(18),
+                                ),
+                              ],
+                            ),
                     ),
-                    title: Text(
-                      setting.title,
-                      style: AppTextStyles.profileSectionLabel(
-                        responsive,
-                      ).copyWith(color: AppColors.textPrimary),
-                    ),
-                    trailing: setting.trailing == null
-                        ? Icon(
-                            Icons.chevron_right_rounded,
-                            color: AppColors.textHint,
-                            size: responsive.text(18),
-                          )
-                        : Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                setting.trailing!,
-                                style: AppTextStyles.caption(responsive),
-                              ),
-                              SizedBox(width: responsive.w(6)),
-                              Icon(
-                                Icons.chevron_right_rounded,
-                                color: AppColors.textHint,
-                                size: responsive.text(18),
-                              ),
-                            ],
-                          ),
                   );
                 })
                 .toList(growable: false),

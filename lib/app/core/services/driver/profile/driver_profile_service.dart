@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:covoiturage_benin_app/app/core/utils/api_result.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/profile_model.dart';
 
@@ -17,5 +19,9 @@ abstract class DriverProfileService {
     String? language,
     bool? shareLocation,
     bool? shareActivity,
+  });
+  Future<ApiResult<void>> uploadDocument({
+    required String documentType,
+    required File file,
   });
 }

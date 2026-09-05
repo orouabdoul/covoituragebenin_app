@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/utils/api_result.dart';
@@ -104,6 +106,39 @@ class VehiclesServiceImpl implements VehiclesService {
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
       logger.e('updateVehicle: $e');
+      return ApiResult.failure(AppError.unexpected);
+    }
+  }
+
+  @override
+  Future<ApiResult<void>> uploadVehicleDocument(String uuid, String apiField, File file) async {
+    try {
+      final opts = await _authOptions();
+      // PHP n'alimente pas $_FILES pour les requêtes PUT; on utilise POST + _method spoofing.
+      final formData = FormData.fromMap({
+        '_method': 'PUT',
+        apiField: await MultipartFile.fromFile(file.path),
+      });
+      final res = await _dio.post(
+        AppApi.driverVehicle(uuid),
+        data: formData,
+        options: opts.copyWith(contentType: 'multipart/form-data'),
+      );
+      logger.d('uploadVehicleDocument [$uuid/$apiField] [${res.statusCode}]');
+      if (res.statusCode == 200) return ApiResult.success(null);
+      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
+      if (res.statusCode == 404) return ApiResult.failure(AppError.userNotFound);
+      if (res.statusCode == 422) {
+        lastValidationMessage = _extractMessage(res.data);
+        return ApiResult.failure(AppError.validationError);
+      }
+      return ApiResult.failure(AppError.unexpected);
+    } on DioException catch (e) {
+      logger.e('uploadVehicleDocument: $e');
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
+      logger.e('uploadVehicleDocument: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }

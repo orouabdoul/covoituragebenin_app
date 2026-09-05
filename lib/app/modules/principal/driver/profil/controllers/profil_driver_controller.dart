@@ -1,11 +1,16 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/services/auth/auth_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/profile/driver_profile_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/safety/safety_service.dart';
+import 'package:covoiturage_benin_app/app/core/services/driver/vehicles/vehicles_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
@@ -17,6 +22,7 @@ import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 class DriverProfileController extends GetxController {
   DriverProfileService get _service => Get.find<DriverProfileService>();
   SafetyService get _safetyService => Get.find<SafetyService>();
+  VehiclesService get _vehiclesService => Get.find<VehiclesService>();
 
   // ── Reactive state ───────────────────────────────────────────────────────
   final RxBool autoAvailability = false.obs;
@@ -144,16 +150,19 @@ class DriverProfileController extends GetxController {
 
   List<DriverDocumentItem> documents = const [
     DriverDocumentItem(
+      key: 'driving_license',
       title: AppStrings.driverProfileDocumentLicense,
       subtitle: AppStrings.driverProfileDocumentLicenseMeta,
       icon: Icons.credit_card_rounded,
     ),
     DriverDocumentItem(
+      key: 'registration',
       title: AppStrings.driverProfileDocumentRegistration,
       subtitle: AppStrings.driverProfileDocumentRegistrationMeta,
       icon: Icons.description_rounded,
     ),
     DriverDocumentItem(
+      key: 'insurance',
       title: AppStrings.driverProfileDocumentInsurance,
       subtitle: AppStrings.driverProfileDocumentInsuranceMeta,
       icon: Icons.verified_user_rounded,
@@ -311,6 +320,7 @@ class DriverProfileController extends GetxController {
     if (data.documents.isNotEmpty) {
       documents = data.documents
           .map((d) => DriverDocumentItem(
+                key: d.key,
                 title: d.title,
                 subtitle: d.subtitle,
                 icon: _documentIcon(d.key),
@@ -420,7 +430,6 @@ class DriverProfileController extends GetxController {
                   icon: Icons.location_city_rounded),
             ];
             profileVersion.value++;
-            UIHelper().showSnackBar(AppStrings.appName, 'Profil mis à jour avec succès.', 0);
             return true;
           } else {
             UIHelper().showSnackBar(AppStrings.appName, 'Erreur lors de la mise à jour.', 2);
@@ -467,18 +476,31 @@ class DriverProfileController extends GetxController {
       );
 
   Future<void> onDocumentTap(DriverDocumentItem item) async {
-    if (_rawVehicles.isEmpty) {
+    // Documents véhicule nécessitent un véhicule enregistré.
+    if (item.vehicleApiKey != null && _rawVehicles.isEmpty) {
       UIHelper().showSnackBar(
           AppStrings.appName,
-          'Ajoutez d\'abord un véhicule pour gérer les documents.',
+          'Ajoutez d\'abord un véhicule pour gérer ce document.',
           2);
       return;
     }
-    await Get.toNamed(
-      AppRoutes.driverAddVehicle,
-      arguments: {'vehicle': _toVehicleData(_rawVehicles.first)},
+
+    final vehicleUuid = _rawVehicles.isNotEmpty ? _rawVehicles.first.uuid : null;
+
+    Get.bottomSheet(
+      _DocumentPickerSheet(
+        item: item,
+        vehicleUuid: vehicleUuid,
+        onUploaded: () {
+          _loadProfile();
+          UIHelper().showSnackBar(AppStrings.appName, 'Document mis à jour avec succès.', 0);
+        },
+        profileService: _service,
+        vehiclesService: _vehiclesService,
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
     );
-    _loadProfile();
   }
 
   void onSettingTap(DriverSettingItem item) {
@@ -890,14 +912,26 @@ class DriverVehicleItem {
 
 class DriverDocumentItem {
   const DriverDocumentItem({
+    required this.key,
     required this.title,
     required this.subtitle,
     required this.icon,
   });
 
+  final String key;
   final String title;
   final String subtitle;
   final IconData icon;
+
+  /// Retourne la clé API véhicule correspondante (null = document conducteur).
+  String? get vehicleApiKey => switch (key) {
+        'registration'      => 'registration_doc',
+        'insurance'         => 'insurance_doc',
+        'tvm'               => 'tvm_doc',
+        'technical_control' => 'technical_control_doc',
+        'vehicle_photo'     => 'vehicle_photo',
+        _ => null, // driving_license → endpoint profil
+      };
 }
 
 class DriverSettingItem {
@@ -1185,6 +1219,7 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
     );
     if (success) {
       Get.back();
+      UIHelper().showSnackBar(AppStrings.appName, 'Profil mis à jour avec succès.', 0);
     } else {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -1192,75 +1227,368 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+    final bottom   = MediaQuery.of(context).viewInsets.bottom;
+    final safeArea = MediaQuery.of(context).padding.bottom;
+    final maxH     = MediaQuery.of(context).size.height * 0.85;
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: maxH),
       child: Container(
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.border,
-                    borderRadius: BorderRadius.circular(9999),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // En-tête fixe (hors scroll)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.border,
+                        borderRadius: BorderRadius.circular(9999),
+                      ),
+                    ),
                   ),
+                  const SizedBox(height: 16),
+                  const Text('Modifier le profil',
+                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+            // Champs scrollables — padding bas = keyboard pour que le dernier
+            // champ reste visible au-dessus du clavier
+            Flexible(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(20, 0, 20, 32 + bottom + safeArea),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _ProfileField(label: 'Prénom',   controller: _firstNameCtrl,    icon: Icons.person_rounded),
+                    const SizedBox(height: 12),
+                    _ProfileField(label: 'Nom',      controller: _lastNameCtrl,     icon: Icons.person_outline_rounded),
+                    const SizedBox(height: 12),
+                    _ProfileField(label: 'Email',    controller: _emailCtrl,        icon: Icons.email_rounded,
+                        keyboardType: TextInputType.emailAddress),
+                    const SizedBox(height: 12),
+                    _ProfileField(label: 'Ville',    controller: _cityCtrl,         icon: Icons.location_city_rounded),
+                    const SizedBox(height: 12),
+                    _ProfileField(label: 'Quartier', controller: _neighborhoodCtrl, icon: Icons.map_rounded),
+                    const SizedBox(height: 12),
+                    _ProfileField(label: 'Adresse',  controller: _addressCtrl,      icon: Icons.home_rounded),
+                    const SizedBox(height: 20),
+                    GestureDetector(
+                      onTap: _isSaving ? null : _submit,
+                      child: Container(
+                        width: double.infinity,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: _isSaving
+                              ? AppColors.primary.withValues(alpha: 0.6)
+                              : AppColors.primary,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Center(
+                          child: _isSaving
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.white),
+                                )
+                              : const Text('Enregistrer',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                      fontSize: 15)),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 16),
-              const Text('Modifier le profil',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 16),
-              _ProfileField(label: 'Prénom',   controller: _firstNameCtrl,    icon: Icons.person_rounded),
-              const SizedBox(height: 12),
-              _ProfileField(label: 'Nom',      controller: _lastNameCtrl,     icon: Icons.person_outline_rounded),
-              const SizedBox(height: 12),
-              _ProfileField(label: 'Email',    controller: _emailCtrl,        icon: Icons.email_rounded,
-                  keyboardType: TextInputType.emailAddress),
-              const SizedBox(height: 12),
-              _ProfileField(label: 'Ville',    controller: _cityCtrl,         icon: Icons.location_city_rounded),
-              const SizedBox(height: 12),
-              _ProfileField(label: 'Quartier', controller: _neighborhoodCtrl, icon: Icons.map_rounded),
-              const SizedBox(height: 12),
-              _ProfileField(label: 'Adresse',  controller: _addressCtrl,      icon: Icons.home_rounded),
-              const SizedBox(height: 20),
-              GestureDetector(
-                onTap: _isSaving ? null : _submit,
-                child: Container(
-                  width: double.infinity,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: _isSaving
-                        ? AppColors.primary.withValues(alpha: 0.6)
-                        : AppColors.primary,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Center(
-                    child: _isSaving
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
-                          )
-                        : const Text('Enregistrer',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                                fontSize: 15)),
-                  ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Document Picker Sheet ─────────────────────────────────────────────────────
+
+class _DocumentPickerSheet extends StatefulWidget {
+  const _DocumentPickerSheet({
+    required this.item,
+    required this.vehicleUuid,
+    required this.onUploaded,
+    required this.profileService,
+    required this.vehiclesService,
+  });
+
+  final DriverDocumentItem item;
+  final String? vehicleUuid;
+  final VoidCallback onUploaded;
+  final DriverProfileService profileService;
+  final VehiclesService vehiclesService;
+
+  @override
+  State<_DocumentPickerSheet> createState() => _DocumentPickerSheetState();
+}
+
+class _DocumentPickerSheetState extends State<_DocumentPickerSheet> {
+  File? _pickedFile;
+  String? _pickedName;
+  bool _isSaving = false;
+
+  static const int _maxBytes = 5 * 1024 * 1024;
+
+  Future<void> _pickFromCamera() async {
+    final xf = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 85);
+    if (xf == null) return;
+    await _setFile(File(xf.path), xf.name);
+  }
+
+  Future<void> _pickFromGallery() async {
+    final xf = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85);
+    if (xf == null) return;
+    await _setFile(File(xf.path), xf.name);
+  }
+
+  Future<void> _pickFromFiles() async {
+    final pf = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png', 'webp'],
+    );
+    if (pf == null || pf.path == null) return;
+    await _setFile(File(pf.path!), pf.name);
+  }
+
+  Future<void> _setFile(File file, String name) async {
+    final size = await file.length();
+    if (size > _maxBytes) {
+      UIHelper().showSnackBar(AppStrings.appName, 'Le fichier ne doit pas depasser 5 Mo.', 2);
+      return;
+    }
+    if (mounted) setState(() { _pickedFile = file; _pickedName = name; });
+  }
+
+  Future<void> _submit() async {
+    if (_pickedFile == null || _isSaving) return;
+    setState(() => _isSaving = true);
+
+    final apiKey = widget.item.vehicleApiKey;
+    bool success;
+
+    if (apiKey == null) {
+      final result = await widget.profileService.uploadDocument(
+        documentType: widget.item.key,
+        file: _pickedFile!,
+      );
+      success = result.isSuccess;
+    } else {
+      final result = await widget.vehiclesService.uploadVehicleDocument(
+        widget.vehicleUuid!,
+        apiKey,
+        _pickedFile!,
+      );
+      success = result.isSuccess;
+    }
+
+    if (!mounted) return;
+    setState(() => _isSaving = false);
+
+    if (success) {
+      Get.back();
+      widget.onUploaded();
+    } else {
+      UIHelper().showSnackBar(AppStrings.appName, 'Erreur lors du televerssement.', 2);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final safeArea = MediaQuery.of(context).padding.bottom;
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.fromLTRB(20, 16, 20, 24 + safeArea),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(9999),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: ShapeDecoration(
+                  color: AppColors.surfaceAccentStrong,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                child: Icon(widget.item.icon, color: AppColors.primary, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(widget.item.title,
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w700)),
+                    Text(widget.item.subtitle,
+                        style: const TextStyle(
+                            fontSize: 12, color: AppColors.textMuted)),
+                  ],
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 20),
+          if (_pickedFile != null)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceAccentStrong,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.30)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.check_circle_rounded,
+                      color: AppColors.primary, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _pickedName ?? 'Fichier selectionne',
+                      style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => setState(
+                        () { _pickedFile = null; _pickedName = null; }),
+                    child: const Icon(Icons.close_rounded,
+                        size: 16, color: AppColors.textMuted),
+                  ),
+                ],
+              ),
+            ),
+          Row(
+            children: [
+              Expanded(
+                  child: _PickButton(
+                      icon: Icons.camera_alt_rounded,
+                      label: 'Camera',
+                      onTap: _isSaving ? null : _pickFromCamera)),
+              const SizedBox(width: 10),
+              Expanded(
+                  child: _PickButton(
+                      icon: Icons.photo_rounded,
+                      label: 'Galerie',
+                      onTap: _isSaving ? null : _pickFromGallery)),
+              const SizedBox(width: 10),
+              Expanded(
+                  child: _PickButton(
+                      icon: Icons.attach_file_rounded,
+                      label: 'Fichier',
+                      onTap: _isSaving ? null : _pickFromFiles)),
+            ],
+          ),
+          const SizedBox(height: 20),
+          GestureDetector(
+            onTap: (_pickedFile == null || _isSaving) ? null : _submit,
+            child: Container(
+              width: double.infinity,
+              height: 50,
+              decoration: BoxDecoration(
+                color: (_pickedFile == null || _isSaving)
+                    ? AppColors.surfaceMuted
+                    : AppColors.primary,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Center(
+                child: _isSaving
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
+                    : Text(
+                        'Televerser',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                          color: _pickedFile == null
+                              ? AppColors.textHint
+                              : Colors.white,
+                        )),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PickButton extends StatelessWidget {
+  const _PickButton(
+      {required this.icon, required this.label, required this.onTap});
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: AppColors.textMuted, size: 22),
+            const SizedBox(height: 4),
+            Text(label,
+                style: const TextStyle(
+                    fontSize: 11, color: AppColors.textMuted)),
+          ],
         ),
       ),
     );

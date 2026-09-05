@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/utils/api_result.dart';
@@ -116,4 +118,33 @@ class DriverProfileServiceImpl implements DriverProfileService {
     }
   }
 
+  @override
+  Future<ApiResult<void>> uploadDocument({
+    required String documentType,
+    required File file,
+  }) async {
+    try {
+      final opts = await _authOptions();
+      final formData = FormData.fromMap({
+        'document_type': documentType,
+        'file': await MultipartFile.fromFile(file.path),
+      });
+      final response = await _dio.patch(
+        AppApi.driverProfileDocument,
+        data: formData,
+        options: opts.copyWith(contentType: 'multipart/form-data'),
+      );
+      logger.d('uploadDocument [$documentType] [${response.statusCode}]');
+      if (response.statusCode == 200) return ApiResult.success(null);
+      if (response.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (response.statusCode == 422) return ApiResult.failure(AppError.validationError);
+      return ApiResult.failure(AppError.unexpected);
+    } on DioException catch (e) {
+      logger.e('uploadDocument: $e');
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
+      logger.e('uploadDocument: $e');
+      return ApiResult.failure(AppError.unexpected);
+    }
+  }
 }

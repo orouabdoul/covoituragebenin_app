@@ -745,7 +745,7 @@ class AddTrajetController extends GetxController {
       if (destinationPointController.text.trim().isNotEmpty)
         'arrival_point': destinationPointController.text.trim(),
       'departure_date': dateController.text,
-      'departure_time': timeController.text,
+      'departure_time': _beninTimeIso(dateController.text, timeController.text),
       'total_seats': availableSeats.value,
       'price_per_seat': price,
       'booking_mode': selectedBookingMode.value,
@@ -782,6 +782,19 @@ class AddTrajetController extends GetxController {
     } else {
       UIHelper().showSnackBar(AppStrings.appName, result.displayMessage, 2);
     }
+  }
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+
+  /// Construit un ISO 8601 avec offset +01:00 (Africa/Porto-Novo) afin que
+  /// le backend reçoive un timestamp non ambigu, indépendamment du timezone
+  /// de l'appareil ou du serveur XAMPP.
+  static String _beninTimeIso(String dateDDMMYYYY, String timeHHMM) {
+    final d = dateDDMMYYYY.split('/');
+    final t = timeHHMM.split(':');
+    if (d.length < 3 || t.length < 2) return timeHHMM;
+    return '${d[2]}-${d[1].padLeft(2, '0')}-${d[0].padLeft(2, '0')}'
+        'T${t[0].padLeft(2, '0')}:${t[1].padLeft(2, '0')}:00+01:00';
   }
 
   // ── Cleanup ───────────────────────────────────────────────────────────────
