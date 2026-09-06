@@ -98,7 +98,9 @@ class DriverNotificationModel {
       rawType:     resolvedType,
       title:       title,
       body:        body,
-      time:        _formatCreatedAt(j['created_at']),
+      time:        (j['time'] as String? ?? '').isNotEmpty
+                       ? (j['time'] as String)
+                       : _formatCreatedAt(j['created_at']),
       isRead:      isRead,
       iconData:    icon,
       iconBg:      bg,

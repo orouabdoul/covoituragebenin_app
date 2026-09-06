@@ -38,6 +38,7 @@ class BottonNavController extends GetxController with WidgetsBindingObserver {
   final BottonNavRole role;
   final RxInt currentIndex = 0.obs;
   final RxInt messageBadgeCount = 0.obs;
+  final RxInt notifBadgeCount = 0.obs;
 
   List<BottonNavItemData> get items =>
       role == BottonNavRole.driver ? _driverItems : _passengerItems;
@@ -129,10 +130,11 @@ class BottonNavController extends GetxController with WidgetsBindingObserver {
     await refreshVerificationStatus();
     isCheckingStatus.value = false;
     final uc = UserController.instance;
-    // Démarrer le polling seulement si compte en attente
     if (!uc.accountBlocked.value && !uc.accountVerified.value) {
       _startVerificationPolling();
     }
+    // Démarre la synchronisation automatique toutes les 30 s
+    _startAutoSync();
   }
 
   int _resolveInitialIndex() {
@@ -165,14 +167,16 @@ class BottonNavController extends GetxController with WidgetsBindingObserver {
   void _refreshForTab(int index) {
     if (role == BottonNavRole.driver) {
       switch (index) {
-        case 0: AppSync.i.refreshDriverDashboard(); break; // Accueil conducteur
-        case 1: AppSync.i.refreshDriverTrips();     break; // Mes trajets
-        case 2: AppSync.i.refreshDriverDashboard(); break; // Revenus (lié au dashboard)
+        case 0: AppSync.i.refreshDriverDashboard(); break;
+        case 1: AppSync.i.refreshDriverTrips();     break;
+        case 2: AppSync.i.refreshDriverDashboard(); break;
+        case 3: AppSync.i.refreshDriverMessages();  break;
       }
     } else {
       switch (index) {
-        case 0: AppSync.i.refreshPassenger(); break; // Accueil passager
-        case 2: AppSync.i.refreshPassenger(); break; // Mes réservations
+        case 0: AppSync.i.refreshPassenger(); break;
+        case 2: AppSync.i.refreshPassenger(); break;
+        case 3: AppSync.i.refreshPassenger(); break;
       }
     }
   }
@@ -181,9 +185,27 @@ class BottonNavController extends GetxController with WidgetsBindingObserver {
   void _refreshCurrentRole() {
     if (role == BottonNavRole.driver) {
       AppSync.i.refreshDriver();
+      AppSync.i.refreshDriverMessages();
     } else {
       AppSync.i.refreshPassenger();
     }
+  }
+
+  // ── Polling automatique (toutes les données, toutes les 30 s) ─────────────
+
+  Timer? _syncTimer;
+  static const Duration _syncInterval = Duration(seconds: 30);
+
+  void _startAutoSync() {
+    _syncTimer?.cancel();
+    _syncTimer = Timer.periodic(_syncInterval, (_) {
+      if (role == BottonNavRole.driver) {
+        AppSync.i.refreshDriver();
+        AppSync.i.refreshDriverMessages();
+      } else {
+        AppSync.i.refreshPassenger();
+      }
+    });
   }
 
   final RxBool isRefreshingStatus = false.obs;
@@ -275,6 +297,7 @@ class BottonNavController extends GetxController with WidgetsBindingObserver {
   void onClose() {
     WidgetsBinding.instance.removeObserver(this);
     _verificationTimer?.cancel();
+    _syncTimer?.cancel();
     super.onClose();
   }
 

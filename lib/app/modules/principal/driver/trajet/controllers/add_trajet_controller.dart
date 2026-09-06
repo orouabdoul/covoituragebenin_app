@@ -558,12 +558,14 @@ class AddTrajetController extends GetxController {
     final rawDepTime = j['departure_time'] as String? ?? '';
     final rawDepDate = j['departure_date'] as String? ?? '';
     if (rawDepDate.isEmpty && rawDepTime.contains('T')) {
-      final dt = DateTime.tryParse(rawDepTime)?.toLocal();
+      final dt = DateTime.tryParse(rawDepTime);
       if (dt != null) {
+        // Convertir UTC → Africa/Porto-Novo (UTC+1) indépendamment du timezone device.
+        final benin = dt.toUtc().add(const Duration(hours: 1));
         dateController.text =
-            '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+            '${benin.day.toString().padLeft(2, '0')}/${benin.month.toString().padLeft(2, '0')}/${benin.year}';
         timeController.text =
-            '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+            '${benin.hour.toString().padLeft(2, '0')}:${benin.minute.toString().padLeft(2, '0')}';
       }
     } else {
       dateController.text = rawDepDate.contains('-') ? _fromIsoDate(rawDepDate) : rawDepDate;
@@ -609,11 +611,6 @@ class AddTrajetController extends GetxController {
     return '${parts[2]}/${parts[1]}/${parts[0]}';
   }
 
-  static String _toIsoDate(String ddmmyyyy) {
-    final parts = ddmmyyyy.split('/');
-    if (parts.length != 3) return ddmmyyyy;
-    return '${parts[2]}-${parts[1]}-${parts[0]}';
-  }
 
   void _onPriceChanged() {
     final raw = priceController.text.replaceAll(RegExp(r'[^0-9]'), '');

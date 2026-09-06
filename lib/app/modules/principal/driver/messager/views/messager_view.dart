@@ -284,9 +284,15 @@ class _ThreadCard extends StatelessWidget {
         padding: EdgeInsets.all(
             responsive.adaptive(phone: 16, smallPhone: 14, tablet: 16, desktop: 16)),
         decoration: ShapeDecoration(
-          color: AppColors.white,
+          color: thread.isUnread
+              ? AppColors.primary.withValues(alpha: 0.04)
+              : AppColors.white,
           shape: RoundedRectangleBorder(
-            side: const BorderSide(color: Colors.transparent),
+            side: BorderSide(
+              color: thread.isUnread
+                  ? AppColors.primary.withValues(alpha: 0.15)
+                  : Colors.transparent,
+            ),
             borderRadius: BorderRadius.circular(responsive.radius(16)),
           ),
           shadows: const [
@@ -314,16 +320,40 @@ class _ThreadCard extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Expanded(
-                              child: Text(thread.name,
-                                  style: AppTextStyles.h6(responsive))),
+                            child: Text(
+                              thread.name,
+                              style: AppTextStyles.h6(responsive).copyWith(
+                                fontWeight: thread.isUnread
+                                    ? FontWeight.w700
+                                    : FontWeight.w600,
+                              ),
+                            ),
+                          ),
                           Text(thread.time,
-                              style: AppTextStyles.caption(responsive)),
+                              style: AppTextStyles.caption(responsive).copyWith(
+                                color: thread.isUnread
+                                    ? AppColors.primary
+                                    : AppColors.textGhost,
+                                fontWeight: thread.isUnread
+                                    ? FontWeight.w600
+                                    : FontWeight.w400,
+                              )),
                         ],
                       ),
                       SizedBox(height: responsive.h(4)),
-                      Text(thread.preview,
-                          style: AppTextStyles.caption(responsive)
-                              .copyWith(color: AppColors.textSecondary)),
+                      Text(
+                        thread.preview,
+                        style: AppTextStyles.caption(responsive).copyWith(
+                          color: thread.isUnread
+                              ? AppColors.textPrimary
+                              : AppColors.textSecondary,
+                          fontWeight: thread.isUnread
+                              ? FontWeight.w500
+                              : FontWeight.w400,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ],
                   ),
                 ),
@@ -358,7 +388,7 @@ class _ThreadCard extends StatelessWidget {
                       SizedBox(height: responsive.h(8)),
                       Row(
                         children: [
-                          if (thread.isUnread)
+                          if (thread.isUnread) ...[
                             Container(
                               width: responsive.w(8),
                               height: responsive.w(8),
@@ -366,11 +396,22 @@ class _ThreadCard extends StatelessWidget {
                                   color: AppColors.primary,
                                   shape: BoxShape.circle),
                             ),
-                          if (thread.isUnread) SizedBox(width: responsive.w(8)),
+                            SizedBox(width: responsive.w(6)),
+                          ] else ...[
+                            Icon(
+                              Icons.done_all_rounded,
+                              size: responsive.text(13),
+                              color: AppColors.textGhost,
+                            ),
+                            SizedBox(width: responsive.w(4)),
+                          ],
                           Text(
                             thread.roleLabel,
-                            style: AppTextStyles.caption(responsive)
-                                .copyWith(color: Color(thread.roleLabelColor)),
+                            style: AppTextStyles.caption(responsive).copyWith(
+                              color: thread.isUnread
+                                  ? Color(thread.roleLabelColor)
+                                  : AppColors.textGhost,
+                            ),
                           ),
                         ],
                       ),

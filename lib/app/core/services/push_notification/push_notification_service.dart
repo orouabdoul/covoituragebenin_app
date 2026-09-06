@@ -14,7 +14,9 @@ import '../../constants/app_responsive.dart';
 import '../../controller/user_controller.dart';
 import '../../utils/app_dio.dart';
 import '../../utils/logger.dart';
+import '../app_sync.dart';
 import '../../../routes/app_routes.dart';
+import '../../../modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 import '../../../modules/principal/driver/messager/controllers/detail_messager_controller.dart'
     show DriverDetailMessagerController;
 import '../../../modules/principal/passager/messager/controllers/detail_messager_controller.dart'
@@ -478,7 +480,29 @@ class PushNotificationService {
       if (_handleSilentPush(type, message.data)) return;
       logger.d('FCM foreground: type=$type');
       _showLocalNotification(message);
+      _triggerAutoRefresh(type);
     });
+  }
+
+  void _triggerAutoRefresh(String type) {
+    final isMessage = type == 'new_message' || type == 'message_new';
+    final role = UserController.instance.role.value;
+    final isDriver = role == 'driver' || role == 'conducteur';
+
+    if (isMessage) {
+      // Rafraîchit la boîte de réception → badge message se met à jour automatiquement
+      AppSync.i.refreshDriverMessages();
+    } else {
+      // Rafraîchit le dashboard du bon rôle → liste notifs + badge
+      if (isDriver) {
+        AppSync.i.refreshDriverDashboard();
+      } else {
+        AppSync.i.refreshPassenger();
+      }
+      if (Get.isRegistered<BottonNavController>()) {
+        Get.find<BottonNavController>().notifBadgeCount.value++;
+      }
+    }
   }
 
   bool _handleSilentPush(String type, Map<String, dynamic> data) {

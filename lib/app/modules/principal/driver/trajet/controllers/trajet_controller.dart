@@ -288,7 +288,9 @@ class TrajetController extends GetxController {
   String _formatTime(String isoDate) {
     final dt = DateTime.tryParse(isoDate);
     if (dt == null) return '—';
-    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    // UTC → Africa/Porto-Novo (UTC+1, sans DST).
+    final benin = dt.toUtc().add(const Duration(hours: 1));
+    return '${benin.hour.toString().padLeft(2, '0')}:${benin.minute.toString().padLeft(2, '0')}';
   }
 
   // ── Actions ───────────────────────────────────────────────────────────────

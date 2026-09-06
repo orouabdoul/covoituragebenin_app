@@ -409,7 +409,11 @@ class DriverHomeController extends GetxController {
     final result = await _notifService.fetchNotifications(perPage: 5);
     if (result.isSuccess) {
       notifications.assignAll(result.data!.notifications);
-      unreadNotifCount.value = result.data!.unreadCount;
+      final count = result.data!.unreadCount;
+      unreadNotifCount.value = count;
+      if (Get.isRegistered<BottonNavController>()) {
+        Get.find<BottonNavController>().notifBadgeCount.value = count;
+      }
     } else {
       logger.w('notifications load failed: ${result.error}');
     }

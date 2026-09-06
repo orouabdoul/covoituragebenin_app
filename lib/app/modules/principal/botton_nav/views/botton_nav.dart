@@ -92,6 +92,7 @@ class BottonNavView extends GetView<BottonNavController> {
             currentIndex: controller.currentIndex.value,
             onTap: controller.onTabSelected,
             messageBadgeCount: controller.messageBadgeCount.value,
+            notifBadgeCount: controller.notifBadgeCount.value,
           ),
         ),
       );
@@ -632,6 +633,7 @@ class _BottonNavBar extends StatelessWidget {
     required this.currentIndex,
     required this.onTap,
     this.messageBadgeCount = 0,
+    this.notifBadgeCount = 0,
   });
 
   final AppResponsive responsive;
@@ -639,6 +641,7 @@ class _BottonNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
   final int messageBadgeCount;
+  final int notifBadgeCount;
 
   @override
   Widget build(BuildContext context) {
@@ -690,7 +693,9 @@ class _BottonNavBar extends StatelessWidget {
                       item: item,
                       selected: selected,
                       onTap: () => onTap(index),
-                      badgeCount: index == 3 ? messageBadgeCount : 0,
+                      badgeCount: index == 3
+                          ? messageBadgeCount
+                          : (index == 0 ? notifBadgeCount : 0),
                     ),
                   );
                 }),

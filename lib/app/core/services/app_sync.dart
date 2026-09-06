@@ -23,6 +23,9 @@ class AppSync extends GetxService {
   /// Liste des trajets conducteur.
   final RxInt driverTrips = 0.obs;
 
+  /// Boîte de messagerie conducteur (nouveau message FCM).
+  final RxInt driverMessages = 0.obs;
+
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   void refreshPassenger() => passengerData.value++;
@@ -30,6 +33,8 @@ class AppSync extends GetxService {
   void refreshDriverDashboard() => driverDashboard.value++;
 
   void refreshDriverTrips() => driverTrips.value++;
+
+  void refreshDriverMessages() => driverMessages.value++;
 
   void refreshDriver() {
     driverDashboard.value++;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/messaging/messaging_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
@@ -39,11 +40,7 @@ class MessagerController extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(() => searchQuery.value = searchController.text);
-    ever(totalUnread, (count) {
-      if (Get.isRegistered<BottonNavController>()) {
-        Get.find<BottonNavController>().messageBadgeCount.value = count;
-      }
-    });
+    ever(AppSync.i.driverMessages, (_) => _fetch(_activeFilterKey.value));
     _fetch('all');
   }
 
@@ -67,11 +64,19 @@ class MessagerController extends GetxController {
       filters.assignAll(inbox.filters);
       threads.assignAll(inbox.threads);
       totalUnread.value = inbox.totalUnread;
+      // Mise à jour directe du badge (ever() ne se déclenche pas si valeur identique)
+      _updateBadge(inbox.totalUnread);
     } else {
       hasError.value = true;
       if (result.error != AppError.socket) {
         UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
       }
+    }
+  }
+
+  void _updateBadge(int count) {
+    if (Get.isRegistered<BottonNavController>()) {
+      Get.find<BottonNavController>().messageBadgeCount.value = count;
     }
   }
 

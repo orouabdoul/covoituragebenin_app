@@ -68,7 +68,13 @@ class DriverNotificationsController extends GetxController {
     if (idx != -1) {
       notifications[idx].isRead = true;
       notifications.refresh();
-      if (unreadCount.value > 0) unreadCount.value--;
+      if (unreadCount.value > 0) {
+        unreadCount.value--;
+        if (Get.isRegistered<BottonNavController>()) {
+          final nav = Get.find<BottonNavController>();
+          if (nav.notifBadgeCount.value > 0) nav.notifBadgeCount.value--;
+        }
+      }
     }
     _service.markAsRead(n.id);
   }
@@ -79,6 +85,9 @@ class DriverNotificationsController extends GetxController {
     }
     notifications.refresh();
     unreadCount.value = 0;
+    if (Get.isRegistered<BottonNavController>()) {
+      Get.find<BottonNavController>().notifBadgeCount.value = 0;
+    }
     _service.markAllRead();
   }
 
