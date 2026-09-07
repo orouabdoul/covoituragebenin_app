@@ -601,16 +601,24 @@ class _DriverRow extends StatelessWidget {
 					crossAxisAlignment: CrossAxisAlignment.end,
 					children: [
 						Text(
-							reservation.totalPrice,
+							reservation.perSeatLabel.isNotEmpty
+									? reservation.perSeatLabel
+									: reservation.totalPrice,
 							style: AppTextStyles.h6(responsive).copyWith(
 								color: AppColors.primary,
 								fontWeight: FontWeight.w800,
 							),
 						),
-						Text(
-							'${reservation.seatsCount} place${reservation.seatsCount > 1 ? 's' : ''}',
-							style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint),
-						),
+						if (reservation.perSeatLabel.isNotEmpty && reservation.seatsCount > 1)
+							Text(
+								'Total: ${reservation.totalPrice}',
+								style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint),
+							)
+						else
+							Text(
+								'${reservation.seatsCount} place${reservation.seatsCount > 1 ? 's' : ''}',
+								style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint),
+							),
 					],
 				),
 			],
@@ -783,6 +791,24 @@ class _MetaRow extends StatelessWidget {
 				spacing: responsive.w(10),
 				runSpacing: responsive.h(6),
 				children: [
+					if (reservation.departureTime.isNotEmpty)
+						_MetaChip(
+							responsive: responsive,
+							icon: Icons.access_time_rounded,
+							label: reservation.departureTime,
+							color: AppColors.primary,
+						),
+					if (reservation.departureDate.isNotEmpty)
+						_MetaChip(
+							responsive: responsive,
+							icon: Icons.calendar_today_rounded,
+							label: reservation.departureDate,
+						),
+					_MetaChip(
+						responsive: responsive,
+						icon: Icons.event_seat_rounded,
+						label: '${reservation.seatsCount} place${reservation.seatsCount > 1 ? 's' : ''}',
+					),
 					_MetaChip(
 						responsive: responsive,
 						icon: Icons.directions_car_outlined,

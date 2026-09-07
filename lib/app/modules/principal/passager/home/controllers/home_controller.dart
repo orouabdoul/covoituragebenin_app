@@ -146,11 +146,19 @@ class HomeController extends GetxController {
               uuid: r.uuid,
               from: r.from,
               to: r.to,
-              schedule: r.schedule,
+              schedule: _formatTime(r.schedule),
               price: r.price,
               driverName: r.driverName,
               driverVehicle: r.driverVehicle,
               seatsLeft: r.seatsLeft,
+              departureArrondissement: r.departureArrondissement,
+              departureNeighborhood: r.departureNeighborhood,
+              departureNote: r.departureNote,
+              toArrondissement: r.toArrondissement,
+              toNeighborhood: r.toNeighborhood,
+              arrivalNote: r.arrivalNote,
+              distanceKm: r.distanceKm,
+              duration: r.duration,
             ))
         .toList();
     logger.d('[HOME] availableRides AFFICHÉS : ${availableRides.length}');
@@ -255,7 +263,9 @@ class HomeController extends GetxController {
         originPoint: d.originPoint,
         destinationPoint: d.destinationPoint,
         pickupCity: d.pickupCity,
+        pickupArrondissement: d.pickupArrondissement,
         dropoffCity: d.dropoffCity,
+        dropoffArrondissement: d.dropoffArrondissement,
         pickupNote: d.pickupNote,
         dropoffNote: d.dropoffNote,
         proratedPrice: d.proratedPrice,
@@ -382,12 +392,17 @@ class HomeController extends GetxController {
           uuid: ride.uuid,
           driverName: ride.driverName,
           origin: ride.from,
+          departureArrondissement: ride.departureArrondissement,
+          departureNeighborhood: ride.departureNeighborhood,
           destination: ride.to,
+          arrivalArrondissement: ride.toArrondissement,
+          arrivalNeighborhood: ride.toNeighborhood,
           departureTime: ride.schedule,
-          departureNote: '',
+          departureNote: ride.departureNote,
           arrivalTime: '',
-          arrivalNote: '',
-          duration: '',
+          arrivalNote: ride.arrivalNote,
+          duration: ride.duration,
+          distanceKm: ride.distanceKm,
           vehicle: ride.driverVehicle,
           price: ride.price,
           priceValue: priceInt,
@@ -504,6 +519,14 @@ class HomeRide {
     required this.driverName,
     required this.driverVehicle,
     required this.seatsLeft,
+    this.departureArrondissement = '',
+    this.departureNeighborhood = '',
+    this.departureNote = '',
+    this.toArrondissement = '',
+    this.toNeighborhood = '',
+    this.arrivalNote = '',
+    this.distanceKm = 0.0,
+    this.duration = '',
   });
 
   final String uuid;
@@ -514,8 +537,30 @@ class HomeRide {
   final String driverName;
   final String driverVehicle;
   final String seatsLeft;
+  final String departureArrondissement;
+  final String departureNeighborhood;
+  final String departureNote;
+  final String toArrondissement;
+  final String toNeighborhood;
+  final String arrivalNote;
+  final double distanceKm;
+  final String duration;
 
   String get route => '$from → $to';
+
+  String get displayFrom {
+    final parts = [from, departureArrondissement, departureNeighborhood]
+        .where((p) => p.isNotEmpty)
+        .toList();
+    return parts.join(', ');
+  }
+
+  String get displayTo {
+    final parts = [to, toArrondissement, toNeighborhood]
+        .where((p) => p.isNotEmpty)
+        .toList();
+    return parts.join(', ');
+  }
 }
 
 class HomeDriver {
@@ -577,7 +622,9 @@ class HomeUpcomingTrip {
     this.originPoint = '',
     this.destinationPoint = '',
     this.pickupCity = '',
+    this.pickupArrondissement = '',
     this.dropoffCity = '',
+    this.dropoffArrondissement = '',
     this.pickupNote = '',
     this.dropoffNote = '',
     this.proratedPrice = 0,
@@ -610,9 +657,21 @@ class HomeUpcomingTrip {
   final String originPoint;
   final String destinationPoint;
   final String pickupCity;
+  final String pickupArrondissement;
   final String dropoffCity;
+  final String dropoffArrondissement;
   final String pickupNote;
   final String dropoffNote;
+
+  String get displayPickupLocation {
+    final parts = [pickupCity, pickupArrondissement].where((p) => p.isNotEmpty).toList();
+    return parts.isNotEmpty ? parts.join(', ') : originPoint;
+  }
+
+  String get displayDropoffLocation {
+    final parts = [dropoffCity, dropoffArrondissement].where((p) => p.isNotEmpty).toList();
+    return parts.isNotEmpty ? parts.join(', ') : destinationPoint;
+  }
   final int proratedPrice;
   final bool isPending;
   final bool isAccepted;

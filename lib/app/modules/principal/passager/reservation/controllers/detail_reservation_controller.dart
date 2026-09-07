@@ -66,12 +66,17 @@ class DetailReservationController extends GetxController {
         price: arg.totalPrice,
         priceValue: arg.totalPriceValue,
         origin: arg.displayPickupCity,
+        departureArrondissement: arg.departureArrondissement,
+        departureNeighborhood: arg.departureNeighborhood,
         destination: arg.displayDropoffCity,
+        arrivalArrondissement: arg.arrivalArrondissement,
+        arrivalNeighborhood: arg.arrivalNeighborhood,
         departureTime: arg.departureTime,
         departureNote: arg.displayPickupNote,
         arrivalTime: '',
         arrivalNote: arg.displayDropoffNote,
-        duration: '',
+        duration: arg.duration,
+        distanceKm: arg.tripDistanceKm,
         vehicle: arg.vehicle,
         vehiclePlate: arg.vehiclePlate,
         seatsAvailable: arg.seatsCount,
@@ -98,6 +103,7 @@ class DetailReservationController extends GetxController {
 
   Future<void> _fetchDetail(String tripUuid) async {
     if (_failedDetailUuids.contains(tripUuid)) return;
+    final originalRide = ride.value;
     isLoading.value = true;
     final result = await _service.fetchTripDetail(tripUuid);
     isLoading.value = false;
@@ -128,18 +134,35 @@ class DetailReservationController extends GetxController {
     final passengerPriceValue = existing != null && existing.totalPriceValue > 0
         ? existing.totalPriceValue
         : int.tryParse(detail.ride.price.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
-    final passengerOrigin = existing != null
-        ? existing.displayPickupCity
-        : detail.ride.origin;
-    final passengerDestination = existing != null
-        ? existing.displayDropoffCity
-        : detail.ride.destination;
-    final passengerDepartureNote = existing != null
-        ? existing.displayPickupNote
-        : detail.ride.departureNote;
-    final passengerArrivalNote = existing != null
-        ? existing.displayDropoffNote
-        : detail.ride.arrivalNote;
+
+    // _ItineraryCard affiche l'itinéraire COMPLET du conducteur (detail.ride).
+    // _PassengerRouteCard (réservation existante) affiche les points spécifiques passager via existingReservation.
+    // Pour un nouveau trajet, on complète avec les données du SearchRide original si l'API ne les retourne pas.
+    final tripOrigin = detail.ride.origin;
+    final tripDeptArr = detail.ride.departureArrondissement.isNotEmpty
+        ? detail.ride.departureArrondissement
+        : (existing == null ? (originalRide?.departureArrondissement ?? '') : '');
+    final tripDeptNeigh = detail.ride.departureNeighborhood.isNotEmpty
+        ? detail.ride.departureNeighborhood
+        : (existing == null ? (originalRide?.departureNeighborhood ?? '') : '');
+    final tripDestination = detail.ride.destination;
+    final tripArrArr = detail.ride.arrivalArrondissement.isNotEmpty
+        ? detail.ride.arrivalArrondissement
+        : (existing == null ? (originalRide?.arrivalArrondissement ?? '') : '');
+    final tripArrNeigh = detail.ride.arrivalNeighborhood.isNotEmpty
+        ? detail.ride.arrivalNeighborhood
+        : (existing == null ? (originalRide?.arrivalNeighborhood ?? '') : '');
+    // Point précis : API trip detail en priorité, sinon réservation existante, sinon SearchRide original
+    final tripDeptNote = detail.ride.departureNote.isNotEmpty
+        ? detail.ride.departureNote
+        : (existing?.departureNote.isNotEmpty == true
+            ? existing!.departureNote
+            : (originalRide?.departureNote ?? ''));
+    final tripArrNote = detail.ride.arrivalNote.isNotEmpty
+        ? detail.ride.arrivalNote
+        : (existing?.arrivalNote.isNotEmpty == true
+            ? existing!.arrivalNote
+            : (originalRide?.arrivalNote ?? ''));
 
     // Préserver les initiales depuis la réservation si l'API ne les retourne pas
     final resolvedInitials = detail.ride.driverInitials.isNotEmpty
@@ -157,12 +180,16 @@ class DetailReservationController extends GetxController {
       reviewCount: '${detail.ride.reviewCount}',
       price: passengerPrice,
       priceValue: passengerPriceValue,
-      origin: passengerOrigin,
-      destination: passengerDestination,
+      origin: tripOrigin,
+      departureArrondissement: tripDeptArr,
+      departureNeighborhood: tripDeptNeigh,
+      destination: tripDestination,
+      arrivalArrondissement: tripArrArr,
+      arrivalNeighborhood: tripArrNeigh,
       departureTime: detail.ride.departureTime,
-      departureNote: passengerDepartureNote,
+      departureNote: tripDeptNote,
       arrivalTime: detail.ride.arrivalTime,
-      arrivalNote: passengerArrivalNote,
+      arrivalNote: tripArrNote,
       duration: detail.ride.duration,
       vehicle: detail.ride.vehicle,
       vehiclePlate: resolvedPlate,

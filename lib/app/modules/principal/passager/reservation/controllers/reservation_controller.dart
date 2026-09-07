@@ -7,6 +7,7 @@ import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/passenger_reservation_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
+import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/models/passenger/reservations_model.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
@@ -169,19 +170,58 @@ class ReservationController extends GetxController {
 		statusTabs.assignAll(updated);
 	}
 
+	static String _fmtTime(String raw) {
+		if (raw.isEmpty) return '';
+		if (raw.contains('T') || (raw.length > 5 && raw.contains('-'))) {
+			try {
+				final dt = DateTime.parse(raw).toLocal();
+				return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+			} catch (_) {}
+		}
+		return raw;
+	}
+
+	static String _fmtDate(String raw) {
+		if (raw.isEmpty) return '';
+		if (raw.contains('T') || (raw.length > 5 && raw.contains('-') && raw.length >= 10)) {
+			try {
+				final dt = DateTime.parse(raw).toLocal();
+				final now = DateTime.now();
+				if (dt.year == now.year && dt.month == now.month && dt.day == now.day) {
+					return "Aujourd'hui";
+				}
+				final tomorrow = now.add(const Duration(days: 1));
+				if (dt.year == tomorrow.year && dt.month == tomorrow.month && dt.day == tomorrow.day) {
+					return 'Demain';
+				}
+				return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}';
+			} catch (_) {}
+		}
+		return raw;
+	}
+
 	ReservationItem _mapItem(ReservationApiItem a) {
-		// Priorité : prix par place depuis price_breakdown (API réelle)
-		// Sinon : proratedPrice (ancien champ), sinon parsing du total (fallback 1 place)
 		final bd = a.priceBreakdown;
-		final totalPriceValue = (bd != null && bd.calculatedPricePerSeat > 0)
+		// Prix PAR PLACE — aligné sur ce que voit le conducteur (price_per_seat)
+		final perSeatPrice = (bd != null && bd.calculatedPricePerSeat > 0)
 				? bd.calculatedPricePerSeat
-				: (a.proratedPrice > 0
-						? a.proratedPrice
-						: int.tryParse(a.totalPrice.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0);
-		// Prix affiché sur la carte = total (tous sièges confondus)
+				: (a.proratedPrice > 0 ? a.proratedPrice : 0);
+		// totalPriceValue = prix par place (si disponible) sinon total parsé
+		final totalPriceValue = perSeatPrice > 0
+				? perSeatPrice
+				: (int.tryParse(a.totalPrice.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0);
+		// Prix affiché en titre de carte = total (tous sièges + frais de service)
 		final displayPrice = (bd != null && bd.totalFmt.isNotEmpty)
 				? bd.totalFmt
 				: a.totalPrice;
+		// Log diagnostic localisation + prix
+		logger.d('[RESA] uuid=${a.uuid.length > 8 ? a.uuid.substring(0, 8) : a.uuid}… '
+				'perSeat=$perSeatPrice totalPrice="${a.totalPrice}" seats=${a.seatsCount}\n'
+				'  deptCity="${a.departureCity}" arr="${a.departureArrondissement}" '
+				'neigh="${a.departureNeighborhood}" note="${a.departureNote}"\n'
+				'  arrCity="${a.arrivalCity}" arr="${a.arrivalArrondissement}" '
+				'neigh="${a.arrivalNeighborhood}" note="${a.arrivalNote}"\n'
+				'  tripOrigin="${a.tripOrigin}" tripDest="${a.tripDestination}"');
 		final locallyPaid = _confirmedPaidIds.contains(a.uuid);
 		final backendPaid = a.isPaid || a.paymentStatus == 'escrow_locked';
 		if (locallyPaid && backendPaid) {
@@ -200,6 +240,7 @@ class ReservationController extends GetxController {
 			price: displayPrice,
 			totalPrice: displayPrice,
 			totalPriceValue: totalPriceValue,
+			perSeatPrice: perSeatPrice,
 			departureCity: a.departureCity,
 			departureArrondissement: a.departureArrondissement,
 			departureNeighborhood: a.departureNeighborhood,
@@ -212,8 +253,8 @@ class ReservationController extends GetxController {
 			arrivalAddress: a.arrivalAddress,
 			tripOrigin: a.tripOrigin,
 			tripDestination: a.tripDestination,
-			departureTime: a.departureTime,
-			departureDate: a.departureDate,
+			departureTime: _fmtTime(a.departureTime.isNotEmpty ? a.departureTime : (a.departureDateTime ?? '')),
+			departureDate: _fmtDate(a.departureDate.isNotEmpty ? a.departureDate : (a.departureDateTime ?? '')),
 			seatsCount: a.seatsCount,
 			minutesUntilDeparture: a.etaMinutes ?? 0,
 			status: _parseStatus(a.status),
@@ -235,6 +276,8 @@ class ReservationController extends GetxController {
 			dropoffLng: a.arrivalLng,
 			departureDateTime: a.departureDateTime,
 			pickedUpAt: a.pickedUpAt,
+			duration: a.duration,
+			tripDistanceKm: a.tripDistanceKm,
 		);
 	}
 
@@ -844,6 +887,7 @@ class ReservationItem {
 		required this.price,
 		required this.totalPrice,
 		required this.totalPriceValue,
+		this.perSeatPrice = 0,
 		// Points passager (prise / dépose)
 		required this.departureCity,
 		this.departureArrondissement = '',
@@ -883,6 +927,8 @@ class ReservationItem {
 		this.dropoffLng,
 		this.departureDateTime,
 		this.pickedUpAt,
+		this.duration = '',
+		this.tripDistanceKm = 0.0,
 	});
 
 	final String id;
@@ -895,6 +941,7 @@ class ReservationItem {
 	final String price;
 	final String totalPrice;
 	final int totalPriceValue;
+	final int perSeatPrice;
 	// Points passager — ville, quartier, adresse exacte
 	final String departureCity;
 	final String departureArrondissement;
@@ -934,12 +981,22 @@ class ReservationItem {
 	final double? dropoffLng;
 	final String? departureDateTime;
 	final String? pickedUpAt;
+	final String duration;
+	final double tripDistanceKm;
 
 	// Alias pour compatibilité avec le code existant
 	String get pickupCity => departureCity;
 	String get dropoffCity => arrivalCity;
 	String get pickupNote => departureNote;
 	String get dropoffNote => arrivalNote;
+
+	// Prix par place formaté (comme le conducteur voit "500 F/siège")
+	String get perSeatLabel {
+		if (perSeatPrice <= 0) return '';
+		final str = perSeatPrice.toString().replaceAllMapped(
+			RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ' ');
+		return '$str F/place';
+	}
 
 	// Getters d'affichage
 	String get displayPickupCity {
@@ -976,6 +1033,7 @@ class ReservationItem {
 			price: price,
 			totalPrice: totalPrice,
 			totalPriceValue: totalPriceValue,
+			perSeatPrice: perSeatPrice,
 			departureCity: departureCity,
 			departureArrondissement: departureArrondissement,
 			departureNeighborhood: departureNeighborhood,
@@ -1012,6 +1070,8 @@ class ReservationItem {
 			dropoffLng: dropoffLng,
 			departureDateTime: departureDateTime,
 			pickedUpAt: pickedUpAt,
+			duration: duration,
+			tripDistanceKm: tripDistanceKm,
 		);
 	}
 }

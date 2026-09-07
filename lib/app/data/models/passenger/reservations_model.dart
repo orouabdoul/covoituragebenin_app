@@ -515,6 +515,8 @@ class ReservationApiItem {
     this.departureDateTime,
     this.priceBreakdown,
     this.pickedUpAt,
+    this.duration = '',
+    this.tripDistanceKm = 0.0,
   });
 
   final String uuid;
@@ -564,6 +566,8 @@ class ReservationApiItem {
   final String? departureDateTime;
   final PriceBreakdown? priceBreakdown;
   final String? pickedUpAt;
+  final String duration;
+  final double tripDistanceKm;
 
   // Alias pour la compatibilité avec le code existant
   String get pickupCity => departureCity;
@@ -584,18 +588,20 @@ class ReservationApiItem {
         reviewCount: (j['review_count'] ?? '').toString(),
         totalPrice: (j['total_price'] ?? '').toString(),
         seatsCount: (j['seats_count'] as num?)?.toInt() ?? 1,
-        departureCity: (j['departure_city'] ?? '').toString(),
-        departureArrondissement: (j['departure_arrondissement'] ?? '').toString(),
-        departureNeighborhood: (j['departure_neighborhood'] ?? '').toString(),
-        departureNote: (j['departure_note'] ?? '').toString(),
-        departureAddress: (j['departure_address'] ?? '').toString(),
-        arrivalCity: (j['arrival_city'] ?? '').toString(),
-        arrivalArrondissement: (j['arrival_arrondissement'] ?? '').toString(),
-        arrivalNeighborhood: (j['arrival_neighborhood'] ?? '').toString(),
-        arrivalNote: (j['arrival_note'] ?? '').toString(),
-        arrivalAddress: (j['arrival_address'] ?? '').toString(),
-        tripOrigin: (j['trip_origin'] ?? '').toString(),
-        tripDestination: (j['trip_destination'] ?? '').toString(),
+        // Ville = noms driver (origin/destination) OU noms spécifiques passager
+        departureCity: (j['departure_city'] ?? j['pickup_city'] ?? j['origin'] ?? '').toString(),
+        departureArrondissement: (j['departure_arrondissement'] ?? j['pickup_arrondissement'] ?? '').toString(),
+        departureNeighborhood: (j['departure_neighborhood'] ?? j['pickup_neighborhood'] ?? '').toString(),
+        departureNote: (j['departure_note'] ?? j['origin_point'] ?? j['pickup_note'] ?? j['pickup_point'] ?? '').toString(),
+        departureAddress: (j['departure_address'] ?? j['pickup_address'] ?? '').toString(),
+        arrivalCity: (j['arrival_city'] ?? j['dropoff_city'] ?? j['destination'] ?? '').toString(),
+        arrivalArrondissement: (j['arrival_arrondissement'] ?? j['dropoff_arrondissement'] ?? '').toString(),
+        arrivalNeighborhood: (j['arrival_neighborhood'] ?? j['dropoff_neighborhood'] ?? '').toString(),
+        arrivalNote: (j['arrival_note'] ?? j['destination_point'] ?? j['dropoff_note'] ?? j['dropoff_point'] ?? '').toString(),
+        arrivalAddress: (j['arrival_address'] ?? j['dropoff_address'] ?? '').toString(),
+        // Itinéraire complet du conducteur
+        tripOrigin: (j['trip_origin'] ?? j['origin'] ?? '').toString(),
+        tripDestination: (j['trip_destination'] ?? j['destination'] ?? '').toString(),
         proratedPrice: (j['calculated_price'] as num?)?.toInt() ??
             (j['amount_paid'] as num?)?.toInt() ?? 0,
         departureTime: (j['departure_time'] ?? '').toString(),
@@ -621,6 +627,8 @@ class ReservationApiItem {
             ? PriceBreakdown.fromJson(j['price_breakdown'] as Map<String, dynamic>)
             : null,
         pickedUpAt:           j['picked_up_at']?.toString(),
+        duration:             (j['duration'] ?? j['estimated_duration'] ?? '').toString(),
+        tripDistanceKm:       (j['distance_km'] ?? j['trip_distance_km'] as num?)?.toDouble() ?? 0.0,
       );
 }
 
@@ -867,7 +875,11 @@ class TripDetailRide {
     required this.vehicle,
     required this.vehiclePlate,
     required this.origin,
+    this.departureArrondissement = '',
+    this.departureNeighborhood = '',
     required this.destination,
+    this.arrivalArrondissement = '',
+    this.arrivalNeighborhood = '',
     required this.departureTime,
     required this.arrivalTime,
     required this.departureNote,
@@ -887,7 +899,11 @@ class TripDetailRide {
   final String vehicle;
   final String vehiclePlate;
   final String origin;
+  final String departureArrondissement;
+  final String departureNeighborhood;
   final String destination;
+  final String arrivalArrondissement;
+  final String arrivalNeighborhood;
   final String departureTime;
   final String arrivalTime;
   final String departureNote;
@@ -898,6 +914,20 @@ class TripDetailRide {
   final String? waypointCity;
   final String? waypointNote;
 
+  String get displayOrigin {
+    final parts = [origin, departureArrondissement, departureNeighborhood]
+        .where((p) => p.isNotEmpty)
+        .toList();
+    return parts.isNotEmpty ? parts.join(', ') : origin;
+  }
+
+  String get displayDestination {
+    final parts = [destination, arrivalArrondissement, arrivalNeighborhood]
+        .where((p) => p.isNotEmpty)
+        .toList();
+    return parts.isNotEmpty ? parts.join(', ') : destination;
+  }
+
   factory TripDetailRide.fromJson(Map<String, dynamic> j) => TripDetailRide(
         uuid: (j['uuid'] ?? '').toString(),
         driverName: (j['driver_name'] ?? '').toString(),
@@ -907,11 +937,15 @@ class TripDetailRide {
         vehicle: (j['vehicle'] ?? '').toString(),
         vehiclePlate: (j['vehicle_plate'] ?? '').toString(),
         origin: (j['origin'] ?? '').toString(),
+        departureArrondissement: (j['departure_arrondissement'] ?? '').toString(),
+        departureNeighborhood: (j['departure_neighborhood'] ?? '').toString(),
         destination: (j['destination'] ?? '').toString(),
+        arrivalArrondissement: (j['arrival_arrondissement'] ?? '').toString(),
+        arrivalNeighborhood: (j['arrival_neighborhood'] ?? '').toString(),
         departureTime: (j['departure_time'] ?? '').toString(),
         arrivalTime: (j['arrival_time'] ?? '').toString(),
-        departureNote: (j['departure_note'] ?? '').toString(),
-        arrivalNote: (j['arrival_note'] ?? '').toString(),
+        departureNote: (j['departure_note'] ?? j['origin_point'] ?? j['departure_point'] ?? '').toString(),
+        arrivalNote: (j['arrival_note'] ?? j['destination_point'] ?? j['arrival_point'] ?? '').toString(),
         duration: (j['duration'] ?? '').toString(),
         price: (j['price'] ?? '').toString(),
         availableSeats: (j['available_seats'] as num?)?.toInt() ?? 0,

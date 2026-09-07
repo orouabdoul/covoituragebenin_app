@@ -169,6 +169,14 @@ class PassengerRideData {
     required this.driverVehicle,
     this.status = '',
     this.departureTimeRaw = '',
+    this.departureArrondissement = '',
+    this.departureNeighborhood = '',
+    this.departureNote = '',
+    this.toArrondissement = '',
+    this.toNeighborhood = '',
+    this.arrivalNote = '',
+    this.distanceKm = 0.0,
+    this.duration = '',
   });
 
   final String uuid;
@@ -182,12 +190,21 @@ class PassengerRideData {
   final String driverVehicle;
   final String status;
   final String departureTimeRaw;
+  // Champs localisation détaillés
+  final String departureArrondissement;
+  final String departureNeighborhood;
+  final String departureNote;
+  final String toArrondissement;
+  final String toNeighborhood;
+  final String arrivalNote;
+  final double distanceKm;
+  final String duration;
 
   factory PassengerRideData.fromJson(Map<String, dynamic> json) =>
       PassengerRideData(
         uuid: (json['uuid'] as String?) ?? '',
-        from: (json['from'] as String?) ?? '',
-        to: (json['to'] as String?) ?? '',
+        from: (json['from'] as String?) ?? (json['origin'] as String?) ?? (json['departure_city'] as String?) ?? '',
+        to: (json['to'] as String?) ?? (json['destination'] as String?) ?? (json['arrival_city'] as String?) ?? '',
         schedule: (json['schedule'] as String?) ?? '',
         price: (json['price'] as String?) ?? '',
         priceRaw: (json['price_raw'] as num?)?.toInt() ?? 0,
@@ -195,12 +212,21 @@ class PassengerRideData {
         driverName: (json['driver_name'] as String?) ?? '',
         driverVehicle: (json['driver_vehicle'] as String?) ?? '',
         status: (json['status'] as String?) ?? '',
-        // Tente plusieurs noms de champ possibles pour la date de départ
         departureTimeRaw: (json['departure_time'] as String?) ??
             (json['departure_at'] as String?) ??
             (json['scheduled_at'] as String?) ??
             (json['departs_at'] as String?) ??
             '',
+        departureArrondissement: (json['departure_arrondissement'] as String?) ?? '',
+        departureNeighborhood: (json['departure_neighborhood'] as String?) ?? '',
+        departureNote: (json['departure_note'] as String?) ??
+            (json['origin_point'] as String?) ?? '',
+        toArrondissement: (json['arrival_arrondissement'] as String?) ?? '',
+        toNeighborhood: (json['arrival_neighborhood'] as String?) ?? '',
+        arrivalNote: (json['arrival_note'] as String?) ??
+            (json['destination_point'] as String?) ?? '',
+        distanceKm: (json['distance_km'] as num?)?.toDouble() ?? 0.0,
+        duration: (json['duration'] as String?) ?? (json['estimated_duration'] as String?) ?? '',
       );
 }
 

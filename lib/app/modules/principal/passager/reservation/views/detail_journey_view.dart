@@ -948,6 +948,7 @@ class _ItineraryCard extends StatelessWidget {
     final String departureNote = ride?.departureNote ?? '';
     final String arrivalNote = ride?.arrivalNote ?? '';
     final String duration = ride?.duration ?? '';
+    final double distanceKm = ride?.distanceKm ?? 0.0;
     final String? waypoint =
         (ride?.waypointCity?.isNotEmpty ?? false) ? ride!.waypointCity : null;
     final String? waypointNote = ride?.waypointNote;
@@ -998,22 +999,62 @@ class _ItineraryCard extends StatelessWidget {
             subtitle: arrivalNote,
             hasLine: false,
           ),
-          if (duration.isNotEmpty) ...[
+          if (duration.isNotEmpty || distanceKm > 0) ...[
             SizedBox(height: responsive.h(16)),
+            const Divider(height: 1, color: AppColors.border),
+            SizedBox(height: responsive.h(12)),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Durée estimée',
-                    style: AppTextStyles.body(responsive)
-                        .copyWith(color: AppColors.textSecondary)),
-                Row(children: [
-                  const Icon(Icons.timelapse_rounded,
-                      size: 16, color: AppColors.primary),
-                  SizedBox(width: responsive.w(6)),
-                  Text(duration,
-                      style: AppTextStyles.subtitle(responsive)
-                          .copyWith(color: AppColors.primary)),
-                ]),
+                if (duration.isNotEmpty) ...[
+                  Expanded(
+                    child: Row(
+                      children: [
+                        const Icon(Icons.timelapse_rounded,
+                            size: 16, color: AppColors.primary),
+                        SizedBox(width: responsive.w(6)),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Durée estimée',
+                                style: AppTextStyles.caption(responsive)
+                                    .copyWith(color: AppColors.textHint)),
+                            Text(duration,
+                                style: AppTextStyles.subtitle(responsive)
+                                    .copyWith(color: AppColors.primary)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                if (duration.isNotEmpty && distanceKm > 0)
+                  Container(
+                    width: 1,
+                    height: responsive.h(32),
+                    color: AppColors.border,
+                    margin: EdgeInsets.symmetric(horizontal: responsive.w(12)),
+                  ),
+                if (distanceKm > 0)
+                  Expanded(
+                    child: Row(
+                      children: [
+                        const Icon(Icons.straighten_rounded,
+                            size: 16, color: AppColors.primary),
+                        SizedBox(width: responsive.w(6)),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Distance',
+                                style: AppTextStyles.caption(responsive)
+                                    .copyWith(color: AppColors.textHint)),
+                            Text('${distanceKm.toStringAsFixed(1)} km',
+                                style: AppTextStyles.subtitle(responsive)
+                                    .copyWith(color: AppColors.primary)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ],
