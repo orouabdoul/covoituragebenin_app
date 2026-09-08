@@ -203,9 +203,9 @@ class PassengerRideData {
   factory PassengerRideData.fromJson(Map<String, dynamic> json) =>
       PassengerRideData(
         uuid: (json['uuid'] as String?) ?? '',
-        from: (json['from'] as String?) ?? (json['origin'] as String?) ?? (json['departure_city'] as String?) ?? '',
-        to: (json['to'] as String?) ?? (json['destination'] as String?) ?? (json['arrival_city'] as String?) ?? '',
-        schedule: (json['schedule'] as String?) ?? '',
+        from: (json['departure_city'] as String?) ?? (json['from'] as String?) ?? (json['origin'] as String?) ?? '',
+        to: (json['arrival_city'] as String?) ?? (json['to'] as String?) ?? (json['destination'] as String?) ?? '',
+        schedule: (json['departure_time_formatted'] as String?) ?? (json['schedule'] as String?) ?? '',
         price: (json['price'] as String?) ?? '',
         priceRaw: (json['price_raw'] as num?)?.toInt() ?? 0,
         seatsLeft: (json['seats_left'] as String?) ?? '',
@@ -219,14 +219,16 @@ class PassengerRideData {
             '',
         departureArrondissement: (json['departure_arrondissement'] as String?) ?? '',
         departureNeighborhood: (json['departure_neighborhood'] as String?) ?? '',
-        departureNote: (json['departure_note'] as String?) ??
-            (json['origin_point'] as String?) ?? '',
+        departureNote: (json['departure_point'] as String?) ??
+            (json['origin_point'] as String?) ??
+            (json['departure_note'] as String?) ?? '',
         toArrondissement: (json['arrival_arrondissement'] as String?) ?? '',
         toNeighborhood: (json['arrival_neighborhood'] as String?) ?? '',
-        arrivalNote: (json['arrival_note'] as String?) ??
-            (json['destination_point'] as String?) ?? '',
+        arrivalNote: (json['arrival_point'] as String?) ??
+            (json['destination_point'] as String?) ??
+            (json['arrival_note'] as String?) ?? '',
         distanceKm: (json['distance_km'] as num?)?.toDouble() ?? 0.0,
-        duration: (json['duration'] as String?) ?? (json['estimated_duration'] as String?) ?? '',
+        duration: (json['duration_label'] as String?) ?? (json['duration'] as String?) ?? (json['estimated_duration'] as String?) ?? '',
       );
 }
 

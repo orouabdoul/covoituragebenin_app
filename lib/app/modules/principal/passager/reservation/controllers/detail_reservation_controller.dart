@@ -191,6 +191,7 @@ class DetailReservationController extends GetxController {
       arrivalTime: detail.ride.arrivalTime,
       arrivalNote: tripArrNote,
       duration: detail.ride.duration,
+      distanceKm: detail.ride.distanceKm,
       vehicle: detail.ride.vehicle,
       vehiclePlate: resolvedPlate,
       seatsAvailable: detail.ride.availableSeats,
