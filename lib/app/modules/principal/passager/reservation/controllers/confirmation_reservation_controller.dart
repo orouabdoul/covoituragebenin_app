@@ -173,7 +173,7 @@ class ConfirmationReservationController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    final allCities = BeninLocationHelpers.cities;
+    final allCities = BeninLocationHelpers.allCities;
     pickupCityItems.assignAll(allCities);
     dropoffCityItems.assignAll(allCities);
 
@@ -219,7 +219,10 @@ class ConfirmationReservationController extends GetxController {
       r.origin,
       if (r.waypointCity != null && r.waypointCity!.isNotEmpty) r.waypointCity!,
       r.destination,
-    ].where((c) => BeninLocations.hasArrondissements(c)).toList();
+    ].map(BeninLocationHelpers.normalizeCommune)
+     .whereType<String>()
+     .toSet()
+     .toList();
 
     final pickupPriority = tripCities
         .where((c) => c != r.destination)
@@ -227,7 +230,7 @@ class ConfirmationReservationController extends GetxController {
     if (pickupPriority.isEmpty) pickupPriority.addAll(tripCities);
 
     pickupCityItems.assignAll(
-        BeninLocationHelpers.orderedCities(pickupPriority));
+        BeninLocationHelpers.orderedAllCities(pickupPriority));
 
     final dropoffPriority = [
       if (tripCities.contains(r.destination)) r.destination,
@@ -236,7 +239,7 @@ class ConfirmationReservationController extends GetxController {
     if (dropoffPriority.isEmpty) dropoffPriority.addAll(tripCities);
 
     dropoffCityItems.assignAll(
-        BeninLocationHelpers.orderedCities(dropoffPriority));
+        BeninLocationHelpers.orderedAllCities(dropoffPriority));
   }
 
   // ── Sélection ville prise en charge ───────────────────────────────────────
@@ -563,19 +566,26 @@ class ConfirmationReservationController extends GetxController {
     final dCity = dropoffCityController.text.trim();
     final dNbh = dropoffNeighborhoodController.text.trim();
 
+    logger.d('_validateForm: pCity="$pCity" pArr="${pickupSelectedArrondissement.value}" '
+        'pNbh="$pNbh" dCity="$dCity" dArr="${dropoffSelectedArrondissement.value}" dNbh="$dNbh"');
+
     if (pCity.isEmpty) {
+      logger.w('_validateForm FAIL: pickup city empty');
       UIHelper().showSnackBar('MINIZON', 'Choisissez la ville de prise en charge.', 2);
       return false;
     }
     if (pNbh.isEmpty) {
+      logger.w('_validateForm FAIL: pickup neighborhood empty (arr=${pickupSelectedArrondissement.value}, items=${pickupNeighborhoodItems.length})');
       UIHelper().showSnackBar('MINIZON', 'Choisissez le quartier de prise en charge.', 2);
       return false;
     }
     if (dCity.isEmpty) {
+      logger.w('_validateForm FAIL: dropoff city empty');
       UIHelper().showSnackBar('MINIZON', 'Choisissez la ville de dépose.', 2);
       return false;
     }
     if (dNbh.isEmpty) {
+      logger.w('_validateForm FAIL: dropoff neighborhood empty (arr=${dropoffSelectedArrondissement.value}, items=${dropoffNeighborhoodItems.length})');
       UIHelper().showSnackBar('MINIZON', 'Choisissez le quartier de dépose.', 2);
       return false;
     }
@@ -585,6 +595,11 @@ class ConfirmationReservationController extends GetxController {
   // ── Réservation ───────────────────────────────────────────────────────────
 
   Future<void> confirmReservation() async {
+    logger.d('confirmReservation: called — '
+        'pickup=(${pickupLat.value},${pickupLng.value}) '
+        'dropoff=(${dropoffLat.value},${dropoffLng.value}) '
+        'seats=${reservedSeats.value}');
+
     if (!_validateForm()) return;
 
     final tripUuid = ride.value?.uuid ?? '';
@@ -592,11 +607,6 @@ class ConfirmationReservationController extends GetxController {
       UIHelper().showSnackBar('MINIZON', 'Trajet introuvable.', 2);
       return;
     }
-
-    logger.d('confirmReservation: '
-        'pickup=(${pickupLat.value},${pickupLng.value}) '
-        'dropoff=(${dropoffLat.value},${dropoffLng.value}) '
-        'seats=${reservedSeats.value}');
 
     isProcessingPayment.value = true;
     final result = await _service.createBooking(
@@ -660,12 +670,24 @@ class ConfirmationReservationController extends GetxController {
         confirmedTotal: _confirmedPrice,
         onConfirm: _proceedToNextStep,
         onCancel: _cancelAndDismiss,
-        pickupCity: pickupSelectedCity.value ?? '',
-        pickupNeighborhood: pickupNeighborhoodController.text,
-        pickupAddress: pickupController.text,
-        dropoffCity: dropoffSelectedCity.value ?? '',
-        dropoffNeighborhood: dropoffNeighborhoodController.text,
-        dropoffAddress: dropoffController.text,
+        pickupCity: booking.pickupCity.isNotEmpty
+            ? booking.pickupCity
+            : pickupSelectedCity.value ?? '',
+        pickupNeighborhood: booking.pickupNeighborhood.isNotEmpty
+            ? booking.pickupNeighborhood
+            : pickupNeighborhoodController.text,
+        pickupAddress: booking.pickupAddress.isNotEmpty
+            ? booking.pickupAddress
+            : pickupController.text,
+        dropoffCity: booking.dropoffCity.isNotEmpty
+            ? booking.dropoffCity
+            : dropoffSelectedCity.value ?? '',
+        dropoffNeighborhood: booking.dropoffNeighborhood.isNotEmpty
+            ? booking.dropoffNeighborhood
+            : dropoffNeighborhoodController.text,
+        dropoffAddress: booking.dropoffAddress.isNotEmpty
+            ? booking.dropoffAddress
+            : dropoffController.text,
       ),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,

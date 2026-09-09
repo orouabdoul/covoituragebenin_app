@@ -146,7 +146,7 @@ class HomeController extends GetxController {
               uuid: r.uuid,
               from: r.from,
               to: r.to,
-              schedule: _formatTime(r.schedule),
+              schedule: r.schedule.isNotEmpty ? r.schedule : _formatTime(r.departureTimeRaw),
               price: r.price,
               driverName: r.driverName,
               driverVehicle: r.driverVehicle,
@@ -198,6 +198,14 @@ class HomeController extends GetxController {
               time: a.time,
               status: a.status,
               price: a.price,
+              departureCity: a.departureCity,
+              departureArrondissement: a.departureArrondissement,
+              departureNeighborhood: a.departureNeighborhood,
+              departurePoint: a.departurePoint,
+              arrivalCity: a.arrivalCity,
+              arrivalArrondissement: a.arrivalArrondissement,
+              arrivalNeighborhood: a.arrivalNeighborhood,
+              arrivalPoint: a.arrivalPoint,
             ))
         .toList();
 
@@ -264,10 +272,15 @@ class HomeController extends GetxController {
         destinationPoint: d.destinationPoint,
         pickupCity: d.pickupCity,
         pickupArrondissement: d.pickupArrondissement,
+        pickupNeighborhood: d.pickupNeighborhood,
+        pickupPoint: d.pickupPoint,
         dropoffCity: d.dropoffCity,
         dropoffArrondissement: d.dropoffArrondissement,
+        dropoffNeighborhood: d.dropoffNeighborhood,
+        dropoffPoint: d.dropoffPoint,
         pickupNote: d.pickupNote,
         dropoffNote: d.dropoffNote,
+        departureTimeFormatted: d.departureTimeFormatted,
         proratedPrice: d.proratedPrice,
         isPending: d.status == 'pending',
         isAccepted: d.status == 'accepted' || d.status == 'confirmed',
@@ -602,6 +615,14 @@ class HomeActivity {
     required this.time,
     required this.status,
     required this.price,
+    this.departureCity = '',
+    this.departureArrondissement = '',
+    this.departureNeighborhood = '',
+    this.departurePoint = '',
+    this.arrivalCity = '',
+    this.arrivalArrondissement = '',
+    this.arrivalNeighborhood = '',
+    this.arrivalPoint = '',
   });
 
   final String bookingUuid;
@@ -609,6 +630,26 @@ class HomeActivity {
   final String time;
   final String status;
   final int price;
+  final String departureCity;
+  final String departureArrondissement;
+  final String departureNeighborhood;
+  final String departurePoint;
+  final String arrivalCity;
+  final String arrivalArrondissement;
+  final String arrivalNeighborhood;
+  final String arrivalPoint;
+
+  String get displayFrom {
+    final parts = [departureCity, departureArrondissement, departureNeighborhood]
+        .where((p) => p.isNotEmpty).toList();
+    return parts.isNotEmpty ? parts.join(', ') : route.split(' → ').first.trim();
+  }
+
+  String get displayTo {
+    final parts = [arrivalCity, arrivalArrondissement, arrivalNeighborhood]
+        .where((p) => p.isNotEmpty).toList();
+    return parts.isNotEmpty ? parts.join(', ') : route.split(' → ').last.trim();
+  }
 }
 
 enum UpcomingTripStatus { upcoming, driverArriving, inProgress }
@@ -623,10 +664,15 @@ class HomeUpcomingTrip {
     this.destinationPoint = '',
     this.pickupCity = '',
     this.pickupArrondissement = '',
+    this.pickupNeighborhood = '',
+    this.pickupPoint = '',
     this.dropoffCity = '',
     this.dropoffArrondissement = '',
+    this.dropoffNeighborhood = '',
+    this.dropoffPoint = '',
     this.pickupNote = '',
     this.dropoffNote = '',
+    this.departureTimeFormatted = '',
     this.proratedPrice = 0,
     this.isPending = false,
     this.isAccepted = false,
@@ -658,18 +704,25 @@ class HomeUpcomingTrip {
   final String destinationPoint;
   final String pickupCity;
   final String pickupArrondissement;
+  final String pickupNeighborhood;
+  final String pickupPoint;
   final String dropoffCity;
   final String dropoffArrondissement;
+  final String dropoffNeighborhood;
+  final String dropoffPoint;
   final String pickupNote;
   final String dropoffNote;
+  final String departureTimeFormatted;
 
   String get displayPickupLocation {
-    final parts = [pickupCity, pickupArrondissement].where((p) => p.isNotEmpty).toList();
+    final parts = [pickupCity, pickupArrondissement, pickupNeighborhood, pickupPoint]
+        .where((p) => p.isNotEmpty).toList();
     return parts.isNotEmpty ? parts.join(', ') : originPoint;
   }
 
   String get displayDropoffLocation {
-    final parts = [dropoffCity, dropoffArrondissement].where((p) => p.isNotEmpty).toList();
+    final parts = [dropoffCity, dropoffArrondissement, dropoffNeighborhood, dropoffPoint]
+        .where((p) => p.isNotEmpty).toList();
     return parts.isNotEmpty ? parts.join(', ') : destinationPoint;
   }
   final int proratedPrice;

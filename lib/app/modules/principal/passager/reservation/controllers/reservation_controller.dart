@@ -98,6 +98,7 @@ class ReservationController extends GetxController {
 	Future<void> refresh() => _fetch();
 
 	Future<void> _fetch() async {
+		if (isLoading.value) return;
 		isLoading.value = true;
 		hasError.value = false;
 		final result = await _service.fetchReservations();

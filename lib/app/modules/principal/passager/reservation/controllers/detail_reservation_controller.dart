@@ -10,6 +10,7 @@ import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/p
 import 'package:covoiturage_benin_app/app/core/services/passenger/reviews/passenger_reviews_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/reviews/passenger_reviews_service_impl.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
+import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/models/passenger/reservations_model.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
@@ -21,8 +22,8 @@ class DetailReservationController extends GetxController {
   PassengerReservationService get _service =>
       Get.find<PassengerReservationService>();
 
-  // UUIDs that returned a server error — skip retry for the session lifetime
-  static final Set<String> _failedDetailUuids = {};
+  // UUIDs that returned a server error — skip retry per controller instance
+  final Set<String> _failedDetailUuids = {};
 
   final Rxn<SearchRide> ride = Rxn<SearchRide>();
   final RxBool isFavorite = false.obs;
@@ -65,10 +66,12 @@ class DetailReservationController extends GetxController {
         reviewCount: arg.reviewCount,
         price: arg.totalPrice,
         priceValue: arg.totalPriceValue,
-        origin: arg.displayPickupCity,
+        // Utiliser departureCity seul pour éviter la duplication dans displayOrigin
+        // (displayPickupCity inclut déjà arrondissement+quartier)
+        origin: arg.departureCity.isNotEmpty ? arg.departureCity : arg.tripOrigin,
         departureArrondissement: arg.departureArrondissement,
         departureNeighborhood: arg.departureNeighborhood,
-        destination: arg.displayDropoffCity,
+        destination: arg.arrivalCity.isNotEmpty ? arg.arrivalCity : arg.tripDestination,
         arrivalArrondissement: arg.arrivalArrondissement,
         arrivalNeighborhood: arg.arrivalNeighborhood,
         departureTime: arg.departureTime,
@@ -112,6 +115,11 @@ class DetailReservationController extends GetxController {
       return;
     }
     final detail = result.data!;
+    logger.d('[DETAIL] trip=$tripUuid ✓\n'
+        '  origin="${detail.ride.origin}" arr="${detail.ride.departureArrondissement}" '
+        'neigh="${detail.ride.departureNeighborhood}" note="${detail.ride.departureNote}"\n'
+        '  dest="${detail.ride.destination}" distKm=${detail.ride.distanceKm} '
+        'dur="${detail.ride.duration}" dateLabel="${detail.ride.departureDateLabel}"');
     isFavorite.value = detail.isFavorite;
     isExistingReservation.value = detail.isExistingReservation || _existingReservation.value != null;
     if (detail.reservationStatus != null) {

@@ -9,10 +9,15 @@ class PassengerUpcomingTripData {
     this.destinationPoint = '',
     this.pickupCity = '',
     this.pickupArrondissement = '',
+    this.pickupNeighborhood = '',
+    this.pickupPoint = '',
     this.dropoffCity = '',
     this.dropoffArrondissement = '',
+    this.dropoffNeighborhood = '',
+    this.dropoffPoint = '',
     this.pickupNote = '',
     this.dropoffNote = '',
+    this.departureTimeFormatted = '',
     this.proratedPrice = 0,
     this.etaMinutes,
     required this.tripProgress,
@@ -41,10 +46,15 @@ class PassengerUpcomingTripData {
   final String destinationPoint;
   final String pickupCity;
   final String pickupArrondissement;
+  final String pickupNeighborhood;
+  final String pickupPoint;
   final String dropoffCity;
   final String dropoffArrondissement;
+  final String dropoffNeighborhood;
+  final String dropoffPoint;
   final String pickupNote;
   final String dropoffNote;
+  final String departureTimeFormatted;
   final int proratedPrice;
   final int? etaMinutes;
   final double tripProgress;
@@ -85,16 +95,33 @@ class PassengerUpcomingTripData {
       destination: destination,
       originPoint: originPoint,
       destinationPoint: destinationPoint,
-      pickupCity: (json['pickup_city'] as String?)?.isNotEmpty == true
-          ? json['pickup_city'] as String
-          : originPoint,
-      pickupArrondissement: (json['pickup_arrondissement'] as String?) ?? '',
-      dropoffCity: (json['dropoff_city'] as String?)?.isNotEmpty == true
-          ? json['dropoff_city'] as String
-          : destinationPoint,
-      dropoffArrondissement: (json['dropoff_arrondissement'] as String?) ?? '',
-      pickupNote: (json['pickup_note'] as String?) ?? '',
-      dropoffNote: (json['dropoff_note'] as String?) ?? '',
+      pickupCity: (json['departure_city'] as String?)?.isNotEmpty == true
+          ? json['departure_city'] as String
+          : (json['pickup_city'] as String?)?.isNotEmpty == true
+              ? json['pickup_city'] as String
+              : originPoint,
+      pickupArrondissement: (json['departure_arrondissement'] as String?) ??
+          (json['pickup_arrondissement'] as String?) ?? '',
+      pickupNeighborhood: (json['departure_neighborhood'] as String?) ??
+          (json['pickup_neighborhood'] as String?) ?? '',
+      pickupPoint: (json['departure_point'] as String?) ??
+          (json['pickup_point'] as String?) ?? '',
+      dropoffCity: (json['arrival_city'] as String?)?.isNotEmpty == true
+          ? json['arrival_city'] as String
+          : (json['dropoff_city'] as String?)?.isNotEmpty == true
+              ? json['dropoff_city'] as String
+              : destinationPoint,
+      dropoffArrondissement: (json['arrival_arrondissement'] as String?) ??
+          (json['dropoff_arrondissement'] as String?) ?? '',
+      dropoffNeighborhood: (json['arrival_neighborhood'] as String?) ??
+          (json['dropoff_neighborhood'] as String?) ?? '',
+      dropoffPoint: (json['arrival_point'] as String?) ??
+          (json['dropoff_point'] as String?) ?? '',
+      pickupNote: (json['departure_point'] as String?) ??
+          (json['pickup_point'] as String?) ?? (json['pickup_note'] as String?) ?? '',
+      dropoffNote: (json['arrival_point'] as String?) ??
+          (json['dropoff_point'] as String?) ?? (json['dropoff_note'] as String?) ?? '',
+      departureTimeFormatted: (json['departure_time_formatted'] as String?) ?? '',
       proratedPrice: (json['calculated_price'] as num?)?.toInt() ??
           (json['amount_paid'] as num?)?.toInt() ?? 0,
       etaMinutes: (json['eta_minutes'] as num?)?.toInt(),
@@ -286,6 +313,14 @@ class PassengerActivityData {
     required this.time,
     required this.status,
     required this.price,
+    this.departureCity = '',
+    this.departureArrondissement = '',
+    this.departureNeighborhood = '',
+    this.departurePoint = '',
+    this.arrivalCity = '',
+    this.arrivalArrondissement = '',
+    this.arrivalNeighborhood = '',
+    this.arrivalPoint = '',
   });
 
   final String bookingUuid;
@@ -293,6 +328,14 @@ class PassengerActivityData {
   final String time;
   final String status;
   final int price;
+  final String departureCity;
+  final String departureArrondissement;
+  final String departureNeighborhood;
+  final String departurePoint;
+  final String arrivalCity;
+  final String arrivalArrondissement;
+  final String arrivalNeighborhood;
+  final String arrivalPoint;
 
   factory PassengerActivityData.fromJson(Map<String, dynamic> json) =>
       PassengerActivityData(
@@ -301,6 +344,14 @@ class PassengerActivityData {
         time: (json['time'] as String?) ?? '',
         status: (json['status'] as String?) ?? '',
         price: (json['price'] as num?)?.toInt() ?? 0,
+        departureCity: (json['departure_city'] as String?) ?? '',
+        departureArrondissement: (json['departure_arrondissement'] as String?) ?? '',
+        departureNeighborhood: (json['departure_neighborhood'] as String?) ?? '',
+        departurePoint: (json['departure_point'] as String?) ?? '',
+        arrivalCity: (json['arrival_city'] as String?) ?? '',
+        arrivalArrondissement: (json['arrival_arrondissement'] as String?) ?? '',
+        arrivalNeighborhood: (json['arrival_neighborhood'] as String?) ?? '',
+        arrivalPoint: (json['arrival_point'] as String?) ?? '',
       );
 }
 

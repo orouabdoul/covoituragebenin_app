@@ -184,6 +184,18 @@ class CreateBookingResult {
     required this.priceTotal,
     required this.passengerDistanceKm,
     required this.tripDistanceKm,
+    this.pickupCity = '',
+    this.pickupArrondissement = '',
+    this.pickupNeighborhood = '',
+    this.pickupAddress = '',
+    this.pickupLat,
+    this.pickupLng,
+    this.dropoffCity = '',
+    this.dropoffArrondissement = '',
+    this.dropoffNeighborhood = '',
+    this.dropoffAddress = '',
+    this.dropoffLat,
+    this.dropoffLng,
   });
 
   final String bookingUuid;
@@ -194,6 +206,19 @@ class CreateBookingResult {
   final int priceTotal;       // price_subtotal + service_fee — montant FedaPay
   final double passengerDistanceKm;
   final double tripDistanceKm;
+  // Localisation prise en charge / dépose (pré-remplissage écran confirmation)
+  final String pickupCity;
+  final String pickupArrondissement;
+  final String pickupNeighborhood;
+  final String pickupAddress;
+  final double? pickupLat;
+  final double? pickupLng;
+  final String dropoffCity;
+  final String dropoffArrondissement;
+  final String dropoffNeighborhood;
+  final String dropoffAddress;
+  final double? dropoffLat;
+  final double? dropoffLng;
 
   factory CreateBookingResult.fromJson(Map<String, dynamic> j) =>
       CreateBookingResult(
@@ -206,7 +231,31 @@ class CreateBookingResult {
         passengerDistanceKm:
             (j['passenger_distance_km'] as num?)?.toDouble() ?? 0.0,
         tripDistanceKm: (j['trip_distance_km'] as num?)?.toDouble() ?? 0.0,
+        pickupCity:           (j['pickup_city'] ?? '').toString(),
+        pickupArrondissement: (j['pickup_arrondissement'] ?? '').toString(),
+        pickupNeighborhood:   (j['pickup_neighborhood'] ?? '').toString(),
+        pickupAddress:        (j['pickup_address'] ?? '').toString(),
+        pickupLat:            (j['pickup_latitude'] as num?)?.toDouble(),
+        pickupLng:            (j['pickup_longitude'] as num?)?.toDouble(),
+        dropoffCity:           (j['dropoff_city'] ?? '').toString(),
+        dropoffArrondissement: (j['dropoff_arrondissement'] ?? '').toString(),
+        dropoffNeighborhood:   (j['dropoff_neighborhood'] ?? '').toString(),
+        dropoffAddress:        (j['dropoff_address'] ?? '').toString(),
+        dropoffLat:            (j['dropoff_latitude'] as num?)?.toDouble(),
+        dropoffLng:            (j['dropoff_longitude'] as num?)?.toDouble(),
       );
+
+  String get displayPickupLocation {
+    final parts = [pickupCity, pickupArrondissement, pickupNeighborhood, pickupAddress]
+        .where((p) => p.isNotEmpty).toList();
+    return parts.isNotEmpty ? parts.join(', ') : '';
+  }
+
+  String get displayDropoffLocation {
+    final parts = [dropoffCity, dropoffArrondissement, dropoffNeighborhood, dropoffAddress]
+        .where((p) => p.isNotEmpty).toList();
+    return parts.isNotEmpty ? parts.join(', ') : '';
+  }
 
   String get formattedCalculatedPrice {
     final s = calculatedPrice

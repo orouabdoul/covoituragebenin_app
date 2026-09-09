@@ -90,6 +90,9 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       );
       final statusCode = res.statusCode ?? 0;
       logger.d('createBooking[$tripUuid] [$statusCode]');
+      if (statusCode >= 500) {
+        logger.e('createBooking[$tripUuid] 5xx body=${res.data}');
+      }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       if (res.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
       if (res.statusCode == 404) return ApiResult.failure(AppError.tripNotFound);

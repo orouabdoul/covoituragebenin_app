@@ -54,11 +54,39 @@ class BeninLocationHelpers {
   static ({double lat, double lng})? getCityCoords(String city) =>
       citiesWithCoords[city];
 
+  // ── Lookup rapide O(1) sur les 77 communes ───────────────────────────────
+  static final Set<String> _allCommunesSet = Set.unmodifiable(_allCommunes);
+
   // ── Liste triée de toutes les communes du Bénin ───────────────────────────
   static List<String> get cities {
     final list = _allCommunes.where(BeninLocations.hasArrondissements).toList()
       ..sort();
     return list.isEmpty ? (List.from(_allCommunes)..sort()) : list;
+  }
+
+  // Toutes les 77 communes, triées alphabétiquement.
+  static List<String> get allCities => (List.from(_allCommunes)..sort());
+
+  // Retourne true si la commune est dans la liste officielle des 77 communes.
+  static bool isCommune(String commune) => _allCommunesSet.contains(commune);
+
+  // Normalise un nom de commune (insensible à la casse) vers l'orthographe officielle.
+  // Ex: "Abomey-calavi" → "Abomey-Calavi". Retourne null si non trouvé.
+  static String? normalizeCommune(String name) {
+    if (_allCommunesSet.contains(name)) return name;
+    final lower = name.toLowerCase();
+    for (final c in _allCommunes) {
+      if (c.toLowerCase() == lower) return c;
+    }
+    return null;
+  }
+
+  // Comme orderedCities mais sur les 77 communes et sans doublons dans priority.
+  static List<String> orderedAllCities(List<String> priorityCities) {
+    final all = allCities;
+    final priority = priorityCities.where(isCommune).toSet().toList();
+    final rest = all.where((c) => !priority.contains(c)).toList();
+    return [...priority, ...rest];
   }
 
   static List<String> orderedCities(List<String> priorityCities) {
@@ -69,8 +97,7 @@ class BeninLocationHelpers {
     return [...priority, ...rest];
   }
 
-  static bool communeExists(String commune) =>
-      BeninLocations.hasArrondissements(commune);
+  static bool communeExists(String commune) => isCommune(commune);
 
   static Map<String, List<String>> get citiesWithArrondissements =>
       Map.fromEntries(cities.map(
