@@ -67,25 +67,27 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
   }) async {
     try {
       final opts = await _authOptions();
+      final body = <String, dynamic>{
+        'seats_booked': seats,
+        'pickup_city': pickupCity,
+        if (pickupArrondissement != null && pickupArrondissement.isNotEmpty)
+          'pickup_arrondissement': pickupArrondissement,
+        'pickup_neighborhood': pickupNeighborhood,
+        'pickup_address': pickupAddress,
+        if (pickupLat != null) 'pickup_latitude': pickupLat,
+        if (pickupLng != null) 'pickup_longitude': pickupLng,
+        'dropoff_city': dropoffCity,
+        if (dropoffArrondissement != null && dropoffArrondissement.isNotEmpty)
+          'dropoff_arrondissement': dropoffArrondissement,
+        'dropoff_neighborhood': dropoffNeighborhood,
+        'dropoff_address': dropoffAddress,
+        if (dropoffLat != null) 'dropoff_latitude': dropoffLat,
+        if (dropoffLng != null) 'dropoff_longitude': dropoffLng,
+      };
+      logger.d('createBooking[$tripUuid] body=$body');
       final res = await _dio.post(
         AppApi.createBooking(tripUuid),
-        data: {
-          'seats_booked': seats,
-          'pickup_city': pickupCity,
-          if (pickupArrondissement != null && pickupArrondissement.isNotEmpty)
-            'pickup_arrondissement': pickupArrondissement,
-          'pickup_neighborhood': pickupNeighborhood,
-          'pickup_address': pickupAddress,
-          'pickup_latitude': ?pickupLat,
-          'pickup_longitude': ?pickupLng,
-          'dropoff_city': dropoffCity,
-          if (dropoffArrondissement != null && dropoffArrondissement.isNotEmpty)
-            'dropoff_arrondissement': dropoffArrondissement,
-          'dropoff_neighborhood': dropoffNeighborhood,
-          'dropoff_address': dropoffAddress,
-          'dropoff_latitude': ?dropoffLat,
-          'dropoff_longitude': ?dropoffLng,
-        },
+        data: body,
         options: opts,
       );
       final statusCode = res.statusCode ?? 0;
