@@ -201,6 +201,26 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
   }
 
   @override
+  Future<ApiResult<void>> syncPayment(String paymentUuid) async {
+    try {
+      final opts = await _authOptions();
+      final res = await _dio.post(AppApi.syncPayment(paymentUuid), options: opts);
+      logger.d('syncPayment[$paymentUuid] [${res.statusCode}]');
+      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 200 || res.statusCode == 204) return ApiResult.success(null);
+      // Erreur non bloquante : on continue le polling même si le sync échoue
+      logger.w('syncPayment unexpected status ${res.statusCode}');
+      return ApiResult.failure(AppError.unexpected);
+    } on DioException catch (e) {
+      logger.w('syncPayment: $e');
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
+      logger.w('syncPayment: $e');
+      return ApiResult.failure(AppError.unexpected);
+    }
+  }
+
+  @override
   Future<ApiResult<void>> confirmArrival(String bookingUuid) async {
     try {
       final opts = await _authOptions();

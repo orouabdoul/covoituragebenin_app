@@ -27,6 +27,10 @@ abstract class PassengerReservationService {
 
   Future<ApiResult<PaymentStatusModel>> fetchPaymentStatus(String paymentUuid);
 
+  /// Demande au backend de synchroniser le statut de ce paiement avec FedaPay.
+  /// À appeler dès que FedaPay confirme côté WebView, avant le polling.
+  Future<ApiResult<void>> syncPayment(String paymentUuid);
+
   Future<ApiResult<void>> confirmArrival(String bookingUuid);
 
   Future<ApiResult<PaymentInitResult>> initiatePayment(

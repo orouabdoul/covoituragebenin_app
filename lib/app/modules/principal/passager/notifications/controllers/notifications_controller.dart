@@ -73,7 +73,13 @@ class NotificationsController extends GetxController {
     if (idx != -1) {
       notifications[idx].isRead = true;
       notifications.refresh();
-      if (unreadCount.value > 0) unreadCount.value--;
+      if (unreadCount.value > 0) {
+        unreadCount.value--;
+        if (Get.isRegistered<BottonNavController>()) {
+          final nav = Get.find<BottonNavController>();
+          if (nav.notifBadgeCount.value > 0) nav.notifBadgeCount.value--;
+        }
+      }
     }
     _service.markAsRead(n.id);
   }
@@ -84,12 +90,21 @@ class NotificationsController extends GetxController {
     }
     notifications.refresh();
     unreadCount.value = 0;
+    if (Get.isRegistered<BottonNavController>()) {
+      Get.find<BottonNavController>().notifBadgeCount.value = 0;
+    }
     _service.markAllRead();
   }
 
   void deleteNotification(PassengerNotificationModel n) {
     notifications.remove(n);
-    if (!n.isRead && unreadCount.value > 0) unreadCount.value--;
+    if (!n.isRead && unreadCount.value > 0) {
+      unreadCount.value--;
+      if (Get.isRegistered<BottonNavController>()) {
+        final nav = Get.find<BottonNavController>();
+        if (nav.notifBadgeCount.value > 0) nav.notifBadgeCount.value--;
+      }
+    }
     _service.deleteNotification(n.id);
   }
 
@@ -165,12 +180,10 @@ class NotificationsController extends GetxController {
       case 'new_message':
       case 'message_new':
         final convUuid = data['conversation_uuid'] as String?;
-        Get.toNamed(
-          convUuid != null
-              ? AppRoutes.passengerMessageDetail
-              : AppRoutes.passengerMessages,
-          arguments: convUuid != null ? {'uuid': convUuid} : null,
-        );
+        BottonNavController.goToTab(3);
+        if (convUuid != null) {
+          Get.toNamed(AppRoutes.passengerMessageDetail, arguments: {'uuid': convUuid});
+        }
 
       // ── Promo ─────────────────────────────────────────────────────────────
       case 'promo_code_published':

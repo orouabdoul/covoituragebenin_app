@@ -194,21 +194,13 @@ class PaymentWebviewController extends GetxController {
 
   // ── FedaPay completion handlers ───────────────────────────────────────────
 
-  /// [fromUrlRedirect] = true quand FedaPay a redirigé vers /payment/return?status=approved
-  /// → confirmation directe FedaPay, prioritaire sur le polling en cours
+  /// Appelé quand FedaPay confirme le paiement (via URL redirect ou détection JS).
+  /// [fromUrlRedirect] = true → confirmation définitive FedaPay via /payment/return?status=approved
   void _onFedapayComplete({bool fromUrlRedirect = false}) {
-    if (_navigationDone) return;
-    if (fromUrlRedirect) {
-      // FedaPay confirme le paiement via URL → succès immédiat, annule tout polling
-      isPolling.value = false;
-      _doNavigateSuccess();
-    } else if (!_pollingStarted) {
-      if (_paymentUuid.isNotEmpty) {
-        _startPolling();
-      } else {
-        _doNavigateSuccess();
-      }
-    }
+    if (_navigationDone || _pollingStarted) return;
+    _pollingStarted = true;
+    isPolling.value = true;
+    _syncThenPoll(fastSuccess: fromUrlRedirect);
   }
 
   void _onFedapayFailed() {
@@ -217,13 +209,27 @@ class PaymentWebviewController extends GetxController {
     Get.back();
   }
 
-  // ── Polling for-loop : 15 × 3s = 45s max ─────────────────────────────────
+  // ── Sync FedaPay → backend, puis polling ─────────────────────────────────
 
-  void _startPolling() {
-    if (_pollingStarted) return;
-    _pollingStarted = true;
-    isPolling.value = true;
-    _runPollLoop();
+  /// 1. Demande au backend de synchroniser le paiement avec FedaPay.
+  /// 2a. Si [fastSuccess] (URL redirect = confirmation FedaPay) → navigue directement.
+  /// 2b. Sinon → attend 1s puis poll jusqu'à confirmation backend.
+  Future<void> _syncThenPoll({required bool fastSuccess}) async {
+    if (_paymentUuid.isNotEmpty) {
+      // Déclenche la sync côté backend (non bloquant : erreur ignorée, on continue)
+      await _service.syncPayment(_paymentUuid);
+    }
+    if (_closed || _navigationDone) return;
+
+    if (fastSuccess) {
+      isPolling.value = false;
+      _doNavigateSuccess();
+      return;
+    }
+
+    // Laisse 1s au backend pour mettre à jour la DB après la sync
+    await Future.delayed(const Duration(seconds: 1));
+    if (!_closed && !_navigationDone) await _runPollLoop();
   }
 
   Future<void> _runPollLoop() async {

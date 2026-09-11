@@ -306,7 +306,7 @@ class BottonNavController extends GetxController with WidgetsBindingObserver {
   static const List<BottonNavItemData> _driverItems = [
     BottonNavItemData(
       label: AppStrings.navHome,
-      description: 'Vue d'ensemble de vos trajets',
+      description: 'Vue d\'ensemble de vos trajets',
       icon: Icons.home_rounded,
     ),
     BottonNavItemData(

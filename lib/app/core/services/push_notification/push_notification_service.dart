@@ -680,6 +680,19 @@ class PushNotificationService {
 
   void _navigateFromMessage(RemoteMessage message) => _navigate(message.data);
 
+  // Navigue vers un onglet du dashboard en préservant la bottom nav bar.
+  // Fonctionne que l'app soit en foreground, background ou cold-start.
+  void _navigateToTab(int tabIndex, {required bool isDriverRole}) {
+    final dashboard = isDriverRole
+        ? AppRoutes.dashboardDriver
+        : AppRoutes.dashboardPassenger;
+    if (Get.isRegistered<BottonNavController>()) {
+      BottonNavController.goToTab(tabIndex);
+    } else {
+      Get.offAllNamed(dashboard, arguments: tabIndex);
+    }
+  }
+
   void _navigate(Map<String, dynamic> data) {
     final type        = data['type'] as String? ?? '';
     final tripUuid    = data['trip_uuid']        as String?;
@@ -695,7 +708,7 @@ class PushNotificationService {
 
       // ── Trajet publié ─────────────────────────────────────────────────────
       case 'trip_published':
-        if (!isDriver) Get.toNamed(AppRoutes.passengerHome);
+        if (!isDriver) _navigateToTab(0, isDriverRole: false);
 
       // ── Nouvelle réservation → conducteur ────────────────────────────────
       case 'new_booking_request':
@@ -719,7 +732,7 @@ class PushNotificationService {
               arguments: {'bookingUuid': bookingUuid},
             );
           } else {
-            Get.toNamed(AppRoutes.passengerReservations);
+            _navigateToTab(2, isDriverRole: false);
           }
         }
 
@@ -734,13 +747,13 @@ class PushNotificationService {
 
       case 'reservation_rejected':
       case 'reservation_cancelled':
-        if (!isDriver) Get.toNamed(AppRoutes.passengerReservations);
+        if (!isDriver) _navigateToTab(2, isDriverRole: false);
 
       case 'booking_created':
         if (isDriver) {
           Get.toNamed(AppRoutes.driverReservations);
         } else {
-          Get.toNamed(AppRoutes.passengerReservations);
+          _navigateToTab(2, isDriverRole: false);
         }
 
       case 'booking_cancelled':
@@ -748,7 +761,7 @@ class PushNotificationService {
         if (isDriver) Get.toNamed(AppRoutes.driverReservations);
 
       case 'trip_cancelled':
-        if (!isDriver) Get.toNamed(AppRoutes.passengerReservations);
+        if (!isDriver) _navigateToTab(2, isDriverRole: false);
 
       // ── Trajet démarré → passager (live tracking) ─────────────────────────
       case 'trip_started':
@@ -781,7 +794,7 @@ class PushNotificationService {
 
       case 'trip_completed':
         if (isDriver) {
-          Get.toNamed(AppRoutes.driverRevenus);
+          _navigateToTab(2, isDriverRole: true);
         } else {
           Get.toNamed(AppRoutes.passengerTripHistory);
         }
@@ -789,9 +802,11 @@ class PushNotificationService {
       // ── Rappel trajet ─────────────────────────────────────────────────────
       case 'trip_reminder':
       case 'departure_reminder':       // backend v2
-        Get.toNamed(
-          isDriver ? AppRoutes.driverActiveTrip : AppRoutes.passengerReservations,
-        );
+        if (isDriver) {
+          Get.toNamed(AppRoutes.driverActiveTrip);
+        } else {
+          _navigateToTab(2, isDriverRole: false);
+        }
 
       // ── Messagerie ────────────────────────────────────────────────────────
       // Toujours passer par le dashboard pour conserver la bottom nav bar.
@@ -819,13 +834,15 @@ class PushNotificationService {
 
       // ── Paiements ─────────────────────────────────────────────────────────
       case 'payment_success':
-        Get.toNamed(
-          isDriver ? AppRoutes.driverPaymentHistory : AppRoutes.passengerReservations,
-        );
+        if (isDriver) {
+          Get.toNamed(AppRoutes.driverPaymentHistory);
+        } else {
+          _navigateToTab(2, isDriverRole: false);
+        }
 
       case 'payment_failed':
       case 'payment_pending':
-        if (!isDriver) Get.toNamed(AppRoutes.passengerReservations);
+        if (!isDriver) _navigateToTab(2, isDriverRole: false);
         if (isDriver) Get.toNamed(AppRoutes.driverPaymentHistory);
 
       case 'payment_confirmed':
@@ -867,14 +884,14 @@ class PushNotificationService {
         break;
 
       case 'dispute_against_driver':   // conducteur : litige ouvert sur son trajet
-        if (isDriver) Get.toNamed(AppRoutes.driverTrips);
+        if (isDriver) _navigateToTab(1, isDriverRole: true);
 
       case 'dispute_update':           // passager : litige en cours d'examen
         if (!isDriver) Get.toNamed(AppRoutes.passengerRefundHistory);
 
       case 'dispute_resolved':         // les deux rôles
         if (isDriver) {
-          Get.toNamed(AppRoutes.driverTrips);
+          _navigateToTab(1, isDriverRole: true);
         } else {
           Get.toNamed(AppRoutes.passengerRefundHistory);
         }
@@ -888,7 +905,7 @@ class PushNotificationService {
 
       // ── Statut véhicule → conducteur ─────────────────────────────────────
       case 'vehicle_status':           // backend v2
-        if (isDriver) Get.toNamed(AppRoutes.driverTrips);
+        if (isDriver) _navigateToTab(1, isDriverRole: true);
 
       // ── KYC ──────────────────────────────────────────────────────────────
       case 'kyc_status':               // backend v2
@@ -945,15 +962,17 @@ class PushNotificationService {
       case 'trip_delay':
       case 'trip_emergency':
         if (isDriver) {
-          Get.toNamed(
-            tripUuid != null ? AppRoutes.driverActiveTrip : AppRoutes.driverTrips,
-            arguments: tripUuid != null ? {'tripUuid': tripUuid} : null,
-          );
+          if (tripUuid != null) {
+            Get.toNamed(AppRoutes.driverActiveTrip, arguments: {'tripUuid': tripUuid});
+          } else {
+            _navigateToTab(1, isDriverRole: true);
+          }
         } else {
-          Get.toNamed(
-            tripUuid != null ? AppRoutes.passengerLiveTracking : AppRoutes.passengerReservations,
-            arguments: tripUuid != null ? {'tripUuid': tripUuid} : null,
-          );
+          if (tripUuid != null) {
+            Get.toNamed(AppRoutes.passengerLiveTracking, arguments: {'tripUuid': tripUuid});
+          } else {
+            _navigateToTab(2, isDriverRole: false);
+          }
         }
 
       // ── Broadcast admin (pas de navigation forcée) ────────────────────────

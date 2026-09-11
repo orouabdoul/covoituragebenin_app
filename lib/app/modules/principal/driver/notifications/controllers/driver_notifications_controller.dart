@@ -149,12 +149,10 @@ class DriverNotificationsController extends GetxController {
       case 'new_message':
       case 'message_new':
         final convUuid = data['conversation_uuid'] as String?;
-        Get.toNamed(
-          convUuid != null
-              ? AppRoutes.driverMessageDetail
-              : AppRoutes.driverMessages,
-          arguments: convUuid != null ? {'uuid': convUuid} : null,
-        );
+        BottonNavController.goToTab(3);
+        if (convUuid != null) {
+          Get.toNamed(AppRoutes.driverMessageDetail, arguments: {'uuid': convUuid});
+        }
         return;
 
       // ── Code promo ────────────────────────────────────────────────────────
@@ -188,10 +186,10 @@ class DriverNotificationsController extends GetxController {
 
     if (data.containsKey('conversation_uuid')) {
       final convUuid = data['conversation_uuid'] as String?;
-      Get.toNamed(
-        convUuid != null ? AppRoutes.driverMessageDetail : AppRoutes.driverMessages,
-        arguments: convUuid != null ? {'uuid': convUuid} : null,
-      );
+      BottonNavController.goToTab(3);
+      if (convUuid != null) {
+        Get.toNamed(AppRoutes.driverMessageDetail, arguments: {'uuid': convUuid});
+      }
       return;
     }
     if (data.containsKey('booking_uuid')) {
@@ -212,7 +210,7 @@ class DriverNotificationsController extends GetxController {
       case DriverNotificationType.trip:
         BottonNavController.goToTab(1);
       case DriverNotificationType.message:
-        Get.toNamed(AppRoutes.driverMessages);
+        BottonNavController.goToTab(3);
       default:
         break;
     }
