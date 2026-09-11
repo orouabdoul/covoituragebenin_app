@@ -176,7 +176,7 @@ class BottonNavController extends GetxController with WidgetsBindingObserver {
       switch (index) {
         case 0: AppSync.i.refreshPassenger(); break;
         case 2: AppSync.i.refreshPassenger(); break;
-        case 3: AppSync.i.refreshPassenger(); break;
+        case 3: AppSync.i.refreshPassengerMessages(); break;
       }
     }
   }
@@ -188,6 +188,7 @@ class BottonNavController extends GetxController with WidgetsBindingObserver {
       AppSync.i.refreshDriverMessages();
     } else {
       AppSync.i.refreshPassenger();
+      AppSync.i.refreshPassengerMessages();
     }
   }
 
@@ -204,6 +205,7 @@ class BottonNavController extends GetxController with WidgetsBindingObserver {
         AppSync.i.refreshDriverMessages();
       } else {
         AppSync.i.refreshPassenger();
+        AppSync.i.refreshPassengerMessages();
       }
     });
   }
@@ -304,7 +306,7 @@ class BottonNavController extends GetxController with WidgetsBindingObserver {
   static const List<BottonNavItemData> _driverItems = [
     BottonNavItemData(
       label: AppStrings.navHome,
-      description: 'Vue d’ensemble de vos trajets',
+      description: 'Vue d'ensemble de vos trajets',
       icon: Icons.home_rounded,
     ),
     BottonNavItemData(

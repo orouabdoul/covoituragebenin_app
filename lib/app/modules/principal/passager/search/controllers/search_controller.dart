@@ -37,7 +37,7 @@ class SearchController extends GetxController {
 	final RxBool hasSearched = false.obs;
 	final RxBool hasError = false.obs;
 	final RxString selectedTimeLabel = 'Maintenant'.obs;
-	final RxBool isPanelExpanded = true.obs;
+	final RxBool isPanelExpanded = false.obs;
 
 	DateTime? _selectedDate;
 
@@ -105,6 +105,7 @@ class SearchController extends GetxController {
 		selectedOriginArrondissement.value = null;
 		originCityController.text = city ?? '';
 		originArrondissementController.text = '';
+		originCity.value = city ?? '';
 	}
 
 	void onDestinationCityChanged(String? city) {
@@ -112,6 +113,7 @@ class SearchController extends GetxController {
 		selectedDestinationArrondissement.value = null;
 		destinationCityController.text = city ?? '';
 		destinationArrondissementController.text = '';
+		destinationCity.value = city ?? '';
 	}
 
 	void onOriginArrondissementChanged(String? arrondissement) {

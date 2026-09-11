@@ -17,6 +17,9 @@ class AppSync extends GetxService {
   /// Données passager : accueil + liste des réservations.
   final RxInt passengerData = 0.obs;
 
+  /// Boîte de messagerie passager (nouveau message FCM ou visite de l'onglet).
+  final RxInt passengerMessages = 0.obs;
+
   /// Tableau de bord conducteur.
   final RxInt driverDashboard = 0.obs;
 
@@ -29,6 +32,8 @@ class AppSync extends GetxService {
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   void refreshPassenger() => passengerData.value++;
+
+  void refreshPassengerMessages() => passengerMessages.value++;
 
   void refreshDriverDashboard() => driverDashboard.value++;
 

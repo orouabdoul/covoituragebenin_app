@@ -1718,6 +1718,48 @@ class _ExistingReservationActions extends StatelessWidget {
           textColor: AppColors.successDark,
         ),
         SizedBox(height: responsive.h(12)),
+        Obx(() {
+          if (controller.pickupConfirmed.value) {
+            return Container(
+              width: double.infinity,
+              padding: EdgeInsets.symmetric(
+                  horizontal: responsive.w(14), vertical: responsive.h(12)),
+              decoration: BoxDecoration(
+                color: AppColors.successSurface,
+                borderRadius: BorderRadius.circular(responsive.radius(14)),
+                border: Border.all(
+                    color: AppColors.success.withValues(alpha: 0.30)),
+              ),
+              child: Row(children: [
+                Icon(Icons.check_circle_rounded,
+                    size: responsive.text(18), color: AppColors.success),
+                SizedBox(width: responsive.w(10)),
+                Expanded(
+                  child: Text(
+                    'Prise en charge confirmée',
+                    style: AppTextStyles.bodyMedium(responsive).copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.successDark),
+                  ),
+                ),
+              ]),
+            );
+          }
+          return AppPrimaryButton(
+            responsive: responsive,
+            label: controller.isConfirmingPickup.value
+                ? 'Confirmation…'
+                : 'J\'ai été pris en charge',
+            onTap: controller.isConfirmingPickup.value
+                ? () {}
+                : controller.confirmPickup,
+            backgroundColor: AppColors.primary,
+            textColor: AppColors.white,
+            borderRadius: responsive.radius(16),
+            height: responsive.h(54),
+          );
+        }),
+        SizedBox(height: responsive.h(10)),
         Obx(() => AppPrimaryButton(
               responsive: responsive,
               label: controller.isContactingDriver.value
@@ -1726,8 +1768,8 @@ class _ExistingReservationActions extends StatelessWidget {
               onTap: controller.isContactingDriver.value
                   ? () {}
                   : controller.contactDriver,
-              backgroundColor: AppColors.primary,
-              textColor: AppColors.white,
+              backgroundColor: AppColors.surfaceMuted,
+              textColor: AppColors.textPrimary,
               borderRadius: responsive.radius(16),
               height: responsive.h(54),
             )),

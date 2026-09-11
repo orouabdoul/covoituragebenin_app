@@ -167,84 +167,149 @@ class _SearchPanel extends StatelessWidget {
 	Widget build(BuildContext context) {
 		return Obx(() => controller.isPanelExpanded.value
 				? _buildExpanded(context)
-				: _buildCollapsed());
+				: _buildCollapsed(context));
 	}
 
 	// ── Collapsed: compact summary bar ──────────────────────────────────────
 
-	Widget _buildCollapsed() {
+	Widget _buildCollapsed(BuildContext context) {
+		final hp = responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32);
 		return Container(
+			padding: EdgeInsets.fromLTRB(hp, responsive.h(10), hp, responsive.h(10)),
 			decoration: const BoxDecoration(
 				color: AppColors.white,
 				border: Border(bottom: BorderSide(color: AppColors.border)),
 			),
-			padding: EdgeInsets.fromLTRB(
-				responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
-				responsive.h(10),
-				responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
-				responsive.h(10),
-			),
 			child: Row(
 				children: [
-					InkWell(
-						onTap: controller.onBack,
-						borderRadius: BorderRadius.circular(9999),
-						child: Container(
-							width: responsive.w(40),
-							height: responsive.w(40),
-							decoration: BoxDecoration(
-								shape: BoxShape.circle,
-								color: AppColors.surfaceMuted,
-								border: Border.all(color: Colors.transparent),
-							),
-							child: Icon(Icons.chevron_left_rounded, size: responsive.text(22), color: AppColors.textPrimary),
-						),
-					),
-					SizedBox(width: responsive.w(10)),
+					// Barre de recherche principale (tappable → expand)
 					Expanded(
 						child: GestureDetector(
 							onTap: controller.expandPanel,
 							child: Container(
-								padding: EdgeInsets.symmetric(horizontal: responsive.w(14), vertical: responsive.h(10)),
+								padding: EdgeInsets.symmetric(
+									horizontal: responsive.w(14),
+									vertical: responsive.h(11),
+								),
 								decoration: BoxDecoration(
 									color: AppColors.surfaceMuted,
-									borderRadius: BorderRadius.circular(responsive.radius(12)),
-									border: Border.all(color: Colors.transparent),
+									borderRadius: BorderRadius.circular(responsive.radius(14)),
 								),
 								child: Row(
 									children: [
 										Container(
-											width: responsive.w(30),
-											height: responsive.w(30),
-											decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
-											child: Icon(Icons.search_rounded, color: Colors.white, size: responsive.text(15)),
+											width: responsive.w(34),
+											height: responsive.w(34),
+											decoration: const BoxDecoration(
+												color: AppColors.primary,
+												shape: BoxShape.circle,
+											),
+											child: Icon(
+												Icons.search_rounded,
+												color: Colors.white,
+												size: responsive.text(15),
+											),
 										),
-										SizedBox(width: responsive.w(10)),
+										SizedBox(width: responsive.w(12)),
 										Expanded(
 											child: Column(
 												crossAxisAlignment: CrossAxisAlignment.start,
 												children: [
-													Text(
-														'${controller.originCity.value} → ${controller.destinationCity.value}',
-														style: AppTextStyles.subtitle(responsive),
+													Obx(() {
+														final orig = controller.originCity.value;
+														final dest = controller.destinationCity.value;
+														final hasRoute = orig.isNotEmpty && dest.isNotEmpty;
+														return Text(
+															hasRoute ? '$orig  →  $dest' : 'Où voulez-vous aller ?',
+															style: AppTextStyles.subtitle(responsive).copyWith(
+																color: hasRoute
+																	? AppColors.textPrimary
+																	: AppColors.textHint,
+																fontWeight: hasRoute
+																	? FontWeight.w600
+																	: FontWeight.w400,
+															),
+															overflow: TextOverflow.ellipsis,
+														);
+													}),
+													SizedBox(height: responsive.h(3)),
+													Obx(() => Text(
+														'${controller.selectedDateLabel.value} · '
+														'${controller.selectedTimeLabel.value} · '
+														'${controller.passengerCount.value} pers.',
+														style: AppTextStyles.caption(responsive)
+															.copyWith(color: AppColors.textHint),
 														overflow: TextOverflow.ellipsis,
-													),
-													SizedBox(height: responsive.h(2)),
-													Text(
-														'${controller.selectedDateLabel.value} · ${controller.selectedTimeLabel.value} · ${controller.passengerCount.value} pers.',
-														style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint),
-														overflow: TextOverflow.ellipsis,
-													),
+													)),
 												],
 											),
 										),
-										SizedBox(width: responsive.w(6)),
-										Icon(Icons.edit_rounded, size: responsive.text(15), color: AppColors.primary),
+										SizedBox(width: responsive.w(8)),
+										Icon(
+											Icons.keyboard_arrow_down_rounded,
+											size: responsive.text(18),
+											color: AppColors.textSecondary,
+										),
 									],
 								),
 							),
 						),
 					),
+					SizedBox(width: responsive.w(8)),
+					// Bouton filtre standalone
+					Obx(() {
+						final count = controller.activeFilterCount;
+						return GestureDetector(
+							onTap: () => controller.openFilterSheet(context),
+							child: Stack(
+								clipBehavior: Clip.none,
+								children: [
+									Container(
+										width: responsive.w(44),
+										height: responsive.w(44),
+										decoration: BoxDecoration(
+											color: count > 0 ? AppColors.surfaceAccent : AppColors.surfaceMuted,
+											borderRadius: BorderRadius.circular(responsive.radius(12)),
+											border: Border.all(
+												color: count > 0
+													? AppColors.primary.withValues(alpha: 0.40)
+													: Colors.transparent,
+											),
+										),
+										child: Icon(
+											Icons.tune_rounded,
+											size: responsive.text(18),
+											color: count > 0 ? AppColors.primary : AppColors.textSecondary,
+										),
+									),
+									if (count > 0)
+										Positioned(
+											top: -responsive.h(4),
+											right: -responsive.w(4),
+											child: Container(
+												width: responsive.w(17),
+												height: responsive.w(17),
+												decoration: const BoxDecoration(
+													color: AppColors.primary,
+													shape: BoxShape.circle,
+												),
+												child: Center(
+													child: Text(
+														'$count',
+														style: TextStyle(
+															color: Colors.white,
+															fontSize: responsive.text(9),
+															fontWeight: FontWeight.w700,
+															fontFamily: 'Inter',
+														),
+													),
+												),
+											),
+										),
+								],
+							),
+						);
+					}),
 				],
 			),
 		);

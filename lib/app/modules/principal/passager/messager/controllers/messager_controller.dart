@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/messaging/passenger_messaging_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
@@ -40,12 +41,15 @@ class MessagerController extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(() => searchQuery.value = searchController.text);
-    ever(totalUnread, (count) {
-      if (Get.isRegistered<BottonNavController>()) {
-        Get.find<BottonNavController>().messageBadgeCount.value = count;
-      }
-    });
+    // Déclenché par FCM (nouveau message) ou visite de l'onglet messages
+    ever(AppSync.i.passengerMessages, (_) => _fetch(_activeFilterKey.value));
     _fetch('all');
+  }
+
+  void _updateBadge(int count) {
+    if (Get.isRegistered<BottonNavController>()) {
+      Get.find<BottonNavController>().messageBadgeCount.value = count;
+    }
   }
 
   void selectFilter(int index) {
@@ -75,6 +79,7 @@ class MessagerController extends GetxController {
       filters.assignAll(inbox.filters);
       threads.assignAll(inbox.threads);
       totalUnread.value = inbox.totalUnread;
+      _updateBadge(inbox.totalUnread);
     } else {
       _activeFilterKey.value = fallbackFilter;
       UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
@@ -94,6 +99,8 @@ class MessagerController extends GetxController {
       filters.assignAll(inbox.filters);
       threads.assignAll(inbox.threads);
       totalUnread.value = inbox.totalUnread;
+      // Mise à jour directe (ever() ne se déclenche pas si valeur identique)
+      _updateBadge(inbox.totalUnread);
     } else {
       if (threads.isEmpty) hasError.value = true;
       if (result.error != AppError.socket && threads.isEmpty) {

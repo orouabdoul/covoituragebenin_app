@@ -490,8 +490,12 @@ class PushNotificationService {
     final isDriver = role == 'driver' || role == 'conducteur';
 
     if (isMessage) {
-      // Rafraîchit la boîte de réception → badge message se met à jour automatiquement
-      AppSync.i.refreshDriverMessages();
+      // Rafraîchit la boîte de réception du bon rôle → badge message se met à jour
+      if (isDriver) {
+        AppSync.i.refreshDriverMessages();
+      } else {
+        AppSync.i.refreshPassengerMessages();
+      }
     } else {
       // Rafraîchit le dashboard du bon rôle → liste notifs + badge
       if (isDriver) {
@@ -790,18 +794,27 @@ class PushNotificationService {
         );
 
       // ── Messagerie ────────────────────────────────────────────────────────
+      // Toujours passer par le dashboard pour conserver la bottom nav bar.
       case 'message_new':
       case 'new_message':
         if (isDriver) {
-          Get.toNamed(
-            convUuid != null ? AppRoutes.driverMessageDetail : AppRoutes.driverMessages,
-            arguments: convUuid != null ? {'uuid': convUuid} : null,
-          );
+          if (Get.isRegistered<BottonNavController>()) {
+            BottonNavController.goToTab(3);
+          } else {
+            Get.offAllNamed(AppRoutes.dashboardDriver, arguments: 3);
+          }
+          if (convUuid != null) {
+            Get.toNamed(AppRoutes.driverMessageDetail, arguments: {'uuid': convUuid});
+          }
         } else {
-          Get.toNamed(
-            convUuid != null ? AppRoutes.passengerMessageDetail : AppRoutes.passengerMessages,
-            arguments: convUuid != null ? {'uuid': convUuid} : null,
-          );
+          if (Get.isRegistered<BottonNavController>()) {
+            BottonNavController.goToTab(3);
+          } else {
+            Get.offAllNamed(AppRoutes.dashboardPassenger, arguments: 3);
+          }
+          if (convUuid != null) {
+            Get.toNamed(AppRoutes.passengerMessageDetail, arguments: {'uuid': convUuid});
+          }
         }
 
       // ── Paiements ─────────────────────────────────────────────────────────

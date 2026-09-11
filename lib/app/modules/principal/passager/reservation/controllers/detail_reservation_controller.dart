@@ -53,6 +53,7 @@ class DetailReservationController extends GetxController {
       isExistingReservation.value = true;
       _statusRx.value = arg.status;
       _existingReservation.value = arg;
+      pickupConfirmed.value = arg.pickedUpAt != null;
       // Écouter la liste fraîche (se déclenche APRÈS assignAll dans _fetch)
       if (Get.isRegistered<ReservationController>()) {
         ever(Get.find<ReservationController>().reservationsList, (_) => _syncFromList());
@@ -282,6 +283,7 @@ class DetailReservationController extends GetxController {
       if (updated.status != _statusRx.value) {
         _statusRx.value = updated.status;
       }
+      if (updated.pickedUpAt != null) pickupConfirmed.value = true;
 
       // Ne jamais rétrograder isPaid de true → false : le backend peut retarder
       // Mettre à jour _existingReservation si paiement confirmé OU statut changé
@@ -374,6 +376,8 @@ class DetailReservationController extends GetxController {
   }
 
   final RxBool isContactingDriver = false.obs;
+  final RxBool isConfirmingPickup = false.obs;
+  final RxBool pickupConfirmed = false.obs;
 
   Future<void> contactDriver() async {
     final r = _existingReservation.value;
@@ -411,6 +415,20 @@ class DetailReservationController extends GetxController {
       tripRoute: '${r.displayPickupCity} → ${r.displayDropoffCity}',
       conversationUuid: result.data!,
     );
+  }
+
+  Future<void> confirmPickup() async {
+    final uuid = _existingReservation.value?.id;
+    if (uuid == null || uuid.isEmpty) return;
+    if (isConfirmingPickup.value || pickupConfirmed.value) return;
+    isConfirmingPickup.value = true;
+    final result = await _service.confirmPickup(uuid);
+    isConfirmingPickup.value = false;
+    if (!result.isSuccess) {
+      UIHelper().showSnackBar('MINIZON', result.error?.message ?? 'Erreur inattendue.', 3);
+      return;
+    }
+    pickupConfirmed.value = true;
   }
 
   void toggleFavorite() {
