@@ -596,8 +596,8 @@ class ConfirmationReservationController extends GetxController {
 
   Future<void> confirmReservation() async {
     logger.d('confirmReservation: called — '
-        'pickup=(${pickupLat.value},${pickupLng.value}) '
-        'dropoff=(${dropoffLat.value},${dropoffLng.value}) '
+        'rawPickup=(${pickupLat.value},${pickupLng.value}) '
+        'rawDropoff=(${dropoffLat.value},${dropoffLng.value}) '
         'seats=${reservedSeats.value}');
 
     if (!_validateForm()) return;
@@ -608,6 +608,22 @@ class ConfirmationReservationController extends GetxController {
       return;
     }
 
+    // Coordonnées identiques (même ville) → le backend crash en calculant distance 0km.
+    // On envoie null pour laisser le backend résoudre par nom de quartier.
+    final pLat = pickupLat.value;
+    final pLng = pickupLng.value;
+    final dLat = dropoffLat.value;
+    final dLng = dropoffLng.value;
+    final coordsAreSame = pLat != null && pLat == dLat && pLng == dLng;
+    final effectivePickupLat = coordsAreSame ? null : pLat;
+    final effectivePickupLng = coordsAreSame ? null : pLng;
+    final effectiveDropoffLat = coordsAreSame ? null : dLat;
+    final effectiveDropoffLng = coordsAreSame ? null : dLng;
+
+    logger.d('confirmReservation: coordsAreSame=$coordsAreSame '
+        'sending pickup=(${effectivePickupLat},${effectivePickupLng}) '
+        'dropoff=(${effectiveDropoffLat},${effectiveDropoffLng})');
+
     isProcessingPayment.value = true;
     final result = await _service.createBooking(
       tripUuid,
@@ -616,14 +632,14 @@ class ConfirmationReservationController extends GetxController {
       pickupArrondissement: pickupSelectedArrondissement.value,
       pickupNeighborhood: pickupNeighborhoodController.text.trim(),
       pickupAddress: pickupController.text.trim(),
-      pickupLat: pickupLat.value,
-      pickupLng: pickupLng.value,
+      pickupLat: effectivePickupLat,
+      pickupLng: effectivePickupLng,
       dropoffCity: dropoffCityController.text.trim(),
       dropoffArrondissement: dropoffSelectedArrondissement.value,
       dropoffNeighborhood: dropoffNeighborhoodController.text.trim(),
       dropoffAddress: dropoffController.text.trim(),
-      dropoffLat: dropoffLat.value,
-      dropoffLng: dropoffLng.value,
+      dropoffLat: effectiveDropoffLat,
+      dropoffLng: effectiveDropoffLng,
     );
     isProcessingPayment.value = false;
 

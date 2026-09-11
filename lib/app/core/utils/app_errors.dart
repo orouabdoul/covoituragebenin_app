@@ -20,6 +20,7 @@ enum AppError {
   refundAlreadySubmitted,
   paymentProviderError,
   alreadyPaid,
+  alreadyBooked,
   invalidPhoneFormat,
   serverUnavailable;
 
@@ -56,6 +57,8 @@ enum AppError {
         return 'Erreur du système de paiement. Vérifiez la configuration FedPay côté serveur.';
       case AppError.alreadyPaid:
         return 'Ce paiement a déjà été effectué.';
+      case AppError.alreadyBooked:
+        return 'Vous avez déjà une réservation active pour ce trajet.';
       case AppError.serverUnavailable:
         return 'Le service est temporairement indisponible. Réessayez dans quelques instants.';
       default:
