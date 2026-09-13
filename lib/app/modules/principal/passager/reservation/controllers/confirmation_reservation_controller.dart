@@ -621,8 +621,8 @@ class ConfirmationReservationController extends GetxController {
     final effectiveDropoffLng = coordsAreSame ? null : dLng;
 
     logger.d('confirmReservation: coordsAreSame=$coordsAreSame '
-        'sending pickup=(${effectivePickupLat},${effectivePickupLng}) '
-        'dropoff=(${effectiveDropoffLat},${effectiveDropoffLng})');
+        'sending pickup=($effectivePickupLat,$effectivePickupLng) '
+        'dropoff=($effectiveDropoffLat,$effectiveDropoffLng)');
 
     isProcessingPayment.value = true;
     final result = await _service.createBooking(

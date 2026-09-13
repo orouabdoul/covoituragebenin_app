@@ -3,7 +3,9 @@ import 'dart:io';
 import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
+import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'package:dio/dio.dart';
+import 'package:get/get.dart' hide Response;
 
 class AppDio {
   static Dio create() {
@@ -15,6 +17,7 @@ class AppDio {
     ));
     dio.transformer = BackgroundTransformer();
     dio.interceptors.add(_AccountStatusInterceptor());
+    dio.interceptors.add(_UnauthorizedInterceptor());
     return dio;
   }
 
@@ -63,5 +66,32 @@ class _AccountStatusInterceptor extends Interceptor {
         uc.persistBlockedStatus(blocked: true);
       }
     } catch (_) {}
+  }
+}
+
+/// Intercepteur global : toute réponse 401 depuis une route authentifiée
+/// déconnecte l'utilisateur et le renvoie à l'écran de connexion.
+class _UnauthorizedInterceptor extends Interceptor {
+  static bool _redirecting = false;
+
+  @override
+  void onResponse(Response response, ResponseInterceptorHandler handler) {
+    if (response.statusCode == 401 && !_redirecting) {
+      _handleUnauthorized();
+    }
+    handler.next(response);
+  }
+
+  Future<void> _handleUnauthorized() async {
+    _redirecting = true;
+    try {
+      await UserController.instance.logout();
+    } catch (_) {}
+    final current = Get.currentRoute;
+    if (current != AppRoutes.register && current != AppRoutes.otpCode) {
+      Get.offAllNamed(AppRoutes.register);
+    }
+    await Future.delayed(const Duration(seconds: 3));
+    _redirecting = false;
   }
 }

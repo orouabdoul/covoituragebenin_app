@@ -126,16 +126,13 @@ class AddTrajetController extends GetxController {
   // Coordonnées précises calculées lors du géocodage (quartier/arrondissement/ville)
   // ignore: unused_field
   double? _depPreciseLat;
-  // ignore: unused_field
   double? _depPreciseLng;
-  // ignore: unused_field
   double? _destPreciseLat;
+  double? _destPreciseLng;
 
   // ── GPS ───────────────────────────────────────────────────────────────────
   double? _deviceLat;
   double? _deviceLng;
-  // ignore: unused_field
-  double? _destPreciseLng;
 
   static Map<String, List<String>> get beninCitiesWithDistricts =>
       BeninLocationHelpers.citiesWithArrondissements;
@@ -257,6 +254,7 @@ class AddTrajetController extends GetxController {
     _depPreciseLat = depLat;
     _depPreciseLng = depLng;
     _destPreciseLat = destLat;
+    _destPreciseLng = destLng;
 
     // Routage routier réel via OSRM (OpenStreetMap)
     if (depLat != null && depLng != null && destLat != null && destLng != null) {
@@ -741,6 +739,10 @@ class AddTrajetController extends GetxController {
         'arrival_neighborhood': destNeighborhood,
       if (destinationPointController.text.trim().isNotEmpty)
         'arrival_point': destinationPointController.text.trim(),
+      if (_depPreciseLat != null)  'departure_latitude':  _depPreciseLat,
+      if (_depPreciseLng != null)  'departure_longitude': _depPreciseLng,
+      if (_destPreciseLat != null) 'arrival_latitude':    _destPreciseLat,
+      if (_destPreciseLng != null) 'arrival_longitude':   _destPreciseLng,
       'departure_date': dateController.text,
       'departure_time': _beninTimeIso(dateController.text, timeController.text),
       'total_seats': availableSeats.value,

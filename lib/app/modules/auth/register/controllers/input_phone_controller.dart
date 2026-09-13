@@ -181,7 +181,10 @@ class InputPhoneController extends GetxController {
 
   @override
   void onClose() {
-    phoneController.dispose();
+    // Do not dispose phoneController here — the TextField widget may still be
+    // animating out when GetX calls onClose() (e.g. after Get.offAllNamed),
+    // and calling dispose() on a controller still attached to a TextField
+    // causes "used after being disposed" + 'attached' assertion crashes.
     super.onClose();
   }
 }

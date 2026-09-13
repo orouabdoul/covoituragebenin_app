@@ -10,6 +10,7 @@ import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/p
 import 'package:covoiturage_benin_app/app/core/services/passenger/reviews/passenger_reviews_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/reviews/passenger_reviews_service_impl.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
+import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/models/passenger/reservations_model.dart';
@@ -57,6 +58,12 @@ class DetailReservationController extends GetxController {
       // Écouter la liste fraîche (se déclenche APRÈS assignAll dans _fetch)
       if (Get.isRegistered<ReservationController>()) {
         ever(Get.find<ReservationController>().reservationsList, (_) => _syncFromList());
+      }
+      // Forcer un refresh immédiat si le trajet est potentiellement en cours
+      // (le statut en cache peut être 'confirmed' alors que le trajet a démarré)
+      if (arg.status == ReservationStatus.confirmed ||
+          arg.status == ReservationStatus.inProgress) {
+        AppSync.i.refreshPassenger();
       }
       // Pré-remplir le ride depuis la réservation immédiatement
       ride.value = SearchRide(
@@ -280,8 +287,15 @@ class DetailReservationController extends GetxController {
       final current = _existingReservation.value!;
 
       // Synchroniser le statut réactivement (confirmed → inProgress → completed)
+      // Ne jamais rétrograder : _fetchDetail peut avoir déjà mis à jour le statut
+      // vers inProgress/completed avant que la liste (plus lente) revienne avec
+      // un statut 'confirmed' périmé → on garde toujours le statut le plus avancé.
       if (updated.status != _statusRx.value) {
-        _statusRx.value = updated.status;
+        final cur = _statusRx.value;
+        final isDowngrade =
+            (cur == ReservationStatus.inProgress && updated.status == ReservationStatus.confirmed) ||
+            (cur == ReservationStatus.completed   && updated.status != ReservationStatus.cancelled);
+        if (!isDowngrade) _statusRx.value = updated.status;
       }
       if (updated.pickedUpAt != null) pickupConfirmed.value = true;
 
