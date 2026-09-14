@@ -1,4 +1,4 @@
-import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
+﻿import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/utils/api_result.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
@@ -34,10 +34,10 @@ class InteractiveMapServiceImpl implements InteractiveMapService {
       if (res.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('fetchMapData: $e');
+      logger.w('fetchMapData: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('fetchMapData: $e');
+      logger.w('fetchMapData: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -60,10 +60,10 @@ class InteractiveMapServiceImpl implements InteractiveMapService {
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('markStopDone: $e');
+      logger.w('markStopDone: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('markStopDone: $e');
+      logger.w('markStopDone: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -83,10 +83,10 @@ class InteractiveMapServiceImpl implements InteractiveMapService {
       if (res.statusCode == 405) return ApiResult.failure(AppError.endpointNotAvailable);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('recalculate: $e');
+      logger.w('recalculate: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('recalculate: $e');
+      logger.w('recalculate: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }

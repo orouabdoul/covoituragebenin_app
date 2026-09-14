@@ -1,4 +1,4 @@
-import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
+﻿import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/utils/api_result.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
@@ -37,10 +37,10 @@ class PassengerRefundServiceImpl implements PassengerRefundService {
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('refundContext: $e');
+      logger.w('refundContext: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('refundContext: $e');
+      logger.w('refundContext: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -78,10 +78,10 @@ class PassengerRefundServiceImpl implements PassengerRefundService {
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('submitRefund: $e');
+      logger.w('submitRefund: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('submitRefund: $e');
+      logger.w('submitRefund: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -102,10 +102,10 @@ class PassengerRefundServiceImpl implements PassengerRefundService {
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('passengerRefunds: $e');
+      logger.w('passengerRefunds: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('passengerRefunds: $e');
+      logger.w('passengerRefunds: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }

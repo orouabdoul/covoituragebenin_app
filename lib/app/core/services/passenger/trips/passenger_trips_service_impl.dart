@@ -35,10 +35,10 @@ class PassengerTripsServiceImpl implements PassengerTripsService {
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('passengerTripHistory: $e');
+      logger.w('passengerTripHistory: $e');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('passengerTripHistory: $e');
+      logger.w('passengerTripHistory: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }

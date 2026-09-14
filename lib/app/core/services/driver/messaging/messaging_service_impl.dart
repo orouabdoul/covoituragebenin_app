@@ -42,10 +42,10 @@ class MessagingServiceImpl implements MessagingService {
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('driverFetchInbox: $e');
+      logger.w('driverFetchInbox: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('driverFetchInbox: $e');
+      logger.w('driverFetchInbox: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -76,7 +76,7 @@ class MessagingServiceImpl implements MessagingService {
       if (res.statusCode == 404) return ApiResult.failure(AppError.userNotFound);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.w('driverFetchThread: $e');
+      logger.w('driverFetchThread: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
       logger.w('driverFetchThread: $e');
@@ -107,10 +107,10 @@ class MessagingServiceImpl implements MessagingService {
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('driverSendMessage: $e');
+      logger.w('driverSendMessage: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('driverSendMessage: $e');
+      logger.w('driverSendMessage: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -149,10 +149,10 @@ class MessagingServiceImpl implements MessagingService {
       if (res.statusCode == 422) return ApiResult.failure(AppError.unexpected);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('driverSendAttachment: $e');
+      logger.w('driverSendAttachment: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('driverSendAttachment: $e');
+      logger.w('driverSendAttachment: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -167,10 +167,10 @@ class MessagingServiceImpl implements MessagingService {
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('driverMarkAsRead: $e');
+      logger.w('driverMarkAsRead: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('driverMarkAsRead: $e');
+      logger.w('driverMarkAsRead: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -193,10 +193,10 @@ class MessagingServiceImpl implements MessagingService {
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('driverStartConversation: $e');
+      logger.w('driverStartConversation: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('driverStartConversation: $e');
+      logger.w('driverStartConversation: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -216,10 +216,10 @@ class MessagingServiceImpl implements MessagingService {
       if (res.statusCode == 404) return ApiResult.failure(AppError.userNotFound);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('driverDeleteMessage: $e');
+      logger.w('driverDeleteMessage: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('driverDeleteMessage: $e');
+      logger.w('driverDeleteMessage: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -240,10 +240,10 @@ class MessagingServiceImpl implements MessagingService {
       if (res.statusCode == 422) return ApiResult.failure(AppError.unexpected);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('driverEditMessage: $e');
+      logger.w('driverEditMessage: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('driverEditMessage: $e');
+      logger.w('driverEditMessage: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }

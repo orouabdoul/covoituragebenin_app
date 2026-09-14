@@ -31,7 +31,7 @@ class AddTrajetController extends GetxController {
 
   // ── Seats, price ──────────────────────────────────────────────────────────
   final RxInt availableSeats = 3.obs;
-  final RxDouble pricePerSeat = 5000.0.obs;
+  final RxDouble pricePerSeat = 0.0.obs;
   final RxSet<String> selectedOptions = <String>{}.obs;
   final RxBool isPublishing = false.obs;
   final RxBool isLoadingEdit = false.obs;
@@ -89,7 +89,7 @@ class AddTrajetController extends GetxController {
   final TextEditingController descriptionController = TextEditingController();
   final TextEditingController dateController = TextEditingController();
   final TextEditingController timeController = TextEditingController();
-  final TextEditingController priceController = TextEditingController(text: '5000');
+  final TextEditingController priceController = TextEditingController();
 
   int get totalAmount => availableSeats.value * pricePerSeat.value.toInt();
   int get maxPassengers {
@@ -386,7 +386,6 @@ class AddTrajetController extends GetxController {
     final args = Get.arguments as Map<String, dynamic>?;
     _editUuid = args?['uuid'] as String?;
     selectedOptions.addAll(const {'no_smoking', 'music'});
-    priceController.addListener(_onPriceChanged);
     durationController.addListener(_onDurationChanged);
     _fetchDeviceGps();
     if (isEditMode) {
@@ -610,12 +609,8 @@ class AddTrajetController extends GetxController {
   }
 
 
-  void _onPriceChanged() {
-    final raw = priceController.text.replaceAll(RegExp(r'[^0-9]'), '');
-    final val = double.tryParse(raw);
-    if (val != null && val != pricePerSeat.value) {
-      pricePerSeat.value = val;
-    }
+  void onPriceTextChanged(String text) {
+    pricePerSeat.value = double.tryParse(text) ?? 0;
   }
 
   // ── Actions ───────────────────────────────────────────────────────────────
@@ -800,7 +795,6 @@ class AddTrajetController extends GetxController {
 
   @override
   void onClose() {
-    priceController.removeListener(_onPriceChanged);
     durationController.removeListener(_onDurationChanged);
     departureCityController.dispose();
     departureArrondissementController.dispose();

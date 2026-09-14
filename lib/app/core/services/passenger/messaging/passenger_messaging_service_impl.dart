@@ -42,10 +42,10 @@ class PassengerMessagingServiceImpl implements PassengerMessagingService {
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('passengerFetchInbox: $e');
+      logger.w('passengerFetchInbox: $e');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('passengerFetchInbox: $e');
+      logger.w('passengerFetchInbox: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -107,10 +107,10 @@ class PassengerMessagingServiceImpl implements PassengerMessagingService {
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('passengerSendMessage: $e');
+      logger.w('passengerSendMessage: $e');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('passengerSendMessage: $e');
+      logger.w('passengerSendMessage: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -149,10 +149,10 @@ class PassengerMessagingServiceImpl implements PassengerMessagingService {
       if (res.statusCode == 422) return ApiResult.failure(AppError.unexpected);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('passengerSendAttachment: $e');
+      logger.w('passengerSendAttachment: $e');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('passengerSendAttachment: $e');
+      logger.w('passengerSendAttachment: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -170,10 +170,10 @@ class PassengerMessagingServiceImpl implements PassengerMessagingService {
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('passengerMarkAsRead: $e');
+      logger.w('passengerMarkAsRead: $e');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('passengerMarkAsRead: $e');
+      logger.w('passengerMarkAsRead: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -196,10 +196,10 @@ class PassengerMessagingServiceImpl implements PassengerMessagingService {
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('passengerStartConversation: $e');
+      logger.w('passengerStartConversation: $e');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('passengerStartConversation: $e');
+      logger.w('passengerStartConversation: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -219,10 +219,10 @@ class PassengerMessagingServiceImpl implements PassengerMessagingService {
       if (res.statusCode == 404) return ApiResult.failure(AppError.userNotFound);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('passengerDeleteMessage: $e');
+      logger.w('passengerDeleteMessage: $e');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('passengerDeleteMessage: $e');
+      logger.w('passengerDeleteMessage: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -243,10 +243,10 @@ class PassengerMessagingServiceImpl implements PassengerMessagingService {
       if (res.statusCode == 422) return ApiResult.failure(AppError.unexpected);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('passengerEditMessage: $e');
+      logger.w('passengerEditMessage: $e');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('passengerEditMessage: $e');
+      logger.w('passengerEditMessage: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }

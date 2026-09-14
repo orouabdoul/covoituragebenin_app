@@ -45,10 +45,10 @@ class PassengerNotificationsServiceImpl
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('passengerNotifications: $e');
+      logger.w('passengerNotifications: $e');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('passengerNotifications: $e');
+      logger.w('passengerNotifications: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }

@@ -1,4 +1,4 @@
-import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
+﻿import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/utils/api_result.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
@@ -32,10 +32,10 @@ class WalletServiceImpl implements WalletService {
       if (response.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('paymentHistory: $e');
+      logger.w('paymentHistory: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('paymentHistory: $e');
+      logger.w('paymentHistory: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }

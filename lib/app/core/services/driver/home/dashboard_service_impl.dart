@@ -33,10 +33,10 @@ class DashboardServiceImpl implements DashboardService {
       if (response.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('driverDashboard: $e');
+      logger.w('driverDashboard: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('driverDashboard: $e');
+      logger.w('driverDashboard: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -66,10 +66,10 @@ class DashboardServiceImpl implements DashboardService {
       if (response.statusCode == 422) return ApiResult.failure(AppError.validationError);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('driverAvailability: $e');
+      logger.w('driverAvailability: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('driverAvailability: $e');
+      logger.w('driverAvailability: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }

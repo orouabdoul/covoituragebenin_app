@@ -1,4 +1,4 @@
-import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
+﻿import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/utils/api_result.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
@@ -35,10 +35,10 @@ class WithdrawServiceImpl implements WithdrawService {
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('fetchWallet: $e');
+      logger.w('fetchWallet: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('fetchWallet: $e');
+      logger.w('fetchWallet: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -80,10 +80,10 @@ class WithdrawServiceImpl implements WithdrawService {
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('withdraw: $e');
+      logger.w('withdraw: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('withdraw: $e');
+      logger.w('withdraw: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }

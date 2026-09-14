@@ -36,10 +36,10 @@ class DriverProfileController extends GetxController {
   final RxBool isLoadingContacts = false.obs;
 
   // ── Hero data ────────────────────────────────────────────────────────────
-  String heroName = AppStrings.driverProfileName;
+  String heroName = '';
   String heroBadge = AppStrings.driverProfileBadge;
   String heroLevel = 'Niveau 1';
-  String heroLocation = AppStrings.driverProfileLocation;
+  String heroLocation = '';
   double heroRating = 4.8;
   int heroTrips = 0;
   int heroTenureMonths = 0;

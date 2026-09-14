@@ -1,4 +1,4 @@
-import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
+﻿import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/utils/api_result.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
@@ -67,10 +67,10 @@ class SafetyServiceImpl implements SafetyService {
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('safetyContacts: $e');
+      logger.w('safetyContacts: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('safetyContacts: $e');
+      logger.w('safetyContacts: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -99,10 +99,10 @@ class SafetyServiceImpl implements SafetyService {
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('addContact: $e');
+      logger.w('addContact: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('addContact: $e');
+      logger.w('addContact: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -120,10 +120,10 @@ class SafetyServiceImpl implements SafetyService {
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('removeContact: $e');
+      logger.w('removeContact: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('removeContact: $e');
+      logger.w('removeContact: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -140,10 +140,10 @@ class SafetyServiceImpl implements SafetyService {
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('sendSos: $e');
+      logger.w('sendSos: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('sendSos: $e');
+      logger.w('sendSos: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -171,10 +171,10 @@ class SafetyServiceImpl implements SafetyService {
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('reportIncident: $e');
+      logger.w('reportIncident: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('reportIncident: $e');
+      logger.w('reportIncident: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -193,10 +193,10 @@ class SafetyServiceImpl implements SafetyService {
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('updateLocationSharing: $e');
+      logger.w('updateLocationSharing: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('updateLocationSharing: $e');
+      logger.w('updateLocationSharing: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }

@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
@@ -40,10 +40,10 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('confirmationContext: $e');
+      logger.w('confirmationContext: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('confirmationContext: $e');
+      logger.w('confirmationContext: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -99,7 +99,7 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
           final b = d['body'];
           errDetail = (b is Map ? b['error'] : null)?.toString() ?? d['message']?.toString();
         }
-        logger.e('createBooking[$tripUuid] 5xx error=${errDetail ?? res.data}');
+        logger.w('createBooking[$tripUuid] 5xx error=${errDetail ?? res.data}');
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       if (res.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
@@ -125,10 +125,10 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('createBooking: $e');
+      logger.w('createBooking: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('createBooking: $e');
+      logger.w('createBooking: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -146,10 +146,10 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       if (res.statusCode == 200) return ApiResult.success(null);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('cancelBooking: $e');
+      logger.w('cancelBooking: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('cancelBooking: $e');
+      logger.w('cancelBooking: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -166,10 +166,10 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       if (res.statusCode == 200 || res.statusCode == 201) return ApiResult.success(null);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('confirmPickup: $e');
+      logger.w('confirmPickup: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('confirmPickup: $e');
+      logger.w('confirmPickup: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -192,10 +192,10 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('paymentStatus: $e');
+      logger.w('paymentStatus: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('paymentStatus: $e');
+      logger.w('paymentStatus: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -212,7 +212,7 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       logger.w('syncPayment unexpected status ${res.statusCode}');
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.w('syncPayment: $e');
+      logger.w('syncPayment: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
       logger.w('syncPayment: $e');
@@ -236,10 +236,10 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       if (res.statusCode == 200) return ApiResult.success(null);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('confirmArrival: $e');
+      logger.w('confirmArrival: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('confirmArrival: $e');
+      logger.w('confirmArrival: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -259,7 +259,7 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       logger.d('initiatePayment[$bookingUuid] [${res.statusCode}]');
       if (res.statusCode == 200 || res.statusCode == 201) {
         if (res.data is Map && res.data['success'] == false) {
-          logger.e('initiatePayment failed: ${res.data['message']}');
+          logger.w('initiatePayment failed: ${res.data['message']}');
           return ApiResult.failure(AppError.unexpected);
         }
         // Supporte à la fois 'body' (format actuel) et 'data' (format guide)
@@ -281,17 +281,17 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       // 502 = FedaPay a rejeté la demande (mauvais numéro, réseau incorrect, sandbox…)
       if (res.statusCode == 502) {
         final msg = res.data is Map ? res.data['message'] as String? : null;
-        logger.e('initiatePayment 502: $msg');
+        logger.w('initiatePayment 502: $msg');
         return ApiResult.failure(AppError.paymentProviderError, message: msg);
       }
-      logger.e('initiatePayment unexpected status ${res.statusCode}: ${res.data}');
+      logger.w('initiatePayment unexpected status ${res.statusCode}: ${res.data}');
       final fallbackMsg = res.data is Map ? res.data['message'] as String? : null;
       return ApiResult.failure(AppError.unexpected, message: fallbackMsg);
     } on DioException catch (e) {
-      logger.e('initiatePayment: $e');
+      logger.w('initiatePayment: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('initiatePayment: $e');
+      logger.w('initiatePayment: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -315,10 +315,10 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('approvalStatus: $e');
+      logger.w('approvalStatus: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('approvalStatus: $e');
+      logger.w('approvalStatus: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -342,10 +342,10 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('paymentSuccess: $e');
+      logger.w('paymentSuccess: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('paymentSuccess: $e');
+      logger.w('paymentSuccess: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -373,10 +373,10 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('passengerReservations: $e');
+      logger.w('passengerReservations: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('passengerReservations: $e');
+      logger.w('passengerReservations: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -405,7 +405,7 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
           } else if (raw is String) {
             root = Map<String, dynamic>.from(jsonDecode(raw) as Map);
           } else {
-            logger.e('invoice: inattendu type=${raw?.runtimeType}');
+            logger.w('invoice: inattendu type=${raw?.runtimeType}');
             return ApiResult.failure(AppError.unexpected);
           }
 
@@ -419,23 +419,23 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
           } else if (root.containsKey('invoice_ref')) {
             body = root; // champs à la racine
           } else {
-            logger.e('invoice: body manquant root=$root');
+            logger.w('invoice: body manquant root=$root');
             return ApiResult.failure(AppError.unexpected);
           }
 
           logger.d('invoice: ok keys=${body.keys.toList()}');
           return ApiResult.success(InvoiceModel.fromJson(body));
         } catch (e, st) {
-          logger.e('invoice parse: $e\n$st');
+          logger.w('invoice parse: $e\n$st');
           return ApiResult.failure(AppError.unexpected);
         }
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('invoice: $e');
+      logger.w('invoice: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('invoice: $e');
+      logger.w('invoice: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -458,10 +458,10 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('liveTracking: $e');
+      logger.w('liveTracking: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('liveTracking: $e');
+      logger.w('liveTracking: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -484,10 +484,10 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('tripConfirmationCtx: $e');
+      logger.w('tripConfirmationCtx: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('tripConfirmationCtx: $e');
+      logger.w('tripConfirmationCtx: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -509,10 +509,10 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       if (sc >= 200 && sc < 300) return ApiResult.success(null);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('confirmTrip: $e');
+      logger.w('confirmTrip: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('confirmTrip: $e');
+      logger.w('confirmTrip: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -543,10 +543,10 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       if (sc2 >= 200 && sc2 < 300) return ApiResult.success(null);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('submitReview: $e');
+      logger.w('submitReview: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('submitReview: $e');
+      logger.w('submitReview: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -568,10 +568,10 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('tripDetail: $e');
+      logger.w('tripDetail: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('tripDetail: $e');
+      logger.w('tripDetail: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }

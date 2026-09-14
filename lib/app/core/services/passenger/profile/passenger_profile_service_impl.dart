@@ -1,4 +1,4 @@
-import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
+﻿import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/utils/api_result.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
@@ -35,10 +35,10 @@ class PassengerProfileServiceImpl implements PassengerProfileService {
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('passengerProfile: $e');
+      logger.w('passengerProfile: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('passengerProfile: $e');
+      logger.w('passengerProfile: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -73,10 +73,10 @@ class PassengerProfileServiceImpl implements PassengerProfileService {
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('updatePassengerProfile: $e');
+      logger.w('updatePassengerProfile: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('updatePassengerProfile: $e');
+      logger.w('updatePassengerProfile: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }

@@ -1,4 +1,4 @@
-import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
+﻿import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/utils/api_result.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
@@ -40,10 +40,10 @@ class ReviewsServiceImpl implements ReviewsService {
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('fetchReviews: $e');
+      logger.w('fetchReviews: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('fetchReviews: $e');
+      logger.w('fetchReviews: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -73,10 +73,10 @@ class ReviewsServiceImpl implements ReviewsService {
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('replyToReview: $e');
+      logger.w('replyToReview: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('replyToReview: $e');
+      logger.w('replyToReview: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -105,10 +105,10 @@ class ReviewsServiceImpl implements ReviewsService {
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('reactToReview: $e');
+      logger.w('reactToReview: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('reactToReview: $e');
+      logger.w('reactToReview: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -130,10 +130,10 @@ class ReviewsServiceImpl implements ReviewsService {
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('fetchTripReviews: $e');
+      logger.w('fetchTripReviews: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('fetchTripReviews: $e');
+      logger.w('fetchTripReviews: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }

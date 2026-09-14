@@ -1,4 +1,4 @@
-import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
+﻿import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/utils/api_result.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
@@ -60,10 +60,10 @@ class AuthServiceImpl implements AuthService {
       if (status >= 500) return ApiResult.failure(AppError.serverUnavailable);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('sendOtp: $e');
+      logger.w('sendOtp: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('sendOtp: $e');
+      logger.w('sendOtp: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -92,7 +92,7 @@ class AuthServiceImpl implements AuthService {
       if (response.statusCode == 422) return ApiResult.failure(AppError.validationError);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('verifyOtp: $e');
+      logger.w('verifyOtp: $e');
       final classifiedError = AppDio.classifyDioError(e);
       if (classifiedError != AppError.unexpected) return ApiResult.failure(classifiedError);
       final status = e.response?.statusCode;
@@ -101,7 +101,7 @@ class AuthServiceImpl implements AuthService {
       if (status == 422) return ApiResult.failure(AppError.validationError);
       return ApiResult.failure(AppError.unexpected);
     } catch (e) {
-      logger.e('verifyOtp: $e');
+      logger.w('verifyOtp: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -118,12 +118,12 @@ class AuthServiceImpl implements AuthService {
       if (response.statusCode == 401) return ApiResult.success(null); // déjà expiré
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('logout: $e');
+      logger.w('logout: $e');
       // On efface quand même la session locale même si le réseau échoue.
       await UserController.instance.logout();
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('logout: $e');
+      logger.w('logout: $e');
       await UserController.instance.logout();
       return ApiResult.failure(AppError.unexpected);
     }
@@ -143,10 +143,10 @@ class AuthServiceImpl implements AuthService {
       if (response.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('setUserRole: $e');
+      logger.w('setUserRole: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('setUserRole: $e');
+      logger.w('setUserRole: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -174,10 +174,10 @@ class AuthServiceImpl implements AuthService {
       if (response.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('me: $e');
+      logger.w('me: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('me: $e');
+      logger.w('me: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }

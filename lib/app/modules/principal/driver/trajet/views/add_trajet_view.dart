@@ -1214,6 +1214,7 @@ class _PricingCard extends StatelessWidget {
                   controller: controller.priceController,
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  onChanged: controller.onPriceTextChanged,
                   style: AppTextStyles.rolesCardTitle(responsive).copyWith(
                     fontSize: responsive.text(22),
                     color: AppColors.textPrimary,
@@ -1256,10 +1257,10 @@ class _PricingCard extends StatelessWidget {
             ],
           ),
         ),
-        SizedBox(height: responsive.h(12)),
         Obx(() {
           final seats = controller.availableSeats.value;
           final price = controller.pricePerSeat.value.toInt();
+          if (price <= 0) return const SizedBox.shrink();
           final total = seats * price;
           final net = (total * controller.driverSharePercent / 100).round();
           final fee = total - net;
@@ -1267,79 +1268,84 @@ class _PricingCard extends StatelessWidget {
           final fmtTotal = _formatAmount(total);
           final fmtNet = _formatAmount(net);
           final fmtFee = _formatAmount(fee);
-          return Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(responsive.w(16)),
-            decoration: ShapeDecoration(
-              color: AppColors.surfaceAccentStrong,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(responsive.radius(16)),
-                side: BorderSide(color: AppColors.primary.withValues(alpha: 0.2)),
-              ),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '$seats place${seats > 1 ? 's' : ''} × $fmtPrice FCFA',
-                      style: AppTextStyles.profileSectionLabel(responsive),
-                    ),
-                    Text(
-                      '$fmtTotal FCFA',
-                      style: AppTextStyles.profileSectionLabel(responsive).copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
+          return Column(
+            children: [
+              SizedBox(height: responsive.h(12)),
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(responsive.w(16)),
+                decoration: ShapeDecoration(
+                  color: AppColors.surfaceAccentStrong,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(responsive.radius(16)),
+                    side: BorderSide(color: AppColors.primary.withValues(alpha: 0.2)),
+                  ),
                 ),
-                Divider(
-                  height: responsive.h(16),
-                  color: AppColors.primary.withValues(alpha: 0.15),
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: Column(
                   children: [
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Icon(Icons.account_balance_wallet_rounded,
-                            size: responsive.text(14),
-                            color: AppColors.success),
-                        SizedBox(width: responsive.w(6)),
                         Text(
-                          'Vous recevez (${controller.driverSharePercent}%)',
-                          style: AppTextStyles.caption(responsive)
-                              .copyWith(color: AppColors.success),
+                          '$seats place${seats > 1 ? 's' : ''} × $fmtPrice FCFA',
+                          style: AppTextStyles.profileSectionLabel(responsive),
+                        ),
+                        Text(
+                          '$fmtTotal FCFA',
+                          style: AppTextStyles.profileSectionLabel(responsive).copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ],
                     ),
-                    Text(
-                      '$fmtNet FCFA',
-                      style: AppTextStyles.profileSectionLabel(responsive).copyWith(
-                        color: AppColors.success,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    Divider(
+                      height: responsive.h(16),
+                      color: AppColors.primary.withValues(alpha: 0.15),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.account_balance_wallet_rounded,
+                                size: responsive.text(14),
+                                color: AppColors.success),
+                            SizedBox(width: responsive.w(6)),
+                            Text(
+                              'Vous recevez (${controller.driverSharePercent}%)',
+                              style: AppTextStyles.caption(responsive)
+                                  .copyWith(color: AppColors.success),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          '$fmtNet FCFA',
+                          style: AppTextStyles.profileSectionLabel(responsive).copyWith(
+                            color: AppColors.success,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: responsive.h(4)),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Commission plateforme (${controller.commissionRatePercent}%)',
+                          style: AppTextStyles.caption(responsive),
+                        ),
+                        Text(
+                          '$fmtFee FCFA',
+                          style: AppTextStyles.caption(responsive),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                SizedBox(height: responsive.h(4)),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Commission plateforme (${controller.commissionRatePercent}%)',
-                      style: AppTextStyles.caption(responsive),
-                    ),
-                    Text(
-                      '$fmtFee FCFA',
-                      style: AppTextStyles.caption(responsive),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+              ),
+            ],
           );
         }),
       ],

@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
@@ -35,10 +35,10 @@ class DriverProfileServiceImpl implements DriverProfileService {
       if (response.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('driverProfile: $e');
+      logger.w('driverProfile: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('driverProfile: $e');
+      logger.w('driverProfile: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -72,10 +72,10 @@ class DriverProfileServiceImpl implements DriverProfileService {
       if (response.statusCode == 422) return ApiResult.failure(AppError.validationError);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('updateProfile: $e');
+      logger.w('updateProfile: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('updateProfile: $e');
+      logger.w('updateProfile: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -110,10 +110,10 @@ class DriverProfileServiceImpl implements DriverProfileService {
       if (response.statusCode == 422) return ApiResult.failure(AppError.validationError);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('updatePreferences: $e');
+      logger.w('updatePreferences: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('updatePreferences: $e');
+      logger.w('updatePreferences: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -140,10 +140,10 @@ class DriverProfileServiceImpl implements DriverProfileService {
       if (response.statusCode == 422) return ApiResult.failure(AppError.validationError);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('uploadDocument: $e');
+      logger.w('uploadDocument: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('uploadDocument: $e');
+      logger.w('uploadDocument: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }

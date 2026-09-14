@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
@@ -42,10 +42,10 @@ class VehiclesServiceImpl implements VehiclesService {
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('listVehicles: $e');
+      logger.w('listVehicles: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('listVehicles: $e');
+      logger.w('listVehicles: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -72,10 +72,10 @@ class VehiclesServiceImpl implements VehiclesService {
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('createVehicle: $e');
+      logger.w('createVehicle: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('createVehicle: $e');
+      logger.w('createVehicle: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -102,10 +102,10 @@ class VehiclesServiceImpl implements VehiclesService {
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('updateVehicle: $e');
+      logger.w('updateVehicle: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('updateVehicle: $e');
+      logger.w('updateVehicle: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -135,10 +135,10 @@ class VehiclesServiceImpl implements VehiclesService {
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('uploadVehicleDocument: $e');
+      logger.w('uploadVehicleDocument: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('uploadVehicleDocument: $e');
+      logger.w('uploadVehicleDocument: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -159,10 +159,10 @@ class VehiclesServiceImpl implements VehiclesService {
       if (res.statusCode == 422) return ApiResult.failure(AppError.tripNotFound);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('deleteVehicle: $e');
+      logger.w('deleteVehicle: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('deleteVehicle: $e');
+      logger.w('deleteVehicle: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }

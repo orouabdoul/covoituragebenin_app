@@ -1049,7 +1049,7 @@ class PushNotificationService {
     try {
       return await _fcm.getToken();
     } catch (e) {
-      logger.e('FCM getToken: $e');
+      logger.w('FCM getToken: $e');
       return null;
     }
   }
@@ -1084,7 +1084,7 @@ class PushNotificationService {
         logger.w('registerFcmToken: réponse inattendue [${res.statusCode}]');
       }
     } catch (e) {
-      logger.e('registerFcmToken: $e');
+      logger.w('registerFcmToken: $e');
     }
   }
 

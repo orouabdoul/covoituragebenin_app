@@ -1,4 +1,4 @@
-import 'dart:math';
+﻿import 'dart:math';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
 import 'package:covoiturage_benin_app/app/core/utils/api_result.dart';
@@ -77,10 +77,10 @@ class PassengerSearchServiceImpl implements PassengerSearchService {
       logger.w('passengerSearch → format inattendu [statusCode=$statusCode]');
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('passengerSearch: $e');
+      logger.w('passengerSearch: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('passengerSearch: $e');
+      logger.w('passengerSearch: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }

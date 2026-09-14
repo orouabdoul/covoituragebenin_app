@@ -440,18 +440,6 @@ class DriverHomeController extends GetxController {
 
     metrics.assignAll(data.metrics.map(_metricFromApi));
 
-    // ── LOG nextTrip ──────────────────────────────────────────────────────
-    if (data.nextTrip != null) {
-      final t = data.nextTrip!;
-      logger.d('═══ [DRIVER HOME] nextTrip reçu ═══');
-      logger.d('  uuid          : ${t.uuid}');
-      logger.d('  status        : "${t.status}"');
-      logger.d('  departureTime : "${t.departureTime}"');
-      logger.d('  route         : ${t.departureCity} → ${t.arrivalCity}');
-    } else {
-      logger.d('[DRIVER HOME] nextTrip = null');
-    }
-
     const visibleStatuses = {'pending', 'confirmed', 'active', 'in_progress', 'started'};
     final rawTrip = data.nextTrip;
     final tripVisible = rawTrip != null &&
@@ -479,20 +467,7 @@ class DriverHomeController extends GetxController {
         tripProgress: (t.status == 'in_progress' || t.status == 'started') ? 0.5 : 0.0,
       );
     } else {
-      if (rawTrip != null) {
-        logger.d('[DRIVER HOME] nextTrip MASQUÉ : status="${rawTrip.status}" départ="${rawTrip.departureTime}"');
-      }
       nextTrip.value = null;
-    }
-
-    // ── LOG quickRequests ─────────────────────────────────────────────────
-    logger.d('═══ [DRIVER HOME] quickRequests reçus (${data.quickRequests.length}) ═══');
-    for (var i = 0; i < data.quickRequests.length; i++) {
-      final r = data.quickRequests[i];
-      final secs = _expirySeconds(r.createdAt);
-      logger.d('  quick[$i] uuid=${r.uuid.substring(0, 8)}… '
-          'status="${r.status}" createdAt="${r.createdAt}" '
-          'remainingSecs=$secs tripDep="${r.trip.departureTime}"');
     }
 
     for (final r in quickRequests) {
@@ -526,16 +501,6 @@ class DriverHomeController extends GetxController {
       r.startTimer(() => _onRequestExpired(r));
     }
     pendingRequestsCount.value = quickRequests.length;
-    logger.d('[DRIVER HOME] quickRequests AFFICHÉS : ${quickRequests.length}');
-
-    // ── LOG recentRequests ────────────────────────────────────────────────
-    logger.d('═══ [DRIVER HOME] recentRequests reçus (${data.recentRequests.length}) ═══');
-    for (var i = 0; i < data.recentRequests.length; i++) {
-      final r = data.recentRequests[i];
-      logger.d('  recent[$i] status="${r.status}" '
-          'createdAt="${r.createdAt}" tripDep="${r.trip.departureTime}" '
-          'passenger="${r.passenger.name}"');
-    }
 
     const hiddenStatuses = {'cancelled', 'accepted', 'rejected', 'expired'};
     recentRequests.assignAll(
@@ -559,8 +524,6 @@ class DriverHomeController extends GetxController {
         );
       }),
     );
-    logger.d('[DRIVER HOME] recentRequests AFFICHÉS : ${recentRequests.length}');
-
     wallet.value = DriverWallet(
       balance: data.wallet.availableBalance.toCurrency,
       blockedAmount: data.wallet.blockedAmount.toCurrency,

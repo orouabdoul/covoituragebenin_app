@@ -1,4 +1,4 @@
-import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
+﻿import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/utils/api_result.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
@@ -38,10 +38,10 @@ class ActiveTripServiceImpl implements ActiveTripService {
       if (res.statusCode == 404) return ApiResult.failure(AppError.tripNotFound);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('preDeparture: $e');
+      logger.w('preDeparture: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('preDeparture: $e');
+      logger.w('preDeparture: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -63,10 +63,10 @@ class ActiveTripServiceImpl implements ActiveTripService {
       if (res.statusCode == 404) return ApiResult.failure(AppError.tripNotFound);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('startTrip: $e');
+      logger.w('startTrip: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('startTrip: $e');
+      logger.w('startTrip: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }

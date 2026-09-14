@@ -1,4 +1,4 @@
-import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
+﻿import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/utils/api_result.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
@@ -37,10 +37,10 @@ class TripDetailServiceImpl implements TripDetailService {
       if (response.statusCode == 404) return ApiResult.failure(AppError.userNotFound);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('driverTripDetail: $e');
+      logger.w('driverTripDetail: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('driverTripDetail: $e');
+      logger.w('driverTripDetail: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -65,10 +65,10 @@ class TripDetailServiceImpl implements TripDetailService {
       if (response.statusCode == 422) return ApiResult.failure(AppError.validationError);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('driverTripUpdate: $e');
+      logger.w('driverTripUpdate: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('driverTripUpdate: $e');
+      logger.w('driverTripUpdate: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }

@@ -40,10 +40,10 @@ class TripsServiceImpl implements TripsService {
       if (response.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('driverTrips: $e');
+      logger.w('driverTrips: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('driverTrips: $e');
+      logger.w('driverTrips: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -64,10 +64,10 @@ class TripsServiceImpl implements TripsService {
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('fetchTripForm: $e');
+      logger.w('fetchTripForm: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('fetchTripForm: $e');
+      logger.w('fetchTripForm: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -90,10 +90,10 @@ class TripsServiceImpl implements TripsService {
       if (response.statusCode == 404) return ApiResult.failure(AppError.userNotFound);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('driverTripPassengers: $e');
+      logger.w('driverTripPassengers: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('driverTripPassengers: $e');
+      logger.w('driverTripPassengers: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -113,10 +113,10 @@ class TripsServiceImpl implements TripsService {
       if (response.statusCode == 404) return ApiResult.failure(AppError.userNotFound);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('driverTripCancel: $e');
+      logger.w('driverTripCancel: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('driverTripCancel: $e');
+      logger.w('driverTripCancel: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -145,10 +145,10 @@ class TripsServiceImpl implements TripsService {
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('publishTrip: $e');
+      logger.w('publishTrip: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('publishTrip: $e');
+      logger.w('publishTrip: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -166,10 +166,10 @@ class TripsServiceImpl implements TripsService {
       if (response.statusCode == 404) return ApiResult.failure(AppError.userNotFound);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('fetchTripRaw: $e');
+      logger.w('fetchTripRaw: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('fetchTripRaw: $e');
+      logger.w('fetchTripRaw: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -192,10 +192,10 @@ class TripsServiceImpl implements TripsService {
       if (response.statusCode == 422) return ApiResult.failure(AppError.validationError);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('estimateTrip: $e');
+      logger.w('estimateTrip: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('estimateTrip: $e');
+      logger.w('estimateTrip: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -219,10 +219,10 @@ class TripsServiceImpl implements TripsService {
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('updateTrip: $e');
+      logger.w('updateTrip: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('updateTrip: $e');
+      logger.w('updateTrip: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }

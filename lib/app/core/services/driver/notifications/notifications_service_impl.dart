@@ -40,10 +40,10 @@ class NotificationsServiceImpl implements NotificationsService {
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('fetchNotifications: $e');
+      logger.w('fetchNotifications: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('fetchNotifications: $e');
+      logger.w('fetchNotifications: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -58,10 +58,10 @@ class NotificationsServiceImpl implements NotificationsService {
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('markAsRead: $e');
+      logger.w('markAsRead: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('markAsRead: $e');
+      logger.w('markAsRead: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -76,10 +76,10 @@ class NotificationsServiceImpl implements NotificationsService {
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('markAllRead: $e');
+      logger.w('markAllRead: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('markAllRead: $e');
+      logger.w('markAllRead: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }

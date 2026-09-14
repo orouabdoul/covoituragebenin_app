@@ -1,4 +1,4 @@
-import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
+﻿import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/utils/api_result.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
@@ -39,18 +39,18 @@ class PassengerSafetyServiceImpl implements PassengerSafetyService {
           } else if (raw is Map) {
             body = Map<String, dynamic>.from(raw);
           } else {
-            logger.e('passengerSafety: body inattendu = $raw');
+            logger.w('passengerSafety: body inattendu = $raw');
             return ApiResult.failure(AppError.unexpected);
           }
           return ApiResult.success(SafetyContext.fromJson(body));
         }
       }
-      logger.e('passengerSafety: réponse inattendue ${res.statusCode} / ${res.data}');
+      logger.w('passengerSafety: réponse inattendue ${res.statusCode} / ${res.data}');
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('passengerSafety exception: $e');
+      logger.w('passengerSafety exception: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -162,12 +162,12 @@ class PassengerSafetyServiceImpl implements PassengerSafetyService {
               .toList());
         }
       }
-      logger.e('fetchContacts: réponse inattendue ${res.statusCode} / ${res.data}');
+      logger.w('fetchContacts: réponse inattendue ${res.statusCode} / ${res.data}');
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('fetchContacts exception: $e');
+      logger.w('fetchContacts exception: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -200,7 +200,7 @@ class PassengerSafetyServiceImpl implements PassengerSafetyService {
           } else if (raw is Map) {
             body = Map<String, dynamic>.from(raw);
           } else {
-            logger.e('addContact: body inattendu = $raw');
+            logger.w('addContact: body inattendu = $raw');
             return ApiResult.failure(AppError.unexpected);
           }
           // Chercher le contact dans body['contact'], body['data'], ou body lui-même
@@ -224,12 +224,12 @@ class PassengerSafetyServiceImpl implements PassengerSafetyService {
           ));
         }
       }
-      logger.e('addContact: réponse inattendue ${res.statusCode} / ${res.data}');
+      logger.w('addContact: réponse inattendue ${res.statusCode} / ${res.data}');
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('addContact exception: $e');
+      logger.w('addContact exception: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }

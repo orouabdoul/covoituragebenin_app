@@ -1,4 +1,4 @@
-import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
+﻿import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/utils/api_result.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
@@ -49,10 +49,10 @@ class PassengerSupportServiceImpl implements PassengerSupportService {
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('passengerSupportFaq: $e');
+      logger.w('passengerSupportFaq: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('passengerSupportFaq: $e');
+      logger.w('passengerSupportFaq: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -79,10 +79,10 @@ class PassengerSupportServiceImpl implements PassengerSupportService {
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('passengerSupportTickets: $e');
+      logger.w('passengerSupportTickets: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('passengerSupportTickets: $e');
+      logger.w('passengerSupportTickets: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -121,7 +121,7 @@ class PassengerSupportServiceImpl implements PassengerSupportService {
       if (res.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
       if (res.statusCode == 422) {
         _lastValidationMessage = _extractMessage(res.data);
-        logger.e('createSupportTicket 422: $_lastValidationMessage');
+        logger.w('createSupportTicket 422: $_lastValidationMessage');
         return ApiResult.failure(AppError.validationError);
       }
       // Accepte 200 ET 201 (Created)
@@ -138,10 +138,10 @@ class PassengerSupportServiceImpl implements PassengerSupportService {
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('createSupportTicket: $e');
+      logger.w('createSupportTicket: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('createSupportTicket: $e');
+      logger.w('createSupportTicket: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }

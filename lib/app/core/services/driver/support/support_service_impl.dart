@@ -1,4 +1,4 @@
-import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
+﻿import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/utils/api_result.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
@@ -40,10 +40,10 @@ class SupportServiceImpl implements SupportService {
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('driverSupportFaq: $e');
+      logger.w('driverSupportFaq: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('driverSupportFaq: $e');
+      logger.w('driverSupportFaq: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -70,10 +70,10 @@ class SupportServiceImpl implements SupportService {
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('driverSupportTickets: $e');
+      logger.w('driverSupportTickets: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('driverSupportTickets: $e');
+      logger.w('driverSupportTickets: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
@@ -106,10 +106,10 @@ class SupportServiceImpl implements SupportService {
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.e('createTicket: $e');
+      logger.w('createTicket: ${e.type}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
-      logger.e('createTicket: $e');
+      logger.w('createTicket: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
