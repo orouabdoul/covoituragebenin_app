@@ -7,6 +7,21 @@ class GeocodingResult {
   final double lng;
 }
 
+class ReverseGeocodingResult {
+  const ReverseGeocodingResult({
+    this.city,
+    this.district,
+    this.suburb,
+    this.street,
+    this.name,
+  });
+  final String? city;
+  final String? district;
+  final String? suburb;
+  final String? street;
+  final String? name;
+}
+
 /// Geocoding via Photon (komoot.io) — données OpenStreetMap, gratuit, sans clé
 /// API, sans limite de taux stricte (contrairement à Nominatim qui bloque à
 /// 429 après deux appels rapides).
@@ -58,6 +73,58 @@ class GeocodingService {
       return null;
     } catch (e) {
       logger.w('GeocodingService error: $e');
+      return null;
+    }
+  }
+
+  /// Géocodage inverse via Nominatim (OpenStreetMap).
+  /// Retourne des composants d'adresse structurés, plus fiables pour le Bénin.
+  Future<ReverseGeocodingResult?> reverseGeocode(double lat, double lng) async {
+    try {
+      final response = await _dio.get(
+        'https://nominatim.openstreetmap.org/reverse',
+        queryParameters: {
+          'lat': lat,
+          'lon': lng,
+          'format': 'json',
+          'accept-language': 'fr',
+          'addressdetails': 1,
+          'zoom': 16,
+        },
+      );
+      if (response.statusCode != 200) return null;
+      final data = response.data as Map<String, dynamic>? ?? {};
+      final address = data['address'] as Map<String, dynamic>? ?? {};
+
+      final city = address['city'] as String?
+          ?? address['town'] as String?
+          ?? address['village'] as String?
+          ?? address['county'] as String?;
+      final suburb = address['suburb'] as String?
+          ?? address['neighbourhood'] as String?
+          ?? address['quarter'] as String?
+          ?? address['residential'] as String?;
+      final road = address['road'] as String?
+          ?? address['pedestrian'] as String?
+          ?? address['footway'] as String?;
+      final amenity = address['amenity'] as String?
+          ?? address['building'] as String?
+          ?? address['shop'] as String?
+          ?? address['leisure'] as String?;
+
+      logger.d('Nominatim reverse $lat,$lng → city=$city suburb=$suburb road=$road amenity=$amenity');
+      return ReverseGeocodingResult(
+        city: city,
+        district: null, // Nominatim ne fournit pas l'arrondissement pour le Bénin
+        suburb: suburb,
+        street: road,
+        name: amenity,
+      );
+    } on DioException catch (e) {
+      logger.w('reverseGeocode DioError: ${e.message}');
+      return null;
+    } catch (e) {
+      logger.w('reverseGeocode error: $e');
       return null;
     }
   }

@@ -496,6 +496,10 @@ class _LocationForm extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (isDeparture) ...[
+            _GpsLocationButton(responsive: responsive, controller: controller),
+            SizedBox(height: responsive.h(12)),
+          ],
           _LocationAutocompleteField(
             key: ValueKey(isDeparture ? 'dep-city' : 'dest-city'),
             responsive: responsive,
@@ -577,6 +581,54 @@ class _LocationForm extends StatelessWidget {
             ),
           ),
         ],
+      );
+    });
+  }
+}
+
+// ── GPS location button ────────────────────────────────────────────────────────
+
+class _GpsLocationButton extends StatelessWidget {
+  const _GpsLocationButton({
+    required this.responsive,
+    required this.controller,
+  });
+
+  final AppResponsive responsive;
+  final AddTrajetController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final loading = controller.isLoadingGpsLocation.value;
+      return SizedBox(
+        width: double.infinity,
+        child: OutlinedButton.icon(
+          onPressed: loading ? null : controller.fillDepartureFromGps,
+          icon: loading
+              ? SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.primary,
+                  ),
+                )
+              : const Icon(Icons.my_location_rounded, size: 18),
+          label: Text(
+            loading ? 'Localisation en cours…' : 'Utiliser ma position',
+          ),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.primary,
+            side: BorderSide(color: AppColors.primary.withValues(alpha: 0.5)),
+            padding: EdgeInsets.symmetric(vertical: responsive.h(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(responsive.radius(12)),
+            ),
+            textStyle: AppTextStyles.bodySmall(responsive)
+                .copyWith(fontWeight: FontWeight.w600),
+          ),
+        ),
       );
     });
   }

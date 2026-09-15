@@ -114,6 +114,9 @@ class AddTrajetController extends GetxController {
   final RxnString selectedDestinationArrondissement = RxnString();
   final RxnString selectedDestinationDistrict = RxnString();
 
+  // ── GPS auto-fill ─────────────────────────────────────────────────────────
+  final RxBool isLoadingGpsLocation = false.obs;
+
   // ── Trip estimate ─────────────────────────────────────────────────────────
   final RxBool isLoadingEstimate = false.obs;
   final RxnString estimatedDistanceKm = RxnString();
@@ -424,6 +427,110 @@ class AddTrajetController extends GetxController {
     }
   }
 
+  Future<void> fillDepartureFromGps() async {
+    isLoadingGpsLocation.value = true;
+    try {
+      if (_deviceLat == null || _deviceLng == null) {
+        await _fetchDeviceGps();
+      }
+      if (_deviceLat == null || _deviceLng == null) {
+        UIHelper().showSnackBar(AppStrings.appName, 'Position GPS non disponible.', 3);
+        return;
+      }
+
+      // Vérification : coordonnées dans le bounding box du Bénin
+      const beninLatMin = 6.142, beninLatMax = 12.409;
+      const beninLngMin = 0.773, beninLngMax = 3.851;
+      if (_deviceLat! < beninLatMin || _deviceLat! > beninLatMax ||
+          _deviceLng! < beninLngMin || _deviceLng! > beninLngMax) {
+        UIHelper().showSnackBar(
+          AppStrings.appName,
+          'Position GPS hors du Bénin. Assurez-vous que la localisation est activée.',
+          4,
+        );
+        return;
+      }
+
+      final geo = await _geocoding.reverseGeocode(_deviceLat!, _deviceLng!);
+      if (geo == null) {
+        UIHelper().showSnackBar(AppStrings.appName, 'Adresse introuvable pour cette position.', 3);
+        return;
+      }
+
+      // 1. Commune — correspondance exacte uniquement
+      final rawCity = (geo.city ?? '').trim();
+      final matchedCity = _exactMatch(rawCity, beninCities);
+      if (matchedCity != null) {
+        onDepartureCityChanged(matchedCity); // remet arr et quartier à zéro
+      } else if (rawCity.isNotEmpty) {
+        departureCityController.text = rawCity;
+      }
+
+      // 2. Quartier — correspondance exacte, sinon valeur brute si non vide
+      final rawSuburb = (geo.suburb ?? '').trim();
+      String? resolvedQuartier;
+      if (rawSuburb.isNotEmpty && matchedCity != null) {
+        // Cherche dans tous les quartiers de la commune
+        final allQuartiers = <String>[];
+        for (final arr in getArrondissements(matchedCity)) {
+          allQuartiers.addAll(getQuartiers(matchedCity, arr));
+        }
+        resolvedQuartier = _exactMatch(rawSuburb, allQuartiers) ?? rawSuburb;
+      } else if (rawSuburb.isNotEmpty) {
+        resolvedQuartier = rawSuburb;
+      }
+
+      // 3. Arrondissement — dérivé depuis le quartier via BeninLocations
+      if (matchedCity != null && resolvedQuartier != null) {
+        final derivedArr = _findArrondissementForQuartier(matchedCity, resolvedQuartier);
+        if (derivedArr != null) {
+          selectedDepartureArrondissement.value = derivedArr;
+          departureArrondissementController.text = derivedArr;
+        }
+      }
+
+      // 4. Appliquer le quartier résolu
+      if (resolvedQuartier != null) {
+        selectedDepartureDistrict.value = resolvedQuartier;
+        departureDistrictController.text = resolvedQuartier;
+      }
+
+      // 5. Point précis — lieu + rue retournés par Nominatim
+      final parts = <String>[
+        if ((geo.name ?? '').isNotEmpty) geo.name!,
+        if ((geo.street ?? '').isNotEmpty && geo.street != geo.name) geo.street!,
+      ];
+      if (parts.isNotEmpty) {
+        departurePointController.text = parts.join(', ');
+      }
+
+      _triggerEstimate();
+    } finally {
+      isLoadingGpsLocation.value = false;
+    }
+  }
+
+  /// Correspondance exacte insensible à la casse — pas de match partiel.
+  String? _exactMatch(String raw, List<String> list) {
+    if (raw.isEmpty || list.isEmpty) return null;
+    final normalizedRaw = raw.toLowerCase().trim();
+    for (final item in list) {
+      if (item.toLowerCase().trim() == normalizedRaw) return item;
+    }
+    return null;
+  }
+
+  /// Trouve l'arrondissement d'un quartier dans BeninLocations pour une commune donnée.
+  String? _findArrondissementForQuartier(String city, String quartier) {
+    final normalizedQ = quartier.toLowerCase().trim();
+    for (final arr in getArrondissements(city)) {
+      for (final q in getQuartiers(city, arr)) {
+        if (q.toLowerCase().trim() == normalizedQ) return arr;
+      }
+    }
+    return null;
+  }
+
   Future<void> _loadTripForm() async {
     isLoadingVehicles.value = true;
     final result = await _tripsService.fetchTripForm();
@@ -609,10 +716,7 @@ class AddTrajetController extends GetxController {
   }
 
 
-  void onPriceTextChanged(String text) {
-    pricePerSeat.value = double.tryParse(text) ?? 0;
-  }
-
+  
   // ── Actions ───────────────────────────────────────────────────────────────
 
   void selectVehicle(VehicleData vehicle) {
@@ -648,6 +752,10 @@ class AddTrajetController extends GetxController {
   void updatePrice(double value) {
     pricePerSeat.value = value;
     priceController.text = value.toInt().toString();
+  }
+
+  void onPriceTextChanged(String value) {
+    pricePerSeat.value = double.tryParse(value) ?? 0.0;
   }
 
   void toggleOption(String option) {

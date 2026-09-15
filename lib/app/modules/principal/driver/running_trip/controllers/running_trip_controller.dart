@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:covoiturage_benin_app/app/core/services/driver/interactive_map/interactive_map_service_impl.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/trips/trips_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/pre_departure_model.dart';
@@ -11,10 +12,17 @@ import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 class RunningTripController extends GetxController {
   TripsService get _tripsService => Get.find<TripsService>();
+  final InteractiveMapServiceImpl _mapService = InteractiveMapServiceImpl();
 
   final RxBool isSending = false.obs;
-  // Vrai si le conducteur est à moins de 300m du point d'arrivée
   final RxBool nearArrival = false.obs;
+  // Vrai si les coordonnées d'arrivée ou le GPS sont indisponibles
+  final RxBool noArrivalData = false.obs;
+
+  // bookingUuid des prises en charge confirmées par le conducteur
+  final RxSet<String> confirmedPickups = <String>{}.obs;
+  // bookingUuid en cours de confirmation (spinner)
+  final RxSet<String> confirmingPickups = <String>{}.obs;
 
   late final String _uuid;
   PreDepartureTripSummary? _tripSummary;
@@ -59,8 +67,7 @@ class RunningTripController extends GetxController {
     }
 
     if (arrLat == null || arrLng == null) {
-      // Coordonnées introuvables : bouton toujours disponible
-      nearArrival.value = true;
+      noArrivalData.value = true;
       return;
     }
     final lat = arrLat;
@@ -71,24 +78,38 @@ class RunningTripController extends GetxController {
     }
     if (perm == LocationPermission.denied ||
         perm == LocationPermission.deniedForever) {
-      nearArrival.value = true;
+      noArrivalData.value = true;
       return;
     }
     _gpsSub = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.high,
-        distanceFilter: 30,
+        distanceFilter: 10,
       ),
     ).listen((pos) {
       final dist = Geolocator.distanceBetween(
           pos.latitude, pos.longitude, lat, lng);
-      nearArrival.value = dist <= 300;
+      nearArrival.value = dist <= 100;
     }, onError: (_) {
-      nearArrival.value = true;
+      noArrivalData.value = true;
     });
   }
 
   // ── Actions ────────────────────────────────────────────────────────────────
+
+  Future<void> confirmPickup(String bookingUuid) async {
+    if (confirmingPickups.contains(bookingUuid)) return;
+    if (confirmedPickups.contains(bookingUuid)) return;
+    confirmingPickups.add(bookingUuid);
+    final result = await _mapService.markStopDone(_uuid, bookingUuid);
+    confirmingPickups.remove(bookingUuid);
+    if (result.isSuccess) {
+      confirmedPickups.add(bookingUuid);
+      UIHelper().showSnackBar('MINIZON', 'Prise en charge confirmée.', 2);
+    } else {
+      UIHelper().showSnackBar('MINIZON', 'Impossible de confirmer. Réessayez.', 3);
+    }
+  }
 
   void onViewMap() {
     Get.toNamed(AppRoutes.driverInteractiveMap, arguments: {'uuid': _uuid});

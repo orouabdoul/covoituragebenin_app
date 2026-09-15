@@ -260,78 +260,127 @@ class _PassengersCard extends StatelessWidget {
               style: AppTextStyles.subtitle(r)
                   .copyWith(fontWeight: FontWeight.w700)),
           SizedBox(height: r.h(12)),
-          ...stops.map((s) => Padding(
-                padding: EdgeInsets.only(bottom: r.h(10)),
-                child: Row(
-                  children: [
-                    Container(
-                      width: r.w(38),
-                      height: r.w(38),
-                      decoration: BoxDecoration(
-                        color: s.isPickup
-                            ? AppColors.primary.withValues(alpha: 0.12)
-                            : AppColors.dangerLight,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Text(
-                          s.passengerName.isNotEmpty
-                              ? s.passengerName[0].toUpperCase()
-                              : '?',
-                          style: TextStyle(
-                            color: s.isPickup
-                                ? AppColors.primary
-                                : AppColors.danger,
-                            fontWeight: FontWeight.w800,
-                            fontSize: r.text(15),
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: r.w(10)),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+          ...stops.map((s) => Obx(() {
+                final confirmed = ctrl.confirmedPickups.contains(s.bookingUuid);
+                final confirming = ctrl.confirmingPickups.contains(s.bookingUuid);
+                return Padding(
+                  padding: EdgeInsets.only(bottom: r.h(10)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         children: [
-                          Text(s.passengerName,
-                              style: AppTextStyles.bodySmall(r).copyWith(
-                                  fontWeight: FontWeight.w600)),
-                          Text(
-                            s.isPickup
-                                ? 'Prise en charge — ${s.address}'
-                                : 'Dépose — ${s.address}',
-                            style: AppTextStyles.caption(r)
-                                .copyWith(color: AppColors.textMuted),
-                            overflow: TextOverflow.ellipsis,
+                          Container(
+                            width: r.w(38),
+                            height: r.w(38),
+                            decoration: BoxDecoration(
+                              color: confirmed
+                                  ? AppColors.primary.withValues(alpha: 0.20)
+                                  : s.isPickup
+                                      ? AppColors.primary.withValues(alpha: 0.12)
+                                      : AppColors.dangerLight,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Center(
+                              child: confirmed
+                                  ? Icon(Icons.check_rounded,
+                                      size: r.text(18), color: AppColors.primary)
+                                  : Text(
+                                      s.passengerName.isNotEmpty
+                                          ? s.passengerName[0].toUpperCase()
+                                          : '?',
+                                      style: TextStyle(
+                                        color: s.isPickup
+                                            ? AppColors.primary
+                                            : AppColors.danger,
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: r.text(15),
+                                      ),
+                                    ),
+                            ),
                           ),
+                          SizedBox(width: r.w(10)),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(s.passengerName,
+                                    style: AppTextStyles.bodySmall(r).copyWith(
+                                        fontWeight: FontWeight.w600)),
+                                Text(
+                                  s.isPickup
+                                      ? 'Prise en charge — ${s.address}'
+                                      : 'Dépose — ${s.address}',
+                                  style: AppTextStyles.caption(r)
+                                      .copyWith(color: AppColors.textMuted),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (s.phone.isNotEmpty)
+                            GestureDetector(
+                              onTap: () async {
+                                final uri = Uri(scheme: 'tel', path: s.phone);
+                                if (await canLaunchUrl(uri)) {
+                                  await launchUrl(uri);
+                                } else {
+                                  UIHelper().showSnackBar(
+                                      'MINIZON', 'Impossible d\'ouvrir le téléphone.', 2);
+                                }
+                              },
+                              child: Container(
+                                width: r.w(32),
+                                height: r.w(32),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withValues(alpha: 0.10),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(Icons.phone_rounded,
+                                    size: r.text(16), color: AppColors.primary),
+                              ),
+                            ),
                         ],
                       ),
-                    ),
-                    if (s.phone.isNotEmpty)
-                      GestureDetector(
-                        onTap: () async {
-                          final uri = Uri(scheme: 'tel', path: s.phone);
-                          if (await canLaunchUrl(uri)) {
-                            await launchUrl(uri);
-                          } else {
-                            UIHelper().showSnackBar(
-                                'MINIZON', 'Impossible d\'ouvrir le téléphone.', 2);
-                          }
-                        },
-                        child: Container(
-                          width: r.w(32),
-                          height: r.w(32),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.10),
-                            shape: BoxShape.circle,
+                      if (s.isPickup && !confirmed) ...[
+                        SizedBox(height: r.h(8)),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: confirming
+                                ? null
+                                : () => ctrl.confirmPickup(s.bookingUuid),
+                            icon: confirming
+                                ? SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AppColors.primary,
+                                    ),
+                                  )
+                                : const Icon(Icons.check_circle_outline_rounded, size: 16),
+                            label: Text(confirming
+                                ? 'Confirmation…'
+                                : 'Confirmer la prise en charge'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.primary,
+                              side: BorderSide(
+                                  color: AppColors.primary.withValues(alpha: 0.5)),
+                              padding: EdgeInsets.symmetric(vertical: r.h(8)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(r.radius(10)),
+                              ),
+                              textStyle: AppTextStyles.caption(r)
+                                  .copyWith(fontWeight: FontWeight.w600),
+                            ),
                           ),
-                          child: Icon(Icons.phone_rounded,
-                              size: r.text(16), color: AppColors.primary),
                         ),
-                      ),
-                  ],
-                ),
-              )),
+                      ],
+                    ],
+                  ),
+                );
+              })),
         ],
       ),
     );
@@ -416,46 +465,48 @@ class _TerminateButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Obx(() {
       final near = ctrl.nearArrival.value;
-      if (!near) {
-        return Container(
+
+      if (near) {
+        return SizedBox(
           width: double.infinity,
-          padding: EdgeInsets.symmetric(horizontal: r.w(16), vertical: r.h(14)),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceMuted,
-            borderRadius: BorderRadius.circular(r.radius(14)),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.location_searching_rounded,
-                  size: r.text(16), color: AppColors.textMuted),
-              SizedBox(width: r.w(8)),
-              Text(
-                'Terminer — disponible à moins de 300m',
-                style: AppTextStyles.subtitle(r)
-                    .copyWith(color: AppColors.textMuted),
+          child: ElevatedButton.icon(
+            onPressed: () => _confirmTerminate(context, r, ctrl),
+            icon: const Icon(Icons.flag_rounded, size: 20),
+            label: const Text('Terminer le trajet'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.danger,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(vertical: r.h(14)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(r.radius(14)),
               ),
-            ],
+              elevation: 0,
+              textStyle: AppTextStyles.subtitle(r)
+                  .copyWith(fontWeight: FontWeight.w700),
+            ),
           ),
         );
       }
-      return SizedBox(
+
+      return Container(
         width: double.infinity,
-        child: ElevatedButton.icon(
-          onPressed: () => _confirmTerminate(context, r, ctrl),
-          icon: const Icon(Icons.flag_rounded, size: 20),
-          label: const Text('Terminer le trajet'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.danger,
-            foregroundColor: Colors.white,
-            padding: EdgeInsets.symmetric(vertical: r.h(14)),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(r.radius(14)),
+        padding: EdgeInsets.symmetric(horizontal: r.w(16), vertical: r.h(14)),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceMuted,
+          borderRadius: BorderRadius.circular(r.radius(14)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.location_searching_rounded,
+                size: r.text(16), color: AppColors.textMuted),
+            SizedBox(width: r.w(8)),
+            Text(
+              'Terminer — disponible au point d\'arrivée',
+              style: AppTextStyles.subtitle(r)
+                  .copyWith(color: AppColors.textMuted),
             ),
-            elevation: 0,
-            textStyle: AppTextStyles.subtitle(r)
-                .copyWith(fontWeight: FontWeight.w700),
-          ),
+          ],
         ),
       );
     });

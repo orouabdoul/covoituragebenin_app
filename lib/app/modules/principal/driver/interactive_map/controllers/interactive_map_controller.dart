@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
@@ -73,7 +74,14 @@ class InteractiveMapController extends GetxController
   final RxBool allPickedUp = false.obs;
 
   List<LatLng> _apiPolyline = [];
+  // Géométrie OSRM (route réelle suivant les routes) — prioritaire sur _apiPolyline
+  final RxList<LatLng> _osrmPolyline = <LatLng>[].obs;
   double _lastSpeed = 0.0;
+
+  final Dio _routeDio = Dio(BaseOptions(
+    connectTimeout: const Duration(seconds: 8),
+    receiveTimeout: const Duration(seconds: 10),
+  ));
 
   StreamSubscription<Position>? _positionSub;
   Timer? _locationTimer;
@@ -82,7 +90,9 @@ class InteractiveMapController extends GetxController
   TripModel? _fallbackTrip;
 
   /// Renvoie la polyligne de l'itinéraire — toujours ≥ 2 points ou liste vide.
+  /// Priorité : OSRM (vraies routes) > backend > lignes droites entre stops.
   List<LatLng> get routePolyline {
+    if (_osrmPolyline.length >= 2) return List.unmodifiable(_osrmPolyline);
     if (_apiPolyline.length >= 2) return List.unmodifiable(_apiPolyline);
     final pts = [
       driverPosition.value,
@@ -118,6 +128,49 @@ class InteractiveMapController extends GetxController
 
   @override
   Future<void> refresh() => _fetchMapData();
+
+  // ── OSRM route (vraies routes) ────────────────────────────────────────────
+
+  Future<void> _fetchOsrmRoute() async {
+    if (isFallbackMode.value) return;
+    final waypoints = [
+      driverPosition.value,
+      ...stops.map((s) => s.latlng),
+    ];
+    if (waypoints.length < 2) return;
+
+    // OSRM public : max 10 waypoints
+    final coordStr = waypoints
+        .take(10)
+        .map((p) => '${p.longitude},${p.latitude}')
+        .join(';');
+    try {
+      final url = 'https://router.project-osrm.org/route/v1/driving/$coordStr'
+          '?overview=full&geometries=geojson&steps=false';
+      final res = await _routeDio.get<Map<String, dynamic>>(url);
+      if (res.statusCode == 200 && res.data != null) {
+        final routes = res.data!['routes'] as List?;
+        if (routes != null && routes.isNotEmpty) {
+          final coords =
+              (routes[0] as Map)['geometry']['coordinates'] as List;
+          final pts = coords
+              .map<LatLng>((c) => LatLng(
+                    (c[1] as num).toDouble(),
+                    (c[0] as num).toDouble(),
+                  ))
+              .toList();
+          if (pts.length >= 2) {
+            _osrmPolyline.assignAll(pts);
+            logger.d('OSRM driver route: ${pts.length} points');
+          }
+        }
+      }
+    } on DioException catch (e) {
+      logger.w('_fetchOsrmRoute DioError: ${e.type}');
+    } catch (e) {
+      logger.w('_fetchOsrmRoute error: $e');
+    }
+  }
 
   // ── GPS ────────────────────────────────────────────────────────────────────
 
@@ -321,6 +374,9 @@ class InteractiveMapController extends GetxController
 
     // Demander un fit-all pour montrer tous les arrêts
     fitAllRequest.value = !fitAllRequest.value;
+
+    // Récupérer la route OSRM (vraies routes) en arrière-plan
+    _fetchOsrmRoute();
   }
 
   void _applyRecalculate(RecalculateResult data) {
@@ -331,6 +387,10 @@ class InteractiveMapController extends GetxController
     routeFuel.value = data.routeFuel;
     currentStopIndex.value = data.currentStopIndex;
     fitAllRequest.value = !fitAllRequest.value;
+
+    // Recalcule aussi la route OSRM après optimisation
+    _osrmPolyline.clear();
+    _fetchOsrmRoute();
   }
 
   MapStop _fromStopData(MapStopData d) => MapStop(
@@ -542,6 +602,7 @@ class InteractiveMapController extends GetxController
   void onClose() {
     _positionSub?.cancel();
     _locationTimer?.cancel();
+    _routeDio.close(force: true);
     pulseController.dispose();
     super.onClose();
   }
