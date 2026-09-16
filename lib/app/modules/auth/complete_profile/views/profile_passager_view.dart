@@ -219,7 +219,7 @@ class _TopBar extends StatelessWidget {
           AppCircularButton(
             responsive: responsive,
             icon: Icons.arrow_back_ios_new_rounded,
-            onTap: () => Get.offAllNamed(AppRoutes.roles),
+            onTap: () => Get.find<ProfilePassagerController>().goToRoles(),
             size: responsive.w(40),
           ),
           Text(

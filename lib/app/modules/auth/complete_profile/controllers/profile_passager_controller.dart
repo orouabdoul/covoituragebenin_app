@@ -40,6 +40,14 @@ class ProfilePassagerController extends GetxController {
     update();
   }
 
+  void goToRoles() {
+    Get.offAllNamed(AppRoutes.roles, arguments: {
+      'skipAuth': true,
+      'registerToken': _registerToken,
+      'phone': _authPhone,
+    });
+  }
+
   // ── Emergency contacts (max 5) ─────────────────────────────────────────────
   final RxList<EmergencyContactEntry> emergencyContacts =
       <EmergencyContactEntry>[].obs;

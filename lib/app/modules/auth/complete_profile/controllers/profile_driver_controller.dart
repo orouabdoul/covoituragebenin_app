@@ -49,6 +49,14 @@ class ProfileDriverController extends GetxController {
     selectedQuartier.value = quartier;
     update();
   }
+
+  void goToRoles() {
+    Get.offAllNamed(AppRoutes.roles, arguments: {
+      'skipAuth': true,
+      'registerToken': _registerToken,
+      'phone': _authPhone,
+    });
+  }
   final TextEditingController vehicleColorController = TextEditingController();
   final TextEditingController vehicleSeatsController = TextEditingController();
   final TextEditingController plateController = TextEditingController();
@@ -96,9 +104,13 @@ class ProfileDriverController extends GetxController {
   final RxString firstNameError  = ''.obs;
   final RxString lastNameError   = ''.obs;
   final RxString phoneError      = ''.obs;
+  final RxString genderError     = ''.obs;
+  final RxString cityError       = ''.obs;
+  final RxString neighborhoodError = ''.obs;
   final RxString brandError      = ''.obs;
   final RxString modelError      = ''.obs;
   final RxString colorError      = ''.obs;
+  final RxString seatsError      = ''.obs;
   final RxString plateError      = ''.obs;
   final RxString selfieError     = ''.obs;
   final RxString idCardError     = ''.obs;
@@ -355,9 +367,13 @@ class ProfileDriverController extends GetxController {
     firstNameError.value = '';
     lastNameError.value = '';
     phoneError.value = '';
+    genderError.value = '';
+    cityError.value = '';
+    neighborhoodError.value = '';
     brandError.value = '';
     modelError.value = '';
     colorError.value = '';
+    seatsError.value = '';
     plateError.value = '';
     selfieError.value = '';
     idCardError.value = '';
@@ -386,6 +402,21 @@ class ProfileDriverController extends GetxController {
       valid = false;
     }
 
+    if (selectedGender.value == null) {
+      genderError.value = 'Le genre est requis';
+      valid = false;
+    }
+
+    if (selectedCity.value == null || selectedCity.value!.isEmpty) {
+      cityError.value = 'La commune est requise';
+      valid = false;
+    }
+
+    if (selectedNeighborhood.value == null || selectedNeighborhood.value!.isEmpty) {
+      neighborhoodError.value = "L'arrondissement est requis";
+      valid = false;
+    }
+
     if (selectedBrand.value == null || selectedBrand.value!.isEmpty) {
       brandError.value = 'La marque du véhicule est requise';
       valid = false;
@@ -398,13 +429,28 @@ class ProfileDriverController extends GetxController {
       colorError.value = 'La couleur est requise';
       valid = false;
     }
+
+    if (selectedDriverType.value == DriverType.car) {
+      final seats = vehicleSeatsController.text.trim();
+      if (seats.isEmpty) {
+        seatsError.value = 'Le nombre de places est requis';
+        valid = false;
+      } else {
+        final n = int.tryParse(seats);
+        if (n == null || n < 1) {
+          seatsError.value = 'Nombre de places invalide';
+          valid = false;
+        }
+      }
+    }
+
     if (plateController.text.trim().isEmpty) {
       plateError.value = "La plaque d'immatriculation est requise";
       valid = false;
     }
 
-    if (selfieFront.value == null) {
-      selfieError.value = 'Le selfie (face) est requis';
+    if (selfieFront.value == null || selfieLeft.value == null || selfieRight.value == null) {
+      selfieError.value = 'Les 3 selfies (face, gauche, droite) sont requis';
       valid = false;
     }
     if (_idCardFrontFile == null) {
@@ -451,11 +497,17 @@ class ProfileDriverController extends GetxController {
     if (errors['first_name'] != null) firstNameError.value = firstError(errors['first_name']);
     if (errors['last_name'] != null) lastNameError.value = firstError(errors['last_name']);
     if (errors['phone'] != null) phoneError.value = firstError(errors['phone']);
+    if (errors['gender'] != null) genderError.value = firstError(errors['gender']);
+    if (errors['city'] != null) cityError.value = firstError(errors['city']);
+    if (errors['neighborhood'] != null) neighborhoodError.value = firstError(errors['neighborhood']);
     if (errors['brand'] != null) brandError.value = firstError(errors['brand']);
     if (errors['model'] != null) modelError.value = firstError(errors['model']);
     if (errors['color'] != null) colorError.value = firstError(errors['color']);
+    if (errors['available_seats'] != null) seatsError.value = firstError(errors['available_seats']);
     if (errors['license_plate'] != null) plateError.value = firstError(errors['license_plate']);
     if (errors['selfie_front'] != null) selfieError.value = firstError(errors['selfie_front']);
+    if (errors['selfie_left'] != null) selfieError.value = firstError(errors['selfie_left']);
+    if (errors['selfie_right'] != null) selfieError.value = firstError(errors['selfie_right']);
     if (errors['id_card_front'] != null) idCardError.value = firstError(errors['id_card_front']);
     if (errors['vehicle_photo'] != null) vehiclePhotoError.value = firstError(errors['vehicle_photo']);
     if (errors['registration_doc'] != null) registrationError.value = firstError(errors['registration_doc']);

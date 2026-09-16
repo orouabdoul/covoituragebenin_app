@@ -110,8 +110,16 @@ class ProfileDriverView extends GetView<ProfileDriverController> {
                                 selected: controller.selectedGender.value,
                                 onSelected: controller.selectGender,
                               ),
+                              if (controller.genderError.value.isNotEmpty) ...[
+                                SizedBox(height: responsive.h(4)),
+                                _InlineError(
+                                  responsive: responsive,
+                                  text: controller.genderError.value,
+                                ),
+                              ],
                               SizedBox(height: responsive.h(16)),
                               Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Expanded(
                                     child: _VehicleSelectField(
@@ -119,6 +127,7 @@ class ProfileDriverView extends GetView<ProfileDriverController> {
                                       label: AppStrings.profileFieldCity,
                                       hint: AppStrings.profileFieldCityHint,
                                       value: controller.selectedCity.value,
+                                      errorText: controller.cityError.value,
                                       onTap: () => _showVehiclePicker(
                                         context: context,
                                         responsive: responsive,
@@ -139,6 +148,7 @@ class ProfileDriverView extends GetView<ProfileDriverController> {
                                           : AppStrings.profileFieldNeighborhoodHint,
                                       value: controller.selectedNeighborhood.value,
                                       disabled: controller.selectedCity.value == null,
+                                      errorText: controller.neighborhoodError.value,
                                       onTap: controller.selectedCity.value == null
                                           ? null
                                           : () => _showVehiclePicker(
@@ -363,8 +373,13 @@ class ProfileDriverView extends GetView<ProfileDriverController> {
                                         controller: controller.vehicleSeatsController,
                                         hintText: AppStrings.profileVehicleSeatsValue,
                                         keyboardType: TextInputType.number,
-                                        helperText: '4 à 7 places',
-                                        helperStyle: AppTextStyles.profileMeta(responsive),
+                                        borderColor: controller.seatsError.value.isNotEmpty
+                                            ? AppColors.danger : null,
+                                        helperText: controller.seatsError.value.isNotEmpty
+                                            ? controller.seatsError.value : '4 à 7 places',
+                                        helperStyle: controller.seatsError.value.isNotEmpty
+                                            ? AppTextStyles.profileMeta(responsive).copyWith(color: AppColors.danger)
+                                            : AppTextStyles.profileMeta(responsive),
                                         textStyle: AppTextStyles.profileFieldValue(responsive),
                                         hintStyle: AppTextStyles.profileFieldValue(responsive)
                                             .copyWith(color: AppColors.textGhost),
@@ -608,7 +623,7 @@ class _TopBar extends StatelessWidget {
         AppCircularButton(
           responsive: responsive,
           icon: Icons.arrow_back_ios_new_rounded,
-          onTap: () => Get.offAllNamed(AppRoutes.roles),
+          onTap: () => Get.find<ProfileDriverController>().goToRoles(),
           size: responsive.w(40),
         ),
         Row(

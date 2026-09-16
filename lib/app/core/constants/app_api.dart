@@ -1,9 +1,4 @@
-import 'package:flutter/foundation.dart';
-
-// En mode debug → XAMPP local (192.168.100.230), en production → Render.com
-const String apiBaseUrl = kDebugMode
-    ? 'http://192.168.100.230/project-minizon-backend/public/api'
-    : 'https://minizon-api.onrender.com/api';
+const String apiBaseUrl = 'https://minizon-api.onrender.com/api';
 
 class AppApi {
   static const String baseUrl = apiBaseUrl;
