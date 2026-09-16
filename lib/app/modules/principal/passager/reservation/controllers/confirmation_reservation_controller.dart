@@ -112,6 +112,12 @@ class ConfirmationReservationController extends GetxController {
   final TextEditingController cardCodeController = TextEditingController();
   final TextEditingController otpController = TextEditingController();
 
+  // MoMo — dépôt manuel (numéro expéditeur + montant envoyé)
+  final TextEditingController depositNumberController = TextEditingController();
+  final TextEditingController receivedAmountController = TextEditingController();
+  final RxString depositNumberError = ''.obs;
+  final RxString receivedAmountError = ''.obs;
+
   final RxBool isOtpSent = false.obs;
   final RxInt otpResendCountdown = 0.obs;
   final RxBool isProcessingPayment = false.obs;
@@ -514,6 +520,10 @@ class ConfirmationReservationController extends GetxController {
       paymentContactController.clear();
       cardExpiryController.clear();
       cardCodeController.clear();
+      depositNumberController.clear();
+      receivedAmountController.clear();
+      depositNumberError.value = '';
+      receivedAmountError.value = '';
     }
     selectedPaymentIndex.value = index;
   }
@@ -788,6 +798,10 @@ class ConfirmationReservationController extends GetxController {
     return 0;
   }
 
+  // Valide le numéro de dépôt MoMo : 10 chiffres commençant par 01
+  bool _isValidDepositNumber(String digits) =>
+      digits.length == 10 && digits.startsWith('01');
+
   Future<void> confirmPayment() async {
     if (_paymentInFlight) return;
     _paymentInFlight = true;
@@ -808,17 +822,46 @@ class ConfirmationReservationController extends GetxController {
 
       String? phone;
       String provider;
+      String? depositNumber;
+      int? receivedAmount;
 
       if (isCardPayment) {
         provider = 'card';
       } else {
+        // Numéro téléphone de contact (facultatif — pré-rempli depuis le profil)
         final rawPhone = paymentContactController.text.trim().replaceAll(RegExp(r'\s'), '');
-        if (rawPhone.isEmpty) {
-          UIHelper().showSnackBar('MINIZON', 'Veuillez entrer votre numéro de téléphone.', 2);
+        if (rawPhone.isNotEmpty) {
+          phone = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
+        }
+        provider = selectedMobileService.value.name;
+
+        // Montant reçu — obligatoire
+        final rawAmount = receivedAmountController.text.trim().replaceAll(RegExp(r'\s'), '');
+        if (rawAmount.isEmpty) {
+          receivedAmountError.value = 'Veuillez saisir le montant envoyé.';
           return;
         }
-        phone = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
-        provider = selectedMobileService.value.name;
+        final parsedAmount = int.tryParse(rawAmount.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+        if (parsedAmount <= 0) {
+          receivedAmountError.value = 'Montant invalide.';
+          return;
+        }
+        receivedAmountError.value = '';
+        receivedAmount = parsedAmount;
+
+        // Numéro de dépôt — obligatoire, 10 chiffres commençant par 01
+        final rawDeposit = depositNumberController.text.trim().replaceAll(RegExp(r'\s'), '');
+        final depositDigits = rawDeposit.replaceAll(RegExp(r'[^0-9]'), '');
+        if (depositDigits.isEmpty) {
+          depositNumberError.value = 'Numéro de dépôt obligatoire.';
+          return;
+        }
+        if (!_isValidDepositNumber(depositDigits)) {
+          depositNumberError.value = 'Format invalide — 10 chiffres, commence par 01.';
+          return;
+        }
+        depositNumberError.value = '';
+        depositNumber = depositDigits;
       }
 
       isProcessingPayment.value = true;
@@ -826,6 +869,8 @@ class ConfirmationReservationController extends GetxController {
         _bookingUuid,
         phone: phone,
         provider: provider,
+        depositNumber: depositNumber,
+        receivedAmount: receivedAmount,
       );
       isProcessingPayment.value = false;
       if (!result.isSuccess) {
@@ -868,6 +913,8 @@ class ConfirmationReservationController extends GetxController {
     cardExpiryController.dispose();
     cardCodeController.dispose();
     otpController.dispose();
+    depositNumberController.dispose();
+    receivedAmountController.dispose();
     _otpCountdownTimer?.cancel();
     super.onClose();
   }

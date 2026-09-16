@@ -43,7 +43,7 @@ class ConfirmationPaymentView extends StatelessWidget {
 										SizedBox(height: responsive.h(16)),
 										_PaymentMethodCard(responsive: responsive, controller: controller),
 										SizedBox(height: responsive.h(16)),
-										_PaymentInputSection(responsive: responsive, controller: controller),
+										_PaymentInputSection(responsive: responsive, controller: controller, navTotal: navTotal),
 										SizedBox(height: responsive.h(16)),
 										_SecurityCard(responsive: responsive),
 										SizedBox(height: responsive.h(24)),
@@ -395,26 +395,42 @@ class _PaymentMethodCard extends StatelessWidget {
 // ── Dynamic Payment Input ──────────────────────────────────────────────────
 
 class _PaymentInputSection extends StatelessWidget {
-	const _PaymentInputSection({required this.responsive, required this.controller});
+	const _PaymentInputSection({
+		required this.responsive,
+		required this.controller,
+		required this.navTotal,
+	});
 
 	final AppResponsive responsive;
 	final ConfirmationReservationController controller;
+	final int navTotal;
 
 	@override
 	Widget build(BuildContext context) {
 		return Obx(() {
 			final index = controller.selectedPaymentIndex.value;
-			if (index == 0) return _MobileMoneyCard(responsive: responsive, controller: controller);
+			if (index == 0) {
+				return _MobileMoneyCard(
+					responsive: responsive,
+					controller: controller,
+					navTotal: navTotal,
+				);
+			}
 			return _CardPaymentCard(responsive: responsive, controller: controller);
 		});
 	}
 }
 
 class _MobileMoneyCard extends StatelessWidget {
-	const _MobileMoneyCard({required this.responsive, required this.controller});
+	const _MobileMoneyCard({
+		required this.responsive,
+		required this.controller,
+		required this.navTotal,
+	});
 
 	final AppResponsive responsive;
 	final ConfirmationReservationController controller;
+	final int navTotal;
 
 	@override
 	Widget build(BuildContext context) {
@@ -430,6 +446,7 @@ class _MobileMoneyCard extends StatelessWidget {
 						style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint),
 					),
 					SizedBox(height: responsive.h(14)),
+					// ── Sélecteur opérateur ─────────────────────────────────
 					Obx(() => Row(
 						children: MobileMoneyService.values.map((service) {
 							final selected = controller.selectedMobileService.value == service;
@@ -480,17 +497,132 @@ class _MobileMoneyCard extends StatelessWidget {
 							);
 						}).toList(),
 					)),
+					SizedBox(height: responsive.h(20)),
+					// ── Total à envoyer ─────────────────────────────────────
+					Obx(() {
+						final total = navTotal > 0 ? navTotal : controller.totalAmount;
+						return Container(
+							width: double.infinity,
+							padding: EdgeInsets.symmetric(
+								horizontal: responsive.w(14),
+								vertical: responsive.h(12),
+							),
+							decoration: BoxDecoration(
+								color: AppColors.primaryLight,
+								borderRadius: BorderRadius.circular(responsive.radius(12)),
+								border: Border.all(color: AppColors.primaryMedium),
+							),
+							child: Row(
+								mainAxisAlignment: MainAxisAlignment.spaceBetween,
+								children: [
+									Text(
+										'Total à envoyer',
+										style: AppTextStyles.body(responsive).copyWith(
+											color: AppColors.primary,
+											fontWeight: FontWeight.w600,
+										),
+									),
+									Text(
+										total > 0 ? '${_formatAmount(total)} FCFA' : '---',
+										style: AppTextStyles.subtitle(responsive).copyWith(
+											color: AppColors.primary,
+											fontWeight: FontWeight.w800,
+										),
+									),
+								],
+							),
+						);
+					}),
 					SizedBox(height: responsive.h(16)),
-					_InputField(
+					// ── Numéro de téléphone (contact) ───────────────────────
+					Text(
+						'Numéro de téléphone',
+						style: AppTextStyles.caption(responsive).copyWith(
+							color: AppColors.textSecondary,
+							fontWeight: FontWeight.w600,
+						),
+					),
+					SizedBox(height: responsive.h(6)),
+					_PhoneInputField(
 						responsive: responsive,
-						prefix: '🇧🇯 +229',
-						hintText: '01 97 XX XX XX',
 						controller: controller.paymentContactController,
-						keyboardType: TextInputType.phone,
-						inputFormatters: [
-							FilteringTextInputFormatter.digitsOnly,
-							LengthLimitingTextInputFormatter(10),
+					),
+					SizedBox(height: responsive.h(16)),
+					// ── Montant reçu (FCFA) ─────────────────────────────────
+					Text(
+						'Montant reçu (FCFA)',
+						style: AppTextStyles.caption(responsive).copyWith(
+							color: AppColors.textSecondary,
+							fontWeight: FontWeight.w600,
+						),
+					),
+					SizedBox(height: responsive.h(6)),
+					_PlainInputField(
+						responsive: responsive,
+						hintText: 'Ex: 5000',
+						controller: controller.receivedAmountController,
+						keyboardType: TextInputType.number,
+						inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+					),
+					Obx(() {
+						final err = controller.receivedAmountError.value;
+						if (err.isEmpty) return const SizedBox.shrink();
+						return Padding(
+							padding: EdgeInsets.only(top: responsive.h(4), left: responsive.w(4)),
+							child: Text(
+								err,
+								style: AppTextStyles.caption(responsive).copyWith(color: AppColors.danger),
+							),
+						);
+					}),
+					SizedBox(height: responsive.h(16)),
+					// ── Numéro de dépôt ─────────────────────────────────────
+					Row(
+						children: [
+							Text(
+								'Numéro de dépôt',
+								style: AppTextStyles.caption(responsive).copyWith(
+									color: AppColors.textSecondary,
+									fontWeight: FontWeight.w600,
+								),
+							),
+							SizedBox(width: responsive.w(4)),
+							Text(
+								'*',
+								style: AppTextStyles.caption(responsive).copyWith(
+									color: AppColors.danger,
+									fontWeight: FontWeight.w700,
+								),
+							),
+							Text(
+								' obligatoire',
+								style: AppTextStyles.caption(responsive).copyWith(
+									color: AppColors.textHint,
+								),
+							),
 						],
+					),
+					SizedBox(height: responsive.h(6)),
+					_PhoneInputField(
+						responsive: responsive,
+						controller: controller.depositNumberController,
+						hintText: '01XXXXXXXX',
+					),
+					Obx(() {
+						final err = controller.depositNumberError.value;
+						if (err.isEmpty) return const SizedBox.shrink();
+						return Padding(
+							padding: EdgeInsets.only(top: responsive.h(4), left: responsive.w(4)),
+							child: Text(
+								err,
+								style: AppTextStyles.caption(responsive).copyWith(color: AppColors.danger),
+							),
+						);
+					}),
+					SizedBox(height: responsive.h(6)),
+					Text(
+						'Format : +229 01XXXXXXXX — 10 chiffres, commence par 01',
+						style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint, fontSize: responsive.text(11)),
 					),
 				],
 			),
@@ -832,27 +964,21 @@ class _SectionCard extends StatelessWidget {
 	}
 }
 
-class _InputField extends StatelessWidget {
-	const _InputField({
+// Champ téléphone avec préfixe +229
+class _PhoneInputField extends StatelessWidget {
+	const _PhoneInputField({
 		required this.responsive,
-		required this.prefix,
-		required this.hintText,
 		required this.controller,
-		required this.keyboardType,
-		required this.inputFormatters,
+		this.hintText = '01 XX XX XX XX',
 	});
 
 	final AppResponsive responsive;
-	final String prefix;
-	final String hintText;
 	final TextEditingController controller;
-	final TextInputType keyboardType;
-	final List<TextInputFormatter> inputFormatters;
+	final String hintText;
 
 	@override
 	Widget build(BuildContext context) {
 		return Container(
-			padding: EdgeInsets.symmetric(horizontal: responsive.w(14), vertical: responsive.h(12)),
 			decoration: ShapeDecoration(
 				color: AppColors.surfaceMuted,
 				shape: RoundedRectangleBorder(
@@ -862,24 +988,32 @@ class _InputField extends StatelessWidget {
 			),
 			child: Row(
 				children: [
-					Text(
-						prefix,
-						style: AppTextStyles.body(responsive).copyWith(color: AppColors.textSecondary),
+					Padding(
+						padding: EdgeInsets.symmetric(horizontal: responsive.w(14)),
+						child: Text(
+							'🇧🇯 +229',
+							style: AppTextStyles.body(responsive).copyWith(color: AppColors.textSecondary),
+						),
 					),
 					Container(
 						height: responsive.h(20),
 						width: 1,
 						color: AppColors.border,
-						margin: EdgeInsets.symmetric(horizontal: responsive.w(10)),
 					),
 					Expanded(
 						child: TextField(
 							controller: controller,
-							keyboardType: keyboardType,
-							inputFormatters: inputFormatters,
+							keyboardType: TextInputType.phone,
+							inputFormatters: [
+								FilteringTextInputFormatter.digitsOnly,
+								LengthLimitingTextInputFormatter(10),
+							],
 							style: AppTextStyles.subtitle(responsive),
 							decoration: InputDecoration(
-								isDense: true,
+								contentPadding: EdgeInsets.symmetric(
+									horizontal: responsive.w(14),
+									vertical: responsive.h(14),
+								),
 								border: InputBorder.none,
 								hintText: hintText,
 								hintStyle: AppTextStyles.subtitle(responsive).copyWith(color: AppColors.textHint),
@@ -887,6 +1021,51 @@ class _InputField extends StatelessWidget {
 						),
 					),
 				],
+			),
+		);
+	}
+}
+
+// Champ simple sans préfixe
+class _PlainInputField extends StatelessWidget {
+	const _PlainInputField({
+		required this.responsive,
+		required this.hintText,
+		required this.controller,
+		required this.keyboardType,
+		required this.inputFormatters,
+	});
+
+	final AppResponsive responsive;
+	final String hintText;
+	final TextEditingController controller;
+	final TextInputType keyboardType;
+	final List<TextInputFormatter> inputFormatters;
+
+	@override
+	Widget build(BuildContext context) {
+		return Container(
+			decoration: ShapeDecoration(
+				color: AppColors.surfaceMuted,
+				shape: RoundedRectangleBorder(
+					side: const BorderSide(color: Colors.transparent),
+					borderRadius: BorderRadius.circular(responsive.radius(12)),
+				),
+			),
+			child: TextField(
+				controller: controller,
+				keyboardType: keyboardType,
+				inputFormatters: inputFormatters,
+				style: AppTextStyles.subtitle(responsive),
+				decoration: InputDecoration(
+					contentPadding: EdgeInsets.symmetric(
+						horizontal: responsive.w(14),
+						vertical: responsive.h(14),
+					),
+					border: InputBorder.none,
+					hintText: hintText,
+					hintStyle: AppTextStyles.subtitle(responsive).copyWith(color: AppColors.textHint),
+				),
 			),
 		);
 	}
@@ -923,4 +1102,3 @@ class _StatusBadge extends StatelessWidget {
 String _formatAmount(int value) {
 	return value.toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ' ');
 }
-

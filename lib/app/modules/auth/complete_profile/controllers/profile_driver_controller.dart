@@ -361,9 +361,78 @@ class ProfileDriverController extends GetxController {
     update();
   }
 
+  bool _validate() {
+    bool valid = true;
+
+    if (firstNameController.text.trim().isEmpty) {
+      firstNameError.value = 'Le prénom est requis';
+      valid = false;
+    }
+    if (lastNameController.text.trim().isEmpty) {
+      lastNameError.value = 'Le nom est requis';
+      valid = false;
+    }
+
+    final phone = phoneController.text.trim();
+    if (phone.isEmpty || phone == '01') {
+      phoneError.value = 'Le numéro de téléphone est requis';
+      valid = false;
+    }
+
+    if (selectedBrand.value == null || selectedBrand.value!.isEmpty) {
+      brandError.value = 'La marque du véhicule est requise';
+      valid = false;
+    }
+    if (selectedModel.value == null || selectedModel.value!.isEmpty) {
+      modelError.value = 'Le modèle du véhicule est requis';
+      valid = false;
+    }
+    if (vehicleColorController.text.trim().isEmpty) {
+      colorError.value = 'La couleur est requise';
+      valid = false;
+    }
+    if (plateController.text.trim().isEmpty) {
+      plateError.value = "La plaque d'immatriculation est requise";
+      valid = false;
+    }
+
+    if (selfieFront.value == null) {
+      selfieError.value = 'Le selfie (face) est requis';
+      valid = false;
+    }
+    if (_idCardFrontFile == null) {
+      idCardError.value = "La pièce d'identité (recto) est requise";
+      valid = false;
+    }
+    if (_vehiclePhotoFile == null) {
+      vehiclePhotoError.value = 'La photo du véhicule est requise';
+      valid = false;
+    }
+    if (_registrationDocFile == null) {
+      registrationError.value = "Le document d'immatriculation est requis";
+      valid = false;
+    }
+    if (selectedDriverType.value != DriverType.moto && _licenseDocFile == null) {
+      licenseDocError.value = 'Le permis de conduire est requis';
+      valid = false;
+    }
+    if (_insuranceDocFile == null) {
+      insuranceError.value = "L'assurance est requise";
+      valid = false;
+    }
+
+    update();
+    return valid;
+  }
+
   void _parseBackendErrors(dynamic data) {
     if (data == null) return;
-    final errors = data['errors'];
+    // Support both top-level errors and body-wrapped formats
+    dynamic rawErrors = data['errors'];
+    if (rawErrors == null && data['body'] is Map) {
+      rawErrors = data['body']['errors'];
+    }
+    final errors = rawErrors;
     if (errors is! Map) return;
 
     String firstError(dynamic v) {
@@ -390,6 +459,11 @@ class ProfileDriverController extends GetxController {
 
   Future<void> continueProfile() async {
     _clearErrors();
+
+    if (!_validate()) {
+      UIHelper().showSnackBar('MINIZON', 'Veuillez corriger les champs indiqués.', 2);
+      return;
+    }
 
     final isNewRegistration = _registerToken != null;
     if (!isNewRegistration) {

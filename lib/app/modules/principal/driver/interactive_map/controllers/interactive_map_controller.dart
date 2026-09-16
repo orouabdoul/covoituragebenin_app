@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
@@ -8,6 +7,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:covoiturage_benin_app/app/core/services/driver/interactive_map/interactive_map_service.dart';
+import 'package:covoiturage_benin_app/app/core/services/routing/routing_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
@@ -74,14 +74,11 @@ class InteractiveMapController extends GetxController
   final RxBool allPickedUp = false.obs;
 
   List<LatLng> _apiPolyline = [];
-  // Géométrie OSRM (route réelle suivant les routes) — prioritaire sur _apiPolyline
+  // Géométrie Valhalla/OSRM (vraies routes) — prioritaire sur _apiPolyline
   final RxList<LatLng> _osrmPolyline = <LatLng>[].obs;
   double _lastSpeed = 0.0;
 
-  final Dio _routeDio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 8),
-    receiveTimeout: const Duration(seconds: 10),
-  ));
+  final _routingService = RoutingService();
 
   StreamSubscription<Position>? _positionSub;
   Timer? _locationTimer;
@@ -129,7 +126,7 @@ class InteractiveMapController extends GetxController
   @override
   Future<void> refresh() => _fetchMapData();
 
-  // ── OSRM route (vraies routes) ────────────────────────────────────────────
+  // ── Route réelle (Valhalla → OSRM fallback) ──────────────────────────────
 
   Future<void> _fetchOsrmRoute() async {
     if (isFallbackMode.value) return;
@@ -139,36 +136,9 @@ class InteractiveMapController extends GetxController
     ];
     if (waypoints.length < 2) return;
 
-    // OSRM public : max 10 waypoints
-    final coordStr = waypoints
-        .take(10)
-        .map((p) => '${p.longitude},${p.latitude}')
-        .join(';');
-    try {
-      final url = 'https://router.project-osrm.org/route/v1/driving/$coordStr'
-          '?overview=full&geometries=geojson&steps=false';
-      final res = await _routeDio.get<Map<String, dynamic>>(url);
-      if (res.statusCode == 200 && res.data != null) {
-        final routes = res.data!['routes'] as List?;
-        if (routes != null && routes.isNotEmpty) {
-          final coords =
-              (routes[0] as Map)['geometry']['coordinates'] as List;
-          final pts = coords
-              .map<LatLng>((c) => LatLng(
-                    (c[1] as num).toDouble(),
-                    (c[0] as num).toDouble(),
-                  ))
-              .toList();
-          if (pts.length >= 2) {
-            _osrmPolyline.assignAll(pts);
-            logger.d('OSRM driver route: ${pts.length} points');
-          }
-        }
-      }
-    } on DioException catch (e) {
-      logger.w('_fetchOsrmRoute DioError: ${e.type}');
-    } catch (e) {
-      logger.w('_fetchOsrmRoute error: $e');
+    final pts = await _routingService.fetchPolyline(waypoints);
+    if (pts.length >= 2) {
+      _osrmPolyline.assignAll(pts);
     }
   }
 
@@ -602,7 +572,7 @@ class InteractiveMapController extends GetxController
   void onClose() {
     _positionSub?.cancel();
     _locationTimer?.cancel();
-    _routeDio.close(force: true);
+    _routingService.close();
     pulseController.dispose();
     super.onClose();
   }

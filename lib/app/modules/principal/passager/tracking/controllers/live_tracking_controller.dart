@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -11,6 +10,7 @@ import 'package:latlong2/latlong.dart';
 
 import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/passenger_reservation_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/messaging/passenger_messaging_service.dart';
+import 'package:covoiturage_benin_app/app/core/services/routing/routing_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/phone_utils.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import '../../messager/controllers/messager_controller.dart';
@@ -22,10 +22,7 @@ class LiveTrackingController extends GetxController {
   PassengerReservationService get _service =>
       Get.find<PassengerReservationService>();
 
-  final _routeDio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 8),
-    receiveTimeout: const Duration(seconds: 10),
-  ));
+  final _routingService = RoutingService();
   final _tts = FlutterTts();
 
   // ── Info trajet ─────────────────────────────────────────────────────────────
@@ -135,46 +132,22 @@ class LiveTrackingController extends GetxController {
     if (!voiceEnabled.value) _tts.stop().ignore();
   }
 
-  // ── Route OSRM ──────────────────────────────────────────────────────────────
+  // ── Route réelle (Valhalla → OSRM fallback) ──────────────────────────────
 
   Future<void> _fetchRoute() async {
     final pickup  = pickupLatLng.value;
     final dropoff = dropoffLatLng.value;
 
-    // Pas de route si on n'a pas de vraies coordonnées
     if (_samePoint(pickup, _defaultCenter) || _samePoint(dropoff, _defaultCenter)) return;
     if (_samePoint(pickup, dropoff)) return;
 
-    try {
-      final url =
-          'https://router.project-osrm.org/route/v1/driving/'
-          '${pickup.longitude},${pickup.latitude};'
-          '${dropoff.longitude},${dropoff.latitude}'
-          '?overview=full&geometries=geojson&steps=false';
-
-      final res = await _routeDio.get<Map<String, dynamic>>(url);
-
-      if (res.statusCode == 200 && res.data != null) {
-        final routes = res.data!['routes'] as List?;
-        if (routes != null && routes.isNotEmpty) {
-          final coords = (routes[0] as Map)['geometry']['coordinates'] as List;
-          final pts = coords
-              .map<LatLng>((c) => LatLng(
-                    (c[1] as num).toDouble(),
-                    (c[0] as num).toDouble(),
-                  ))
-              .toList();
-          if (pts.length >= 2) {
-            routePoints.value = pts;
-            routeLoaded.value = true;
-            return;
-          }
-        }
-      }
-    } catch (_) {}
-
-    // Fallback ligne droite
-    routePoints.value = [pickup, dropoff];
+    final pts = await _routingService.fetchPolyline([pickup, dropoff]);
+    if (pts.length >= 2) {
+      routePoints.value = pts;
+    } else {
+      // Fallback ligne droite uniquement si les deux services échouent
+      routePoints.value = [pickup, dropoff];
+    }
     routeLoaded.value = true;
   }
 
@@ -768,6 +741,7 @@ class LiveTrackingController extends GetxController {
   void onClose() {
     _pollingTimer?.cancel();
     _animTimer?.cancel();
+    _routingService.close();
     _tts.stop().ignore();
     super.onClose();
   }

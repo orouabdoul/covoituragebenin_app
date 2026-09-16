@@ -86,7 +86,7 @@ class _InteractiveMapViewState extends State<InteractiveMapView> {
 
         return Stack(
           children: [
-            // ── Carte OpenStreetMap ──────────────────────────────────
+            // ── Carte CartoDB Voyager (style navigation proche Google Maps) ──
             FlutterMap(
               mapController: _mapController,
               options: MapOptions(
@@ -94,15 +94,15 @@ class _InteractiveMapViewState extends State<InteractiveMapView> {
                 initialCenter: _ctrl.driverPosition.value,
                 initialZoom: 13.0,
                 minZoom: 8.0,
-                maxZoom: 18.0,
+                maxZoom: 19.0,
               ),
               children: [
                 TileLayer(
                   urlTemplate:
-                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+                  subdomains: const ['a', 'b', 'c', 'd'],
                   userAgentPackageName: 'com.covoiturage.benin',
-                  // Garde les tuiles en mémoire pour éviter les re-téléchargements
-                  maxNativeZoom: 18,
+                  maxNativeZoom: 19,
                   keepBuffer: 4,
                 ),
 
@@ -115,7 +115,9 @@ class _InteractiveMapViewState extends State<InteractiveMapView> {
                       Polyline(
                         points: pts,
                         color: AppColors.primary,
-                        strokeWidth: 5.0,
+                        strokeWidth: 7.5,
+                        strokeCap: StrokeCap.round,
+                        strokeJoin: StrokeJoin.round,
                         borderColor: Colors.white.withValues(alpha: 0.85),
                         borderStrokeWidth: 2.5,
                       ),
