@@ -493,7 +493,7 @@ class ProfileDriverController extends GetxController {
       }
 
       final isMoto = selectedDriverType.value == DriverType.moto;
-      final vehicleType = isMoto ? 'moto' : 'car';
+      final vehicleType = isMoto ? 'moto' : 'voiture';
 
       final Map<String, dynamic> fields = {
         'role_name': 'driver',
