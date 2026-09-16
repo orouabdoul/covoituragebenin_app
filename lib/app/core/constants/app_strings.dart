@@ -106,12 +106,12 @@ class AppStrings {
   static const String profileFieldGender = 'Genre';
   static const String profileFieldGenderMale = 'Homme';
   static const String profileFieldGenderFemale = 'Femme';
-  static const String profileFieldCity = 'Ville';
+  static const String profileFieldCity = 'Commune';
   static const String profileFieldCityHint = 'Ex : Cotonou';
-  static const String profileFieldNeighborhood = 'Quartier';
-  static const String profileFieldNeighborhoodHint = 'Ex : Akpakpa';
-  static const String profileFieldAddress = 'Adresse (optionnel)';
-  static const String profileFieldAddressHint = 'Détails supplémentaires';
+  static const String profileFieldNeighborhood = 'Arrondissement';
+  static const String profileFieldNeighborhoodHint = 'Sélectionner un arrondissement';
+  static const String profileFieldAddress = 'Quartier';
+  static const String profileFieldAddressHint = 'Sélectionner un quartier';
   static const String profileSelfieSection = 'Vérification de visage';
   static const String profileSelfieSectionHint =
       'Prenez 3 photos : face avant, profil gauche, profil droit';

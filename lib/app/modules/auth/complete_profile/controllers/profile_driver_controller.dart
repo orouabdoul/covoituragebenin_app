@@ -25,21 +25,28 @@ class ProfileDriverController extends GetxController {
   final TextEditingController lastNameController = TextEditingController();
   final TextEditingController firstNameController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
-  final TextEditingController addressController = TextEditingController();
   final TextEditingController licenseNumberController = TextEditingController();
 
-  // Ville et quartier sélectionnés via listes déroulantes
+  // Commune → Arrondissement → Quartier (3 niveaux)
   final RxnString selectedCity = RxnString();
   final RxnString selectedNeighborhood = RxnString();
+  final RxnString selectedQuartier = RxnString();
 
   void selectCity(String city) {
     selectedCity.value = city;
     selectedNeighborhood.value = null;
+    selectedQuartier.value = null;
     update();
   }
 
   void selectNeighborhood(String neighborhood) {
     selectedNeighborhood.value = neighborhood;
+    selectedQuartier.value = null;
+    update();
+  }
+
+  void selectQuartier(String quartier) {
+    selectedQuartier.value = quartier;
     update();
   }
   final TextEditingController vehicleColorController = TextEditingController();
@@ -486,7 +493,7 @@ class ProfileDriverController extends GetxController {
       }
 
       final isMoto = selectedDriverType.value == DriverType.moto;
-      final vehicleType = isMoto ? 'moto' : 'voiture';
+      final vehicleType = isMoto ? 'moto' : 'car';
 
       final Map<String, dynamic> fields = {
         'role_name': 'driver',
@@ -505,7 +512,7 @@ class ProfileDriverController extends GetxController {
       if (phone.isNotEmpty && phone != '01') fields['phone'] = phone;
       if (selectedCity.value != null) fields['city'] = selectedCity.value!;
       if (selectedNeighborhood.value != null) fields['neighborhood'] = selectedNeighborhood.value!;
-      if (addressController.text.trim().isNotEmpty) fields['address_details'] = addressController.text.trim();
+      if (selectedQuartier.value != null) fields['address_details'] = selectedQuartier.value!;
       if (genderCode != null) fields['gender'] = genderCode;
       if (!isMoto && licenseNumberController.text.trim().isNotEmpty) {
         fields['driving_license_number'] = licenseNumberController.text.trim();
@@ -748,7 +755,6 @@ class ProfileDriverController extends GetxController {
     lastNameController.dispose();
     firstNameController.dispose();
     phoneController.dispose();
-    addressController.dispose();
     licenseNumberController.dispose();
     vehicleColorController.dispose();
     vehicleSeatsController.dispose();

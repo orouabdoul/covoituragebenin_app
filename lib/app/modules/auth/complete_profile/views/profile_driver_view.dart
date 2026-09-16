@@ -2,7 +2,7 @@ import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
-import 'package:covoiturage_benin_app/app/core/constants/benin_locations.dart';
+import 'package:covoiturage_benin_app/app/data/benin_locations_data.dart';
 import 'package:covoiturage_benin_app/app/modules/auth/complete_profile/controllers/profile_driver_controller.dart';
 import 'package:covoiturage_benin_app/app/modules/auth/complete_profile/controllers/profile_passager_controller.dart'
     show EmergencyContactEntry;
@@ -135,7 +135,7 @@ class ProfileDriverView extends GetView<ProfileDriverController> {
                                       responsive: responsive,
                                       label: AppStrings.profileFieldNeighborhood,
                                       hint: controller.selectedCity.value == null
-                                          ? 'Choisir une ville'
+                                          ? 'Choisir une commune'
                                           : AppStrings.profileFieldNeighborhoodHint,
                                       value: controller.selectedNeighborhood.value,
                                       disabled: controller.selectedCity.value == null,
@@ -145,8 +145,8 @@ class ProfileDriverView extends GetView<ProfileDriverController> {
                                                 context: context,
                                                 responsive: responsive,
                                                 title: AppStrings.profileFieldNeighborhood,
-                                                items: BeninLocations.neighborhoods(
-                                                    controller.selectedCity.value!),
+                                                items: BeninLocations.getArrondissements(
+                                                    controller.selectedCity.value),
                                                 selected: controller.selectedNeighborhood.value,
                                                 onSelect: controller.selectNeighborhood,
                                               ),
@@ -155,15 +155,26 @@ class ProfileDriverView extends GetView<ProfileDriverController> {
                                 ],
                               ),
                               SizedBox(height: responsive.h(16)),
-                              AppField(
+                              _VehicleSelectField(
                                 responsive: responsive,
                                 label: AppStrings.profileFieldAddress,
-                                labelStyle: AppTextStyles.profileSectionLabel(responsive),
-                                controller: controller.addressController,
-                                hintText: AppStrings.profileFieldAddressHint,
-                                textStyle: AppTextStyles.profileFieldValue(responsive),
-                                hintStyle: AppTextStyles.profileFieldValue(responsive)
-                                    .copyWith(color: AppColors.textGhost),
+                                hint: controller.selectedNeighborhood.value == null
+                                    ? 'Choisir un arrondissement'
+                                    : AppStrings.profileFieldAddressHint,
+                                value: controller.selectedQuartier.value,
+                                disabled: controller.selectedNeighborhood.value == null,
+                                onTap: controller.selectedNeighborhood.value == null
+                                    ? null
+                                    : () => _showVehiclePicker(
+                                          context: context,
+                                          responsive: responsive,
+                                          title: AppStrings.profileFieldAddress,
+                                          items: BeninLocations.getQuartiers(
+                                              controller.selectedCity.value,
+                                              controller.selectedNeighborhood.value),
+                                          selected: controller.selectedQuartier.value,
+                                          onSelect: controller.selectQuartier,
+                                        ),
                               ),
                             ],
                           ),
