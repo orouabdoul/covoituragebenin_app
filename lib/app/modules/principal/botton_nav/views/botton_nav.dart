@@ -247,7 +247,7 @@ class _AccountSuspendedView extends StatelessWidget {
           Obx(() {
             final loading = controller.isRefreshingStatus.value;
             return GestureDetector(
-              onTap: loading ? null : controller.refreshVerificationStatus,
+              onTap: loading ? null : () => controller.refreshVerificationStatus(showFeedback: true),
               child: Container(
                 width: double.infinity,
                 padding: EdgeInsets.symmetric(vertical: responsive.h(16)),
@@ -523,7 +523,7 @@ class _AccountPendingView extends StatelessWidget {
           Obx(() {
             final loading = controller.isRefreshingStatus.value;
             return GestureDetector(
-              onTap: loading ? null : controller.refreshVerificationStatus,
+              onTap: loading ? null : () => controller.refreshVerificationStatus(showFeedback: true),
               child: Container(
                 width: double.infinity,
                 padding: EdgeInsets.symmetric(vertical: responsive.h(16)),

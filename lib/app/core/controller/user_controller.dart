@@ -39,7 +39,7 @@ class UserController extends GetxController {
     user.value = u;
     token.value = t;
     profileComplete.value = isProfileComplete;
-    accountVerified.value = u.isVerified;
+    accountVerified.value = u.isAccountActive;
     accountBlocked.value = u.isBlocked;
     _sessionExpiry =
         DateTime.now().add(const Duration(hours: _sessionDurationHours));
@@ -50,7 +50,7 @@ class UserController extends GetxController {
       DateTime.now().millisecondsSinceEpoch,
     );
     await prefs.setBool(_profileCompleteKey, isProfileComplete);
-    await prefs.setBool(_accountVerifiedKey, u.isVerified);
+    await prefs.setBool(_accountVerifiedKey, u.isAccountActive);
     await prefs.setBool(_accountBlockedKey, u.isBlocked);
   }
 

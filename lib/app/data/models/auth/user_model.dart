@@ -6,6 +6,7 @@ class UserModel {
   final bool isBlocked;
   final int penaltyPoints;
   final String role;
+  final String accountStatus;
 
   const UserModel({
     required this.id,
@@ -15,7 +16,11 @@ class UserModel {
     required this.isBlocked,
     required this.penaltyPoints,
     required this.role,
+    this.accountStatus = '',
   });
+
+  bool get isAccountActive =>
+      isVerified || accountStatus == 'active' || accountStatus == 'approved';
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
@@ -26,6 +31,7 @@ class UserModel {
       isBlocked: json['is_blocked'] as bool? ?? false,
       penaltyPoints: json['penalty_points'] as int? ?? 0,
       role: json['role'] as String? ?? '',
+      accountStatus: json['account_status'] as String? ?? '',
     );
   }
 }

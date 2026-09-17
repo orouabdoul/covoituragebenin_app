@@ -8,6 +8,7 @@ import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import 'package:covoiturage_benin_app/app/core/services/auth/auth_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
+import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/driver/home/views/home_view.dart'
     as driver_home;
@@ -230,7 +231,7 @@ class BottonNavController extends GetxController with WidgetsBindingObserver {
     });
   }
 
-  Future<void> refreshVerificationStatus() async {
+  Future<void> refreshVerificationStatus({bool showFeedback = false}) async {
     if (isRefreshingStatus.value) return;
     isRefreshingStatus.value = true;
     final result = await Get.find<AuthService>().me();
@@ -253,6 +254,9 @@ class BottonNavController extends GetxController with WidgetsBindingObserver {
       if (_consecutiveFailures >= _maxConsecutiveFailures) {
         _verificationTimer?.cancel();
       }
+      if (showFeedback) {
+        UIHelper().showSnackBar('MINIZON', 'Erreur réseau. Réessayez.', 2);
+      }
       return;
     }
 
@@ -267,6 +271,12 @@ class BottonNavController extends GetxController with WidgetsBindingObserver {
     );
     if (uc.accountVerified.value) {
       _verificationTimer?.cancel();
+    } else if (showFeedback) {
+      UIHelper().showSnackBar(
+        'MINIZON',
+        'Votre compte est toujours en cours de vérification.',
+        2,
+      );
     }
   }
 
