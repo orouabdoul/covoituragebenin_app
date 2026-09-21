@@ -79,7 +79,8 @@ class DriverNotificationModel {
       resolvedType = topType;
       category     = (j['category'] ?? '').toString();
       title        = (j['title'] ?? '').toString();
-      body         = (j['body'] ?? '').toString();
+      final rawBody = (j['body'] ?? '').toString();
+      body         = rawBody.isNotEmpty ? rawBody : _bodyFromType(topType, j);
       isRead       = j['is_read'] as bool? ?? false;
       actionData   = j['action_data'] is Map<String, dynamic>
           ? j['action_data'] as Map<String, dynamic>
@@ -98,9 +99,7 @@ class DriverNotificationModel {
       rawType:     resolvedType,
       title:       title,
       body:        body,
-      time:        (j['time'] as String? ?? '').isNotEmpty
-                       ? (j['time'] as String)
-                       : _formatCreatedAt(j['created_at']),
+      time:        _formatCreatedAt(j['created_at'] ?? j['updated_at']),
       isRead:      isRead,
       iconData:    icon,
       iconBg:      bg,
@@ -177,33 +176,54 @@ class DriverNotificationModel {
 
   // ── Corps dérivé du type ──────────────────────────────────────────────────
 
-  static String _bodyFromType(String type, Map<String, dynamic> data) =>
-      switch (type) {
-        'new_booking_request'    => 'Un passager a réservé votre trajet.',
-        'booking_status_changed' =>
-            (data['message'] as String? ?? 'Le statut de votre réservation a changé.'),
-        'trip_started'           => 'Le trajet est en cours.',
-        'trip_completed' || 'trip_ended'
-            => 'Trajet terminé. Consultez vos revenus.',
-        'payment_success'        => 'Un passager a payé sa réservation.',
-        'withdrawal_requested'   => 'Votre demande de retrait a été reçue.',
-        'withdrawal_processed'   =>
-            (data['message'] as String? ?? 'Votre retrait a été traité.'),
-        'payout_paid'            => 'Vos gains ont été virés sur votre compte.',
-        'new_message' || 'message_new'
-            => (data['preview'] as String? ?? 'Vous avez un nouveau message.'),
-        'promo_code_published'   =>
-            'Code : ${data['promo_code'] ?? ''} — réduction de ${data['discount_value'] ?? ''}%.',
-        'account_status_changed' =>
-            (data['is_blocked']?.toString() == 'true')
-                ? 'Votre compte a été temporairement suspendu.'
-                : 'Votre compte a été réactivé.',
-        'kyc_status_changed'     =>
-            (data['status'] == 'approved')
-                ? 'Votre identité a été vérifiée.'
-                : 'Votre KYC a été rejeté.',
-        _                        => '',
-      };
+  static String _bodyFromType(String type, Map<String, dynamic> data) {
+    switch (type) {
+      case 'new_booking_request':
+        return 'Un passager a réservé votre trajet.';
+      case 'booking_status_changed':
+        return data['message'] as String? ?? 'Le statut de votre réservation a changé.';
+      case 'trip_started':
+        return 'Le trajet est en cours.';
+      case 'trip_completed':
+      case 'trip_ended':
+        return 'Trajet terminé. Consultez vos revenus.';
+      case 'payment_success':
+        return 'Un passager a payé sa réservation.';
+      case 'withdrawal_requested':
+        return 'Votre demande de retrait a été reçue.';
+      case 'withdrawal_processed':
+        return data['message'] as String? ?? 'Votre retrait a été traité.';
+      case 'payout_paid':
+        return 'Vos gains ont été virés sur votre compte.';
+      case 'new_message':
+      case 'message_new':
+        return _extractMessagePreview(data);
+      case 'promo_code_published':
+        return 'Code : ${data['promo_code'] ?? ''} — réduction de ${data['discount_value'] ?? ''}%.';
+      case 'account_status_changed':
+        return data['is_blocked']?.toString() == 'true'
+            ? 'Votre compte a été temporairement suspendu.'
+            : 'Votre compte a été réactivé.';
+      case 'kyc_status_changed':
+        return data['status'] == 'approved'
+            ? 'Votre identité a été vérifiée.'
+            : 'Votre KYC a été rejeté.';
+      default:
+        // Catch-all pour tout type contenant "message"
+        if (type.toLowerCase().contains('message')) {
+          return _extractMessagePreview(data);
+        }
+        return '';
+    }
+  }
+
+  static String _extractMessagePreview(Map<String, dynamic> data) {
+    for (final key in ['preview', 'message', 'content', 'text', 'body']) {
+      final v = (data[key] as String?)?.trim() ?? '';
+      if (v.isNotEmpty) return v;
+    }
+    return 'Vous avez un nouveau message.';
+  }
 
   // ── Icônes ────────────────────────────────────────────────────────────────
 
@@ -299,14 +319,22 @@ class DriverNotificationModel {
 
   static String _formatCreatedAt(dynamic raw) {
     if (raw == null) return '';
-    final dt = DateTime.tryParse(raw.toString());
-    if (dt == null) return raw.toString();
-    final diff = DateTime.now().difference(dt);
-    if (diff.inMinutes < 1) return 'À l\'instant';
+    final s = raw.toString().trim();
+    if (s.isEmpty) return '';
+    // Tente ISO8601, puis avec remplacement espace→T (format Laravel sans T)
+    DateTime? dt = DateTime.tryParse(s);
+    if (dt == null) dt = DateTime.tryParse(s.replaceFirst(' ', 'T'));
+    if (dt == null) return '';
+    final local = dt.isUtc ? dt.toLocal() : dt;
+    final diff = DateTime.now().difference(local);
+    if (diff.isNegative || diff.inSeconds < 60) return 'À l\'instant';
     if (diff.inMinutes < 60) return 'Il y a ${diff.inMinutes} min';
     if (diff.inHours < 24) return 'Il y a ${diff.inHours}h';
     if (diff.inDays == 1) return 'Hier';
-    return 'Il y a ${diff.inDays} jours';
+    if (diff.inDays < 30) return 'Il y a ${diff.inDays} j';
+    final d = local.day.toString().padLeft(2, '0');
+    final m = local.month.toString().padLeft(2, '0');
+    return '$d/$m/${local.year}';
   }
 
   // ── Legacy getters ────────────────────────────────────────────────────────

@@ -77,7 +77,12 @@ class _UnauthorizedInterceptor extends Interceptor {
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
     if (response.statusCode == 401 && !_redirecting) {
-      _handleUnauthorized();
+      // Le endpoint /auth/register retourne 401 quand le register_token est
+      // expiré — c'est géré par le contrôleur, pas par cet intercepteur.
+      final path = response.requestOptions.path;
+      if (path != AppApi.register) {
+        _handleUnauthorized();
+      }
     }
     handler.next(response);
   }

@@ -268,11 +268,15 @@ class NotificationsController extends GetxController {
   }
 
   String formatTime(DateTime time) {
-    final diff = DateTime.now().difference(time);
-    if (diff.inMinutes < 1) return 'À l\'instant';
+    final local = time.isUtc ? time.toLocal() : time;
+    final diff = DateTime.now().difference(local);
+    if (diff.isNegative || diff.inSeconds < 60) return 'À l\'instant';
     if (diff.inMinutes < 60) return 'Il y a ${diff.inMinutes} min';
     if (diff.inHours < 24) return 'Il y a ${diff.inHours}h';
     if (diff.inDays == 1) return 'Hier';
-    return 'Il y a ${diff.inDays} jours';
+    if (diff.inDays < 30) return 'Il y a ${diff.inDays} j';
+    final d = local.day.toString().padLeft(2, '0');
+    final m = local.month.toString().padLeft(2, '0');
+    return '$d/$m/${local.year}';
   }
 }

@@ -499,7 +499,7 @@ class _MobileMoneyCard extends StatelessWidget {
 					)),
 					SizedBox(height: responsive.h(20)),
 					// ── Total à envoyer ─────────────────────────────────────
-					Obx(() {
+					Builder(builder: (_) {
 						final total = navTotal > 0 ? navTotal : controller.totalAmount;
 						return Container(
 							width: double.infinity,

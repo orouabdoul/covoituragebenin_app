@@ -378,9 +378,11 @@ class ProfilePassagerController extends GetxController {
       } else if (response.statusCode == 401) {
         UIHelper().showSnackBar(
           'MINIZON',
-          'Token d\'inscription expiré. Veuillez recommencer.',
-          2,
+          'Session expirée. Veuillez recommencer la vérification OTP.',
+          3,
         );
+        await Future.delayed(const Duration(seconds: 2));
+        Get.offAllNamed(AppRoutes.register);
       } else if (response.statusCode == 409) {
         UIHelper().showSnackBar(
           'MINIZON',

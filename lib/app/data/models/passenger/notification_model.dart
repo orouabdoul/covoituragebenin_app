@@ -66,7 +66,8 @@ class PassengerNotificationModel {
       type        = topType;
       category    = (j['category'] ?? '').toString();
       title       = (j['title'] ?? '').toString();
-      body        = (j['body'] ?? '').toString();
+      final rawBody = (j['body'] ?? '').toString();
+      body        = rawBody.isNotEmpty ? rawBody : _bodyFromType(topType, j);
       isRead      = j['is_read'] as bool? ?? false;
       actionData  = j['action_data'] is Map<String, dynamic>
           ? j['action_data'] as Map<String, dynamic>
@@ -75,8 +76,8 @@ class PassengerNotificationModel {
       iconBgValue = j['icon_background_color'] as int?;
     }
 
-    final isoDate    = (j['created_at'] ?? '').toString();
-    final parsedTime = DateTime.tryParse(isoDate) ?? DateTime.now();
+    final isoDate    = (j['created_at'] ?? j['updated_at'] ?? j['date'] ?? '').toString().trim();
+    final parsedTime = _parseDate(isoDate);
     final apiLabel   = (j['time'] ?? '').toString();
 
     return PassengerNotificationModel(
@@ -157,35 +158,67 @@ class PassengerNotificationModel {
 
   // ── Corps dérivé du type ──────────────────────────────────────────────────
 
-  static String _bodyFromType(String type, Map<String, dynamic> data) =>
-      switch (type) {
-        'new_booking_request'    => 'Un passager a réservé votre trajet.',
-        'booking_status_changed' =>
-            (data['message'] as String? ?? 'Le statut de votre réservation a changé.'),
-        'trip_started'           => 'Votre conducteur a démarré le trajet.',
-        'trip_completed' || 'trip_ended'
-            => 'Trajet terminé. Laissez un avis !',
-        'payment_confirmed'      => 'Votre paiement a bien été confirmé.',
-        'new_message' || 'message_new'
-            => (data['preview'] as String? ?? 'Vous avez un nouveau message.'),
-        'withdrawal_requested'   => 'Votre demande de retrait a été reçue.',
-        'withdrawal_processed'   =>
-            (data['message'] as String? ?? 'Votre retrait a été traité.'),
-        'payout_paid'            => 'Vos gains ont été virés sur votre compte.',
-        'dispute_status_changed' =>
-            (data['message'] as String? ?? 'Votre demande de remboursement a été mise à jour.'),
-        'promo_code_published'   =>
-            'Code : ${data['promo_code'] ?? ''} — réduction de ${data['discount_value'] ?? ''}%.',
-        'account_status_changed' =>
-            (data['is_blocked']?.toString() == 'true')
-                ? 'Votre compte a été temporairement suspendu.'
-                : 'Votre compte a été réactivé. Bienvenue !',
-        'kyc_status_changed'     =>
-            (data['status'] == 'approved')
-                ? 'Votre identité a été vérifiée avec succès.'
-                : 'Votre KYC a été rejeté. Veuillez soumettre à nouveau.',
-        _                        => '',
-      };
+  static String _bodyFromType(String type, Map<String, dynamic> data) {
+    switch (type) {
+      case 'new_booking_request':
+        return 'Un passager a réservé votre trajet.';
+      case 'booking_status_changed':
+        return data['message'] as String? ?? 'Le statut de votre réservation a changé.';
+      case 'trip_started':
+        return 'Votre conducteur a démarré le trajet.';
+      case 'trip_completed':
+      case 'trip_ended':
+        return 'Trajet terminé. Laissez un avis !';
+      case 'payment_confirmed':
+        return 'Votre paiement a bien été confirmé.';
+      case 'new_message':
+      case 'message_new':
+        return _extractMessagePreview(data);
+      case 'withdrawal_requested':
+        return 'Votre demande de retrait a été reçue.';
+      case 'withdrawal_processed':
+        return data['message'] as String? ?? 'Votre retrait a été traité.';
+      case 'payout_paid':
+        return 'Vos gains ont été virés sur votre compte.';
+      case 'dispute_status_changed':
+        return data['message'] as String? ?? 'Votre demande de remboursement a été mise à jour.';
+      case 'promo_code_published':
+        return 'Code : ${data['promo_code'] ?? ''} — réduction de ${data['discount_value'] ?? ''}%.';
+      case 'account_status_changed':
+        return data['is_blocked']?.toString() == 'true'
+            ? 'Votre compte a été temporairement suspendu.'
+            : 'Votre compte a été réactivé. Bienvenue !';
+      case 'kyc_status_changed':
+        return data['status'] == 'approved'
+            ? 'Votre identité a été vérifiée avec succès.'
+            : 'Votre KYC a été rejeté. Veuillez soumettre à nouveau.';
+      default:
+        // Catch-all pour tout type contenant "message"
+        if (type.toLowerCase().contains('message')) {
+          return _extractMessagePreview(data);
+        }
+        return '';
+    }
+  }
+
+  static String _extractMessagePreview(Map<String, dynamic> data) {
+    for (final key in ['preview', 'message', 'content', 'text', 'body']) {
+      final v = (data[key] as String?)?.trim() ?? '';
+      if (v.isNotEmpty) return v;
+    }
+    return 'Vous avez un nouveau message.';
+  }
+
+  static DateTime _parseDate(String s) {
+    if (s.isEmpty) return _fallbackDate;
+    DateTime? dt = DateTime.tryParse(s);
+    if (dt == null) dt = DateTime.tryParse(s.replaceFirst(' ', 'T'));
+    return dt ?? _fallbackDate;
+  }
+
+  // Date très ancienne utilisée quand created_at est absent/illisible,
+  // pour éviter que formatTime() retourne "À l'instant" par erreur.
+  static final _fallbackDate = DateTime(2020, 1, 1);
 
   // ── Icônes ────────────────────────────────────────────────────────────────
 

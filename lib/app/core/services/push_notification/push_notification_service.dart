@@ -286,9 +286,9 @@ String _extractTitle(Map<String, dynamic> data, String type) {
   return 'MINIZON';
 }
 
-// Supporte plusieurs noms de champs selon le backend (body/message/content)
+// Supporte plusieurs noms de champs selon le backend (body/message/content/preview)
 String _extractBody(Map<String, dynamic> data, String type) {
-  for (final key in ['body', 'message', 'content', 'text']) {
+  for (final key in ['body', 'message', 'content', 'text', 'preview']) {
     final v = (data[key] as String?)?.trim() ?? '';
     if (v.isNotEmpty) return v;
   }
@@ -306,8 +306,10 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     // L'isolate background est vide — Firebase n'est pas encore initialisé ici.
     if (Firebase.apps.isEmpty) await Firebase.initializeApp();
 
-    // Message avec bloc notification → le système l'affiche déjà, on ne double pas.
-    if (message.notification != null) return;
+    // Message avec bloc notification et corps non-vide → le système l'affiche déjà.
+    // Si le corps FCM est vide (cas message_new sans preview), on affiche nous-mêmes.
+    if (message.notification != null &&
+        message.notification!.body?.trim().isNotEmpty == true) return;
 
     final data = message.data;
     final type = data['type'] as String? ?? '';

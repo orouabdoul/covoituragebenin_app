@@ -760,18 +760,21 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
               itemBuilder: (_, i) {
                 final item = _filtered[i];
                 final isSelected = item == widget.selected;
-                return ListTile(
-                  dense: true,
-                  title: Text(item,
-                      style: AppTextStyles.profileFieldValue(r).copyWith(
-                        color: isSelected ? AppColors.primary : AppColors.textPrimary,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                      )),
-                  trailing: isSelected
-                      ? Icon(Icons.check_rounded,
-                          color: AppColors.primary, size: r.text(18))
-                      : null,
-                  onTap: () => widget.onSelect(item),
+                return Material(
+                  color: Colors.transparent,
+                  child: ListTile(
+                    dense: true,
+                    title: Text(item,
+                        style: AppTextStyles.profileFieldValue(r).copyWith(
+                          color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                        )),
+                    trailing: isSelected
+                        ? Icon(Icons.check_rounded,
+                            color: AppColors.primary, size: r.text(18))
+                        : null,
+                    onTap: () => widget.onSelect(item),
+                  ),
                 );
               },
             ),
@@ -1277,18 +1280,21 @@ class _RelationPickerSheet extends StatelessWidget {
               itemBuilder: (_, i) {
                 final rel = _kRelations[i];
                 final isSelected = rel == selected;
-                return ListTile(
-                  dense: true,
-                  title: Text(rel,
-                      style: AppTextStyles.profileFieldValue(r)),
-                  trailing: isSelected
-                      ? Icon(Icons.check_rounded,
-                          color: AppColors.primary, size: r.text(18))
-                      : null,
-                  onTap: () {
-                    onSelected(rel);
-                    Navigator.pop(context);
-                  },
+                return Material(
+                  color: Colors.transparent,
+                  child: ListTile(
+                    dense: true,
+                    title: Text(rel,
+                        style: AppTextStyles.profileFieldValue(r)),
+                    trailing: isSelected
+                        ? Icon(Icons.check_rounded,
+                            color: AppColors.primary, size: r.text(18))
+                        : null,
+                    onTap: () {
+                      onSelected(rel);
+                      Navigator.pop(context);
+                    },
+                  ),
                 );
               },
             ),
