@@ -52,6 +52,16 @@ class PaymentSuccessView extends StatelessWidget {
 								SizedBox(height: responsive.h(24)),
 								AppPrimaryButton(
 									responsive: responsive,
+									label: 'Suivre mon trajet',
+									onTap: controller.goToTripPending,
+									backgroundColor: AppColors.success,
+									textColor: Colors.white,
+									height: responsive.h(56),
+									borderRadius: responsive.radius(16),
+								),
+								SizedBox(height: responsive.h(12)),
+								AppPrimaryButton(
+									responsive: responsive,
 									label: 'Voir mes réservations',
 									onTap: controller.goToReservations,
 									backgroundColor: AppColors.primary,

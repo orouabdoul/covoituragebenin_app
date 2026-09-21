@@ -40,6 +40,11 @@ class PassengerNotificationsServiceImpl
           response.data['success'] == true) {
         final body = response.data['body'];
         if (body is Map<String, dynamic>) {
+          final notifs = body['notifications'] as List?;
+          if (notifs != null && notifs.isNotEmpty) {
+            final first = notifs.first as Map<String, dynamic>;
+            logger.d('passNotif[0] type="${first['type']}" created_at="${first['created_at']}" updated_at="${first['updated_at']}"');
+          }
           return ApiResult.success(PassengerNotificationsBodyModel.fromJson(body));
         }
       }

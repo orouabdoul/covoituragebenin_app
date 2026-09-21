@@ -27,6 +27,7 @@ abstract class AppRoutes {
   static const passengerWaitingApproval = '/passenger-waiting-approval';
   static const passengerPaymentSuccess = '/passenger-payment-success';
   static const passengerLiveTracking = '/passenger-live-tracking';
+  static const passengerTripPending  = '/passenger-trip-pending';
   static const passengerDriverArrival = '/passenger-driver-arrival';
   static const passengerTripConfirmation = '/passenger-trip-confirmation';
   static const passengerNotifications = '/passenger-notifications';

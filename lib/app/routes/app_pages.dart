@@ -41,10 +41,10 @@ import '../modules/principal/passager/reservation/views/payment_success_view.dar
 import '../modules/principal/passager/reservation/bindings/payment_webview_binding.dart';
 import '../modules/principal/passager/reservation/views/payment_webview_view.dart';
 import '../modules/principal/passager/reservation/views/detail_journey_view.dart';
-import '../modules/principal/passager/tracking/bindings/live_tracking_binding.dart';
-import '../modules/principal/passager/tracking/bindings/driver_arrival_binding.dart';
-import '../modules/principal/passager/tracking/views/live_tracking_view.dart';
-import '../modules/principal/passager/tracking/views/driver_arrival_view.dart';
+import '../modules/tracking/passenger/trajet_actif/bindings/trajet_actif_binding.dart';
+import '../modules/tracking/passenger/trajet_actif/views/trajet_actif_view.dart';
+import '../modules/tracking/passenger/trajet_attente/bindings/trajet_attente_binding.dart';
+import '../modules/tracking/passenger/trajet_attente/views/trajet_attente_view.dart';
 import '../modules/principal/passager/trip_confirmation/bindings/trip_confirmation_binding.dart';
 import '../modules/principal/passager/trip_confirmation/views/trip_confirmation_view.dart';
 import '../modules/principal/passager/notifications/bindings/notifications_binding.dart';
@@ -65,8 +65,8 @@ import '../modules/principal/passager/reviews/bindings/my_reviews_binding.dart';
 import '../modules/principal/passager/reviews/views/my_reviews_view.dart';
 import '../modules/principal/passager/trust_hub/bindings/trust_hub_binding.dart';
 import '../modules/principal/passager/trust_hub/views/trust_hub_view.dart';
-import '../modules/principal/driver/interactive_map/bindings/interactive_map_binding.dart';
-import '../modules/principal/driver/interactive_map/views/interactive_map_view.dart';
+import '../modules/tracking/driver/mon_trajet/bindings/mon_trajet_binding.dart';
+import '../modules/tracking/driver/mon_trajet/views/mon_trajet_view.dart';
 import '../modules/principal/passager/messager/bindings/messager_binding.dart';
 import '../modules/principal/passager/messager/bindings/detail_messager_binding.dart';
 import '../modules/principal/passager/messager/views/detail_messager_view.dart';
@@ -93,10 +93,6 @@ import '../modules/principal/driver/messager/views/detail_messager_view.dart'
 // ── Driver — Nouveaux écrans ─────────────────────────────────────────────────
 import '../modules/principal/driver/trip_detail/bindings/trip_detail_binding.dart';
 import '../modules/principal/driver/trip_detail/views/trip_detail_view.dart';
-import '../modules/principal/driver/active_trip/bindings/active_trip_binding.dart';
-import '../modules/principal/driver/active_trip/views/active_trip_view.dart';
-import '../modules/principal/driver/running_trip/bindings/running_trip_binding.dart';
-import '../modules/principal/driver/running_trip/views/running_trip_view.dart';
 import '../modules/principal/driver/end_trip/bindings/end_trip_binding.dart';
 import '../modules/principal/driver/end_trip/views/end_trip_view.dart';
 import '../modules/principal/driver/withdraw/bindings/withdraw_binding.dart';
@@ -262,13 +258,18 @@ class AppPages {
     ),
     _page(
       name: AppRoutes.passengerLiveTracking,
-      page: () => const LiveTrackingView(),
-      binding: LiveTrackingBinding(),
+      page: () => const TrajetActifView(),
+      binding: TrajetActifBinding(),
+    ),
+    _page(
+      name: AppRoutes.passengerTripPending,
+      page: () => const TrajetAttenteView(),
+      binding: TrajetAttenteBinding(),
     ),
     _page(
       name: AppRoutes.passengerDriverArrival,
-      page: () => const DriverArrivalView(),
-      binding: DriverArrivalBinding(),
+      page: () => const TrajetAttenteView(),
+      binding: TrajetAttenteBinding(),
     ),
     _page(
       name: AppRoutes.passengerTripConfirmation,
@@ -322,8 +323,8 @@ class AppPages {
     ),
     _page(
       name: AppRoutes.driverInteractiveMap,
-      page: () => const InteractiveMapView(),
-      binding: InteractiveMapBinding(),
+      page: () => const MonTrajetView(),
+      binding: MonTrajetBinding(),
     ),
     // ── Driver Messagerie ──────────────────────────────────────────────────
     _page(
@@ -344,13 +345,13 @@ class AppPages {
     ),
     _page(
       name: AppRoutes.driverActiveTrip,
-      page: () => const ActiveTripView(),
-      binding: ActiveTripBinding(),
+      page: () => const MonTrajetView(),
+      binding: MonTrajetBinding(),
     ),
     _page(
       name: AppRoutes.driverRunningTrip,
-      page: () => const RunningTripView(),
-      binding: RunningTripBinding(),
+      page: () => const MonTrajetView(),
+      binding: MonTrajetBinding(),
     ),
     _page(
       name: AppRoutes.driverEndTrip,

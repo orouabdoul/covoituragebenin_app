@@ -210,15 +210,20 @@ class PassengerNotificationModel {
   }
 
   static DateTime _parseDate(String s) {
-    if (s.isEmpty) return _fallbackDate;
+    if (s.isEmpty) return DateTime.now();
     DateTime? dt = DateTime.tryParse(s);
     if (dt == null) dt = DateTime.tryParse(s.replaceFirst(' ', 'T'));
-    return dt ?? _fallbackDate;
+    // Unix timestamp (secondes ou millisecondes)
+    if (dt == null) {
+      final n = int.tryParse(s);
+      if (n != null) {
+        dt = n > 9999999999
+            ? DateTime.fromMillisecondsSinceEpoch(n)
+            : DateTime.fromMillisecondsSinceEpoch(n * 1000);
+      }
+    }
+    return dt ?? DateTime.now();
   }
-
-  // Date très ancienne utilisée quand created_at est absent/illisible,
-  // pour éviter que formatTime() retourne "À l'instant" par erreur.
-  static final _fallbackDate = DateTime(2020, 1, 1);
 
   // ── Icônes ────────────────────────────────────────────────────────────────
 

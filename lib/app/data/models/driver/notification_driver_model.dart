@@ -318,23 +318,38 @@ class DriverNotificationModel {
   // ── Helper date ───────────────────────────────────────────────────────────
 
   static String _formatCreatedAt(dynamic raw) {
-    if (raw == null) return '';
+    if (raw == null) return 'À l\'instant';
     final s = raw.toString().trim();
-    if (s.isEmpty) return '';
-    // Tente ISO8601, puis avec remplacement espace→T (format Laravel sans T)
+    if (s.isEmpty) return 'À l\'instant';
     DateTime? dt = DateTime.tryParse(s);
     if (dt == null) dt = DateTime.tryParse(s.replaceFirst(' ', 'T'));
-    if (dt == null) return '';
+    // Unix timestamp (secondes ou millisecondes)
+    if (dt == null) {
+      final n = int.tryParse(s);
+      if (n != null) {
+        dt = n > 9999999999
+            ? DateTime.fromMillisecondsSinceEpoch(n)
+            : DateTime.fromMillisecondsSinceEpoch(n * 1000);
+      }
+    }
+    if (dt == null) return 'À l\'instant';
     final local = dt.isUtc ? dt.toLocal() : dt;
     final diff = DateTime.now().difference(local);
     if (diff.isNegative || diff.inSeconds < 60) return 'À l\'instant';
     if (diff.inMinutes < 60) return 'Il y a ${diff.inMinutes} min';
     if (diff.inHours < 24) return 'Il y a ${diff.inHours}h';
     if (diff.inDays == 1) return 'Hier';
-    if (diff.inDays < 30) return 'Il y a ${diff.inDays} j';
-    final d = local.day.toString().padLeft(2, '0');
-    final m = local.month.toString().padLeft(2, '0');
-    return '$d/$m/${local.year}';
+    if (diff.inDays < 7) return 'Il y a ${diff.inDays} j';
+    if (diff.inDays < 30) {
+      final weeks = diff.inDays ~/ 7;
+      return 'Il y a $weeks sem';
+    }
+    if (diff.inDays < 365) {
+      final months = diff.inDays ~/ 30;
+      return 'Il y a $months mois';
+    }
+    final years = diff.inDays ~/ 365;
+    return 'Il y a $years an${years > 1 ? 's' : ''}';
   }
 
   // ── Legacy getters ────────────────────────────────────────────────────────

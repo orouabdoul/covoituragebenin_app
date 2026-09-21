@@ -274,9 +274,16 @@ class NotificationsController extends GetxController {
     if (diff.inMinutes < 60) return 'Il y a ${diff.inMinutes} min';
     if (diff.inHours < 24) return 'Il y a ${diff.inHours}h';
     if (diff.inDays == 1) return 'Hier';
-    if (diff.inDays < 30) return 'Il y a ${diff.inDays} j';
-    final d = local.day.toString().padLeft(2, '0');
-    final m = local.month.toString().padLeft(2, '0');
-    return '$d/$m/${local.year}';
+    if (diff.inDays < 7) return 'Il y a ${diff.inDays} j';
+    if (diff.inDays < 30) {
+      final weeks = diff.inDays ~/ 7;
+      return 'Il y a $weeks sem';
+    }
+    if (diff.inDays < 365) {
+      final months = diff.inDays ~/ 30;
+      return 'Il y a $months mois';
+    }
+    final years = diff.inDays ~/ 365;
+    return 'Il y a $years an${years > 1 ? 's' : ''}';
   }
 }

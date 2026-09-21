@@ -128,6 +128,25 @@ class PaymentSuccessController extends GetxController {
     );
   }
 
+  void goToTripPending() {
+    _autoRedirectTimer?.cancel();
+    final r = ride.value;
+    Get.offNamed(AppRoutes.passengerTripPending, arguments: {
+      'tripUuid':      r?.uuid ?? '',
+      'bookingUuid':   _bookingUuid,
+      'driverName':    r?.driverName ?? '',
+      'driverInitials': r?.driverInitials ?? '',
+      'driverRating':  r?.rating ?? '',
+      'driverVehicle': r?.vehicle ?? '',
+      'vehiclePlate':  r?.vehiclePlate ?? '',
+      'pickupCity':    pickupCity.value.isNotEmpty ? pickupCity.value : (r?.origin ?? ''),
+      'dropoffCity':   dropoffCity.value.isNotEmpty ? dropoffCity.value : (r?.destination ?? ''),
+      'seats':         reservedSeats.value,
+      'totalPrice':    displayFormattedAmount,
+      'departureTime': r?.departureTime ?? '',
+    });
+  }
+
   void goToReservations() {
     _autoRedirectTimer?.cancel();
     AppSync.i.refreshPassenger();

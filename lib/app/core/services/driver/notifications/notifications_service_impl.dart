@@ -33,9 +33,13 @@ class NotificationsServiceImpl implements NotificationsService {
       );
       logger.d('fetchNotifications[$filter] [${res.statusCode}]');
       if (res.statusCode == 200 && res.data['success'] == true) {
-        return ApiResult.success(
-          NotificationsBodyModel.fromJson(res.data['body'] as Map<String, dynamic>),
-        );
+        final body = res.data['body'] as Map<String, dynamic>;
+        final notifs = body['notifications'] as List?;
+        if (notifs != null && notifs.isNotEmpty) {
+          final first = notifs.first as Map<String, dynamic>;
+          logger.d('notif[0] type="${first['type']}" created_at="${first['created_at']}" updated_at="${first['updated_at']}"');
+        }
+        return ApiResult.success(NotificationsBodyModel.fromJson(body));
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       return ApiResult.failure(AppError.unexpected);
