@@ -478,28 +478,36 @@ class HomeController extends GetxController {
       case UpcomingTripStatus.inProgress:
         Get.toNamed(AppRoutes.passengerLiveTracking,
             arguments: {
-              'bookingUuid':      trip.bookingUuid,
-              'tripUuid':         trip.tripUuid,
-              'tripRoute':        '${trip.origin} → ${trip.destination}',
-              'pickupCity':       trip.pickupCity.isNotEmpty  ? trip.pickupCity  : trip.origin,
-              'dropoffCity':      trip.dropoffCity.isNotEmpty ? trip.dropoffCity : trip.destination,
-              'pickupNote':       trip.pickupNote,
-              'dropoffNote':      trip.dropoffNote,
-              'originPoint':      trip.originPoint,
-              'destinationPoint': trip.destinationPoint,
-              'driverName':       trip.driverName,
-              'driverPhone':      trip.driverPhone,
+              'bookingUuid':   trip.bookingUuid,
+              'tripUuid':      trip.tripUuid,
+              'departureCity': trip.pickupCity.isNotEmpty  ? trip.pickupCity  : trip.origin,
+              'arrivalCity':   trip.dropoffCity.isNotEmpty ? trip.dropoffCity : trip.destination,
+              'driverName':    trip.driverName,
+              'driverPhone':   trip.driverPhone,
             });
       case UpcomingTripStatus.driverArriving:
         Get.toNamed(AppRoutes.passengerDriverArrival,
             arguments: {
-              'bookingUuid': trip.bookingUuid,
-              'driverName':  trip.driverName,
-              'tripRoute':   '${trip.origin} → ${trip.destination}',
-              'driverPhone': trip.driverPhone,
+              'bookingUuid':   trip.bookingUuid,
+              'tripUuid':      trip.tripUuid,
+              'departureCity': trip.pickupCity.isNotEmpty  ? trip.pickupCity  : trip.origin,
+              'arrivalCity':   trip.dropoffCity.isNotEmpty ? trip.dropoffCity : trip.destination,
+              'driverName':    trip.driverName,
+              'driverPhone':   trip.driverPhone,
+              'departureTime': trip.departureTimeFormatted,
             });
       case UpcomingTripStatus.upcoming:
-        BottonNavController.goToTab(2);
+        // Trip en attente → ouvrir l'écran de suivi en attente
+        Get.toNamed(AppRoutes.passengerTripPending,
+            arguments: {
+              'bookingUuid':   trip.bookingUuid,
+              'tripUuid':      trip.tripUuid,
+              'departureCity': trip.pickupCity.isNotEmpty  ? trip.pickupCity  : trip.origin,
+              'arrivalCity':   trip.dropoffCity.isNotEmpty ? trip.dropoffCity : trip.destination,
+              'driverName':    trip.driverName,
+              'driverPhone':   trip.driverPhone,
+              'departureTime': trip.departureTimeFormatted,
+            });
     }
   }
 }

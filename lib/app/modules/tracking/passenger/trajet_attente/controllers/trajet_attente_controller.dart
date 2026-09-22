@@ -49,7 +49,8 @@ class TrajetAttenteController extends GetxController {
   String _bookingUuid = '';
   Timer? _pollTimer;
   Timer? _countdownTimer;
-  bool   _transitioned = false;
+  bool   _transitioned  = false;
+  bool   _proxAlertSent = false;
 
   static const _activeStatuses = {
     'active', 'in_progress', 'started', 'picking_up',
@@ -62,11 +63,8 @@ class TrajetAttenteController extends GetxController {
     departurePt = Rx<LatLng>(_benin);
     arrivalPt   = Rx<LatLng>(_benin);
     _parseArgs(Get.arguments);
-    _startCountdown();
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      _loadRoute();
-      _startPolling();
-    });
+    // _startCountdown, _loadRoute, _startPolling sont lancés dans _parseArgs
+    // (soit directement pour le chemin normal, soit via _fetchActiveBooking)
   }
 
   @override
@@ -79,19 +77,25 @@ class TrajetAttenteController extends GetxController {
   // ── Parsing des arguments ────────────────────────────────────────────────
 
   void _parseArgs(dynamic args) {
-    if (args is! Map<String, dynamic>) return;
-    _tripUuid    = args['tripUuid']    as String? ?? '';
-    _bookingUuid = args['bookingUuid'] as String? ?? '';
-    driverName.value    = args['driverName']  as String? ?? '';
-    driverPhone.value   = args['driverPhone'] as String? ?? '';
-    departureCity.value = args['departureCity'] as String? ?? '';
-    arrivalCity.value   = args['arrivalCity']   as String? ?? '';
-    departureTime.value = args['departureTime'] as String? ?? '';
+    if (args is! Map) {
+      // Pas d'args → auto-fetch depuis l'API
+      _fetchActiveBooking();
+      return;
+    }
+    final m = Map<String, dynamic>.from(args);
+    _tripUuid    = m['tripUuid']    as String? ?? '';
+    _bookingUuid = m['bookingUuid'] as String? ?? '';
+    driverName.value    = m['driverName']    as String? ?? '';
+    driverPhone.value   = m['driverPhone']   as String? ?? '';
+    // Accepte departureCity ou pickupCity (old nav paths)
+    departureCity.value = _str(m, ['departureCity', 'pickupCity']);
+    arrivalCity.value   = _str(m, ['arrivalCity', 'dropoffCity']);
+    departureTime.value = m['departureTime'] as String? ?? '';
 
-    final pLat = args['departureLat'] as double?;
-    final pLng = args['departureLng'] as double?;
-    final aLat = args['arrivalLat']   as double?;
-    final aLng = args['arrivalLng']   as double?;
+    final pLat = _numArg(m, 'departureLat');
+    final pLng = _numArg(m, 'departureLng');
+    final aLat = _numArg(m, 'arrivalLat');
+    final aLng = _numArg(m, 'arrivalLng');
     if (pLat != null && pLng != null) departurePt.value = LatLng(pLat, pLng);
     if (aLat != null && aLng != null) arrivalPt.value   = LatLng(aLat, aLng);
 
@@ -106,14 +110,86 @@ class TrajetAttenteController extends GetxController {
     }
 
     // Heure de départ
-    final depStr = args['departureTime'] as String? ?? '';
+    final depStr = departureTime.value;
     if (depStr.isNotEmpty) {
       _departureAt = DateTime.tryParse(depStr) ??
           DateTime.tryParse(depStr.replaceFirst(' ', 'T'));
     }
 
     _fitMap();
+    if (_tripUuid.isEmpty) {
+      // UUID absent dans les args → auto-fetch (démarre countdown/poll lui-même)
+      _fetchActiveBooking();
+    } else {
+      isLoading.value = false;
+      _startCountdown();
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        _loadRoute();
+        _startPolling();
+      });
+    }
+  }
+
+  // Récupère le premier booking en attente/actif depuis l'API
+  Future<void> _fetchActiveBooking() async {
+    isLoading.value = true;
+    final result = await _service.fetchPassengerActiveBooking();
+    if (!result.isSuccess || result.data == null) {
+      hasError.value  = true;
+      isLoading.value = false;
+      return;
+    }
+    final b = result.data!;
+    _tripUuid    = b.tripUuid;
+    _bookingUuid = b.bookingUuid;
+    if (driverName.value.isEmpty)  driverName.value  = b.driverName;
+    if (driverPhone.value.isEmpty) driverPhone.value = b.driverPhone;
+    if (departureCity.value.isEmpty) departureCity.value = b.departureCity;
+    if (arrivalCity.value.isEmpty)   arrivalCity.value   = b.arrivalCity;
+    if (departureTime.value.isEmpty) {
+      departureTime.value = b.departureTime;
+      if (b.departureTime.isNotEmpty) {
+        _departureAt = DateTime.tryParse(b.departureTime) ??
+            DateTime.tryParse(b.departureTime.replaceFirst(' ', 'T'));
+      }
+    }
+    if (b.departureLat != null && b.departureLng != null) {
+      departurePt.value = LatLng(b.departureLat!, b.departureLng!);
+    } else if (_same(departurePt.value, _benin)) {
+      final c = _cityCoord(b.departureCity);
+      if (c != null) departurePt.value = c;
+    }
+    if (b.arrivalLat != null && b.arrivalLng != null) {
+      arrivalPt.value = LatLng(b.arrivalLat!, b.arrivalLng!);
+    } else if (_same(arrivalPt.value, _benin)) {
+      final c = _cityCoord(b.arrivalCity);
+      if (c != null) arrivalPt.value = c;
+    }
+    _fitMap();
     isLoading.value = false;
+    _startCountdown();
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _loadRoute();
+      _startPolling();
+    });
+  }
+
+  // Extracts a String from the first matching key
+  static String _str(Map<String, dynamic> m, List<String> keys) {
+    for (final k in keys) {
+      final v = m[k];
+      if (v is String && v.isNotEmpty) return v;
+    }
+    return '';
+  }
+
+  // Safely cast numeric arg to double
+  static double? _numArg(Map<String, dynamic> m, String key) {
+    final v = m[key];
+    if (v is double) return v;
+    if (v is int)    return v.toDouble();
+    if (v is String) return double.tryParse(v);
+    return null;
   }
 
   // ── Route OSRM (avec cache shared_prefs 24h) ────────────────────────────
@@ -193,6 +269,25 @@ class TrajetAttenteController extends GetxController {
     if (!result.isSuccess) return;
     final data = result.data!;
     tripStatus.value = data.status;
+
+    // Alerte conducteur proche du point de prise
+    if (!_proxAlertSent) {
+      final vLat = data.effectiveLat;
+      final vLng = data.effectiveLng;
+      final dep  = departurePt.value;
+      if (vLat != null && vLng != null && !_same(dep, _benin)) {
+        final dist = haversine(vLat, vLng, dep.latitude, dep.longitude);
+        if (dist < 0.5) {
+          _proxAlertSent = true;
+          Get.snackbar(
+            'Conducteur proche !',
+            'Le conducteur est à moins de 500m — préparez-vous !',
+            snackPosition: SnackPosition.TOP,
+            duration: const Duration(seconds: 6),
+          );
+        }
+      }
+    }
 
     if (_activeStatuses.contains(data.status)) {
       _transitioned = true;

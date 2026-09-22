@@ -60,7 +60,7 @@ class AuthServiceImpl implements AuthService {
       if (status >= 500) return ApiResult.failure(AppError.serverUnavailable);
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
-      logger.w('sendOtp: ${e.type}');
+      logger.w('sendOtp: ${e.type} | error=${e.error?.runtimeType} | msg=${e.message}');
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
       logger.w('sendOtp: $e');

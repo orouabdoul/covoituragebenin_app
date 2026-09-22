@@ -83,23 +83,88 @@ class TrajetActifController extends GetxController {
 
   // ── Arguments ─────────────────────────────────────────────────────────────
 
-  void _parseArgs(dynamic args) {
-    if (args is! Map<String, dynamic>) return;
-    _tripUuid    = args['tripUuid']    as String? ?? '';
-    _bookingUuid = args['bookingUuid'] as String? ?? '';
-    driverName.value    = args['driverName']    as String? ?? '';
-    driverPhone.value   = args['driverPhone']   as String? ?? '';
-    departureCity.value = args['departureCity'] as String? ?? '';
-    arrivalCity.value   = args['arrivalCity']   as String? ?? '';
+  static const _beninCities = <String, LatLng>{
+    'cotonou':       LatLng(6.3654,  2.4183),
+    'porto-novo':    LatLng(6.4969,  2.6289),
+    'porto novo':    LatLng(6.4969,  2.6289),
+    'parakou':       LatLng(9.3394,  2.6280),
+    'bohicon':       LatLng(7.1839,  2.0670),
+    'abomey':        LatLng(7.1827,  1.9876),
+    'abomey-calavi': LatLng(6.4499,  2.3554),
+    'abomey calavi': LatLng(6.4499,  2.3554),
+    'lokossa':       LatLng(6.6419,  1.7175),
+    'natitingou':    LatLng(10.3164, 1.3789),
+    'kandi':         LatLng(11.1322, 2.9401),
+    'djougou':       LatLng(9.7086,  1.6623),
+    'ouidah':        LatLng(6.3609,  2.0860),
+    'savalou':       LatLng(7.9237,  1.9755),
+    'dassa':         LatLng(7.7571,  2.1896),
+    'save':          LatLng(8.0297,  2.4801),
+    'glazoue':       LatLng(7.9753,  2.2501),
+    'malanville':    LatLng(11.8695, 3.3853),
+    'allada':        LatLng(6.6641,  2.1517),
+    'nikki':         LatLng(9.9380,  3.2099),
+    'tchaourou':     LatLng(8.8778,  2.5983),
+    'banikoara':     LatLng(11.3009, 2.4396),
+    'ketou':         LatLng(7.3594,  2.6037),
+  };
 
-    final dLat = args['departureLat'] as double?;
-    final dLng = args['departureLng'] as double?;
-    final aLat = args['arrivalLat']   as double?;
-    final aLng = args['arrivalLng']   as double?;
+  void _parseArgs(dynamic args) {
+    if (args is! Map) return;
+    final m = Map<String, dynamic>.from(args);
+    _tripUuid    = m['tripUuid']    as String? ?? '';
+    _bookingUuid = m['bookingUuid'] as String? ?? '';
+    driverName.value    = m['driverName']    as String? ?? '';
+    driverPhone.value   = m['driverPhone']   as String? ?? '';
+    // Accepte departureCity ou pickupCity (old nav paths)
+    departureCity.value = _str(m, ['departureCity', 'pickupCity']);
+    arrivalCity.value   = _str(m, ['arrivalCity', 'dropoffCity']);
+
+    final dLat = _numArg(m, 'departureLat');
+    final dLng = _numArg(m, 'departureLng');
+    final aLat = _numArg(m, 'arrivalLat');
+    final aLng = _numArg(m, 'arrivalLng');
     if (dLat != null && dLng != null) departurePt.value = LatLng(dLat, dLng);
     if (aLat != null && aLng != null) arrivalPt.value   = LatLng(aLat, aLng);
+
+    // Résolution villes si coords absentes
+    if (_same(departurePt.value, _benin) && departureCity.value.isNotEmpty) {
+      final c = _cityCoord(departureCity.value);
+      if (c != null) departurePt.value = c;
+    }
+    if (_same(arrivalPt.value, _benin) && arrivalCity.value.isNotEmpty) {
+      final c = _cityCoord(arrivalCity.value);
+      if (c != null) arrivalPt.value = c;
+    }
+
     vehicleLatLng.value = departurePt.value;
     _fitMap();
+  }
+
+  static String _str(Map<String, dynamic> m, List<String> keys) {
+    for (final k in keys) {
+      final v = m[k];
+      if (v is String && v.isNotEmpty) return v;
+    }
+    return '';
+  }
+
+  static double? _numArg(Map<String, dynamic> m, String key) {
+    final v = m[key];
+    if (v is double) return v;
+    if (v is int)    return v.toDouble();
+    if (v is String) return double.tryParse(v);
+    return null;
+  }
+
+  static LatLng? _cityCoord(String name) {
+    if (name.isEmpty) return null;
+    final key = name.toLowerCase().trim();
+    if (_beninCities.containsKey(key)) return _beninCities[key];
+    for (final e in _beninCities.entries) {
+      if (key.contains(e.key) || e.key.contains(key)) return e.value;
+    }
+    return null;
   }
 
   // ── Route OSRM (cache 24h) ─────────────────────────────────────────────

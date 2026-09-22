@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
@@ -11,8 +9,8 @@ class AppDio {
   static Dio create() {
     final dio = Dio(BaseOptions(
       baseUrl: AppApi.baseUrl,
-      connectTimeout: const Duration(seconds: 20),
-      receiveTimeout: const Duration(seconds: 30),
+      connectTimeout: const Duration(seconds: 35),
+      receiveTimeout: const Duration(seconds: 40),
       headers: {'Accept': 'application/json'},
     ));
     dio.transformer = BackgroundTransformer();
@@ -30,10 +28,9 @@ class AppDio {
       case DioExceptionType.connectionError:
         return AppError.socket;
       case DioExceptionType.unknown:
-        if (e.error is SocketException || e.error is HttpException) {
-          return AppError.socket;
-        }
-        return AppError.unexpected;
+        // HandshakeException (SSL/TLS), OSError, SocketException, et tout
+        // autre échec réseau bas niveau remontent en DioExceptionType.unknown
+        return AppError.socket;
       default:
         return AppError.unexpected;
     }

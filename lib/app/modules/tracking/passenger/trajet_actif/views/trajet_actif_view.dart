@@ -8,197 +8,173 @@ import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import '../controllers/trajet_actif_controller.dart';
 
-class TrajetActifView extends StatelessWidget {
+class TrajetActifView extends GetView<TrajetActifController> {
   const TrajetActifView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final c   = Get.find<TrajetActifController>();
-    final res = AppResponsive(context);
-    final sh  = MediaQuery.of(context).size.height;
-
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
-          SizedBox(height: sh * 0.58, child: _MapLayer(c: c)),
-          DraggableScrollableSheet(
-            initialChildSize: 0.45,
-            minChildSize: 0.38,
-            maxChildSize: 0.72,
-            builder: (_, scroll) =>
-                _BottomPanel(c: c, res: res, scroll: scroll),
-          ),
-          _TopBar(c: c, res: res),
-          Obx(() => c.tripEnded.value
-              ? const SizedBox.shrink()
-              : const SizedBox.shrink()),
+          _MapLayer(c: controller),
+          _BottomSheet(c: controller),
+          _TopBar(c: controller),
         ],
       ),
     );
   }
 }
 
-// ── Carte ─────────────────────────────────────────────────────────────────────
+// ─── Map ─────────────────────────────────────────────────────────────────────
 
 class _MapLayer extends StatelessWidget {
   const _MapLayer({required this.c});
   final TrajetActifController c;
 
+  static const _benin = LatLng(9.3077, 2.3158);
+
+  static bool _isBenin(LatLng p) =>
+      (p.latitude - _benin.latitude).abs() < 1e-4 &&
+      (p.longitude - _benin.longitude).abs() < 1e-4;
+
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      final vehicle   = c.vehicleLatLng.value;
-      final departure = c.departurePt.value;
-      final arrival   = c.arrivalPt.value;
-      final trail     = c.gpsTrail.toList();
-      final route     = c.routePoints.toList();
-      final color     = Color(c.vehicleMarkerColor);
-
-      return FlutterMap(
-        mapController: c.mapCtrl,
-        options: MapOptions(
-          initialCenter: vehicle,
-          initialZoom: 13,
-          interactionOptions: const InteractionOptions(
-            flags: InteractiveFlag.all,
-          ),
-          onPositionChanged: (_, hasGesture) {
-            if (hasGesture) c.cameraFollows.value = false;
-          },
-        ),
-        children: [
-          TileLayer(
-            urlTemplate:
-                'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-            userAgentPackageName:
-                'com.example.covoiturage_benin_app',
-          ),
-          // Itinéraire OSRM planifié
-          if (route.length >= 2)
-            PolylineLayer(
-              polylines: [
-                Polyline(
-                  points: route,
-                  color: const Color(0xFF93C5FD).withValues(alpha: 0.7),
-                  strokeWidth: 4,
-                  pattern: StrokePattern.dashed(segments: const <double>[10, 6]),
-                ),
-              ],
-            ),
-          // Tracé GPS temps réel (bleu solide)
-          if (trail.length >= 2)
-            PolylineLayer(
-              polylines: [
-                Polyline(
-                  points: trail,
-                  color: const Color(0xFF1A5FB4),
-                  strokeWidth: 4,
-                ),
-              ],
-            ),
-          MarkerLayer(
-            markers: [
-              // Départ
-              _pinMarker(departure, const Color(0xFF10B981),
-                  Icons.trip_origin_rounded, 'Départ'),
-              // Arrivée
-              _pinMarker(arrival, const Color(0xFFEF4444),
-                  Icons.location_on_rounded, 'Arrivée'),
-              // Véhicule conducteur
-              Marker(
-                point: vehicle,
-                width: 46,
-                height: 46,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
-                    border:
-                        Border.all(color: Colors.white, width: 3),
-                    boxShadow: [
-                      BoxShadow(
-                        color: color.withValues(alpha: 0.5),
-                        blurRadius: 12,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(Icons.directions_car_rounded,
-                      color: Colors.white, size: 22),
-                ),
+    final h = MediaQuery.sizeOf(context).height;
+    return SizedBox(
+      height: h * 0.60,
+      child: Obx(() => FlutterMap(
+            mapController: c.mapCtrl,
+            options: MapOptions(
+              initialCenter: c.departurePt.value,
+              initialZoom: 11.0,
+              interactionOptions: const InteractionOptions(
+                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
               ),
-            ],
-          ),
-        ],
-      );
-    });
-  }
-
-  static Marker _pinMarker(
-      LatLng pt, Color color, IconData icon, String label) {
-    return Marker(
-      point: pt,
-      width: 52,
-      height: 66,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2.5),
-              boxShadow: [
-                BoxShadow(
-                    color: color.withValues(alpha: 0.4),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3))
-              ],
             ),
-            child: Icon(icon, color: Colors.white, size: 18),
-          ),
-          Container(
-            margin: const EdgeInsets.only(top: 2),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-            decoration: BoxDecoration(
-                color: color, borderRadius: BorderRadius.circular(4)),
-            child: Text(label,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700)),
-          ),
-        ],
-      ),
+            children: [
+              TileLayer(
+                urlTemplate:
+                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.minizon.app',
+              ),
+              if (c.routePoints.length >= 2)
+                PolylineLayer(polylines: [
+                  Polyline(
+                    points: List.unmodifiable(c.routePoints),
+                    color: AppColors.primary.withValues(alpha: 0.30),
+                    strokeWidth: 5,
+                    pattern:
+                        StrokePattern.dashed(segments: [12, 8]),
+                  ),
+                ]),
+              if (c.gpsTrail.length >= 2)
+                PolylineLayer(polylines: [
+                  Polyline(
+                    points: List.unmodifiable(c.gpsTrail),
+                    color: AppColors.primary,
+                    strokeWidth: 3.5,
+                  ),
+                ]),
+              MarkerLayer(markers: [
+                Marker(
+                  point: c.departurePt.value,
+                  width: 36,
+                  height: 36,
+                  child: _CityPin(
+                    color: AppColors.success,
+                    icon: Icons.trip_origin_rounded,
+                  ),
+                ),
+                Marker(
+                  point: c.arrivalPt.value,
+                  width: 36,
+                  height: 36,
+                  child: _CityPin(
+                    color: AppColors.danger,
+                    icon: Icons.location_on_rounded,
+                  ),
+                ),
+                if (!_isBenin(c.vehicleLatLng.value))
+                  Marker(
+                    point: c.vehicleLatLng.value,
+                    width: 44,
+                    height: 44,
+                    child: _VehicleDot(colorValue: c.vehicleMarkerColor),
+                  ),
+              ]),
+            ],
+          )),
     );
   }
 }
 
-// ── Header ─────────────────────────────────────────────────────────────────────
+class _CityPin extends StatelessWidget {
+  const _CityPin({required this.color, required this.icon});
+  final Color color;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.40),
+              blurRadius: 8,
+              spreadRadius: 1,
+            ),
+          ],
+        ),
+        child: Icon(icon, color: Colors.white, size: 20),
+      );
+}
+
+class _VehicleDot extends StatelessWidget {
+  const _VehicleDot({required this.colorValue});
+  final int colorValue;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Color(colorValue);
+    return Container(
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 2.5),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.45),
+            blurRadius: 10,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: const Icon(Icons.directions_car_filled_rounded,
+          color: Colors.white, size: 22),
+    );
+  }
+}
+
+// ─── Top Bar ──────────────────────────────────────────────────────────────────
 
 class _TopBar extends StatelessWidget {
-  const _TopBar({required this.c, required this.res});
+  const _TopBar({required this.c});
   final TrajetActifController c;
-  final AppResponsive res;
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: Padding(
-        padding: EdgeInsets.symmetric(
-            horizontal: res.w(12), vertical: res.h(4)),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Row(
           children: [
-            _CircleBtn(icon: Icons.arrow_back_rounded, onTap: Get.back),
+            _MapBtn(icon: Icons.arrow_back_rounded, onTap: Get.back),
             const Spacer(),
-            _CircleBtn(
-                icon: Icons.fit_screen_rounded, onTap: c.fitAll),
-            SizedBox(width: res.w(8)),
-            Obx(() => _CircleBtn(
+            _MapBtn(icon: Icons.fit_screen_rounded, onTap: c.fitAll),
+            const SizedBox(width: 8),
+            Obx(() => _MapBtn(
                   icon: c.cameraFollows.value
                       ? Icons.gps_fixed_rounded
                       : Icons.gps_not_fixed_rounded,
@@ -212,292 +188,8 @@ class _TopBar extends StatelessWidget {
   }
 }
 
-// ── Panneau bas ───────────────────────────────────────────────────────────────
-
-class _BottomPanel extends StatelessWidget {
-  const _BottomPanel({
-    required this.c,
-    required this.res,
-    required this.scroll,
-  });
-  final TrajetActifController c;
-  final AppResponsive res;
-  final ScrollController scroll;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        boxShadow: [
-          BoxShadow(
-              color: Color(0x1A000000),
-              blurRadius: 20,
-              offset: Offset(0, -4))
-        ],
-      ),
-      child: ListView(
-        controller: scroll,
-        padding: EdgeInsets.fromLTRB(
-            res.w(20), 0, res.w(20), res.h(32)),
-        children: [
-          Center(
-            child: Container(
-              margin: EdgeInsets.symmetric(vertical: res.h(10)),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                  color: AppColors.borderStrong,
-                  borderRadius: BorderRadius.circular(2)),
-            ),
-          ),
-          // Statut + GPS stale
-          Obx(() => Row(
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: c.hasVehicleGps.value
-                          ? AppColors.success
-                          : AppColors.textHint,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  SizedBox(width: res.w(6)),
-                  Expanded(
-                    child: Text(c.statusLabel,
-                        style: AppTextStyles.body(res).copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary)),
-                  ),
-                  if (c.gpsStale.value)
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: res.w(8), vertical: res.h(3)),
-                      decoration: BoxDecoration(
-                        color: AppColors.danger.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                            color: AppColors.danger.withValues(alpha: 0.3)),
-                      ),
-                      child: Text('GPS perdu',
-                          style: AppTextStyles.caption(res).copyWith(
-                              color: AppColors.danger,
-                              fontWeight: FontWeight.w700)),
-                    ),
-                ],
-              )),
-          SizedBox(height: res.h(12)),
-          // Infos distance / ETA / vitesse
-          Obx(() => Row(
-                children: [
-                  _StatChip(
-                    icon: Icons.route_rounded,
-                    value: c.distanceRemainKm.value < 1
-                        ? '${(c.distanceRemainKm.value * 1000).round()} m'
-                        : '${c.distanceRemainKm.value.toStringAsFixed(1)} km',
-                    label: 'Restant',
-                    res: res,
-                  ),
-                  SizedBox(width: res.w(10)),
-                  _StatChip(
-                    icon: Icons.schedule_rounded,
-                    value: c.etaMinutes.value,
-                    label: 'ETA',
-                    res: res,
-                  ),
-                  SizedBox(width: res.w(10)),
-                  _StatChip(
-                    icon: Icons.speed_rounded,
-                    value: '${c.vehicleSpeed.value.round()} km/h',
-                    label: 'Vitesse',
-                    res: res,
-                  ),
-                ],
-              )),
-          SizedBox(height: res.h(12)),
-          // Barre de progression
-          Obx(() => Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(c.departureCity.value,
-                          style: AppTextStyles.caption(res)
-                              .copyWith(color: AppColors.textHint)),
-                      const Spacer(),
-                      Text(c.arrivalCity.value,
-                          style: AppTextStyles.caption(res)
-                              .copyWith(color: AppColors.textHint)),
-                    ],
-                  ),
-                  SizedBox(height: res.h(4)),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: c.progressPct.value.clamp(0.0, 1.0),
-                      minHeight: 7,
-                      backgroundColor: AppColors.borderStrong,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ],
-              )),
-          SizedBox(height: res.h(16)),
-          const Divider(height: 1, color: AppColors.border),
-          SizedBox(height: res.h(16)),
-          // Conducteur
-          Obx(() => _DriverRow(
-                name: c.driverName.value,
-                res: res,
-                hasGps: c.hasVehicleGps.value,
-              )),
-          SizedBox(height: res.h(16)),
-          // Bouton appel
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: c.callDriver,
-              icon: const Icon(Icons.call_rounded, size: 18),
-              label: const Text('Appeler le conducteur'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.primary,
-                side: const BorderSide(
-                    color: AppColors.primary, width: 1.5),
-                padding:
-                    EdgeInsets.symmetric(vertical: res.h(14)),
-                shape: RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.circular(res.radius(14))),
-                textStyle: AppTextStyles.body(res)
-                    .copyWith(fontWeight: FontWeight.w600),
-              ),
-            ),
-          ),
-          SizedBox(height: res.h(10)),
-          Center(
-            child: Text(
-              'Mise à jour toutes les 5 secondes',
-              style: AppTextStyles.caption(res).copyWith(
-                  color: AppColors.textHint,
-                  fontSize: res.text(11)),
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Sous-widgets ──────────────────────────────────────────────────────────────
-
-class _StatChip extends StatelessWidget {
-  const _StatChip({
-    required this.icon,
-    required this.value,
-    required this.label,
-    required this.res,
-  });
-  final IconData icon;
-  final String value;
-  final String label;
-  final AppResponsive res;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: EdgeInsets.symmetric(
-            horizontal: res.w(8), vertical: res.h(10)),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceMuted,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, size: 16, color: AppColors.primary),
-            SizedBox(height: res.h(3)),
-            Text(value,
-                style: AppTextStyles.body(res).copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: res.text(13)),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis),
-            Text(label,
-                style: AppTextStyles.caption(res)
-                    .copyWith(color: AppColors.textHint)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DriverRow extends StatelessWidget {
-  const _DriverRow({
-    required this.name,
-    required this.res,
-    required this.hasGps,
-  });
-  final String name;
-  final AppResponsive res;
-  final bool hasGps;
-
-  @override
-  Widget build(BuildContext context) {
-    final initials = name.isNotEmpty ? name[0].toUpperCase() : '?';
-    return Row(
-      children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.12),
-            shape: BoxShape.circle,
-          ),
-          child: Center(
-            child: Text(initials,
-                style: AppTextStyles.h6(res).copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w800)),
-          ),
-        ),
-        SizedBox(width: res.w(12)),
-        Expanded(
-          child: Text(
-            name.isNotEmpty ? name : 'Conducteur',
-            style: AppTextStyles.body(res)
-                .copyWith(fontWeight: FontWeight.w700),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        if (!hasGps)
-          Padding(
-            padding: EdgeInsets.only(left: res.w(8)),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.portable_wifi_off_rounded,
-                    size: 14, color: AppColors.textHint),
-                SizedBox(width: res.w(4)),
-                Text('Pas de GPS',
-                    style: AppTextStyles.caption(res)
-                        .copyWith(color: AppColors.textHint)),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _CircleBtn extends StatelessWidget {
-  const _CircleBtn({
+class _MapBtn extends StatelessWidget {
+  const _MapBtn({
     required this.icon,
     required this.onTap,
     this.active = false,
@@ -507,27 +199,412 @@ class _CircleBtn extends StatelessWidget {
   final bool active;
 
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: active ? AppColors.primary : Colors.white,
-          shape: BoxShape.circle,
-          boxShadow: const [
-            BoxShadow(
-                color: Color(0x1A000000),
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: active ? AppColors.primary : Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x22000000),
                 blurRadius: 8,
-                offset: Offset(0, 2))
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Icon(
+            icon,
+            color: active ? Colors.white : AppColors.textPrimary,
+            size: 20,
+          ),
+        ),
+      );
+}
+
+// ─── Bottom Sheet ─────────────────────────────────────────────────────────────
+
+class _BottomSheet extends StatelessWidget {
+  const _BottomSheet({required this.c});
+  final TrajetActifController c;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = AppResponsive(context);
+    return DraggableScrollableSheet(
+      initialChildSize: 0.46,
+      minChildSize: 0.20,
+      maxChildSize: 0.78,
+      builder: (ctx, scroll) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x18000000),
+              blurRadius: 20,
+              offset: Offset(0, -4),
+            ),
           ],
         ),
-        child: Icon(icon,
-            size: 20,
-            color:
-                active ? Colors.white : AppColors.textPrimary),
+        child: ListView(
+          controller: scroll,
+          padding: EdgeInsets.zero,
+          children: [
+            _Handle(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _StatusRow(c: c, r: r),
+                  const SizedBox(height: 16),
+                  _MetricsRow(c: c, r: r),
+                  const SizedBox(height: 16),
+                  _ProgressBar(c: c, r: r),
+                  const _Separator(),
+                  _DriverCard(c: c, r: r),
+                  const SizedBox(height: 16),
+                  _PrimaryBtn(
+                    onTap: c.callDriver,
+                    icon: Icons.phone_rounded,
+                    label: 'Appeler le conducteur',
+                    color: AppColors.success,
+                    r: r,
+                  ),
+                  const SizedBox(height: 10),
+                  Center(
+                    child: Text(
+                      'Mise à jour toutes les 5 secondes',
+                      style: AppTextStyles.caption(r)
+                          .copyWith(color: AppColors.textHint),
+                    ),
+                  ),
+                  SizedBox(
+                      height: MediaQuery.paddingOf(context).bottom + 12),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
+}
+
+class _Handle extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Container(
+          width: 40,
+          height: 4,
+          margin: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFD1D5DB),
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+      );
+}
+
+class _Separator extends StatelessWidget {
+  const _Separator();
+
+  @override
+  Widget build(BuildContext context) => const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: Divider(height: 1, thickness: 1, color: Color(0xFFF0F2F5)),
+      );
+}
+
+class _StatusRow extends StatelessWidget {
+  const _StatusRow({required this.c, required this.r});
+  final TrajetActifController c;
+  final AppResponsive r;
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final label = c.statusLabel;
+      final stale = c.gpsStale.value;
+      return Row(
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: const BoxDecoration(
+              color: AppColors.success,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              label,
+              style: AppTextStyles.h5(r),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (stale) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.accent.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.signal_wifi_off_rounded,
+                      size: 13, color: AppColors.accent),
+                  const SizedBox(width: 4),
+                  Text('GPS perdu',
+                      style: AppTextStyles.labelSmall(r)
+                          .copyWith(color: AppColors.accent)),
+                ],
+              ),
+            ),
+          ],
+        ],
+      );
+    });
+  }
+}
+
+class _MetricsRow extends StatelessWidget {
+  const _MetricsRow({required this.c, required this.r});
+  final TrajetActifController c;
+  final AppResponsive r;
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() => Row(
+          children: [
+            _MetricChip(
+              icon: Icons.route_rounded,
+              value: '${c.distanceRemainKm.value.toStringAsFixed(1)} km',
+              label: 'Restant',
+              color: AppColors.primary,
+              r: r,
+            ),
+            const SizedBox(width: 10),
+            _MetricChip(
+              icon: Icons.access_time_rounded,
+              value: c.etaMinutes.value,
+              label: 'Arrivée',
+              color: AppColors.success,
+              r: r,
+            ),
+            const SizedBox(width: 10),
+            _MetricChip(
+              icon: Icons.speed_rounded,
+              value: '${c.vehicleSpeed.value.toStringAsFixed(0)} km/h',
+              label: 'Vitesse',
+              color: AppColors.accent,
+              r: r,
+            ),
+          ],
+        ));
+  }
+}
+
+class _MetricChip extends StatelessWidget {
+  const _MetricChip({
+    required this.icon,
+    required this.value,
+    required this.label,
+    required this.color,
+    required this.r,
+  });
+  final IconData icon;
+  final String value;
+  final String label;
+  final Color color;
+  final AppResponsive r;
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.07),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+                color: color.withValues(alpha: 0.16), width: 1),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: color, size: 18),
+              const SizedBox(height: 6),
+              Text(value,
+                  style: AppTextStyles.h6(r).copyWith(color: color)),
+              Text(label, style: AppTextStyles.labelSmall(r)),
+            ],
+          ),
+        ),
+      );
+}
+
+class _ProgressBar extends StatelessWidget {
+  const _ProgressBar({required this.c, required this.r});
+  final TrajetActifController c;
+  final AppResponsive r;
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final pct = c.progressPct.value.clamp(0.0, 1.0);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  c.departureCity.value,
+                  style: AppTextStyles.bodySmall(r)
+                      .copyWith(color: AppColors.textSecondary),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  c.arrivalCity.value,
+                  style: AppTextStyles.bodySmall(r)
+                      .copyWith(color: AppColors.textSecondary),
+                  textAlign: TextAlign.right,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: pct,
+              backgroundColor: const Color(0xFFEEF0F3),
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+              minHeight: 6,
+            ),
+          ),
+        ],
+      );
+    });
+  }
+}
+
+class _DriverCard extends StatelessWidget {
+  const _DriverCard({required this.c, required this.r});
+  final TrajetActifController c;
+  final AppResponsive r;
+
+  static String _initials(String n) {
+    final parts =
+        n.trim().split(' ').where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return 'C';
+    if (parts.length == 1) return parts[0][0].toUpperCase();
+    return (parts[0][0] + parts.last[0]).toUpperCase();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final name = c.driverName.value;
+      return Row(
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.10),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.20),
+                width: 1.5,
+              ),
+            ),
+            child: Center(
+              child: Text(
+                _initials(name),
+                style:
+                    AppTextStyles.h5(r).copyWith(color: AppColors.primary),
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name.isNotEmpty ? name : 'Conducteur',
+                  style: AppTextStyles.subtitle(r),
+                ),
+                Text('Conducteur', style: AppTextStyles.caption(r)),
+              ],
+            ),
+          ),
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: AppColors.success.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.verified_rounded,
+                    size: 14, color: AppColors.success),
+                const SizedBox(width: 4),
+                Text(
+                  'En route',
+                  style: AppTextStyles.labelSmall(r)
+                      .copyWith(color: AppColors.success),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    });
+  }
+}
+
+class _PrimaryBtn extends StatelessWidget {
+  const _PrimaryBtn({
+    required this.onTap,
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.r,
+  });
+  final VoidCallback onTap;
+  final IconData icon;
+  final String label;
+  final Color color;
+  final AppResponsive r;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: double.infinity,
+        height: 52,
+        child: ElevatedButton.icon(
+          onPressed: onTap,
+          icon: Icon(icon, size: 20),
+          label: Text(label, style: AppTextStyles.button(r)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: color,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14)),
+          ),
+        ),
+      );
 }

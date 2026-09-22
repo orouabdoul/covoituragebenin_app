@@ -50,6 +50,7 @@ class MonTrajetController extends GetxController {
   String _tripUuid = '';
   StreamSubscription<Position>? _gpsSub;
   Timer? _gpsPushTimer;
+  final _alertedPassengers = <int>{};
 
   @override
   void onInit() {
@@ -70,34 +71,74 @@ class MonTrajetController extends GetxController {
   // ── Arguments ─────────────────────────────────────────────────────────────
 
   void _parseArgs(dynamic args) {
-    if (args is! Map<String, dynamic>) {
+    if (args is! Map) {
       _fetchActiveTrip();
       return;
     }
-    _tripUuid = args['tripUuid'] as String? ?? '';
+
+    // Accept 'tripUuid' (passenger nav), 'uuid' (driver nav), or TripModel in 'trip'
+    _tripUuid = args['tripUuid'] as String? ?? args['uuid'] as String? ?? '';
+    final tripObj = args['trip'];
+    if (_tripUuid.isEmpty && tripObj != null) {
+      try { _tripUuid = (tripObj as dynamic).id?.toString() ?? ''; } catch (_) {}
+    }
     if (_tripUuid.isEmpty) {
       _fetchActiveTrip();
       return;
     }
-    tripStatus.value    = args['status']        as String? ?? 'pending';
-    departureCity.value = args['departureCity'] as String? ?? '';
-    arrivalCity.value   = args['arrivalCity']   as String? ?? '';
-    departureTime.value = args['departureTime'] as String? ?? '';
 
-    final dLat = args['departureLat'] as double?;
-    final dLng = args['departureLng'] as double?;
-    final aLat = args['arrivalLat']   as double?;
-    final aLng = args['arrivalLng']   as double?;
-    if (dLat != null && dLng != null) departurePt.value = LatLng(dLat, dLng);
-    if (aLat != null && aLng != null) arrivalPt.value   = LatLng(aLat, aLng);
+    if (tripObj != null) {
+      // Extract data from TripModel object passed by driver navigation
+      try {
+        final t = tripObj as dynamic;
+        tripStatus.value    = t.status.toString().split('.').last;
+        departureCity.value = t.origin?.toString()       ?? '';
+        arrivalCity.value   = t.destination?.toString()  ?? '';
+        departureTime.value = (t.departureAt ?? t.departureTime)?.toString() ?? '';
 
-    final rawPax = args['passengers'] as List?;
-    if (rawPax != null) {
-      passengers.value = rawPax
-          .whereType<Map<String, dynamic>>()
-          .map(ActivePassengerModel.fromJson)
-          .toList();
-      passengerCount.value = passengers.length;
+        // Approximate coords from city names
+        final dc = _cityCoord(departureCity.value);
+        final ac = _cityCoord(arrivalCity.value);
+        if (dc != null) departurePt.value = dc;
+        if (ac != null) arrivalPt.value   = ac;
+
+        final paxList = t.passengers as List?;
+        if (paxList != null) {
+          passengers.value = paxList.map<ActivePassengerModel>((p) {
+            final pm = p as dynamic;
+            return ActivePassengerModel(
+              name:  pm.name?.toString()  ?? 'Passager',
+              phone: pm.phone?.toString() ?? '',
+              seats: (pm.seatsBooked as int?) ?? 1,
+            );
+          }).toList();
+          passengerCount.value = passengers.length;
+        }
+      } catch (_) {}
+      // Background refresh for exact coords + passenger phones/pickups
+      Future.microtask(_refreshFromApi);
+    } else {
+      // Flat map args (API-style navigation)
+      tripStatus.value    = args['status']        as String? ?? 'pending';
+      departureCity.value = args['departureCity'] as String? ?? '';
+      arrivalCity.value   = args['arrivalCity']   as String? ?? '';
+      departureTime.value = args['departureTime'] as String? ?? '';
+
+      final dLat = _dbl(args, 'departureLat');
+      final dLng = _dbl(args, 'departureLng');
+      final aLat = _dbl(args, 'arrivalLat');
+      final aLng = _dbl(args, 'arrivalLng');
+      if (dLat != null && dLng != null) departurePt.value = LatLng(dLat, dLng);
+      if (aLat != null && aLng != null) arrivalPt.value   = LatLng(aLat, aLng);
+
+      final rawPax = args['passengers'] as List?;
+      if (rawPax != null) {
+        passengers.value = rawPax
+            .whereType<Map<String, dynamic>>()
+            .map(ActivePassengerModel.fromJson)
+            .toList();
+        passengerCount.value = passengers.length;
+      }
     }
 
     isLoading.value = false;
@@ -105,6 +146,14 @@ class MonTrajetController extends GetxController {
       _fitMap();
       _loadRoute();
     });
+  }
+
+  static double? _dbl(dynamic m, String key) {
+    final v = m[key];
+    if (v is double) return v;
+    if (v is int)    return v.toDouble();
+    if (v is String) return double.tryParse(v);
+    return null;
   }
 
   Future<void> _fetchActiveTrip() async {
@@ -125,6 +174,15 @@ class MonTrajetController extends GetxController {
     }
     if (trip.arrivalLat != null && trip.arrivalLng != null) {
       arrivalPt.value = LatLng(trip.arrivalLat!, trip.arrivalLng!);
+    }
+    // Fallback ville si API n'a pas renvoyé de coords
+    if (_same(departurePt.value, _benin) && departureCity.value.isNotEmpty) {
+      final c = _cityCoord(departureCity.value);
+      if (c != null) departurePt.value = c;
+    }
+    if (_same(arrivalPt.value, _benin) && arrivalCity.value.isNotEmpty) {
+      final c = _cityCoord(arrivalCity.value);
+      if (c != null) arrivalPt.value = c;
     }
     passengers.value  = trip.passengers;
     passengerCount.value = trip.passengers.length;
@@ -213,6 +271,24 @@ class MonTrajetController extends GetxController {
         speed:     mySpeedKmh.value,
         heading:   pos.heading,
       ).ignore();
+    }
+    // Alerter si proche d'un point de prise passager
+    for (int i = 0; i < passengers.length; i++) {
+      final p = passengers[i];
+      if (p.pickupLat == null || _alertedPassengers.contains(i)) continue;
+      final dist = _haversine(
+          pos.latitude, pos.longitude, p.pickupLat!, p.pickupLng!);
+      if (dist < 0.5) {
+        _alertedPassengers.add(i);
+        Get.snackbar(
+          'Point de prise proche',
+          '${p.name} — à moins de 500m',
+          snackPosition: SnackPosition.TOP,
+          duration: const Duration(seconds: 4),
+          backgroundColor: const Color(0xFF7C3AED),
+          colorText: Colors.white,
+        );
+      }
     }
   }
 
@@ -316,7 +392,105 @@ class MonTrajetController extends GetxController {
     });
   }
 
+  // ── Rafraîchissement API en arrière-plan ──────────────────────────────────
+
+  Future<void> _refreshFromApi() async {
+    final result = await _svc.fetchDriverActiveTrip();
+    if (!result.isSuccess || result.data == null) return;
+    final trip = result.data!;
+
+    bool changed = false;
+    if (trip.departureLat != null && trip.departureLng != null) {
+      final exact = LatLng(trip.departureLat!, trip.departureLng!);
+      if (!_same(departurePt.value, exact)) { departurePt.value = exact; changed = true; }
+    }
+    if (trip.arrivalLat != null && trip.arrivalLng != null) {
+      final exact = LatLng(trip.arrivalLat!, trip.arrivalLng!);
+      if (!_same(arrivalPt.value, exact)) { arrivalPt.value = exact; changed = true; }
+    }
+    if (trip.passengers.isNotEmpty) {
+      final updated = passengers.map((p) {
+        try {
+          final match = trip.passengers.firstWhere(
+            (ap) => ap.name.toLowerCase() == p.name.toLowerCase(),
+            orElse: () => p,
+          );
+          return ActivePassengerModel(
+            name:      p.name,
+            phone:     match.phone.isNotEmpty ? match.phone : p.phone,
+            seats:     p.seats,
+            pickupLat: p.pickupLat ?? match.pickupLat,
+            pickupLng: p.pickupLng ?? match.pickupLng,
+            avatar:    p.avatar ?? match.avatar,
+          );
+        } catch (_) {
+          return p;
+        }
+      }).toList();
+      passengers.value = updated;
+      if (updated.any((p) => p.pickupLat != null)) changed = true;
+    }
+    if (changed) {
+      _fitMap();
+      _loadRoute();
+    }
+  }
+
   // ── Helpers ───────────────────────────────────────────────────────────────
+
+  static double _haversine(
+      double lat1, double lng1, double lat2, double lng2) {
+    const r = 6371.0;
+    final dLat = (lat2 - lat1) * math.pi / 180;
+    final dLng = (lng2 - lng1) * math.pi / 180;
+    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(lat1 * math.pi / 180) *
+            math.cos(lat2 * math.pi / 180) *
+            math.sin(dLng / 2) *
+            math.sin(dLng / 2);
+    return r * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+  }
+
+  static const _cities = <String, LatLng>{
+    'cotonou':        LatLng(6.3654,  2.4183),
+    'porto-novo':     LatLng(6.4969,  2.6289),
+    'porto novo':     LatLng(6.4969,  2.6289),
+    'parakou':        LatLng(9.3394,  2.6280),
+    'bohicon':        LatLng(7.1839,  2.0670),
+    'abomey':         LatLng(7.1827,  1.9876),
+    'abomey-calavi':  LatLng(6.4499,  2.3554),
+    'abomey calavi':  LatLng(6.4499,  2.3554),
+    'lokossa':        LatLng(6.6419,  1.7175),
+    'natitingou':     LatLng(10.3164, 1.3789),
+    'kandi':          LatLng(11.1322, 2.9401),
+    'djougou':        LatLng(9.7086,  1.6623),
+    'ouidah':         LatLng(6.3609,  2.0860),
+    'savalou':        LatLng(7.9237,  1.9755),
+    'dassa':          LatLng(7.7571,  2.1896),
+    'dassa-zoumè':    LatLng(7.7571,  2.1896),
+    'save':           LatLng(8.0297,  2.4801),
+    'glazoué':        LatLng(7.9753,  2.2501),
+    'glazoue':        LatLng(7.9753,  2.2501),
+    'malanville':     LatLng(11.8695, 3.3853),
+    'allada':         LatLng(6.6641,  2.1517),
+    'nikki':          LatLng(9.9380,  3.2099),
+    'tchaourou':      LatLng(8.8778,  2.5983),
+    'banikoara':      LatLng(11.3009, 2.4396),
+    'ketou':          LatLng(7.3594,  2.6037),
+    'covè':           LatLng(7.2303,  2.3806),
+    'sèmè-kpodji':    LatLng(6.3822,  2.6378),
+    'seme':           LatLng(6.3822,  2.6378),
+  };
+
+  static LatLng? _cityCoord(String name) {
+    if (name.isEmpty) return null;
+    final key = name.toLowerCase().trim();
+    if (_cities.containsKey(key)) return _cities[key];
+    for (final e in _cities.entries) {
+      if (key.contains(e.key) || e.key.contains(key)) return e.value;
+    }
+    return null;
+  }
 
   static bool _same(LatLng a, LatLng b) =>
       (a.latitude - b.latitude).abs() < 1e-5 &&

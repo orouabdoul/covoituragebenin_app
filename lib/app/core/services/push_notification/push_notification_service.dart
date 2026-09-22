@@ -1091,11 +1091,16 @@ class PushNotificationService {
   }
 
   void _logToken() {
-    _fcm.getToken().then((t) => logger.d('FCM Token: $t'));
-    _fcm.onTokenRefresh.listen((t) {
-      logger.d('FCM Token refreshed: $t');
-      registerFcmToken();
-    });
+    _fcm.getToken()
+        .then((t) => logger.d('FCM Token: $t'))
+        .catchError((Object e) => logger.w('FCM _logToken: $e'));
+    _fcm.onTokenRefresh.listen(
+      (t) {
+        logger.d('FCM Token refreshed: $t');
+        registerFcmToken();
+      },
+      onError: (Object e) => logger.w('FCM onTokenRefresh: $e'),
+    );
   }
 
   // ── Helpers payload ────────────────────────────────────────────────────────

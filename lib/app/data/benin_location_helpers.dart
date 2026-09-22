@@ -54,6 +54,95 @@ class BeninLocationHelpers {
   static ({double lat, double lng})? getCityCoords(String city) =>
       citiesWithCoords[city];
 
+  // ── GPS coords des arrondissements (granularité intra-commune) ────────────
+  // Nécessaire pour calculer un prorata correct quand pickup et dropoff sont
+  // dans la même commune mais des arrondissements différents.
+  static const Map<String, Map<String, ({double lat, double lng})>>
+      arrondissementsWithCoords = {
+    'Sèmè-Kpodji': {
+      'Agblangandan': (lat: 6.3741, lng: 2.5430),
+      'Aholouyeme':   (lat: 6.4200, lng: 2.5800),
+      'Djeregbe':     (lat: 6.3750, lng: 2.6010),
+      'Ekpe':         (lat: 6.3380, lng: 2.5950),
+      'Tohoue':       (lat: 6.4000, lng: 2.5540),
+      'Seme-Kpodji':  (lat: 6.3741, lng: 2.5710),
+    },
+    'Porto-Novo': {
+      '1er Arrondissement':  (lat: 6.4970, lng: 2.6215),
+      '2ème Arrondissement': (lat: 6.4995, lng: 2.6155),
+      '3ème Arrondissement': (lat: 6.4860, lng: 2.6145),
+      '4ème Arrondissement': (lat: 6.4845, lng: 2.6270),
+      '5ème Arrondissement': (lat: 6.5080, lng: 2.6380),
+    },
+    'Cotonou': {
+      '1er Arrondissement':   (lat: 6.3660, lng: 2.4185),
+      '2ème Arrondissement':  (lat: 6.3700, lng: 2.4130),
+      '3ème Arrondissement':  (lat: 6.3575, lng: 2.4295),
+      '4ème Arrondissement':  (lat: 6.3595, lng: 2.4350),
+      '5ème Arrondissement':  (lat: 6.3600, lng: 2.4240),
+      '6ème Arrondissement':  (lat: 6.3645, lng: 2.4235),
+      '7ème Arrondissement':  (lat: 6.3710, lng: 2.4175),
+      '8ème Arrondissement':  (lat: 6.3720, lng: 2.4115),
+      '9ème Arrondissement':  (lat: 6.3700, lng: 2.4225),
+      '10ème Arrondissement': (lat: 6.3760, lng: 2.4035),
+      '11ème Arrondissement': (lat: 6.3810, lng: 2.4000),
+      '12ème Arrondissement': (lat: 6.3710, lng: 2.3850),
+      '13ème Arrondissement': (lat: 6.3770, lng: 2.3930),
+    },
+    'Abomey-Calavi': {
+      'Abomey-Calavi': (lat: 6.4481, lng: 2.3559),
+      'Godomey':       (lat: 6.4000, lng: 2.3833),
+      'Hevie':         (lat: 6.5167, lng: 2.2667),
+      'Kpanroun':      (lat: 6.5500, lng: 2.3000),
+      'Ouedo':         (lat: 6.4833, lng: 2.3167),
+      'Togba':         (lat: 6.4667, lng: 2.4000),
+      'Zinvie':        (lat: 6.5833, lng: 2.2833),
+    },
+    'Parakou': {
+      '1er Arrondissement':  (lat: 9.3300, lng: 2.6100),
+      '2ème Arrondissement': (lat: 9.3500, lng: 2.6400),
+      '3ème Arrondissement': (lat: 9.3400, lng: 2.6200),
+    },
+  };
+
+  /// Retourne les coordonnées GPS d'un arrondissement, null si inconnu.
+  /// La recherche est insensible aux accents et à la casse.
+  static ({double lat, double lng})? getArrondissementCoords(
+      String? commune, String? arrondissement) {
+    if (commune == null || arrondissement == null) return null;
+
+    Map<String, ({double lat, double lng})>? communeMap =
+        arrondissementsWithCoords[commune];
+
+    if (communeMap == null) {
+      // Fallback: comparaison sans accents
+      final lc = _stripAccents(commune.toLowerCase());
+      for (final k in arrondissementsWithCoords.keys) {
+        if (_stripAccents(k.toLowerCase()) == lc) {
+          communeMap = arrondissementsWithCoords[k];
+          break;
+        }
+      }
+    }
+    if (communeMap == null) return null;
+
+    if (communeMap.containsKey(arrondissement)) return communeMap[arrondissement];
+
+    // Fallback: comparaison sans accents sur l'arrondissement
+    final la = _stripAccents(arrondissement.toLowerCase());
+    for (final entry in communeMap.entries) {
+      if (_stripAccents(entry.key.toLowerCase()) == la) return entry.value;
+    }
+    return null;
+  }
+
+  static String _stripAccents(String s) => s
+      .replaceAll(RegExp(r'[èéêë]'), 'e')
+      .replaceAll(RegExp(r'[àâä]'), 'a')
+      .replaceAll(RegExp(r'[îï]'), 'i')
+      .replaceAll(RegExp(r'[ùûü]'), 'u')
+      .replaceAll(RegExp(r'[ôö]'), 'o');
+
   // ── Lookup rapide O(1) sur les 77 communes ───────────────────────────────
   static final Set<String> _allCommunesSet = Set.unmodifiable(_allCommunes);
 

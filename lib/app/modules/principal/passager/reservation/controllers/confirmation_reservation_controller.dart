@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/passenger_reservation_service.dart';
+import 'package:covoiturage_benin_app/app/core/services/routing/geocoding_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/routing/routing_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
@@ -133,6 +134,7 @@ class ConfirmationReservationController extends GetxController {
 
   // ── Distance / prorata ────────────────────────────────────────────────────
   final RoutingService _routing = RoutingService();
+  final GeocodingService _geocoding = GeocodingService();
   final RxDouble passengerDistanceKm = 0.0.obs;
   final RxDouble _tripDistanceKm = 0.0.obs;
 
@@ -286,6 +288,15 @@ class ConfirmationReservationController extends GetxController {
     pickupArrondissementController.text = arr;
     pickupSelectedNeighborhood.value = null;
     pickupNeighborhoodController.text = '';
+    // Raffine les coordonnées au niveau arrondissement pour un prorata correct
+    // quand pickup et dropoff sont dans la même commune.
+    final coords = BeninLocationHelpers.getArrondissementCoords(
+        pickupSelectedCity.value, arr);
+    if (coords != null) {
+      pickupLat.value = coords.lat;
+      pickupLng.value = coords.lng;
+      unawaited(_updatePassengerDistance());
+    }
   }
 
   void onPickupArrondissementTyped() {
@@ -294,9 +305,18 @@ class ConfirmationReservationController extends GetxController {
     pickupNeighborhoodController.text = '';
   }
 
-  void onPickupNeighborhoodSelected(String district) {
+  Future<void> onPickupNeighborhoodSelected(String district) async {
     pickupSelectedNeighborhood.value = district;
     pickupNeighborhoodController.text = district;
+    final city = pickupSelectedCity.value ?? '';
+    if (city.isNotEmpty) {
+      final result = await _geocoding.geocodeAddress('$district, $city, Bénin');
+      if (result != null) {
+        pickupLat.value = result.lat;
+        pickupLng.value = result.lng;
+        unawaited(_updatePassengerDistance());
+      }
+    }
   }
 
   void onPickupNeighborhoodTyped() => pickupSelectedNeighborhood.value = null;
@@ -332,6 +352,15 @@ class ConfirmationReservationController extends GetxController {
     dropoffArrondissementController.text = arr;
     dropoffSelectedNeighborhood.value = null;
     dropoffNeighborhoodController.text = '';
+    // Raffine les coordonnées au niveau arrondissement pour un prorata correct
+    // quand pickup et dropoff sont dans la même commune.
+    final coords = BeninLocationHelpers.getArrondissementCoords(
+        dropoffSelectedCity.value, arr);
+    if (coords != null) {
+      dropoffLat.value = coords.lat;
+      dropoffLng.value = coords.lng;
+      unawaited(_updatePassengerDistance());
+    }
   }
 
   void onDropoffArrondissementTyped() {
@@ -340,9 +369,18 @@ class ConfirmationReservationController extends GetxController {
     dropoffNeighborhoodController.text = '';
   }
 
-  void onDropoffNeighborhoodSelected(String district) {
+  Future<void> onDropoffNeighborhoodSelected(String district) async {
     dropoffSelectedNeighborhood.value = district;
     dropoffNeighborhoodController.text = district;
+    final city = dropoffSelectedCity.value ?? '';
+    if (city.isNotEmpty) {
+      final result = await _geocoding.geocodeAddress('$district, $city, Bénin');
+      if (result != null) {
+        dropoffLat.value = result.lat;
+        dropoffLng.value = result.lng;
+        unawaited(_updatePassengerDistance());
+      }
+    }
   }
 
   void onDropoffNeighborhoodTyped() => dropoffSelectedNeighborhood.value = null;
@@ -618,13 +656,14 @@ class ConfirmationReservationController extends GetxController {
       return;
     }
 
-    // Coordonnées identiques (même ville) → le backend crash en calculant distance 0km.
-    // On envoie null pour laisser le backend résoudre par nom de quartier.
+    // Coordonnées trop proches (< ~100m) → même point, on laisse le backend résoudre.
+    // Avec géocodage des quartiers, deux quartiers différents auront des coords distinctes.
     final pLat = pickupLat.value;
     final pLng = pickupLng.value;
     final dLat = dropoffLat.value;
     final dLng = dropoffLng.value;
-    final coordsAreSame = pLat != null && pLat == dLat && pLng == dLng;
+    final coordsAreSame = pLat != null && pLng != null && dLat != null && dLng != null &&
+        (pLat - dLat).abs() < 0.001 && (pLng - dLng).abs() < 0.001;
     final effectivePickupLat = coordsAreSame ? null : pLat;
     final effectivePickupLng = coordsAreSame ? null : pLng;
     final effectiveDropoffLat = coordsAreSame ? null : dLat;
@@ -673,11 +712,27 @@ class ConfirmationReservationController extends GetxController {
   void _showPriceSheet(CreateBookingResult booking) {
     _priceConfirmed = false;
 
-    if (booking.priceTotal > 0) {
+    // Si le backend n'a pas pu calculer la distance du trajet (trip_distance_km = 0)
+    // mais qu'on a nos propres distances OSRM, on calcule le prorata côté frontend.
+    final backendMissingTripDist = booking.tripDistanceKm <= 0;
+    final frontendHasBothDists = _tripDistanceKm.value > 0 && passengerDistanceKm.value > 0;
+    if (backendMissingTripDist && frontendHasBothDists && _pricePerSeat.value > 0) {
+      final ratio = (passengerDistanceKm.value / _tripDistanceKm.value).clamp(0.0, 1.0);
+      final prorated = (ratio * _pricePerSeat.value).round().clamp(1, _pricePerSeat.value);
+      final base = prorated * reservedSeats.value;
+      _confirmedPrice = base + (base * commissionRate.value / 100).round();
+    } else if (booking.priceTotal > 0) {
       _confirmedPrice = booking.priceTotal;
     } else if (booking.calculatedPrice > 0) {
-      final subtotal = booking.calculatedPrice * reservedSeats.value;
-      _confirmedPrice = subtotal + (subtotal * commissionRate.value / 100).round();
+      // Utilise les montants backend (priceSubtotal + serviceFee) pour éviter
+      // toute incohérence avec le taux de commission local.
+      final backendTotal = booking.priceSubtotal + booking.serviceFee;
+      if (backendTotal > 0) {
+        _confirmedPrice = backendTotal;
+      } else {
+        final subtotal = booking.calculatedPrice * reservedSeats.value;
+        _confirmedPrice = subtotal + (subtotal * commissionRate.value / 100).round();
+      }
     } else if (_pricePerSeat.value > 0) {
       final subtotal = _pricePerSeat.value * reservedSeats.value;
       _confirmedPrice = subtotal + (subtotal * commissionRate.value / 100).round();

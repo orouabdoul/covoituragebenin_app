@@ -139,6 +139,7 @@ class InputPhoneController extends GetxController {
   }
 
   Future<void> continueWithPhone() async {
+    if (isLoading.value) return;
     final rawPhone = phoneController.text.trim();
     if (!_beninPhoneRegex.hasMatch(rawPhone)) {
       UIHelper().showSnackBar('MINIZON', 'Numéro invalide. Vérifiez le format (ex: 0197XXXXXX).', 2);

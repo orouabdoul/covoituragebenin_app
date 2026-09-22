@@ -144,8 +144,11 @@ class InputPhoneView extends GetView<InputPhoneController> {
 											Obx(
 												() => AppPrimaryButton(
 													responsive: responsive,
-													label: AppStrings.rolesContinue,
-													enabled: controller.canContinueRx.value,
+													label: controller.isLoading.value
+															? 'Envoi en cours…'
+															: AppStrings.rolesContinue,
+													enabled: controller.canContinueRx.value &&
+															!controller.isLoading.value,
 													onTap: controller.continueWithPhone,
 												),
 											),

@@ -1,543 +1,653 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:get/get.dart';
-import 'package:latlong2/latlong.dart';
-
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import '../controllers/trajet_attente_controller.dart';
 
-class TrajetAttenteView extends StatelessWidget {
+class TrajetAttenteView extends GetView<TrajetAttenteController> {
   const TrajetAttenteView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final c   = Get.find<TrajetAttenteController>();
-    final res = AppResponsive(context);
-    final sh  = MediaQuery.of(context).size.height;
-
     return Scaffold(
-      backgroundColor: AppColors.surface,
-      body: Stack(
-        children: [
-          // ── Carte (55% de l'écran) ──────────────────────────────────────
-          SizedBox(
-            height: sh * 0.55,
-            child: _MapLayer(controller: c),
-          ),
+      backgroundColor: Colors.white,
+      body: Obx(() {
+        if (controller.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (controller.hasError.value) {
+          return _ErrorState();
+        }
+        return Stack(
+          children: [
+            _MapLayer(c: controller),
+            Obx(() => controller.isTransitioning.value
+                ? _TransitionOverlay()
+                : const SizedBox.shrink()),
+            _BottomSheet(c: controller),
+            _TopBar(c: controller),
+          ],
+        );
+      }),
+    );
+  }
+}
 
-          // ── Panneau bas draggable ───────────────────────────────────────
-          DraggableScrollableSheet(
-            initialChildSize: 0.48,
-            minChildSize: 0.40,
-            maxChildSize: 0.78,
-            builder: (_, scrollCtrl) => _BottomPanel(
-              c: c,
-              res: res,
-              scrollCtrl: scrollCtrl,
+// ─── Map ─────────────────────────────────────────────────────────────────────
+
+class _MapLayer extends StatelessWidget {
+  const _MapLayer({required this.c});
+  final TrajetAttenteController c;
+
+  @override
+  Widget build(BuildContext context) {
+    final h = MediaQuery.sizeOf(context).height;
+    return SizedBox(
+      height: h * 0.56,
+      child: Obx(() {
+        final status = c.tripStatus.value;
+        final routeColor = _routeColor(status);
+
+        return FlutterMap(
+          mapController: c.mapCtrl,
+          options: MapOptions(
+            initialCenter: c.departurePt.value,
+            initialZoom: 10.0,
+            interactionOptions: const InteractionOptions(
+              flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
             ),
           ),
-
-          // ── Header ─────────────────────────────────────────────────────
-          SafeArea(
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                  horizontal: res.w(12), vertical: res.h(4)),
-              child: Row(
-                children: [
-                  _CircleBtn(
-                      icon: Icons.arrow_back_rounded, onTap: Get.back),
-                  const Spacer(),
-                  Obx(() => c.isTransitioning.value
-                      ? const SizedBox.shrink()
-                      : _CircleBtn(
-                          icon: Icons.refresh_rounded, onTap: c.refreshNow)),
-                ],
+          children: [
+            TileLayer(
+              urlTemplate:
+                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.minizon.app',
+            ),
+            if (c.routePoints.length >= 2)
+              PolylineLayer(polylines: [
+                Polyline(
+                  points: List.unmodifiable(c.routePoints),
+                  color: routeColor.withValues(alpha: 0.55),
+                  strokeWidth: 5,
+                  pattern:
+                      StrokePattern.dashed(segments: [12, 8]),
+                ),
+              ]),
+            MarkerLayer(markers: [
+              Marker(
+                point: c.departurePt.value,
+                width: 36,
+                height: 36,
+                child: _CityPin(
+                  color: AppColors.success,
+                  icon: Icons.trip_origin_rounded,
+                ),
               ),
-            ),
-          ),
+              Marker(
+                point: c.arrivalPt.value,
+                width: 36,
+                height: 36,
+                child: _CityPin(
+                  color: AppColors.danger,
+                  icon: Icons.location_on_rounded,
+                ),
+              ),
+            ]),
+          ],
+        );
+      }),
+    );
+  }
 
-          // ── Overlay de transition ───────────────────────────────────────
-          Obx(() => c.isTransitioning.value
-              ? _TransitionOverlay(res: res)
-              : const SizedBox.shrink()),
-        ],
+  static Color _routeColor(String status) {
+    switch (status) {
+      case 'active':
+      case 'in_progress':
+      case 'started':
+        return AppColors.primary;
+      case 'completed':
+        return AppColors.textHint;
+      default:
+        return AppColors.accent;
+    }
+  }
+}
+
+class _CityPin extends StatelessWidget {
+  const _CityPin({required this.color, required this.icon});
+  final Color color;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.40),
+              blurRadius: 8,
+              spreadRadius: 1,
+            ),
+          ],
+        ),
+        child: Icon(icon, color: Colors.white, size: 20),
+      );
+}
+
+// ─── Transition Overlay ───────────────────────────────────────────────────────
+
+class _TransitionOverlay extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final r = AppResponsive(context);
+    return Container(
+      color: AppColors.primary.withValues(alpha: 0.90),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(color: Colors.white),
+            const SizedBox(height: 20),
+            Text(
+              'Le conducteur a démarré !',
+              style: AppTextStyles.h4(r).copyWith(color: Colors.white),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Ouverture du suivi en direct…',
+              style: AppTextStyles.muted(r)
+                  .copyWith(color: Colors.white70),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-// ── Carte ─────────────────────────────────────────────────────────────────────
+// ─── Top Bar ──────────────────────────────────────────────────────────────────
 
-class _MapLayer extends StatelessWidget {
-  const _MapLayer({required this.controller});
-  final TrajetAttenteController controller;
+class _TopBar extends StatelessWidget {
+  const _TopBar({required this.c});
+  final TrajetAttenteController c;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          children: [
+            _MapBtn(icon: Icons.arrow_back_rounded, onTap: Get.back),
+            const Spacer(),
+            _MapBtn(
+              icon: Icons.refresh_rounded,
+              onTap: c.refreshNow,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MapBtn extends StatelessWidget {
+  const _MapBtn({required this.icon, required this.onTap});
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x22000000),
+                blurRadius: 8,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Icon(icon, color: AppColors.textPrimary, size: 20),
+        ),
+      );
+}
+
+// ─── Bottom Sheet ─────────────────────────────────────────────────────────────
+
+class _BottomSheet extends StatelessWidget {
+  const _BottomSheet({required this.c});
+  final TrajetAttenteController c;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = AppResponsive(context);
+    return DraggableScrollableSheet(
+      initialChildSize: 0.50,
+      minChildSize: 0.22,
+      maxChildSize: 0.80,
+      builder: (ctx, scroll) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x18000000),
+              blurRadius: 20,
+              offset: Offset(0, -4),
+            ),
+          ],
+        ),
+        child: ListView(
+          controller: scroll,
+          padding: EdgeInsets.zero,
+          children: [
+            _Handle(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _CountdownCard(c: c, r: r),
+                  const SizedBox(height: 20),
+                  _RouteRow(c: c, r: r),
+                  const _Separator(),
+                  _DriverRow(c: c, r: r),
+                  const SizedBox(height: 16),
+                  _CallBtn(c: c, r: r),
+                  const SizedBox(height: 10),
+                  _AutoRefreshHint(r: r),
+                  SizedBox(
+                      height: MediaQuery.paddingOf(context).bottom + 12),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Handle extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Container(
+          width: 40,
+          height: 4,
+          margin: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFD1D5DB),
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+      );
+}
+
+class _Separator extends StatelessWidget {
+  const _Separator();
+
+  @override
+  Widget build(BuildContext context) => const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: Divider(height: 1, thickness: 1, color: Color(0xFFF0F2F5)),
+      );
+}
+
+class _CountdownCard extends StatelessWidget {
+  const _CountdownCard({required this.c, required this.r});
+  final TrajetAttenteController c;
+  final AppResponsive r;
 
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final dep    = controller.departurePt.value;
-      final arr    = controller.arrivalPt.value;
-      final route  = controller.routePoints.toList();
-      final status = controller.tripStatus.value;
+      final expired = c.countdownExpired.value;
+      final label = c.countdownLabel.value;
+      final bg = expired
+          ? AppColors.success.withValues(alpha: 0.08)
+          : AppColors.primary.withValues(alpha: 0.06);
+      final iconColor = expired ? AppColors.success : AppColors.primary;
+      final icon =
+          expired ? Icons.directions_car_rounded : Icons.hourglass_top_rounded;
 
-      // Couleur pointillés selon statut
-      final routeColor = status == 'active'
-          ? const Color(0xFF93C5FD)
-          : status == 'completed'
-              ? const Color(0xFF9CA3AF)
-              : const Color(0xFFF59E0B); // pending → orange
-
-      return FlutterMap(
-        mapController: controller.mapCtrl,
-        options: MapOptions(
-          initialCenter: dep,
-          initialZoom: 12,
-          interactionOptions:
-              const InteractionOptions(flags: InteractiveFlag.all),
-        ),
-        children: [
-          TileLayer(
-            urlTemplate:
-                'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-            userAgentPackageName:
-                'com.example.covoiturage_benin_app',
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: iconColor.withValues(alpha: 0.18),
+            width: 1,
           ),
-          // Itinéraire planifié (pointillés orange)
-          if (route.length >= 2)
-            PolylineLayer(
-              polylines: [
-                Polyline(
-                  points: route,
-                  color: routeColor.withValues(alpha: 0.85),
-                  strokeWidth: 4.5,
-                  pattern: StrokePattern.dashed(segments: const <double>[12, 8]),
-                ),
-              ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: iconColor.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: iconColor, size: 22),
             ),
-          MarkerLayer(
-            markers: [
-              _marker(dep, const Color(0xFF10B981), Icons.trip_origin_rounded,
-                  'Départ'),
-              _marker(arr, const Color(0xFFEF4444), Icons.location_on_rounded,
-                  'Arrivée'),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    expired
+                        ? 'Départ imminent'
+                        : 'Avant le départ',
+                    style: AppTextStyles.caption(r)
+                        .copyWith(color: iconColor),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    label.isNotEmpty ? label : '—',
+                    style: AppTextStyles.h4(r)
+                        .copyWith(color: iconColor),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+}
+
+class _RouteRow extends StatelessWidget {
+  const _RouteRow({required this.c, required this.r});
+  final TrajetAttenteController c;
+  final AppResponsive r;
+
+  String _formatTime(String raw) {
+    if (raw.isEmpty) return '';
+    final dt = DateTime.tryParse(raw) ??
+        DateTime.tryParse(raw.replaceFirst(' ', 'T'));
+    if (dt == null) return raw;
+    final h = dt.hour.toString().padLeft(2, '0');
+    final m = dt.minute.toString().padLeft(2, '0');
+    return '${h}h$m';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final dep = c.departureCity.value;
+      final arr = c.arrivalCity.value;
+      final time = _formatTime(c.departureTime.value);
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Votre trajet',
+              style: AppTextStyles.bodyMedium(r)
+                  .copyWith(color: AppColors.textSecondary)),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Column(
+                children: [
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: const BoxDecoration(
+                      color: AppColors.success,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  Container(
+                    width: 2,
+                    height: 28,
+                    color: const Color(0xFFD1D5DB),
+                  ),
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: const BoxDecoration(
+                      color: AppColors.danger,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      dep.isNotEmpty ? dep : '—',
+                      style: AppTextStyles.subtitle(r),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            arr.isNotEmpty ? arr : '—',
+                            style: AppTextStyles.subtitle(r),
+                          ),
+                        ),
+                        if (time.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary
+                                  .withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.access_time_rounded,
+                                    size: 12,
+                                    color: AppColors.primary),
+                                const SizedBox(width: 4),
+                                Text(
+                                  time,
+                                  style: AppTextStyles.labelSmall(r)
+                                      .copyWith(color: AppColors.primary),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ],
       );
     });
   }
-
-  static Marker _marker(LatLng pt, Color color, IconData icon, String label) {
-    return Marker(
-      point: pt,
-      width: 52,
-      height: 66,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2.5),
-              boxShadow: [
-                BoxShadow(
-                  color: color.withValues(alpha: 0.4),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Icon(icon, color: Colors.white, size: 18),
-          ),
-          Container(
-            margin: const EdgeInsets.only(top: 2),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-            decoration: BoxDecoration(
-                color: color, borderRadius: BorderRadius.circular(4)),
-            child: Text(label,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700)),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
-// ── Panneau bas ───────────────────────────────────────────────────────────────
-
-class _BottomPanel extends StatelessWidget {
-  const _BottomPanel({
-    required this.c,
-    required this.res,
-    required this.scrollCtrl,
-  });
+class _DriverRow extends StatelessWidget {
+  const _DriverRow({required this.c, required this.r});
   final TrajetAttenteController c;
-  final AppResponsive res;
-  final ScrollController scrollCtrl;
+  final AppResponsive r;
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        boxShadow: [
-          BoxShadow(
-              color: Color(0x1A000000),
-              blurRadius: 20,
-              offset: Offset(0, -4))
-        ],
-      ),
-      child: ListView(
-        controller: scrollCtrl,
-        padding: EdgeInsets.fromLTRB(
-            res.w(20), 0, res.w(20), res.h(32)),
-        children: [
-          Center(
-            child: Container(
-              margin: EdgeInsets.symmetric(vertical: res.h(10)),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                  color: AppColors.borderStrong,
-                  borderRadius: BorderRadius.circular(2)),
-            ),
-          ),
-          // Countdown
-          Obx(() => _CountdownCard(
-                label: c.countdownLabel.value,
-                expired: c.countdownExpired.value,
-                res: res,
-              )),
-          SizedBox(height: res.h(16)),
-          // Titre itinéraire
-          Text('Votre trajet',
-              style: AppTextStyles.h6(res)
-                  .copyWith(color: AppColors.textSecondary)),
-          SizedBox(height: res.h(8)),
-          Obx(() => _RouteRow(
-                dep: c.departureCity.value,
-                arr: c.arrivalCity.value,
-                time: c.departureTime.value,
-                res: res,
-              )),
-          SizedBox(height: res.h(16)),
-          const Divider(height: 1, color: AppColors.border),
-          SizedBox(height: res.h(16)),
-          // Conducteur
-          Obx(() => _DriverRow(
-                name: c.driverName.value,
-                res: res,
-              )),
-          SizedBox(height: res.h(20)),
-          // Bouton appel
-          _CallBtn(onTap: c.callDriver, res: res),
-          SizedBox(height: res.h(12)),
-          Center(
-            child: Text(
-              'Actualisation automatique toutes les 30 secondes',
-              style: AppTextStyles.caption(res)
-                  .copyWith(color: AppColors.textHint, fontSize: res.text(11)),
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ],
-      ),
-    );
+  static String _initials(String n) {
+    final parts =
+        n.trim().split(' ').where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return 'C';
+    if (parts.length == 1) return parts[0][0].toUpperCase();
+    return (parts[0][0] + parts.last[0]).toUpperCase();
   }
-}
-
-// ── Sous-widgets ──────────────────────────────────────────────────────────────
-
-class _CountdownCard extends StatelessWidget {
-  const _CountdownCard(
-      {required this.label, required this.expired, required this.res});
-  final String label;
-  final bool expired;
-  final AppResponsive res;
 
   @override
   Widget build(BuildContext context) {
-    final color = expired ? AppColors.accent : AppColors.primary;
-    return Container(
-      padding: EdgeInsets.symmetric(
-          horizontal: res.w(16), vertical: res.h(14)),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(res.radius(14)),
-        border: Border.all(color: color.withValues(alpha: 0.25)),
-      ),
-      child: Row(
+    return Obx(() {
+      final name = c.driverName.value;
+      return Row(
         children: [
-          Icon(
-            expired
-                ? Icons.timer_off_rounded
-                : Icons.hourglass_top_rounded,
-            color: color,
-            size: 22,
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.10),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.20),
+                width: 1.5,
+              ),
+            ),
+            child: Center(
+              child: Text(
+                _initials(name),
+                style:
+                    AppTextStyles.h5(r).copyWith(color: AppColors.primary),
+              ),
+            ),
           ),
-          SizedBox(width: res.w(10)),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  expired ? 'Départ imminent' : 'Avant le départ',
-                  style: AppTextStyles.caption(res).copyWith(
-                      color: color, fontWeight: FontWeight.w600),
+                  name.isNotEmpty ? name : 'Conducteur',
+                  style: AppTextStyles.subtitle(r),
                 ),
-                SizedBox(height: res.h(2)),
+                Text('Conducteur', style: AppTextStyles.caption(r)),
+              ],
+            ),
+          ),
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: AppColors.accent.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 7,
+                  height: 7,
+                  decoration: const BoxDecoration(
+                    color: AppColors.accent,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 5),
                 Text(
-                  label.isEmpty ? 'Calcul…' : label,
-                  style: AppTextStyles.h6(res).copyWith(
-                      color: color, fontWeight: FontWeight.w800),
+                  'En attente',
+                  style: AppTextStyles.labelSmall(r)
+                      .copyWith(color: AppColors.accent),
                 ),
               ],
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _RouteRow extends StatelessWidget {
-  const _RouteRow({
-    required this.dep,
-    required this.arr,
-    required this.time,
-    required this.res,
-  });
-  final String dep;
-  final String arr;
-  final String time;
-  final AppResponsive res;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _PointRow(
-            color: const Color(0xFF10B981),
-            icon: Icons.trip_origin_rounded,
-            label: dep.isNotEmpty ? dep : '—',
-            res: res),
-        Padding(
-          padding: EdgeInsets.only(left: res.w(16)),
-          child: Container(
-              width: 2, height: 20, color: AppColors.borderStrong),
-        ),
-        _PointRow(
-            color: const Color(0xFFEF4444),
-            icon: Icons.location_on_rounded,
-            label: arr.isNotEmpty ? arr : '—',
-            res: res),
-        if (time.isNotEmpty) ...[
-          SizedBox(height: res.h(6)),
-          Row(
-            children: [
-              Icon(Icons.schedule_rounded,
-                  size: 14, color: AppColors.textHint),
-              SizedBox(width: res.w(4)),
-              Text(time,
-                  style: AppTextStyles.caption(res)
-                      .copyWith(color: AppColors.textHint)),
-            ],
-          )
-        ],
-      ],
-    );
-  }
-}
-
-class _PointRow extends StatelessWidget {
-  const _PointRow({
-    required this.color,
-    required this.icon,
-    required this.label,
-    required this.res,
-  });
-  final Color color;
-  final IconData icon;
-  final String label;
-  final AppResponsive res;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 28,
-          height: 28,
-          decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.15), shape: BoxShape.circle),
-          child: Icon(icon, color: color, size: 16),
-        ),
-        SizedBox(width: res.w(10)),
-        Expanded(
-          child: Text(label,
-              style: AppTextStyles.body(res)
-                  .copyWith(fontWeight: FontWeight.w600),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis),
-        ),
-      ],
-    );
-  }
-}
-
-class _DriverRow extends StatelessWidget {
-  const _DriverRow({required this.name, required this.res});
-  final String name;
-  final AppResponsive res;
-
-  @override
-  Widget build(BuildContext context) {
-    final initials = name.isNotEmpty ? name[0].toUpperCase() : '?';
-    return Row(
-      children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.12),
-            shape: BoxShape.circle,
-          ),
-          child: Center(
-            child: Text(initials,
-                style: AppTextStyles.h6(res).copyWith(
-                    color: AppColors.primary, fontWeight: FontWeight.w800)),
-          ),
-        ),
-        SizedBox(width: res.w(12)),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                name.isNotEmpty ? name : 'Conducteur',
-                style: AppTextStyles.body(res)
-                    .copyWith(fontWeight: FontWeight.w700),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              Text(
-                'Votre conducteur',
-                style: AppTextStyles.caption(res)
-                    .copyWith(color: AppColors.textHint),
-              ),
-            ],
-          ),
-        ),
-        Container(
-          padding: EdgeInsets.symmetric(
-              horizontal: res.w(8), vertical: res.h(4)),
-          decoration: BoxDecoration(
-            color: AppColors.success.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-                color: AppColors.success.withValues(alpha: 0.3)),
-          ),
-          child: Text(
-            'En attente',
-            style: AppTextStyles.caption(res).copyWith(
-                color: AppColors.success, fontWeight: FontWeight.w700),
-          ),
-        ),
-      ],
-    );
+      );
+    });
   }
 }
 
 class _CallBtn extends StatelessWidget {
-  const _CallBtn({required this.onTap, required this.res});
-  final VoidCallback onTap;
-  final AppResponsive res;
+  const _CallBtn({required this.c, required this.r});
+  final TrajetAttenteController c;
+  final AppResponsive r;
 
   @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: onTap,
-        icon: const Icon(Icons.call_rounded, size: 18),
-        label: const Text('Appeler le conducteur'),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primary,
-          side: const BorderSide(color: AppColors.primary, width: 1.5),
-          padding: EdgeInsets.symmetric(vertical: res.h(14)),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(res.radius(14))),
-          textStyle: AppTextStyles.body(res)
-              .copyWith(fontWeight: FontWeight.w600),
+  Widget build(BuildContext context) => SizedBox(
+        width: double.infinity,
+        height: 52,
+        child: ElevatedButton.icon(
+          onPressed: c.callDriver,
+          icon: const Icon(Icons.phone_rounded, size: 20),
+          label: Text('Appeler le conducteur',
+              style: AppTextStyles.button(r)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.success,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14)),
+          ),
         ),
-      ),
-    );
-  }
+      );
 }
 
-class _TransitionOverlay extends StatelessWidget {
-  const _TransitionOverlay({required this.res});
-  final AppResponsive res;
+class _AutoRefreshHint extends StatelessWidget {
+  const _AutoRefreshHint({required this.r});
+  final AppResponsive r;
 
   @override
+  Widget build(BuildContext context) => Center(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.sync_rounded, size: 13, color: AppColors.textHint),
+            const SizedBox(width: 5),
+            Text(
+              'Actualisation auto toutes les 30 secondes',
+              style: AppTextStyles.caption(r)
+                  .copyWith(color: AppColors.textHint),
+            ),
+          ],
+        ),
+      );
+}
+
+// ─── Error State ──────────────────────────────────────────────────────────────
+
+class _ErrorState extends StatelessWidget {
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      color: AppColors.primary.withValues(alpha: 0.88),
-      child: Center(
+    final r = AppResponsive(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const CircularProgressIndicator(
-                color: Colors.white, strokeWidth: 3),
-            SizedBox(height: res.h(16)),
-            Text('Le conducteur a démarré !',
-                style: AppTextStyles.h5(res)
-                    .copyWith(color: Colors.white)),
-            SizedBox(height: res.h(6)),
-            Text('Chargement du suivi en direct…',
-                style: AppTextStyles.body(res)
-                    .copyWith(color: Colors.white70)),
+            Icon(Icons.error_outline_rounded,
+                size: 64, color: AppColors.danger),
+            const SizedBox(height: 16),
+            Text('Réservation introuvable', style: AppTextStyles.h4(r)),
+            const SizedBox(height: 8),
+            Text(
+              'Impossible de charger les données de votre trajet.',
+              style: AppTextStyles.muted(r),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: Get.back,
+              icon: const Icon(Icons.arrow_back_rounded),
+              label: const Text('Retour'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _CircleBtn extends StatelessWidget {
-  const _CircleBtn({required this.icon, required this.onTap});
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-          boxShadow: const [
-            BoxShadow(
-                color: Color(0x1A000000),
-                blurRadius: 8,
-                offset: Offset(0, 2))
-          ],
-        ),
-        child:
-            Icon(icon, size: 20, color: AppColors.textPrimary),
       ),
     );
   }
