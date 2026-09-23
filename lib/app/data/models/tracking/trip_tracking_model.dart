@@ -86,6 +86,11 @@ class ActiveBookingModel {
     this.departureLng,
     this.arrivalLat,
     this.arrivalLng,
+    // Coords précises du passager (pickup → dropoff), priorité sur trip dep/arr
+    this.pickupLat,
+    this.pickupLng,
+    this.dropoffLat,
+    this.dropoffLng,
     this.price,
     required this.driverName,
     required this.driverPhone,
@@ -105,6 +110,10 @@ class ActiveBookingModel {
   final double? departureLng;
   final double? arrivalLat;
   final double? arrivalLng;
+  final double? pickupLat;
+  final double? pickupLng;
+  final double? dropoffLat;
+  final double? dropoffLng;
   final String? price;
   final String driverName;
   final String driverPhone;
@@ -112,6 +121,12 @@ class ActiveBookingModel {
   final String driverVehicle;
   final String driverPlate;
   final String? driverAvatar;
+
+  // Coords à utiliser pour la carte : pickup/dropoff précis, sinon départ/arrivée du trajet
+  double? get mapFromLat => pickupLat ?? departureLat;
+  double? get mapFromLng => pickupLng ?? departureLng;
+  double? get mapToLat   => dropoffLat ?? arrivalLat;
+  double? get mapToLng   => dropoffLng ?? arrivalLng;
 
   factory ActiveBookingModel.fromJson(Map<String, dynamic> j) {
     final trip   = j['trip']   as Map<String, dynamic>? ?? {};
@@ -139,6 +154,11 @@ class ActiveBookingModel {
       departureLng:  (trip['departure_longitude'] as num?)?.toDouble(),
       arrivalLat:    (trip['arrival_latitude'] as num?)?.toDouble(),
       arrivalLng:    (trip['arrival_longitude'] as num?)?.toDouble(),
+      // Pickup/dropoff du passager (depuis la réservation elle-même, pas le trajet)
+      pickupLat:   (j['pickup_latitude']  as num?)?.toDouble(),
+      pickupLng:   (j['pickup_longitude'] as num?)?.toDouble(),
+      dropoffLat:  (j['dropoff_latitude']  as num?)?.toDouble(),
+      dropoffLng:  (j['dropoff_longitude'] as num?)?.toDouble(),
       price:         trip['price']?.toString(),
       driverName:    fullName.isNotEmpty ? fullName : driver['name']?.toString() ?? '',
       driverPhone:   driver['phone']?.toString() ?? '',
@@ -224,8 +244,9 @@ class ActivePassengerModel {
       name:       fullName.isNotEmpty ? fullName : 'Passager',
       phone:      p['phone']?.toString() ?? '',
       seats:      (j['seats'] as num?)?.toInt() ?? 1,
-      pickupLat:  (p['pickup_latitude']  as num?)?.toDouble(),
-      pickupLng:  (p['pickup_longitude'] as num?)?.toDouble(),
+      // Pickup depuis la réservation (j), pas depuis l'objet passager (p)
+      pickupLat:  (j['pickup_latitude']  as num?)?.toDouble(),
+      pickupLng:  (j['pickup_longitude'] as num?)?.toDouble(),
       avatar:     profile['avatar']?.toString(),
     );
   }

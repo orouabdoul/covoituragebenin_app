@@ -120,10 +120,15 @@ class TrajetActifController extends GetxController {
     departureCity.value = _str(m, ['departureCity', 'pickupCity']);
     arrivalCity.value   = _str(m, ['arrivalCity', 'dropoffCity']);
 
-    final dLat = _numArg(m, 'departureLat');
-    final dLng = _numArg(m, 'departureLng');
-    final aLat = _numArg(m, 'arrivalLat');
-    final aLng = _numArg(m, 'arrivalLng');
+    // Priorité : coords pickup/dropoff du passager, sinon départ/arrivée du trajet
+    final pickupLat  = _numArg(m, 'pickupLat');
+    final pickupLng  = _numArg(m, 'pickupLng');
+    final dropoffLat = _numArg(m, 'dropoffLat');
+    final dropoffLng = _numArg(m, 'dropoffLng');
+    final dLat = pickupLat  ?? _numArg(m, 'departureLat');
+    final dLng = pickupLng  ?? _numArg(m, 'departureLng');
+    final aLat = dropoffLat ?? _numArg(m, 'arrivalLat');
+    final aLng = dropoffLng ?? _numArg(m, 'arrivalLng');
     if (dLat != null && dLng != null) departurePt.value = LatLng(dLat, dLng);
     if (aLat != null && aLng != null) arrivalPt.value   = LatLng(aLat, aLng);
 
@@ -174,7 +179,10 @@ class TrajetActifController extends GetxController {
     final arr = arrivalPt.value;
     if (_same(dep, _benin) || _same(arr, _benin) || _same(dep, arr)) return;
 
-    final cacheKey = 'mz_route_${_tripUuid.isNotEmpty ? _tripUuid : '${dep.latitude}_${arr.latitude}'}';
+    // Clé incluant les coords pour invalider le cache quand les points changent
+    final cacheKey = 'mz_route_'
+        '${dep.latitude.toStringAsFixed(4)}_${dep.longitude.toStringAsFixed(4)}'
+        '_${arr.latitude.toStringAsFixed(4)}_${arr.longitude.toStringAsFixed(4)}';
     final prefs = await SharedPreferences.getInstance();
     final cached = prefs.getString(cacheKey);
     final ts = prefs.getInt('${cacheKey}_ts') ?? 0;

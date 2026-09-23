@@ -153,14 +153,19 @@ class TrajetAttenteController extends GetxController {
             DateTime.tryParse(b.departureTime.replaceFirst(' ', 'T'));
       }
     }
-    if (b.departureLat != null && b.departureLng != null) {
-      departurePt.value = LatLng(b.departureLat!, b.departureLng!);
+    // Priorité : coords pickup/dropoff du passager, sinon départ/arrivée du trajet
+    final fromLat = b.mapFromLat;
+    final fromLng = b.mapFromLng;
+    final toLat   = b.mapToLat;
+    final toLng   = b.mapToLng;
+    if (fromLat != null && fromLng != null) {
+      departurePt.value = LatLng(fromLat, fromLng);
     } else if (_same(departurePt.value, _benin)) {
       final c = _cityCoord(b.departureCity);
       if (c != null) departurePt.value = c;
     }
-    if (b.arrivalLat != null && b.arrivalLng != null) {
-      arrivalPt.value = LatLng(b.arrivalLat!, b.arrivalLng!);
+    if (toLat != null && toLng != null) {
+      arrivalPt.value = LatLng(toLat, toLng);
     } else if (_same(arrivalPt.value, _benin)) {
       final c = _cityCoord(b.arrivalCity);
       if (c != null) arrivalPt.value = c;
@@ -199,8 +204,10 @@ class TrajetAttenteController extends GetxController {
     final arr = arrivalPt.value;
     if (_same(dep, _benin) || _same(arr, _benin) || _same(dep, arr)) return;
 
-    // Chercher cache
-    final cacheKey = 'mz_route_${_tripUuid.isNotEmpty ? _tripUuid : '${dep.latitude}_${arr.latitude}'}';
+    // Clé incluant les coords pour invalider le cache quand les points changent
+    final cacheKey = 'mz_route_'
+        '${dep.latitude.toStringAsFixed(4)}_${dep.longitude.toStringAsFixed(4)}'
+        '_${arr.latitude.toStringAsFixed(4)}_${arr.longitude.toStringAsFixed(4)}';
     final prefs = await SharedPreferences.getInstance();
     final cached = prefs.getString(cacheKey);
     final cachedTs = prefs.getInt('${cacheKey}_ts') ?? 0;
@@ -299,6 +306,7 @@ class TrajetAttenteController extends GetxController {
   }
 
   void _goToActif(TripTrackingModel data) {
+    // Passer les coords pickup/dropoff du passager pour que trajet_actif trace le bon chemin
     Get.offNamed(
       AppRoutes.passengerLiveTracking,
       arguments: {
@@ -306,6 +314,11 @@ class TrajetAttenteController extends GetxController {
         'bookingUuid':   _bookingUuid,
         'driverName':    data.driverName.isNotEmpty ? data.driverName : driverName.value,
         'driverPhone':   data.driverPhone.isNotEmpty ? data.driverPhone : driverPhone.value,
+        'pickupLat':     departurePt.value.latitude,
+        'pickupLng':     departurePt.value.longitude,
+        'dropoffLat':    arrivalPt.value.latitude,
+        'dropoffLng':    arrivalPt.value.longitude,
+        // Coords du trajet complet (fallback)
         'departureLat':  data.departureLat ?? departurePt.value.latitude,
         'departureLng':  data.departureLng ?? departurePt.value.longitude,
         'arrivalLat':    data.arrivalLat ?? arrivalPt.value.latitude,

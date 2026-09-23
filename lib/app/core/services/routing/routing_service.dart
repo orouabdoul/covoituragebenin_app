@@ -89,28 +89,14 @@ class RoutingService {
 
   // ── Géométrie (polyline suivant les vraies routes) ────────────────────────
 
-  /// Récupère un tracé routier réel entre [waypoints] (max 10).
-  /// Essaie Valhalla d'abord, puis OSRM en fallback.
-  /// Retourne une liste vide si les deux échouent.
+  /// Récupère un tracé routier réel entre [waypoints] (max 10) via OSRM.
   Future<List<LatLng>> fetchPolyline(List<LatLng> waypoints) async {
     if (waypoints.length < 2) return const [];
 
     try {
-      final pts = await _fetchValhalla(waypoints);
-      if (pts.length >= 2) {
-        logger.d('Valhalla polyline: ${pts.length} pts');
-        return pts;
-      }
-    } on DioException catch (e) {
-      logger.w('Valhalla DioError: ${e.type} — fallback OSRM');
-    } catch (e) {
-      logger.w('Valhalla error: $e — fallback OSRM');
-    }
-
-    try {
       final pts = await _fetchOsrmPolyline(waypoints);
       if (pts.length >= 2) {
-        logger.d('OSRM polyline (fallback): ${pts.length} pts');
+        logger.d('OSRM polyline: ${pts.length} pts');
         return pts;
       }
     } on DioException catch (e) {
@@ -120,37 +106,6 @@ class RoutingService {
     }
 
     return const [];
-  }
-
-  Future<List<LatLng>> _fetchValhalla(List<LatLng> waypoints) async {
-    final pts = waypoints.take(10).toList();
-    final body = <String, dynamic>{
-      'locations': pts
-          .map((p) => {'lon': p.longitude, 'lat': p.latitude, 'type': 'break'})
-          .toList(),
-      'costing': 'auto',
-      'directions_options': {'language': 'fr-FR', 'units': 'km'},
-    };
-
-    final res = await _dio.post<Map<String, dynamic>>(
-      'https://valhalla.openstreetmap.de/route',
-      data: body,
-    );
-    if (res.statusCode != 200 || res.data == null) return const [];
-
-    final trip = res.data!['trip'] as Map<String, dynamic>?;
-    if (trip == null) return const [];
-    final legs = trip['legs'] as List?;
-    if (legs == null || legs.isEmpty) return const [];
-
-    final allPts = <LatLng>[];
-    for (final leg in legs) {
-      final shape = (leg as Map<String, dynamic>)['shape'] as String?;
-      if (shape != null && shape.isNotEmpty) {
-        allPts.addAll(_decodePolyline6(shape));
-      }
-    }
-    return allPts;
   }
 
   Future<List<LatLng>> _fetchOsrmPolyline(List<LatLng> waypoints) async {
@@ -177,34 +132,6 @@ class RoutingService {
         .toList();
   }
 
-  /// Décode un polyline encodé au format Valhalla (précision 1e-6).
-  /// Identique à Google Polyline mais avec 6 décimales au lieu de 5.
-  static List<LatLng> _decodePolyline6(String encoded) {
-    final result = <LatLng>[];
-    int index = 0;
-    int lat = 0, lng = 0;
-    while (index < encoded.length) {
-      int shift = 0, value = 0, b;
-      do {
-        b = encoded.codeUnitAt(index++) - 63;
-        value |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      lat += ((value & 1) != 0) ? ~(value >> 1) : (value >> 1);
-
-      shift = 0;
-      value = 0;
-      do {
-        b = encoded.codeUnitAt(index++) - 63;
-        value |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      lng += ((value & 1) != 0) ? ~(value >> 1) : (value >> 1);
-
-      result.add(LatLng(lat / 1e6, lng / 1e6));
-    }
-    return result;
-  }
 
   void close() => _dio.close(force: true);
 }

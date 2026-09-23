@@ -200,7 +200,10 @@ class MonTrajetController extends GetxController {
     final arr = arrivalPt.value;
     if (_same(dep, _benin) || _same(arr, _benin) || _same(dep, arr)) return;
 
-    final cacheKey = 'mz_route_${_tripUuid.isNotEmpty ? _tripUuid : '${dep.latitude}_${arr.latitude}'}';
+    // Clé incluant les coords pour invalider le cache quand les points changent
+    final cacheKey = 'mz_route_'
+        '${dep.latitude.toStringAsFixed(4)}_${dep.longitude.toStringAsFixed(4)}'
+        '_${arr.latitude.toStringAsFixed(4)}_${arr.longitude.toStringAsFixed(4)}';
     final prefs = await SharedPreferences.getInstance();
     final cached = prefs.getString(cacheKey);
     final ts  = prefs.getInt('${cacheKey}_ts') ?? 0;
