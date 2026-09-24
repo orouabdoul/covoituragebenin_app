@@ -144,6 +144,11 @@ class TrajetActifController extends GetxController {
 
     vehicleLatLng.value = departurePt.value;
     _fitMap();
+
+    // Refresh coords en arrière-plan si les coords initiales sont au niveau commune
+    if (_same(departurePt.value, _benin) || _same(arrivalPt.value, _benin)) {
+      Future.microtask(_refreshCoordsFromApi);
+    }
   }
 
   static String _str(Map<String, dynamic> m, List<String> keys) {
@@ -160,6 +165,38 @@ class TrajetActifController extends GetxController {
     if (v is int)    return v.toDouble();
     if (v is String) return double.tryParse(v);
     return null;
+  }
+
+  // Rafraîchit les coords pickup/dropoff depuis l'API pour obtenir la précision quartier
+  Future<void> _refreshCoordsFromApi() async {
+    final result = await _svc.fetchPassengerActiveBooking();
+    if (!result.isSuccess || result.data == null) return;
+    final b = result.data!;
+    bool changed = false;
+
+    final fromLat = b.mapFromLat;
+    final fromLng = b.mapFromLng;
+    if (fromLat != null && fromLng != null) {
+      final precise = LatLng(fromLat, fromLng);
+      if (!_same(departurePt.value, precise)) {
+        departurePt.value = precise;
+        vehicleLatLng.value = precise;
+        changed = true;
+      }
+    }
+    final toLat = b.mapToLat;
+    final toLng = b.mapToLng;
+    if (toLat != null && toLng != null) {
+      final precise = LatLng(toLat, toLng);
+      if (!_same(arrivalPt.value, precise)) {
+        arrivalPt.value = precise;
+        changed = true;
+      }
+    }
+    if (changed) {
+      _fitMap();
+      _loadRoute();
+    }
   }
 
   static LatLng? _cityCoord(String name) {

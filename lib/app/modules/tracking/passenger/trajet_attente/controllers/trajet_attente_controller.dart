@@ -127,6 +127,8 @@ class TrajetAttenteController extends GetxController {
         _loadRoute();
         _startPolling();
       });
+      // Refresh coords en arrière-plan pour obtenir la précision quartier
+      Future.microtask(_refreshCoordsFromApi);
     }
   }
 
@@ -177,6 +179,37 @@ class TrajetAttenteController extends GetxController {
       _loadRoute();
       _startPolling();
     });
+  }
+
+  // Rafraîchit les coords départ/arrivée depuis l'API pour obtenir la précision quartier
+  Future<void> _refreshCoordsFromApi() async {
+    final result = await _service.fetchPassengerActiveBooking();
+    if (!result.isSuccess || result.data == null) return;
+    final b = result.data!;
+    bool changed = false;
+
+    final fromLat = b.mapFromLat;
+    final fromLng = b.mapFromLng;
+    if (fromLat != null && fromLng != null) {
+      final precise = LatLng(fromLat, fromLng);
+      if (!_same(departurePt.value, precise)) {
+        departurePt.value = precise;
+        changed = true;
+      }
+    }
+    final toLat = b.mapToLat;
+    final toLng = b.mapToLng;
+    if (toLat != null && toLng != null) {
+      final precise = LatLng(toLat, toLng);
+      if (!_same(arrivalPt.value, precise)) {
+        arrivalPt.value = precise;
+        changed = true;
+      }
+    }
+    if (changed) {
+      _fitMap();
+      _loadRoute();
+    }
   }
 
   // Extracts a String from the first matching key
@@ -276,6 +309,17 @@ class TrajetAttenteController extends GetxController {
     if (!result.isSuccess) return;
     final data = result.data!;
     tripStatus.value = data.status;
+
+    // Mettre à jour les coords départ/arrivée si le polling les retourne et qu'on est encore au centre par défaut
+    if (data.departureLat != null && data.departureLng != null &&
+        _same(departurePt.value, _benin)) {
+      departurePt.value = LatLng(data.departureLat!, data.departureLng!);
+      _loadRoute();
+    }
+    if (data.arrivalLat != null && data.arrivalLng != null &&
+        _same(arrivalPt.value, _benin)) {
+      arrivalPt.value = LatLng(data.arrivalLat!, data.arrivalLng!);
+    }
 
     // Alerte conducteur proche du point de prise
     if (!_proxAlertSent) {
