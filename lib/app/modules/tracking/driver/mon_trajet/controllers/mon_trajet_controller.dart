@@ -213,11 +213,17 @@ class MonTrajetController extends GetxController {
       return;
     }
     try {
-      // Si passagers avec pickup, construire la route multi-étapes
+      // Route multi-étapes : départ → prises → dépôts → arrivée
       final waypoints = <LatLng>[dep];
       for (final p in passengers) {
         if (p.pickupLat != null && p.pickupLng != null) {
           waypoints.add(LatLng(p.pickupLat!, p.pickupLng!));
+        }
+      }
+      for (final p in passengers) {
+        if (p.dropoffLat != null && p.dropoffLng != null) {
+          final dropoff = LatLng(p.dropoffLat!, p.dropoffLng!);
+          if (!_same(dropoff, arr)) waypoints.add(dropoff);
         }
       }
       waypoints.add(arr);
@@ -383,6 +389,9 @@ class MonTrajetController extends GetxController {
       if (p.pickupLat != null && p.pickupLng != null) {
         pts.add(LatLng(p.pickupLat!, p.pickupLng!));
       }
+      if (p.dropoffLat != null && p.dropoffLng != null) {
+        pts.add(LatLng(p.dropoffLat!, p.dropoffLng!));
+      }
     }
     if (pts.isEmpty) return;
     SchedulerBinding.instance.addPostFrameCallback((_) {
@@ -419,12 +428,14 @@ class MonTrajetController extends GetxController {
             orElse: () => p,
           );
           return ActivePassengerModel(
-            name:      p.name,
-            phone:     match.phone.isNotEmpty ? match.phone : p.phone,
-            seats:     p.seats,
-            pickupLat: p.pickupLat ?? match.pickupLat,
-            pickupLng: p.pickupLng ?? match.pickupLng,
-            avatar:    p.avatar ?? match.avatar,
+            name:       p.name,
+            phone:      match.phone.isNotEmpty ? match.phone : p.phone,
+            seats:      p.seats,
+            pickupLat:  p.pickupLat  ?? match.pickupLat,
+            pickupLng:  p.pickupLng  ?? match.pickupLng,
+            dropoffLat: p.dropoffLat ?? match.dropoffLat,
+            dropoffLng: p.dropoffLng ?? match.dropoffLng,
+            avatar:     p.avatar     ?? match.avatar,
           );
         } catch (_) {
           return p;

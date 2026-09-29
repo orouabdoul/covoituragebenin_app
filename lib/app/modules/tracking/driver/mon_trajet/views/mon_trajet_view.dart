@@ -93,7 +93,7 @@ class _MapLayer extends StatelessWidget {
                     icon: Icons.location_on_rounded,
                   ),
                 ),
-                // Passenger pickup markers
+                // Passenger pickup markers (purple)
                 ...c.passengers.asMap().entries
                     .where((e) =>
                         e.value.pickupLat != null &&
@@ -104,6 +104,18 @@ class _MapLayer extends StatelessWidget {
                           width: 32,
                           height: 32,
                           child: _PassengerPin(number: e.key + 1),
+                        )),
+                // Passenger dropoff markers (amber)
+                ...c.passengers.asMap().entries
+                    .where((e) =>
+                        e.value.dropoffLat != null &&
+                        e.value.dropoffLng != null)
+                    .map((e) => Marker(
+                          point: LatLng(
+                              e.value.dropoffLat!, e.value.dropoffLng!),
+                          width: 32,
+                          height: 32,
+                          child: _PassengerDropoffPin(number: e.key + 1),
                         )),
                 // My position (driver)
                 if (!_isBenin(c.myLatLng.value))
@@ -155,6 +167,36 @@ class _PassengerPin extends StatelessWidget {
           boxShadow: [
             BoxShadow(
               color: const Color(0xFF7C3AED).withValues(alpha: 0.40),
+              blurRadius: 6,
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            '$number',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      );
+}
+
+class _PassengerDropoffPin extends StatelessWidget {
+  const _PassengerDropoffPin({required this.number});
+  final int number;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFF59E0B),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFF59E0B).withValues(alpha: 0.40),
               blurRadius: 6,
             ),
           ],
@@ -483,7 +525,7 @@ class _ItinerarySection extends StatelessWidget {
             sublabel: 'Point de départ',
             r: r,
           ),
-          // Arrêts passagers
+          // Arrêts prise en charge (violet)
           ...pax.asMap().entries.map((e) {
             final i = e.key;
             final p = e.value;
@@ -508,6 +550,34 @@ class _ItinerarySection extends StatelessWidget {
               trailingPhone: p.phone.isNotEmpty
                   ? () => c.callPassenger(i)
                   : null,
+              r: r,
+            );
+          }),
+          // Arrêts dépôt (amber) — uniquement si coords disponibles
+          ...pax.asMap().entries
+              .where((e) =>
+                  e.value.dropoffLat != null && e.value.dropoffLng != null)
+              .map((e) {
+            final i = e.key;
+            final p = e.value;
+            return _StopRow(
+              connector: true,
+              dot: _DotCircle(
+                color: const Color(0xFFF59E0B),
+                child: Center(
+                  child: Text(
+                    '${i + 1}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+              label: p.name,
+              sublabel:
+                  '${p.seats} place${p.seats > 1 ? 's' : ''} · Dépôt',
               r: r,
             );
           }),

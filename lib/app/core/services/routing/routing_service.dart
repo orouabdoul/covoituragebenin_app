@@ -22,7 +22,7 @@ class RouteResult {
 /// couverture Afrique de l'Ouest) puis OSRM en fallback.
 class RoutingService {
   static const String _osrmBase =
-      'https://router.project-osrm.org/route/v1/driving';
+      'https://routing.openstreetmap.de/routed-car/route/v1/driving';
 
   final Dio _dio = Dio(BaseOptions(
     connectTimeout: const Duration(seconds: 12),

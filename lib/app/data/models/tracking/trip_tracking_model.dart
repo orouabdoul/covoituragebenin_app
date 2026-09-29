@@ -224,6 +224,8 @@ class ActivePassengerModel {
     required this.seats,
     this.pickupLat,
     this.pickupLng,
+    this.dropoffLat,
+    this.dropoffLng,
     this.avatar,
   });
 
@@ -232,6 +234,8 @@ class ActivePassengerModel {
   final int seats;
   final double? pickupLat;
   final double? pickupLng;
+  final double? dropoffLat;
+  final double? dropoffLng;
   final String? avatar;
 
   factory ActivePassengerModel.fromJson(Map<String, dynamic> j) {
@@ -241,13 +245,14 @@ class ActivePassengerModel {
     final lastName  = profile['last_name']?.toString() ?? '';
     final fullName  = [firstName, lastName].where((s) => s.isNotEmpty).join(' ');
     return ActivePassengerModel(
-      name:       fullName.isNotEmpty ? fullName : 'Passager',
-      phone:      p['phone']?.toString() ?? '',
-      seats:      (j['seats'] as num?)?.toInt() ?? 1,
-      // Pickup depuis la réservation (j), pas depuis l'objet passager (p)
-      pickupLat:  (j['pickup_latitude']  as num?)?.toDouble(),
-      pickupLng:  (j['pickup_longitude'] as num?)?.toDouble(),
-      avatar:     profile['avatar']?.toString(),
+      name:        fullName.isNotEmpty ? fullName : 'Passager',
+      phone:       p['phone']?.toString() ?? '',
+      seats:       (j['seats'] as num?)?.toInt() ?? 1,
+      pickupLat:   (j['pickup_latitude']  as num?)?.toDouble(),
+      pickupLng:   (j['pickup_longitude'] as num?)?.toDouble(),
+      dropoffLat:  (j['dropoff_latitude']  as num?)?.toDouble(),
+      dropoffLng:  (j['dropoff_longitude'] as num?)?.toDouble(),
+      avatar:      profile['avatar']?.toString(),
     );
   }
 }
