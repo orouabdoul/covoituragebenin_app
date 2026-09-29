@@ -1,4 +1,14 @@
-const String apiBaseUrl = 'https://minizon-api.onrender.com/api';
+// ─── Basculer ici pour les tests locaux ──────────────────────────────────────
+// true  → backend XAMPP local
+// false → backend Render (production)
+const bool kLocalDev = true;
+
+// Émulateur Android  : 10.0.2.2  (= localhost de ta machine)
+// Téléphone physique : remplace par l'IP de ton PC (ex: 192.168.1.5)
+const String _localUrl = 'http://localhost:8001/api';
+const String _prodUrl  = 'https://minizon-api.onrender.com/api';
+
+const String apiBaseUrl = kLocalDev ? _localUrl : _prodUrl;
 
 class AppApi {
   static const String baseUrl = apiBaseUrl;
