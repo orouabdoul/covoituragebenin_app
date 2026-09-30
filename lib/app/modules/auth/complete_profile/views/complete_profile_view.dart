@@ -1,0 +1,1927 @@
+import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
+import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
+import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
+import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
+import 'package:covoiturage_benin_app/app/data/benin_locations_data.dart';
+import 'package:covoiturage_benin_app/app/modules/auth/complete_profile/controllers/complete_profile_controller.dart';
+import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
+import 'package:covoiturage_benin_app/app/modules/widgets/app_field.dart';
+import 'package:covoiturage_benin_app/app/modules/widgets/face_verification_section.dart';
+import 'package:covoiturage_benin_app/app/modules/widgets/id_card_preview_tile.dart';
+import 'package:covoiturage_benin_app/app/modules/widgets/phone_field_widget.dart';
+import 'package:covoiturage_benin_app/app/modules/widgets/selfie_capture_widget.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
+
+class CompleteProfileView extends GetView<CompleteProfileController> {
+  const CompleteProfileView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final responsive = AppResponsive(context);
+
+    return Scaffold(
+      backgroundColor: AppColors.white,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: responsive.maxContentWidth),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: responsive.w(16),
+                  vertical: responsive.h(20),
+                ),
+                child: GetBuilder<CompleteProfileController>(
+                  builder: (controller) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _TopBar(responsive: responsive),
+                        SizedBox(height: responsive.h(20)),
+                        _ProgressCard(
+                          responsive: responsive,
+                          progress: controller.progress.value,
+                        ),
+                        SizedBox(height: responsive.h(20)),
+                        _HeroCard(responsive: responsive, isDriver: controller.isDriver),
+                        SizedBox(height: responsive.h(20)),
+
+                        // ── Informations personnelles ──────────────────────
+                        _SectionCard(
+                          responsive: responsive,
+                          title: AppStrings.profileSectionPersonal,
+                          icon: Icons.badge_outlined,
+                          child: Column(
+                            children: [
+                              AppField(
+                                responsive: responsive,
+                                label: AppStrings.profileFieldLastName,
+                                labelStyle: AppTextStyles.profileSectionLabel(responsive),
+                                controller: controller.lastNameController,
+                                hintText: AppStrings.profileFieldLastNameHint,
+                                textStyle: AppTextStyles.profileFieldValue(responsive),
+                                hintStyle: AppTextStyles.profileFieldValue(responsive)
+                                    .copyWith(color: AppColors.textGhost),
+                                borderColor: controller.lastNameError.value.isNotEmpty
+                                    ? AppColors.danger : null,
+                                helperText: controller.lastNameError.value.isNotEmpty
+                                    ? controller.lastNameError.value : null,
+                                helperStyle: AppTextStyles.profileMeta(responsive)
+                                    .copyWith(color: AppColors.danger),
+                              ),
+                              SizedBox(height: responsive.h(16)),
+                              AppField(
+                                responsive: responsive,
+                                label: AppStrings.profileFieldFirstName,
+                                labelStyle: AppTextStyles.profileSectionLabel(responsive),
+                                controller: controller.firstNameController,
+                                hintText: AppStrings.profileFieldFirstNameHint,
+                                textStyle: AppTextStyles.profileFieldValue(responsive),
+                                hintStyle: AppTextStyles.profileFieldValue(responsive)
+                                    .copyWith(color: AppColors.textGhost),
+                                borderColor: controller.firstNameError.value.isNotEmpty
+                                    ? AppColors.danger : null,
+                                helperText: controller.firstNameError.value.isNotEmpty
+                                    ? controller.firstNameError.value : null,
+                                helperStyle: AppTextStyles.profileMeta(responsive)
+                                    .copyWith(color: AppColors.danger),
+                              ),
+                              SizedBox(height: responsive.h(16)),
+                              PhoneFieldWidget(
+                                responsive: responsive,
+                                label: AppStrings.profileFieldPhone,
+                                labelStyle: AppTextStyles.profileSectionLabel(responsive),
+                                controller: controller.phoneController,
+                                borderColor: controller.phoneError.value.isNotEmpty
+                                    ? AppColors.danger : null,
+                                helperText: controller.phoneError.value.isNotEmpty
+                                    ? controller.phoneError.value : null,
+                                helperStyle: AppTextStyles.profileMeta(responsive)
+                                    .copyWith(color: AppColors.danger),
+                              ),
+                              SizedBox(height: responsive.h(16)),
+                              if (!controller.isDriver) ...[
+                                AppField(
+                                  responsive: responsive,
+                                  label: AppStrings.passengerFieldEmail,
+                                  labelStyle: AppTextStyles.profileSectionLabel(responsive),
+                                  controller: controller.emailController,
+                                  hintText: AppStrings.passengerFieldEmailHint,
+                                  helperText: AppStrings.passengerEmailNote,
+                                  helperStyle: AppTextStyles.profileMeta(responsive),
+                                  textStyle: AppTextStyles.profileFieldValue(responsive),
+                                  hintStyle: AppTextStyles.profileFieldValue(responsive)
+                                      .copyWith(color: AppColors.textGhost),
+                                  keyboardType: TextInputType.emailAddress,
+                                ),
+                                SizedBox(height: responsive.h(16)),
+                              ],
+                              _GenderSelector(
+                                responsive: responsive,
+                                selected: controller.selectedGender.value,
+                                onSelected: controller.selectGender,
+                              ),
+                              if (controller.genderError.value.isNotEmpty) ...[
+                                SizedBox(height: responsive.h(4)),
+                                _InlineError(
+                                  responsive: responsive,
+                                  text: controller.genderError.value,
+                                ),
+                              ],
+                              SizedBox(height: responsive.h(16)),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: _SelectField(
+                                      responsive: responsive,
+                                      label: AppStrings.profileFieldCity,
+                                      hint: AppStrings.profileFieldCityHint,
+                                      value: controller.selectedCity.value,
+                                      errorText: controller.cityError.value,
+                                      onTap: () => _showPicker(
+                                        context: context,
+                                        responsive: responsive,
+                                        title: AppStrings.profileFieldCity,
+                                        items: BeninLocations.cities,
+                                        selected: controller.selectedCity.value,
+                                        onSelect: controller.selectCity,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(width: responsive.w(12)),
+                                  Expanded(
+                                    child: _SelectField(
+                                      responsive: responsive,
+                                      label: AppStrings.profileFieldNeighborhood,
+                                      hint: controller.selectedCity.value == null
+                                          ? 'Choisir une commune'
+                                          : AppStrings.profileFieldNeighborhoodHint,
+                                      value: controller.selectedNeighborhood.value,
+                                      disabled: controller.selectedCity.value == null,
+                                      errorText: controller.neighborhoodError.value,
+                                      onTap: controller.selectedCity.value == null
+                                          ? null
+                                          : () => _showPicker(
+                                                context: context,
+                                                responsive: responsive,
+                                                title: AppStrings.profileFieldNeighborhood,
+                                                items: BeninLocations.getArrondissements(
+                                                    controller.selectedCity.value),
+                                                selected: controller.selectedNeighborhood.value,
+                                                onSelect: controller.selectNeighborhood,
+                                              ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: responsive.h(16)),
+                              if (controller.isDriver)
+                                _SelectField(
+                                  responsive: responsive,
+                                  label: AppStrings.profileFieldAddress,
+                                  hint: controller.selectedNeighborhood.value == null
+                                      ? 'Choisir un arrondissement'
+                                      : AppStrings.profileFieldAddressHint,
+                                  value: controller.selectedQuartier.value,
+                                  disabled: controller.selectedNeighborhood.value == null,
+                                  onTap: controller.selectedNeighborhood.value == null
+                                      ? null
+                                      : () => _showPicker(
+                                            context: context,
+                                            responsive: responsive,
+                                            title: AppStrings.profileFieldAddress,
+                                            items: BeninLocations.getQuartiers(
+                                                controller.selectedCity.value,
+                                                controller.selectedNeighborhood.value),
+                                            selected: controller.selectedQuartier.value,
+                                            onSelect: controller.selectQuartier,
+                                          ),
+                                )
+                              else
+                                AppField(
+                                  responsive: responsive,
+                                  label: AppStrings.profileFieldAddress,
+                                  labelStyle: AppTextStyles.profileSectionLabel(responsive),
+                                  controller: controller.addressController,
+                                  hintText: AppStrings.profileFieldAddressHint,
+                                  textStyle: AppTextStyles.profileFieldValue(responsive),
+                                  hintStyle: AppTextStyles.profileFieldValue(responsive)
+                                      .copyWith(color: AppColors.textGhost),
+                                ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(height: responsive.h(20)),
+
+                        // ── Selfie ─────────────────────────────────────────
+                        _SectionCard(
+                          responsive: responsive,
+                          title: AppStrings.profileSelfieSection,
+                          icon: Icons.face_rounded,
+                          subtitle: AppStrings.profileSelfieSectionHint,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SelfieCaptureWidget(
+                                responsive: responsive,
+                                onChanged: controller.onSelfiesChanged,
+                              ),
+                              if (controller.selfieError.value.isNotEmpty) ...[
+                                SizedBox(height: responsive.h(8)),
+                                _InlineError(
+                                  responsive: responsive,
+                                  text: controller.selfieError.value,
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        SizedBox(height: responsive.h(20)),
+
+                        // ── CNI ────────────────────────────────────────────
+                        _SectionCard(
+                          responsive: responsive,
+                          title: AppStrings.profileIdCardSection,
+                          icon: Icons.credit_card_rounded,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              IdCardPreviewTile(
+                                responsive: responsive,
+                                title: AppStrings.profileIdCardFront,
+                                subtitle: AppStrings.profileIdCardFrontHint,
+                                actionLabel: AppStrings.profileUploadPhoto,
+                                onTap: () {
+                                  _showImageSourcePicker(context, responsive).then((src) {
+                                    if (src != null) controller.pickIdCard(isFront: true, source: src);
+                                  });
+                                },
+                                imageFile: controller.idCardFrontFile,
+                                faceBox: controller.idCardFaceBox,
+                                imageSize: controller.idCardImageSize,
+                                isDetecting: controller.isDetectingCardFace,
+                                detectionError: controller.idCardDetectionError,
+                              ),
+                              if (controller.idCardError.value.isNotEmpty) ...[
+                                SizedBox(height: responsive.h(4)),
+                                _InlineError(
+                                  responsive: responsive,
+                                  text: controller.idCardError.value,
+                                ),
+                              ],
+                              SizedBox(height: responsive.h(16)),
+                              IdCardPreviewTile(
+                                responsive: responsive,
+                                title: AppStrings.profileIdCardBack,
+                                subtitle: AppStrings.profileIdCardBackHint,
+                                actionLabel: AppStrings.profileUploadPhoto,
+                                optional: true,
+                                onTap: () {
+                                  _showImageSourcePicker(context, responsive).then((src) {
+                                    if (src != null) controller.pickIdCard(isFront: false, source: src);
+                                  });
+                                },
+                                imageFile: controller.idCardBackFile,
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(height: responsive.h(20)),
+
+                        // ── Vérification d'identité ────────────────────────
+                        FaceVerificationSection(
+                          responsive: responsive,
+                          hasSelfie: controller.selfieFront.value != null,
+                          hasCni: controller.idCardFrontName.value.isNotEmpty,
+                          status: controller.verificationStatus.value,
+                          message: controller.verificationMessage.value,
+                          score: controller.verificationScore.value,
+                          onVerify: controller.runVerification,
+                        ),
+                        SizedBox(height: responsive.h(20)),
+
+                        // ── Véhicule (conducteur uniquement) ───────────────
+                        if (controller.isDriver) ...[
+                          _SectionCard(
+                            responsive: responsive,
+                            title: AppStrings.profileSectionVehicle,
+                            icon: controller.selectedDriverType.value == DriverType.moto
+                                ? Icons.two_wheeler_rounded
+                                : Icons.directions_car_rounded,
+                            child: Column(
+                              children: [
+                                _VehicleTypeSelector(
+                                  responsive: responsive,
+                                  selected: controller.selectedDriverType.value,
+                                  onSelected: controller.selectDriverType,
+                                ),
+                                SizedBox(height: responsive.h(16)),
+                                _SelectField(
+                                  responsive: responsive,
+                                  label: AppStrings.profileFieldVehicleBrand,
+                                  hint: controller.selectedDriverType.value == DriverType.moto
+                                      ? 'Honda, Yamaha, Suzuki...'
+                                      : 'Toyota, Peugeot, Renault...',
+                                  value: controller.selectedBrand.value,
+                                  errorText: controller.brandError.value,
+                                  onTap: () => _showPicker(
+                                    context: context,
+                                    responsive: responsive,
+                                    title: AppStrings.profileFieldVehicleBrand,
+                                    items: controller.brandsForType,
+                                    selected: controller.selectedBrand.value,
+                                    onSelect: controller.selectBrand,
+                                  ),
+                                ),
+                                SizedBox(height: responsive.h(16)),
+                                _SelectField(
+                                  responsive: responsive,
+                                  label: AppStrings.profileFieldVehicleModel,
+                                  hint: controller.selectedBrand.value != null
+                                      ? 'Sélectionner le modèle'
+                                      : 'Choisir la marque d\'abord',
+                                  value: controller.selectedModel.value,
+                                  disabled: controller.selectedBrand.value == null,
+                                  errorText: controller.modelError.value,
+                                  onTap: controller.selectedBrand.value != null
+                                      ? () => _showPicker(
+                                            context: context,
+                                            responsive: responsive,
+                                            title: AppStrings.profileFieldVehicleModel,
+                                            items: controller.modelsForBrand,
+                                            selected: controller.selectedModel.value,
+                                            onSelect: controller.selectModel,
+                                          )
+                                      : null,
+                                ),
+                                SizedBox(height: responsive.h(16)),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: AppField(
+                                        responsive: responsive,
+                                        label: AppStrings.profileFieldVehicleColor,
+                                        labelStyle: AppTextStyles.profileSectionLabel(responsive),
+                                        backgroundColor: AppColors.surfaceMuted,
+                                        controller: controller.vehicleColorController,
+                                        hintText: AppStrings.profileVehicleColorValue,
+                                        textStyle: AppTextStyles.profileFieldValue(responsive),
+                                        hintStyle: AppTextStyles.profileFieldValue(responsive)
+                                            .copyWith(color: AppColors.textGhost),
+                                        borderColor: controller.colorError.value.isNotEmpty
+                                            ? AppColors.danger : null,
+                                        helperText: controller.colorError.value.isNotEmpty
+                                            ? controller.colorError.value : null,
+                                        helperStyle: AppTextStyles.profileMeta(responsive)
+                                            .copyWith(color: AppColors.danger),
+                                      ),
+                                    ),
+                                    SizedBox(width: responsive.w(12)),
+                                    if (controller.selectedDriverType.value == DriverType.car)
+                                      Expanded(
+                                        child: AppField(
+                                          responsive: responsive,
+                                          label: AppStrings.profileFieldVehicleSeats,
+                                          labelStyle: AppTextStyles.profileSectionLabel(responsive),
+                                          backgroundColor: AppColors.surfaceMuted,
+                                          controller: controller.vehicleSeatsController,
+                                          hintText: AppStrings.profileVehicleSeatsValue,
+                                          keyboardType: TextInputType.number,
+                                          borderColor: controller.seatsError.value.isNotEmpty
+                                              ? AppColors.danger : null,
+                                          helperText: controller.seatsError.value.isNotEmpty
+                                              ? controller.seatsError.value : '4 à 7 places',
+                                          helperStyle: controller.seatsError.value.isNotEmpty
+                                              ? AppTextStyles.profileMeta(responsive).copyWith(color: AppColors.danger)
+                                              : AppTextStyles.profileMeta(responsive),
+                                          textStyle: AppTextStyles.profileFieldValue(responsive),
+                                          hintStyle: AppTextStyles.profileFieldValue(responsive)
+                                              .copyWith(color: AppColors.textGhost),
+                                        ),
+                                      )
+                                    else
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              AppStrings.profileFieldVehicleSeats,
+                                              style: AppTextStyles.profileSectionLabel(responsive),
+                                            ),
+                                            SizedBox(height: responsive.h(8)),
+                                            Container(
+                                              width: double.infinity,
+                                              padding: EdgeInsets.symmetric(
+                                                horizontal: responsive.w(12),
+                                                vertical: responsive.h(12),
+                                              ),
+                                              decoration: ShapeDecoration(
+                                                color: AppColors.surfaceAccent,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius: BorderRadius.circular(responsive.radius(10)),
+                                                  side: const BorderSide(color: AppColors.primary),
+                                                ),
+                                              ),
+                                              child: Row(
+                                                children: [
+                                                  const Icon(Icons.person_rounded, size: 16, color: AppColors.primary),
+                                                  SizedBox(width: responsive.w(6)),
+                                                  Text(
+                                                    '1 passager',
+                                                    style: AppTextStyles.profileFieldValue(responsive)
+                                                        .copyWith(color: AppColors.primary, fontWeight: FontWeight.w600),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            SizedBox(height: responsive.h(4)),
+                                            Text(
+                                              'Fixé pour moto',
+                                              style: AppTextStyles.profileMeta(responsive)
+                                                  .copyWith(color: AppColors.primary),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                SizedBox(height: responsive.h(16)),
+                                AppField(
+                                  responsive: responsive,
+                                  label: AppStrings.profileFieldPlate,
+                                  labelStyle: AppTextStyles.profileSectionLabel(responsive),
+                                  controller: controller.plateController,
+                                  hintText: controller.selectedDriverType.value == DriverType.moto
+                                      ? 'BJ-1234-M'
+                                      : AppStrings.profileVehiclePlateValue,
+                                  textStyle: AppTextStyles.profileFieldValue(responsive),
+                                  hintStyle: AppTextStyles.profileFieldValue(responsive)
+                                      .copyWith(color: AppColors.textGhost),
+                                  borderColor: controller.plateError.value.isNotEmpty
+                                      ? AppColors.danger : null,
+                                  helperText: controller.plateError.value.isNotEmpty
+                                      ? controller.plateError.value : null,
+                                  helperStyle: AppTextStyles.profileMeta(responsive)
+                                      .copyWith(color: AppColors.danger),
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(height: responsive.h(20)),
+
+                          // ── Documents (conducteur uniquement) ─────────────
+                          _SectionCard(
+                            responsive: responsive,
+                            title: AppStrings.profileSectionDocuments,
+                            icon: Icons.description_outlined,
+                            child: Column(
+                              children: [
+                                if (controller.selectedDriverType.value != DriverType.moto) ...[
+                                  AppField(
+                                    responsive: responsive,
+                                    label: AppStrings.profileLicenseNumber,
+                                    labelStyle: AppTextStyles.profileSectionLabel(responsive),
+                                    controller: controller.licenseNumberController,
+                                    hintText: AppStrings.profileLicenseNumberHint,
+                                    helperText: 'Permis de conduire voiture (B)',
+                                    helperStyle: AppTextStyles.profileMeta(responsive)
+                                        .copyWith(color: AppColors.primary),
+                                    textStyle: AppTextStyles.profileFieldValue(responsive),
+                                    hintStyle: AppTextStyles.profileFieldValue(responsive)
+                                        .copyWith(color: AppColors.textGhost),
+                                  ),
+                                  SizedBox(height: responsive.h(16)),
+                                ],
+                                _DocumentUploadTile(
+                                  responsive: responsive,
+                                  title: controller.selectedDriverType.value == DriverType.moto
+                                      ? 'Photo de la moto'
+                                      : AppStrings.profileFieldVehiclePhoto,
+                                  subtitle: AppStrings.profileFieldVehiclePhotoHint,
+                                  actionLabel: AppStrings.profileUploadPhoto,
+                                  icon: controller.selectedDriverType.value == DriverType.moto
+                                      ? Icons.two_wheeler_rounded
+                                      : Icons.photo_camera_outlined,
+                                  onTap: () {
+                                    _showImageSourcePicker(context, responsive).then((src) {
+                                      if (src != null) controller.addVehiclePhoto(source: src);
+                                    });
+                                  },
+                                  selectedValue: controller.vehiclePhotoName.value,
+                                  errorText: controller.vehiclePhotoError.value,
+                                  sizeHint: 'JPG/PNG · max 5 Mo',
+                                ),
+                                SizedBox(height: responsive.h(16)),
+                                _DocumentUploadTile(
+                                  responsive: responsive,
+                                  title: controller.selectedDriverType.value == DriverType.moto
+                                      ? 'Attestation d\'immatriculation'
+                                      : AppStrings.profileFieldRegistration,
+                                  subtitle: controller.selectedDriverType.value == DriverType.moto
+                                      ? 'Document d\'enregistrement moto'
+                                      : AppStrings.profileFieldRegistrationHint,
+                                  actionLabel: AppStrings.profileUploadDocument,
+                                  icon: Icons.folder_open_rounded,
+                                  onTap: () => controller.addRequiredDocument(isLicense: false),
+                                  selectedValue: controller.registrationDocumentName.value,
+                                  errorText: controller.registrationError.value,
+                                  sizeHint: 'PDF/JPG/PNG · max 10 Mo',
+                                ),
+                                if (controller.selectedDriverType.value != DriverType.moto) ...[
+                                  SizedBox(height: responsive.h(16)),
+                                  _DocumentUploadTile(
+                                    responsive: responsive,
+                                    title: AppStrings.profileFieldLicense,
+                                    subtitle: AppStrings.profileFieldLicenseHint,
+                                    actionLabel: AppStrings.profileUploadDocument,
+                                    icon: Icons.badge_outlined,
+                                    onTap: () => controller.addRequiredDocument(isLicense: true),
+                                    selectedValue: controller.licenseDocumentName.value,
+                                    errorText: controller.licenseDocError.value,
+                                    sizeHint: 'PDF/JPG/PNG · max 10 Mo',
+                                  ),
+                                ],
+                                SizedBox(height: responsive.h(16)),
+                                _DocumentUploadTile(
+                                  responsive: responsive,
+                                  title: AppStrings.profileInsuranceDoc,
+                                  subtitle: AppStrings.profileInsuranceDocHint,
+                                  actionLabel: AppStrings.profileUploadDocument,
+                                  icon: Icons.security_rounded,
+                                  onTap: controller.addInsuranceDoc,
+                                  selectedValue: controller.insuranceDocName.value,
+                                  errorText: controller.insuranceError.value,
+                                  sizeHint: 'PDF/JPG/PNG · max 10 Mo',
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(height: responsive.h(20)),
+                        ],
+
+                        _TrustCard(responsive: responsive),
+                        SizedBox(height: responsive.h(20)),
+                        _EmergencyContactsRegSection(
+                          responsive: responsive,
+                          contacts: controller.emergencyContacts.toList(),
+                          onAdd: controller.addEmergencyContact,
+                          onRemove: controller.removeEmergencyContact,
+                        ),
+                        SizedBox(height: responsive.h(20)),
+                        _ProgressSummary(responsive: responsive),
+                        SizedBox(height: responsive.h(20)),
+                        AppPrimaryButton(
+                          responsive: responsive,
+                          label: controller.isSubmitting.value
+                              ? 'Envoi en cours...'
+                              : controller.isDriver
+                                  ? AppStrings.profilePrimaryAction
+                                  : AppStrings.passengerPrimaryAction,
+                          enabled: !controller.isSubmitting.value,
+                          onTap: controller.submit,
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Future<ImageSource?> _showImageSourcePicker(
+      BuildContext context, AppResponsive responsive) {
+    return showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ImageSourceSheet(responsive: responsive),
+    );
+  }
+
+  static void _showPicker({
+    required BuildContext context,
+    required AppResponsive responsive,
+    required String title,
+    required List<String> items,
+    required String? selected,
+    required void Function(String) onSelect,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _PickerSheet(
+        responsive: responsive,
+        title: title,
+        items: items,
+        selected: selected,
+        onSelect: (value) {
+          onSelect(value);
+          Navigator.of(context).pop();
+        },
+      ),
+    );
+  }
+}
+
+// ─── Private widgets ──────────────────────────────────────────────────────────
+
+class _TopBar extends StatelessWidget {
+  const _TopBar({required this.responsive});
+  final AppResponsive responsive;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        AppCircularButton(
+          responsive: responsive,
+          icon: Icons.arrow_back_ios_new_rounded,
+          onTap: () => Get.find<CompleteProfileController>().goToRoles(),
+          size: responsive.w(40),
+        ),
+        Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(responsive.radius(8)),
+              child: Image.asset(
+                'assets/minizon/icon.png',
+                width: responsive.w(32),
+                height: responsive.w(32),
+                fit: BoxFit.cover,
+              ),
+            ),
+            SizedBox(width: responsive.w(8)),
+            Text(AppStrings.appName, style: AppTextStyles.profileSectionTitle(responsive)),
+            SizedBox(width: responsive.w(70)),
+            AppCircularButton(
+              responsive: responsive,
+              icon: Icons.person_outline_rounded,
+              onTap: () {},
+              size: responsive.w(40),
+              filled: false,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _ProgressCard extends StatelessWidget {
+  const _ProgressCard({required this.responsive, required this.progress});
+  final AppResponsive responsive;
+  final int progress;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(AppStrings.profileProgressLabel, style: AppTextStyles.profileMeta(responsive)),
+            Text('$progress%', style: AppTextStyles.profileMeta(responsive)),
+          ],
+        ),
+        SizedBox(height: responsive.h(8)),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(9999),
+          child: Stack(
+            children: [
+              Container(height: responsive.h(8), color: AppColors.border),
+              FractionallySizedBox(
+                widthFactor: progress / 100,
+                child: Container(
+                  height: responsive.h(8),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(colors: [AppColors.primary, AppColors.warning]),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HeroCard extends StatelessWidget {
+  const _HeroCard({required this.responsive, required this.isDriver});
+  final AppResponsive responsive;
+  final bool isDriver;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(responsive.w(24)),
+      decoration: ShapeDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.primary, AppColors.success],
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(responsive.radius(24)),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: responsive.w(56),
+                height: responsive.w(56),
+                decoration: BoxDecoration(
+                  color: AppColors.white.withValues(alpha: 0.20),
+                  borderRadius: BorderRadius.circular(responsive.radius(16)),
+                ),
+                child: Icon(Icons.verified_outlined, color: AppColors.white, size: responsive.text(28)),
+              ),
+              SizedBox(width: responsive.w(16)),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(AppStrings.profileHeroTitle, style: AppTextStyles.profileHeroTitle(responsive)),
+                    SizedBox(height: responsive.h(4)),
+                    Text(
+                      isDriver
+                          ? AppStrings.profileHeroSubtitle
+                          : 'Complétez votre profil passager pour voyager en sécurité.',
+                      style: AppTextStyles.profileHeroSubtitle(responsive),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: responsive.h(16)),
+          Row(
+            children: [
+              const Icon(Icons.timer_outlined, color: AppColors.white, size: 16),
+              SizedBox(width: responsive.w(8)),
+              Text(
+                AppStrings.profileHeroTime,
+                style: AppTextStyles.profileHeroSubtitle(responsive).copyWith(fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Gender selector ───────────────────────────────────────────────────────────
+
+class _GenderSelector extends StatelessWidget {
+  const _GenderSelector({
+    required this.responsive,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final AppResponsive responsive;
+  final String? selected;
+  final void Function(String) onSelected;
+
+  static const _genders = [
+    (label: AppStrings.profileFieldGenderMale, icon: Icons.male_rounded),
+    (label: AppStrings.profileFieldGenderFemale, icon: Icons.female_rounded),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(AppStrings.profileFieldGender, style: AppTextStyles.profileSectionLabel(responsive)),
+        SizedBox(height: responsive.h(8)),
+        Row(
+          children: List.generate(_genders.length, (i) {
+            final g = _genders[i];
+            final isSelected = selected == g.label;
+            return Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(right: i < _genders.length - 1 ? responsive.w(10) : 0),
+                child: GestureDetector(
+                  onTap: () => onSelected(g.label),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    height: responsive.h(44),
+                    padding: EdgeInsets.symmetric(horizontal: responsive.w(12)),
+                    decoration: ShapeDecoration(
+                      color: isSelected ? AppColors.primary : AppColors.surfaceMuted,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(responsive.radius(10)),
+                        side: BorderSide(
+                          color: isSelected ? AppColors.primary : Colors.transparent,
+                          width: isSelected ? 2 : 1,
+                        ),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(g.icon, size: responsive.text(16),
+                            color: isSelected ? AppColors.white : AppColors.textMuted),
+                        SizedBox(width: responsive.w(6)),
+                        Text(
+                          g.label,
+                          style: AppTextStyles.profileFieldValue(responsive).copyWith(
+                            color: isSelected ? AppColors.white : AppColors.textSecondary,
+                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Vehicle type chips ────────────────────────────────────────────────────────
+
+class _VehicleTypeSelector extends StatelessWidget {
+  const _VehicleTypeSelector({
+    required this.responsive,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final AppResponsive responsive;
+  final DriverType selected;
+  final void Function(DriverType) onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Type de véhicule', style: AppTextStyles.profileSectionLabel(responsive)),
+        SizedBox(height: responsive.h(8)),
+        Row(
+          children: [
+            Expanded(child: _buildChip(DriverType.car, 'Voiture', Icons.directions_car_rounded)),
+            SizedBox(width: responsive.w(10)),
+            Expanded(child: _buildChip(DriverType.moto, 'Moto', Icons.two_wheeler_rounded)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildChip(DriverType type, String label, IconData icon) {
+    final isSelected = selected == type;
+    return GestureDetector(
+      onTap: () => onSelected(type),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        height: responsive.h(44),
+        padding: EdgeInsets.symmetric(horizontal: responsive.w(12)),
+        decoration: ShapeDecoration(
+          color: isSelected ? AppColors.primary : AppColors.surfaceMuted,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(responsive.radius(10)),
+            side: BorderSide(
+              color: isSelected ? AppColors.primary : Colors.transparent,
+              width: isSelected ? 2 : 1,
+            ),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: responsive.text(16),
+                color: isSelected ? AppColors.white : AppColors.textMuted),
+            SizedBox(width: responsive.w(6)),
+            Text(
+              label,
+              style: AppTextStyles.profileSectionLabel(responsive).copyWith(
+                color: isSelected ? AppColors.white : AppColors.textSecondary,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Generic select field ──────────────────────────────────────────────────────
+
+class _SelectField extends StatelessWidget {
+  const _SelectField({
+    required this.responsive,
+    required this.label,
+    required this.hint,
+    required this.value,
+    required this.onTap,
+    this.disabled = false,
+    this.errorText = '',
+  });
+
+  final AppResponsive responsive;
+  final String label;
+  final String hint;
+  final String? value;
+  final VoidCallback? onTap;
+  final bool disabled;
+  final String errorText;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasValue = value != null && value!.isNotEmpty;
+    final hasError = errorText.isNotEmpty;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: AppTextStyles.profileSectionLabel(responsive)),
+        SizedBox(height: responsive.h(8)),
+        GestureDetector(
+          onTap: disabled ? null : onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            height: responsive.h(44),
+            padding: EdgeInsets.symmetric(horizontal: responsive.w(14)),
+            decoration: ShapeDecoration(
+              color: disabled ? AppColors.surfaceMuted : AppColors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(responsive.radius(10)),
+                side: BorderSide(
+                  color: hasError
+                      ? AppColors.danger
+                      : hasValue && !disabled
+                          ? AppColors.primary
+                          : AppColors.border,
+                  width: (hasError || (hasValue && !disabled)) ? 1.5 : 1,
+                ),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  hasValue ? Icons.check_circle_rounded : Icons.search_rounded,
+                  size: responsive.text(16),
+                  color: hasError
+                      ? AppColors.danger
+                      : hasValue && !disabled
+                          ? AppColors.primary
+                          : AppColors.textGhost,
+                ),
+                SizedBox(width: responsive.w(8)),
+                Expanded(
+                  child: Text(
+                    hasValue ? value! : hint,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.profileFieldValue(responsive).copyWith(
+                      color: hasValue && !disabled ? AppColors.textPrimary : AppColors.textGhost,
+                      fontWeight: hasValue ? FontWeight.w500 : FontWeight.w400,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  size: responsive.text(20),
+                  color: disabled ? AppColors.textGhost : AppColors.textSecondary,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (hasError) ...[
+          SizedBox(height: responsive.h(4)),
+          Row(
+            children: [
+              Icon(Icons.error_outline_rounded,
+                  size: responsive.text(12), color: AppColors.danger),
+              SizedBox(width: responsive.w(4)),
+              Flexible(
+                child: Text(
+                  errorText,
+                  style: AppTextStyles.profileMeta(responsive)
+                      .copyWith(color: AppColors.danger),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ── Generic picker bottom sheet ───────────────────────────────────────────────
+
+class _PickerSheet extends StatefulWidget {
+  const _PickerSheet({
+    required this.responsive,
+    required this.title,
+    required this.items,
+    required this.selected,
+    required this.onSelect,
+  });
+
+  final AppResponsive responsive;
+  final String title;
+  final List<String> items;
+  final String? selected;
+  final void Function(String) onSelect;
+
+  @override
+  State<_PickerSheet> createState() => _PickerSheetState();
+}
+
+class _PickerSheetState extends State<_PickerSheet> {
+  late List<String> _filtered;
+  final _searchCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _filtered = widget.items;
+    _searchCtrl.addListener(() {
+      final q = _searchCtrl.text.toLowerCase();
+      setState(() {
+        _filtered = widget.items.where((e) => e.toLowerCase().contains(q)).toList();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final r = widget.responsive;
+    return Container(
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.70),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(r.radius(24))),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(top: r.h(12)),
+            child: Container(
+              width: r.w(40),
+              height: r.h(4),
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(9999),
+              ),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(r.w(24), r.h(16), r.w(24), r.h(4)),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(widget.title, style: AppTextStyles.profileSectionTitle(r)),
+                ),
+                GestureDetector(
+                  onTap: () => Navigator.of(context).pop(),
+                  child: Container(
+                    width: r.w(32),
+                    height: r.w(32),
+                    decoration: const BoxDecoration(
+                      color: AppColors.surfaceMuted,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.close_rounded, size: r.text(16), color: AppColors.textSecondary),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: r.w(24), vertical: r.h(8)),
+            child: Container(
+              height: r.h(40),
+              padding: EdgeInsets.symmetric(horizontal: r.w(14)),
+              decoration: ShapeDecoration(
+                color: AppColors.surfaceMuted,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(r.radius(10)),
+                  side: const BorderSide(color: Colors.transparent),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.search_rounded, size: r.text(16), color: AppColors.textMuted),
+                  SizedBox(width: r.w(8)),
+                  Expanded(
+                    child: TextField(
+                      controller: _searchCtrl,
+                      decoration: InputDecoration(
+                        hintText: 'Rechercher...',
+                        border: InputBorder.none,
+                        isDense: true,
+                        hintStyle: AppTextStyles.profileMeta(r).copyWith(color: AppColors.textGhost),
+                      ),
+                      style: AppTextStyles.profileFieldValue(r),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const Divider(height: 1, color: AppColors.border),
+          Flexible(
+            child: _filtered.isEmpty
+                ? Padding(
+                    padding: EdgeInsets.all(r.w(32)),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.search_off_rounded, size: r.text(40), color: AppColors.textMuted),
+                        SizedBox(height: r.h(12)),
+                        Text('Aucun résultat',
+                            style: AppTextStyles.profileMeta(r).copyWith(color: AppColors.textMuted)),
+                      ],
+                    ),
+                  )
+                : ListView.separated(
+                    shrinkWrap: true,
+                    padding: EdgeInsets.symmetric(horizontal: r.w(16), vertical: r.h(8)),
+                    itemCount: _filtered.length,
+                    separatorBuilder: (_, _) => const Divider(height: 1, color: AppColors.surfaceSoft),
+                    itemBuilder: (_, i) {
+                      final item = _filtered[i];
+                      final isSelected = widget.selected == item;
+                      return Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => widget.onSelect(item),
+                          borderRadius: BorderRadius.circular(r.radius(10)),
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: r.w(12), vertical: r.h(14)),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    item,
+                                    style: AppTextStyles.profileSectionLabel(r).copyWith(
+                                      color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                                    ),
+                                  ),
+                                ),
+                                if (isSelected)
+                                  Icon(Icons.check_rounded, size: r.text(18), color: AppColors.primary),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+          SizedBox(height: MediaQuery.of(context).viewInsets.bottom + r.h(8)),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Emergency contacts section ────────────────────────────────────────────────
+
+class _EmergencyContactsRegSection extends StatefulWidget {
+  const _EmergencyContactsRegSection({
+    required this.responsive,
+    required this.contacts,
+    required this.onAdd,
+    required this.onRemove,
+  });
+
+  final AppResponsive responsive;
+  final List<EmergencyContactEntry> contacts;
+  final void Function(String, String, String) onAdd;
+  final void Function(int) onRemove;
+
+  @override
+  State<_EmergencyContactsRegSection> createState() =>
+      _EmergencyContactsRegSectionState();
+}
+
+class _EmergencyContactsRegSectionState
+    extends State<_EmergencyContactsRegSection> {
+  bool _showForm = false;
+  final _nameCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  String? _selectedRelation;
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _phoneCtrl.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final name = _nameCtrl.text.trim();
+    final phone = _phoneCtrl.text.trim();
+    final rel = _selectedRelation ?? '';
+    if (name.isEmpty || phone.isEmpty || rel.isEmpty) return;
+    widget.onAdd(name, phone, rel);
+    _nameCtrl.clear();
+    _phoneCtrl.clear();
+    setState(() {
+      _selectedRelation = null;
+      _showForm = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final r = widget.responsive;
+    return _SectionCard(
+      responsive: r,
+      title: 'Contacts d\'urgence',
+      icon: Icons.emergency_rounded,
+      subtitle: 'Famille ou amis à prévenir (max 5)',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (widget.contacts.isEmpty)
+            Text(
+              'Aucun contact. Recommandé pour votre sécurité.',
+              style: AppTextStyles.profileMeta(r),
+            ),
+          ...widget.contacts.asMap().entries.map((entry) {
+            final i = entry.key;
+            final c = entry.value;
+            return Container(
+              margin: EdgeInsets.only(bottom: r.h(8)),
+              padding: EdgeInsets.symmetric(horizontal: r.w(12), vertical: r.h(10)),
+              decoration: ShapeDecoration(
+                color: AppColors.surfaceMuted,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(r.radius(10)),
+                  side: const BorderSide(color: Colors.transparent),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: r.w(36),
+                    height: r.w(36),
+                    alignment: Alignment.center,
+                    decoration: const BoxDecoration(
+                      color: AppColors.surfaceAccent,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      c.name.isNotEmpty ? c.name[0].toUpperCase() : '?',
+                      style: AppTextStyles.profileSectionLabel(r)
+                          .copyWith(color: AppColors.primary),
+                    ),
+                  ),
+                  SizedBox(width: r.w(10)),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(c.name, style: AppTextStyles.profileSectionLabel(r)),
+                        Text('${c.relationship} · ${c.phone}',
+                            style: AppTextStyles.profileMeta(r)),
+                      ],
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => widget.onRemove(i),
+                    child: Icon(Icons.close_rounded,
+                        size: r.text(18), color: AppColors.textMuted),
+                  ),
+                ],
+              ),
+            );
+          }),
+          if (_showForm) ...[
+            SizedBox(height: r.h(12)),
+            AppField(
+              responsive: r,
+              label: 'Nom complet',
+              labelStyle: AppTextStyles.profileSectionLabel(r),
+              controller: _nameCtrl,
+              hintText: 'Ex: Kouassi Jean',
+              textStyle: AppTextStyles.profileFieldValue(r),
+              hintStyle:
+                  AppTextStyles.profileFieldValue(r).copyWith(color: AppColors.textGhost),
+            ),
+            SizedBox(height: r.h(10)),
+            _RelationSelectField(
+              responsive: r,
+              value: _selectedRelation,
+              onSelected: (v) => setState(() => _selectedRelation = v),
+            ),
+            SizedBox(height: r.h(10)),
+            PhoneFieldWidget(
+              responsive: r,
+              controller: _phoneCtrl,
+              label: 'Téléphone',
+              labelStyle: AppTextStyles.profileSectionLabel(r),
+            ),
+            SizedBox(height: r.h(12)),
+            Row(
+              children: [
+                Expanded(
+                  child: AppPrimaryButton(
+                    responsive: r,
+                    label: 'Ajouter',
+                    onTap: _submit,
+                  ),
+                ),
+                SizedBox(width: r.w(10)),
+                AppChipButton(
+                  responsive: r,
+                  label: 'Annuler',
+                  onTap: () => setState(() => _showForm = false),
+                ),
+              ],
+            ),
+          ] else if (widget.contacts.length < 5) ...[
+            SizedBox(height: r.h(12)),
+            AppChipButton(
+              responsive: r,
+              label: '+ Ajouter un contact',
+              onTap: () => setState(() => _showForm = true),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ── Relation select ───────────────────────────────────────────────────────────
+
+const _kRelations = [
+  'Père', 'Mère', 'Frère', 'Sœur',
+  'Époux', 'Épouse', 'Fils', 'Fille',
+  'Grand-père', 'Grand-mère',
+  'Oncle', 'Tante', 'Neveu', 'Nièce',
+  'Cousin', 'Cousine',
+  'Beau-père', 'Belle-mère', 'Beau-frère', 'Belle-sœur',
+  'Ami(e)', 'Collègue', 'Voisin(e)', 'Tuteur/Tutrice', 'Autre',
+];
+
+class _RelationSelectField extends StatelessWidget {
+  const _RelationSelectField({
+    required this.responsive,
+    required this.value,
+    required this.onSelected,
+  });
+
+  final AppResponsive responsive;
+  final String? value;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = responsive;
+    return GestureDetector(
+      onTap: () => showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => _RelationPickerSheet(
+          responsive: r,
+          selected: value,
+          onSelected: onSelected,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Relation', style: AppTextStyles.profileSectionLabel(r)),
+          SizedBox(height: r.h(6)),
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(horizontal: r.w(14), vertical: r.h(14)),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceMuted,
+              borderRadius: BorderRadius.circular(r.radius(10)),
+              border: Border.all(color: Colors.transparent),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    value ?? 'Sélectionner une relation',
+                    style: AppTextStyles.profileFieldValue(r).copyWith(
+                      color: value != null ? null : AppColors.textGhost,
+                    ),
+                  ),
+                ),
+                Icon(Icons.keyboard_arrow_down_rounded,
+                    size: r.text(18), color: AppColors.textMuted),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RelationPickerSheet extends StatelessWidget {
+  const _RelationPickerSheet({
+    required this.responsive,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final AppResponsive responsive;
+  final String? selected;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = responsive;
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(r.radius(20))),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(height: r.h(12)),
+          Container(
+            width: r.w(40),
+            height: r.h(4),
+            decoration: BoxDecoration(
+              color: AppColors.border,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          SizedBox(height: r.h(16)),
+          Text('Relation avec le contact', style: AppTextStyles.profileSectionLabel(r)),
+          SizedBox(height: r.h(8)),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: r.h(380)),
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: _kRelations.length,
+              itemBuilder: (_, i) {
+                final rel = _kRelations[i];
+                final isSelected = rel == selected;
+                return ListTile(
+                  dense: true,
+                  title: Text(rel, style: AppTextStyles.profileFieldValue(r)),
+                  trailing: isSelected
+                      ? Icon(Icons.check_rounded, color: AppColors.primary, size: r.text(18))
+                      : null,
+                  onTap: () {
+                    onSelected(rel);
+                    Navigator.pop(context);
+                  },
+                );
+              },
+            ),
+          ),
+          SizedBox(height: r.h(24)),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Section card ──────────────────────────────────────────────────────────────
+
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({
+    required this.responsive,
+    required this.title,
+    required this.icon,
+    required this.child,
+    this.subtitle,
+  });
+
+  final AppResponsive responsive;
+  final String title;
+  final IconData icon;
+  final Widget child;
+  final String? subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(responsive.w(24)),
+      decoration: ShapeDecoration(
+        color: AppColors.white,
+        shape: RoundedRectangleBorder(
+          side: const BorderSide(color: AppColors.surfaceSoft),
+          borderRadius: BorderRadius.circular(responsive.radius(24)),
+        ),
+        shadows: const [
+          BoxShadow(color: AppColors.shadow, blurRadius: 15, offset: Offset(0, 10)),
+          BoxShadow(color: AppColors.shadow, blurRadius: 6, offset: Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: responsive.w(40),
+                height: responsive.w(40),
+                decoration: ShapeDecoration(
+                  color: AppColors.surfaceAccent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(responsive.radius(12)),
+                  ),
+                ),
+                child: Icon(icon, color: AppColors.primary, size: responsive.text(18)),
+              ),
+              SizedBox(width: responsive.w(12)),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: AppTextStyles.profileSectionTitle(responsive)),
+                    if (subtitle != null) ...[
+                      SizedBox(height: responsive.h(2)),
+                      Text(subtitle!, style: AppTextStyles.profileMeta(responsive)),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: responsive.h(24)),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+// ── Inline error ──────────────────────────────────────────────────────────────
+
+class _InlineError extends StatelessWidget {
+  const _InlineError({required this.responsive, required this.text});
+  final AppResponsive responsive;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(Icons.error_outline_rounded,
+            size: responsive.text(12), color: AppColors.danger),
+        SizedBox(width: responsive.w(4)),
+        Flexible(
+          child: Text(
+            text,
+            style: AppTextStyles.profileMeta(responsive).copyWith(color: AppColors.danger),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Document upload tile ──────────────────────────────────────────────────────
+
+class _DocumentUploadTile extends StatelessWidget {
+  const _DocumentUploadTile({
+    required this.responsive,
+    required this.title,
+    required this.subtitle,
+    required this.actionLabel,
+    required this.icon,
+    required this.onTap,
+    required this.selectedValue,
+    this.errorText = '',
+    this.sizeHint = '',
+  });
+
+  final AppResponsive responsive;
+  final String title;
+  final String subtitle;
+  final String actionLabel;
+  final IconData icon;
+  final VoidCallback onTap;
+  final String selectedValue;
+  final String errorText;
+  final String sizeHint;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasError = errorText.isNotEmpty;
+    final hasDone = selectedValue.isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AppField(
+          responsive: responsive,
+          label: title,
+          labelStyle: AppTextStyles.profileSectionLabel(responsive),
+          backgroundColor: AppColors.white,
+          borderColor: hasError ? AppColors.danger : null,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: responsive.w(48),
+                height: responsive.w(48),
+                decoration: ShapeDecoration(
+                  color: hasDone ? AppColors.successLight : AppColors.surfaceAccent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(responsive.radius(12)),
+                  ),
+                ),
+                child: Icon(
+                  hasDone ? Icons.check_rounded : icon,
+                  color: hasDone ? AppColors.success : AppColors.primary,
+                  size: responsive.text(20),
+                ),
+              ),
+              SizedBox(height: responsive.h(12)),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: AppTextStyles.profileSectionTitle(responsive)
+                    .copyWith(fontSize: responsive.text(15)),
+              ),
+              SizedBox(height: responsive.h(4)),
+              Text(subtitle,
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.profileMeta(responsive)),
+              if (sizeHint.isNotEmpty) ...[
+                SizedBox(height: responsive.h(2)),
+                Text(sizeHint,
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.profileMeta(responsive)
+                        .copyWith(color: AppColors.textMuted)),
+              ],
+              if (hasDone) ...[
+                SizedBox(height: responsive.h(8)),
+                Text(
+                  selectedValue,
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.profileMeta(responsive)
+                      .copyWith(color: AppColors.success, fontWeight: FontWeight.w600),
+                ),
+              ],
+              SizedBox(height: responsive.h(12)),
+              AppChipButton(
+                responsive: responsive,
+                label: hasDone ? 'Remplacer' : actionLabel,
+                onTap: onTap,
+              ),
+            ],
+          ),
+        ),
+        if (hasError) ...[
+          SizedBox(height: responsive.h(4)),
+          Row(
+            children: [
+              Icon(Icons.error_outline_rounded,
+                  size: responsive.text(12), color: AppColors.danger),
+              SizedBox(width: responsive.w(4)),
+              Flexible(
+                child: Text(
+                  errorText,
+                  style: AppTextStyles.profileMeta(responsive).copyWith(color: AppColors.danger),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ── Trust card ────────────────────────────────────────────────────────────────
+
+class _TrustCard extends StatelessWidget {
+  const _TrustCard({required this.responsive});
+  final AppResponsive responsive;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(responsive.w(24)),
+      decoration: ShapeDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment(-0.00, 0.50),
+          end: Alignment(1.00, 0.50),
+          colors: [AppColors.surfaceAccent, AppColors.surfaceWarning],
+        ),
+        shape: RoundedRectangleBorder(
+          side: const BorderSide(width: 1, color: AppColors.surfaceAccentStrong),
+          borderRadius: BorderRadius.circular(responsive.radius(24)),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: responsive.w(40),
+            height: responsive.w(40),
+            decoration: ShapeDecoration(
+              color: AppColors.surfaceAccentStrong,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(responsive.radius(12)),
+              ),
+            ),
+            child: Icon(Icons.verified_user_outlined, color: AppColors.primary, size: responsive.text(18)),
+          ),
+          SizedBox(width: responsive.w(12)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(AppStrings.profileSectionSecurity, style: AppTextStyles.profileSectionTitle(responsive)),
+                SizedBox(height: responsive.h(4)),
+                Text(AppStrings.profileSectionSecurityHint, style: AppTextStyles.profileMeta(responsive)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Progress summary ──────────────────────────────────────────────────────────
+
+class _ProgressSummary extends StatelessWidget {
+  const _ProgressSummary({required this.responsive});
+  final AppResponsive responsive;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(AppStrings.profileSectionProgress, style: AppTextStyles.profileSectionLabel(responsive)),
+            SizedBox(height: responsive.h(2)),
+            Text(AppStrings.profileSectionProgressHint, style: AppTextStyles.profileMeta(responsive)),
+          ],
+        ),
+        Container(
+          width: responsive.w(48),
+          height: responsive.w(48),
+          decoration: ShapeDecoration(
+            color: AppColors.surfaceAccent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(responsive.radius(16)),
+            ),
+          ),
+          child: Icon(Icons.chevron_right_rounded, color: AppColors.primary, size: responsive.text(24)),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Image source picker ───────────────────────────────────────────────────────
+
+class _ImageSourceSheet extends StatelessWidget {
+  const _ImageSourceSheet({required this.responsive});
+  final AppResponsive responsive;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+          responsive.w(16), responsive.h(12), responsive.w(16), responsive.h(32)),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(responsive.radius(24))),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: responsive.w(40),
+            height: responsive.h(4),
+            margin: EdgeInsets.only(bottom: responsive.h(20)),
+            decoration: BoxDecoration(
+              color: AppColors.border,
+              borderRadius: BorderRadius.circular(9999),
+            ),
+          ),
+          Text('Choisir une source', style: AppTextStyles.profileSectionTitle(responsive)),
+          SizedBox(height: responsive.h(16)),
+          _SourceTile(
+            responsive: responsive,
+            icon: Icons.camera_alt_rounded,
+            label: 'Prendre une photo',
+            subtitle: 'Utiliser l\'appareil photo',
+            onTap: () => Navigator.of(context).pop(ImageSource.camera),
+          ),
+          SizedBox(height: responsive.h(12)),
+          _SourceTile(
+            responsive: responsive,
+            icon: Icons.photo_library_rounded,
+            label: 'Galerie',
+            subtitle: 'Choisir depuis les photos',
+            onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SourceTile extends StatelessWidget {
+  const _SourceTile({
+    required this.responsive,
+    required this.icon,
+    required this.label,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final AppResponsive responsive;
+  final IconData icon;
+  final String label;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(responsive.radius(16)),
+        child: Container(
+          padding: EdgeInsets.all(responsive.w(16)),
+          decoration: ShapeDecoration(
+            color: AppColors.surfaceMuted,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(responsive.radius(16)),
+              side: const BorderSide(color: Colors.transparent),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: responsive.w(44),
+                height: responsive.w(44),
+                decoration: ShapeDecoration(
+                  color: AppColors.surfaceAccent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(responsive.radius(12)),
+                  ),
+                ),
+                child: Icon(icon, color: AppColors.primary, size: responsive.text(20)),
+              ),
+              SizedBox(width: responsive.w(16)),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label, style: AppTextStyles.profileSectionLabel(responsive)),
+                    SizedBox(height: responsive.h(2)),
+                    Text(subtitle, style: AppTextStyles.profileMeta(responsive)),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded,
+                  color: AppColors.textMuted, size: responsive.text(20)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

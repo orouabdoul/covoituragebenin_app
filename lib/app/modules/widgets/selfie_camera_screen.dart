@@ -6,6 +6,7 @@ import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:image/image.dart' as img;
+import 'package:path_provider/path_provider.dart';
 
 enum SelfieStep { front, left, right }
 
@@ -120,13 +121,24 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
     });
     final screenSize = MediaQuery.of(context).size;
     try {
-      final photo = await _controller!.takePicture();
-      final hasFace = await _detectFace(photo.path);
+      final rawPhoto = await _controller!.takePicture();
+      // Copy to stable Documents dir immediately — camera plugins can save to
+      // restricted paths (e.g. code_cache/) that become inaccessible later.
+      final docsDir = await getApplicationDocumentsDirectory();
+      final kycPath = '${docsDir.path}/kyc_temp';
+      await Directory(kycPath).create(recursive: true);
+      final stablePath =
+          '$kycPath/selfie_raw_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      await File(rawPhoto.path).copy(stablePath);
+
+      final hasFace = await _detectFace(stablePath);
       if (!hasFace) {
+        File(stablePath).delete().ignore();
         if (mounted) setState(() { _capturing = false; _noFaceDetected = true; });
         return;
       }
-      final cropped = await _cropToHead(photo.path, screenSize);
+      final cropped = await _cropToHead(stablePath, screenSize);
+      File(stablePath).delete().ignore();
       if (mounted) Navigator.of(context).pop(cropped);
     } catch (_) {
       if (mounted) setState(() => _capturing = false);
@@ -178,8 +190,9 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
         height: h.round().clamp(1, source.height - t.round()),
       );
 
+      final docsDir = await getApplicationDocumentsDirectory();
       final outPath =
-          '${Directory.systemTemp.path}/selfie_head_${DateTime.now().millisecondsSinceEpoch}.jpg';
+          '${docsDir.path}/kyc_temp/selfie_head_${DateTime.now().millisecondsSinceEpoch}.jpg';
       await File(outPath).writeAsBytes(img.encodeJpg(cropped, quality: 92));
       return XFile(outPath);
     } catch (_) {

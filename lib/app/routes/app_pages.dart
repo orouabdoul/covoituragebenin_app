@@ -4,10 +4,8 @@ import '../modules/auth/register/bindings/register_binding.dart';
 import '../modules/auth/register/bindings/otp_code_binding.dart';
 import '../modules/auth/register/views/input_phone_view.dart';
 import '../modules/auth/register/views/otp_code_view.dart';
-import '../modules/auth/complete_profile/bindings/profile_driver_binding.dart';
-import '../modules/auth/complete_profile/views/profile_driver_view.dart';
-import '../modules/auth/complete_profile/bindings/profile_passager_binding.dart';
-import '../modules/auth/complete_profile/views/profile_passager_view.dart';
+import '../modules/auth/complete_profile/bindings/complete_profile_binding.dart';
+import '../modules/auth/complete_profile/views/complete_profile_view.dart';
 import '../modules/principal/botton_nav/bindings/botton_nav_binding.dart';
 import '../modules/principal/botton_nav/controllers/botton_nav_role.dart';
 import '../modules/principal/botton_nav/views/botton_nav.dart';
@@ -153,13 +151,13 @@ class AppPages {
     ),
     _page(
       name: AppRoutes.completeProfileDriver,
-      page: () => const ProfileDriverView(),
-      binding: ProfileDriverBinding(),
+      page: () => const CompleteProfileView(),
+      binding: CompleteProfileBinding(),
     ),
     _page(
       name: AppRoutes.completeProfilePassenger,
-      page: () => const ProfilePassagerView(),
-      binding: ProfilePassagerBinding(),
+      page: () => const CompleteProfileView(),
+      binding: CompleteProfileBinding(),
     ),
     _page(
       name: AppRoutes.passengerHome,

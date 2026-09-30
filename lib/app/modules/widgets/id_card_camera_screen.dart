@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
+import 'package:path_provider/path_provider.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 
 /// Résultat retourné par [IdCardCameraScreen].
@@ -91,9 +92,18 @@ class _IdCardCameraScreenState extends State<IdCardCameraScreen>
     setState(() => _capturing = true);
     final screenSize = MediaQuery.of(context).size;
     try {
-      final photo = await _controller!.takePicture();
-      final result = await _extractZones(
-          photo.path, screenSize, widget.isBack);
+      final rawPhoto = await _controller!.takePicture();
+      // Copy to stable Documents dir immediately — camera plugins can save to
+      // restricted paths (e.g. code_cache/) that become inaccessible later.
+      final docsDir = await getApplicationDocumentsDirectory();
+      final kycPath = '${docsDir.path}/kyc_temp';
+      await Directory(kycPath).create(recursive: true);
+      final stablePath =
+          '$kycPath/card_raw_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      await File(rawPhoto.path).copy(stablePath);
+
+      final result = await _extractZones(stablePath, screenSize, widget.isBack);
+      File(stablePath).delete().ignore();
       if (mounted) {
         Navigator.of(context).pop(result);
       }
@@ -157,7 +167,9 @@ class _IdCardCameraScreenState extends State<IdCardCameraScreen>
       final cardImg = toImage(cardRect);
 
       final ts = DateTime.now().millisecondsSinceEpoch;
-      final tmp = Directory.systemTemp.path;
+      final docsDir = await getApplicationDocumentsDirectory();
+      final tmp = '${docsDir.path}/kyc_temp';
+      await Directory(tmp).create(recursive: true);
 
       // Recadrage carte complète (cadre blanc)
       final cardCrop = img.copyCrop(
