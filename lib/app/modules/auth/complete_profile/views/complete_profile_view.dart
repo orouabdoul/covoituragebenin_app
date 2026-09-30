@@ -178,39 +178,27 @@ class CompleteProfileView extends GetView<CompleteProfileController> {
                                 ],
                               ),
                               SizedBox(height: responsive.h(16)),
-                              if (controller.isDriver)
-                                _SelectField(
-                                  responsive: responsive,
-                                  label: AppStrings.profileFieldAddress,
-                                  hint: controller.selectedNeighborhood.value == null
-                                      ? 'Choisir un arrondissement'
-                                      : AppStrings.profileFieldAddressHint,
-                                  value: controller.selectedQuartier.value,
-                                  disabled: controller.selectedNeighborhood.value == null,
-                                  onTap: controller.selectedNeighborhood.value == null
-                                      ? null
-                                      : () => _showPicker(
-                                            context: context,
-                                            responsive: responsive,
-                                            title: AppStrings.profileFieldAddress,
-                                            items: BeninLocations.getQuartiers(
-                                                controller.selectedCity.value,
-                                                controller.selectedNeighborhood.value),
-                                            selected: controller.selectedQuartier.value,
-                                            onSelect: controller.selectQuartier,
-                                          ),
-                                )
-                              else
-                                AppField(
-                                  responsive: responsive,
-                                  label: AppStrings.profileFieldAddress,
-                                  labelStyle: AppTextStyles.profileSectionLabel(responsive),
-                                  controller: controller.addressController,
-                                  hintText: AppStrings.profileFieldAddressHint,
-                                  textStyle: AppTextStyles.profileFieldValue(responsive),
-                                  hintStyle: AppTextStyles.profileFieldValue(responsive)
-                                      .copyWith(color: AppColors.textGhost),
-                                ),
+                              _SelectField(
+                                responsive: responsive,
+                                label: AppStrings.profileFieldAddress,
+                                hint: controller.selectedNeighborhood.value == null
+                                    ? 'Choisir un arrondissement'
+                                    : AppStrings.profileFieldAddressHint,
+                                value: controller.selectedQuartier.value,
+                                disabled: controller.selectedNeighborhood.value == null,
+                                onTap: controller.selectedNeighborhood.value == null
+                                    ? null
+                                    : () => _showPicker(
+                                          context: context,
+                                          responsive: responsive,
+                                          title: AppStrings.profileFieldAddress,
+                                          items: BeninLocations.getQuartiers(
+                                              controller.selectedCity.value,
+                                              controller.selectedNeighborhood.value),
+                                          selected: controller.selectedQuartier.value,
+                                          onSelect: controller.selectQuartier,
+                                        ),
+                              ),
                             ],
                           ),
                         ),

@@ -641,11 +641,13 @@ class CompleteProfileController extends GetxController {
       if (selectedNeighborhood.value != null) fields['neighborhood'] = selectedNeighborhood.value!;
       if (genderCode != null)                 fields['gender']       = genderCode;
 
+      // Quartier (3e niveau) — commun aux deux rôles
+      if (selectedQuartier.value != null) {
+        fields['address_details'] = selectedQuartier.value!;
+      }
+
       if (isDriver) {
         final isMoto = selectedDriverType.value == DriverType.moto;
-        if (selectedQuartier.value != null) {
-          fields['address_details'] = selectedQuartier.value!;
-        }
         if (!isMoto && licenseNumberController.text.trim().isNotEmpty) {
           fields['driving_license_number'] = licenseNumberController.text.trim();
         }
@@ -664,9 +666,6 @@ class CompleteProfileController extends GetxController {
       } else {
         if (emailController.text.trim().isNotEmpty) {
           fields['email'] = emailController.text.trim();
-        }
-        if (addressController.text.trim().isNotEmpty) {
-          fields['address_details'] = addressController.text.trim();
         }
       }
 
