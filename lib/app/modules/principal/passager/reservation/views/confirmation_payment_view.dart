@@ -547,83 +547,6 @@ class _MobileMoneyCard extends StatelessWidget {
 						responsive: responsive,
 						controller: controller.paymentContactController,
 					),
-					SizedBox(height: responsive.h(16)),
-					// ── Montant reçu (FCFA) ─────────────────────────────────
-					Text(
-						'Montant reçu (FCFA)',
-						style: AppTextStyles.caption(responsive).copyWith(
-							color: AppColors.textSecondary,
-							fontWeight: FontWeight.w600,
-						),
-					),
-					SizedBox(height: responsive.h(6)),
-					_PlainInputField(
-						responsive: responsive,
-						hintText: 'Ex: 5000',
-						controller: controller.receivedAmountController,
-						keyboardType: TextInputType.number,
-						inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-					),
-					Obx(() {
-						final err = controller.receivedAmountError.value;
-						if (err.isEmpty) return const SizedBox.shrink();
-						return Padding(
-							padding: EdgeInsets.only(top: responsive.h(4), left: responsive.w(4)),
-							child: Text(
-								err,
-								style: AppTextStyles.caption(responsive).copyWith(color: AppColors.danger),
-							),
-						);
-					}),
-					SizedBox(height: responsive.h(16)),
-					// ── Numéro de dépôt ─────────────────────────────────────
-					Row(
-						children: [
-							Text(
-								'Numéro de dépôt',
-								style: AppTextStyles.caption(responsive).copyWith(
-									color: AppColors.textSecondary,
-									fontWeight: FontWeight.w600,
-								),
-							),
-							SizedBox(width: responsive.w(4)),
-							Text(
-								'*',
-								style: AppTextStyles.caption(responsive).copyWith(
-									color: AppColors.danger,
-									fontWeight: FontWeight.w700,
-								),
-							),
-							Text(
-								' obligatoire',
-								style: AppTextStyles.caption(responsive).copyWith(
-									color: AppColors.textHint,
-								),
-							),
-						],
-					),
-					SizedBox(height: responsive.h(6)),
-					_PhoneInputField(
-						responsive: responsive,
-						controller: controller.depositNumberController,
-						hintText: '01XXXXXXXX',
-					),
-					Obx(() {
-						final err = controller.depositNumberError.value;
-						if (err.isEmpty) return const SizedBox.shrink();
-						return Padding(
-							padding: EdgeInsets.only(top: responsive.h(4), left: responsive.w(4)),
-							child: Text(
-								err,
-								style: AppTextStyles.caption(responsive).copyWith(color: AppColors.danger),
-							),
-						);
-					}),
-					SizedBox(height: responsive.h(6)),
-					Text(
-						'Format : +229 01XXXXXXXX — 10 chiffres, commence par 01',
-						style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint, fontSize: responsive.text(11)),
-					),
 				],
 			),
 		);
@@ -1021,51 +944,6 @@ class _PhoneInputField extends StatelessWidget {
 						),
 					),
 				],
-			),
-		);
-	}
-}
-
-// Champ simple sans préfixe
-class _PlainInputField extends StatelessWidget {
-	const _PlainInputField({
-		required this.responsive,
-		required this.hintText,
-		required this.controller,
-		required this.keyboardType,
-		required this.inputFormatters,
-	});
-
-	final AppResponsive responsive;
-	final String hintText;
-	final TextEditingController controller;
-	final TextInputType keyboardType;
-	final List<TextInputFormatter> inputFormatters;
-
-	@override
-	Widget build(BuildContext context) {
-		return Container(
-			decoration: ShapeDecoration(
-				color: AppColors.surfaceMuted,
-				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: Colors.transparent),
-					borderRadius: BorderRadius.circular(responsive.radius(12)),
-				),
-			),
-			child: TextField(
-				controller: controller,
-				keyboardType: keyboardType,
-				inputFormatters: inputFormatters,
-				style: AppTextStyles.subtitle(responsive),
-				decoration: InputDecoration(
-					contentPadding: EdgeInsets.symmetric(
-						horizontal: responsive.w(14),
-						vertical: responsive.h(14),
-					),
-					border: InputBorder.none,
-					hintText: hintText,
-					hintStyle: AppTextStyles.subtitle(responsive).copyWith(color: AppColors.textHint),
-				),
 			),
 		);
 	}

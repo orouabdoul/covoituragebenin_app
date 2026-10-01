@@ -249,19 +249,11 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
     String bookingUuid, {
     String? phone,
     required String provider,
-    String? depositNumber,
-    int? receivedAmount,
   }) async {
     try {
       final opts = await _authOptions();
       final body = <String, dynamic>{'provider': provider};
       if (phone != null && phone.isNotEmpty) body['phone_number'] = phone;
-      if (depositNumber != null && depositNumber.isNotEmpty) {
-        body['deposit_number'] = depositNumber;
-      }
-      if (receivedAmount != null && receivedAmount > 0) {
-        body['received_amount'] = receivedAmount;
-      }
       final res = await _dio.post(
         AppApi.initiateBookingPayment(bookingUuid),
         data: body,

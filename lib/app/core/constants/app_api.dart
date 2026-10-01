@@ -1,7 +1,7 @@
 // ─── Basculer ici pour les tests locaux ──────────────────────────────────────
 // true  → backend XAMPP local
 // false → backend Render (production)
-const bool kLocalDev = true;
+const bool kLocalDev = false;
 
 // Émulateur Android  : 10.0.2.2  (= localhost de ta machine)
 // Téléphone physique : remplace par l'IP de ton PC (ex: 192.168.1.5)
