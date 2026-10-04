@@ -51,7 +51,7 @@ class ProfileDriverController extends GetxController {
   }
 
   void goToRoles() {
-    Get.offAllNamed(AppRoutes.roles, arguments: {
+    Get.offNamed(AppRoutes.roles, arguments: {
       'skipAuth': true,
       'registerToken': _registerToken,
       'phone': _authPhone,

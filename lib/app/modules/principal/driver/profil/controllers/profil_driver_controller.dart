@@ -45,6 +45,41 @@ class DriverProfileController extends GetxController {
   int heroTenureMonths = 0;
   String heroAvatarUrl = '';
 
+  Color get profilePerformanceBadgeColor {
+    final rating = heroRating;
+    final topPercent = perfTopPercent;
+    final normalizedLevel = perfCurrentLevel.toLowerCase();
+
+    final isNewDriver = rating <= 0 && topPercent <= 0 &&
+        (normalizedLevel.isEmpty || normalizedLevel.contains('niveau 1') || normalizedLevel.contains('débutant'));
+
+    if (isNewDriver) return AppColors.warning;
+    if (rating >= 4.8 || topPercent >= 85 || normalizedLevel.contains('or')) {
+      return AppColors.badgeGold;
+    }
+    if (rating >= 4.5 || topPercent >= 70 || normalizedLevel.contains('professionnel')) {
+      return AppColors.warning;
+    }
+    if (rating >= 4.2 || topPercent >= 50 || normalizedLevel.contains('platine')) {
+      return AppColors.success;
+    }
+    return AppColors.primary;
+  }
+
+  IconData get profilePerformanceBadgeIcon {
+    final rating = heroRating;
+    final topPercent = perfTopPercent;
+    final normalizedLevel = perfCurrentLevel.toLowerCase();
+    final isNewDriver = rating <= 0 && topPercent <= 0 &&
+        (normalizedLevel.isEmpty || normalizedLevel.contains('niveau 1') || normalizedLevel.contains('débutant'));
+
+    if (isNewDriver) return Icons.star_rounded;
+    if (rating >= 4.8 || topPercent >= 85) return Icons.workspace_premium_rounded;
+    if (rating >= 4.5 || topPercent >= 70) return Icons.star_rounded;
+    if (rating >= 4.2 || topPercent >= 50) return Icons.verified_rounded;
+    return Icons.star_rounded;
+  }
+
   // ── Performance data ─────────────────────────────────────────────────────
   String perfCurrentLevel = AppStrings.driverProfileCurrentLevelValue;
   String perfNextLevel = 'Or';

@@ -305,14 +305,14 @@ class _HeroCard extends StatelessWidget {
                   width: responsive.w(30),
                   height: responsive.w(30),
                   decoration: ShapeDecoration(
-                    color: AppColors.accent,
+                    color: controller.profilePerformanceBadgeColor,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(9999),
                       side: const BorderSide(width: 3, color: AppColors.white),
                     ),
                   ),
                   child: Icon(
-                    Icons.star_rounded,
+                    controller.profilePerformanceBadgeIcon,
                     color: AppColors.white,
                     size: responsive.text(16),
                   ),

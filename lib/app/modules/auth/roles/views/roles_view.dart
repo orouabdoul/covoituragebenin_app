@@ -35,7 +35,7 @@ class RolesView extends GetView<RolesController> {
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _TopBar(responsive: responsive, onBack: Get.back),
+                          _TopBar(responsive: responsive, onBack: () => Get.back()),
                           SizedBox(height: responsive.h(32)),
                           Center(
                             child: Column(

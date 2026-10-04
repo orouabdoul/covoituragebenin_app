@@ -77,7 +77,7 @@ class OtpCodeController extends GetxController {
 
     // ── Nouveau compte : auth → rôles → profil → accueil ──────────────────────
     if (auth.isNewUser) {
-      Get.offAllNamed(AppRoutes.roles, arguments: {
+      Get.offNamed(AppRoutes.roles, arguments: {
         'skipAuth': true,
         'registerToken': auth.registerToken,
         'phone': phoneNumber.value,
@@ -122,7 +122,7 @@ class OtpCodeController extends GetxController {
     }
 
     // Rôle inconnu → sélection du rôle
-    Get.offAllNamed(AppRoutes.roles, arguments: {
+    Get.offNamed(AppRoutes.roles, arguments: {
       'skipAuth': true,
       'phone': phoneNumber.value,
     });
