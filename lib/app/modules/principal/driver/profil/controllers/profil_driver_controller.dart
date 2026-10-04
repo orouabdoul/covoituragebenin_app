@@ -40,20 +40,23 @@ class DriverProfileController extends GetxController {
   String heroBadge = AppStrings.driverProfileBadge;
   String heroLevel = 'Niveau 1';
   String heroLocation = '';
-  double heroRating = 4.8;
+  double heroRating = 0;
   int heroTrips = 0;
   int heroTenureMonths = 0;
   String heroAvatarUrl = '';
+
+  bool get hasProfilePerformance =>
+      heroRating > 0 ||
+      perfProgress > 0 ||
+      perfBadgesCount > 0 ||
+      perfTopPercent > 0 ||
+      perfBonusCount > 0;
 
   Color get profilePerformanceBadgeColor {
     final rating = heroRating;
     final topPercent = perfTopPercent;
     final normalizedLevel = perfCurrentLevel.toLowerCase();
 
-    final isNewDriver = rating <= 0 && topPercent <= 0 &&
-        (normalizedLevel.isEmpty || normalizedLevel.contains('niveau 1') || normalizedLevel.contains('débutant'));
-
-    if (isNewDriver) return AppColors.warning;
     if (rating >= 4.8 || topPercent >= 85 || normalizedLevel.contains('or')) {
       return AppColors.badgeGold;
     }
@@ -69,11 +72,6 @@ class DriverProfileController extends GetxController {
   IconData get profilePerformanceBadgeIcon {
     final rating = heroRating;
     final topPercent = perfTopPercent;
-    final normalizedLevel = perfCurrentLevel.toLowerCase();
-    final isNewDriver = rating <= 0 && topPercent <= 0 &&
-        (normalizedLevel.isEmpty || normalizedLevel.contains('niveau 1') || normalizedLevel.contains('débutant'));
-
-    if (isNewDriver) return Icons.star_rounded;
     if (rating >= 4.8 || topPercent >= 85) return Icons.workspace_premium_rounded;
     if (rating >= 4.5 || topPercent >= 70) return Icons.star_rounded;
     if (rating >= 4.2 || topPercent >= 50) return Icons.verified_rounded;
@@ -81,9 +79,9 @@ class DriverProfileController extends GetxController {
   }
 
   // ── Performance data ─────────────────────────────────────────────────────
-  String perfCurrentLevel = AppStrings.driverProfileCurrentLevelValue;
-  String perfNextLevel = 'Or';
-  double perfProgress = 0.75;
+  String perfCurrentLevel = '';
+  String perfNextLevel = '';
+  double perfProgress = 0;
   int perfBadgesCount = 0;
   int perfTopPercent = 0;
   int perfBonusCount = 0;

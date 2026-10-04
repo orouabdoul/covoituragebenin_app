@@ -298,26 +298,27 @@ class _HeroCard extends StatelessWidget {
                         size: responsive.text(48),
                       ),
               ),
-              Positioned(
-                right: -4,
-                bottom: -4,
-                child: Container(
-                  width: responsive.w(30),
-                  height: responsive.w(30),
-                  decoration: ShapeDecoration(
-                    color: controller.profilePerformanceBadgeColor,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(9999),
-                      side: const BorderSide(width: 3, color: AppColors.white),
+              if (controller.hasProfilePerformance)
+                Positioned(
+                  right: -4,
+                  bottom: -4,
+                  child: Container(
+                    width: responsive.w(30),
+                    height: responsive.w(30),
+                    decoration: ShapeDecoration(
+                      color: controller.profilePerformanceBadgeColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(9999),
+                        side: const BorderSide(width: 3, color: AppColors.white),
+                      ),
+                    ),
+                    child: Icon(
+                      controller.profilePerformanceBadgeIcon,
+                      color: AppColors.white,
+                      size: responsive.text(16),
                     ),
                   ),
-                  child: Icon(
-                    controller.profilePerformanceBadgeIcon,
-                    color: AppColors.white,
-                    size: responsive.text(16),
-                  ),
                 ),
-              ),
             ],
           ),
           SizedBox(height: responsive.h(14)),

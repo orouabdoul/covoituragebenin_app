@@ -41,7 +41,7 @@ class ProfilePassagerController extends GetxController {
   }
 
   void goToRoles() {
-    Get.offNamed(AppRoutes.roles, arguments: {
+    Get.toNamed(AppRoutes.roles, arguments: {
       'skipAuth': true,
       'registerToken': _registerToken,
       'phone': _authPhone,
