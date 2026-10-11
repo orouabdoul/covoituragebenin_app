@@ -12,6 +12,7 @@ import 'package:covoiturage_benin_app/app/core/services/passenger/reviews/passen
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
+import 'package:covoiturage_benin_app/app/core/utils/reservation_pricing.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/models/passenger/reservations_model.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
@@ -313,9 +314,19 @@ class DetailReservationController extends GetxController {
   }
 
   void bookNow() {
+    final selectedRide = ride.value;
+    if (selectedRide == null) {
+      UIHelper().showSnackBar(
+        'MINIZON',
+        'Le trajet est actuellement indisponible. Veuillez réessayer.',
+        2,
+      );
+      return;
+    }
+
     Get.toNamed(
       AppRoutes.passengerReservationConfirmation,
-      arguments: {'ride': ride.value},
+      arguments: {'ride': selectedRide},
     );
   }
 
@@ -645,7 +656,11 @@ class DetailReservationController extends GetxController {
             inv.priceSubtotal.isNotEmpty ? inv.priceSubtotal : ''),
         if (inv.serviceFee.isNotEmpty) ...[
           pw.SizedBox(height: 6),
-          row('Frais de service MINIZON (5%)', inv.serviceFee),
+          row(
+            'Frais de service MINIZON '
+            '(${ReservationPricing.defaultServiceFeePercent}%)',
+            inv.serviceFee,
+          ),
         ],
         divider(),
 

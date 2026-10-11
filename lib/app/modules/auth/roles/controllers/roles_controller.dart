@@ -18,6 +18,7 @@ class RolesController extends GetxController {
   String _storedPhone = '';
   String? _registerToken;
   String _authPhone = '';
+  bool _returnToPhoneOnBack = false;
 
   bool get hasSelection => selectedRole.value != null;
 
@@ -30,6 +31,7 @@ class RolesController extends GetxController {
       _storedPhone = args['phone'] as String? ?? '';
       _registerToken = args['registerToken'] as String?;
       _authPhone = args['phone'] as String? ?? '';
+      _returnToPhoneOnBack = args['returnToPhone'] == true;
     }
     if (_storedPhone.isEmpty && Get.isRegistered<InputPhoneController>()) {
       _storedPhone = Get.find<InputPhoneController>().phoneController.text.trim();
@@ -40,6 +42,14 @@ class RolesController extends GetxController {
     if (selectedRole.value == role) return;
     selectedRole.value = role;
     update();
+  }
+
+  void goBack() {
+    if (_returnToPhoneOnBack) {
+      Get.until((route) => route.settings.name == AppRoutes.register);
+      return;
+    }
+    Get.back();
   }
 
   void continueAction() {
@@ -53,7 +63,7 @@ class RolesController extends GetxController {
 
       if (_registerToken != null) {
         // Nouveau compte : transmettre le register_token et le numéro à l'écran de profil
-        Get.offAllNamed(
+        Get.toNamed(
           isDriver
               ? AppRoutes.completeProfileDriver
               : AppRoutes.completeProfilePassenger,
@@ -67,7 +77,7 @@ class RolesController extends GetxController {
         final roleString = isDriver ? 'driver' : 'passenger';
         UserController.instance.setRole(roleString);
         Get.find<AuthService>().setUserRole(roleString);
-        Get.offAllNamed(
+        Get.toNamed(
           isDriver
               ? AppRoutes.completeProfileDriver
               : AppRoutes.completeProfilePassenger,

@@ -11,6 +11,7 @@ import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/p
 import 'package:covoiturage_benin_app/app/core/services/routing/geocoding_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/routing/routing_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
+import 'package:covoiturage_benin_app/app/core/utils/reservation_pricing.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/benin_location_helpers.dart';
@@ -135,13 +136,11 @@ class ConfirmationReservationController extends GetxController {
   int get estimatedPricePerSeat => _pricePerSeat.value;
 
   int get estimatedProratedPricePerSeat {
-    final perSeat = _pricePerSeat.value;
-    if (perSeat == 0) return 0;
-    final pDist = passengerDistanceKm.value;
-    final tDist = _tripDistanceKm.value;
-    if (pDist <= 0 || tDist <= 0) return perSeat;
-    final ratio = (pDist / tDist).clamp(0.0, 1.0);
-    return (ratio * perSeat).round().clamp(1, perSeat);
+    return ReservationPricing.proratedPricePerSeat(
+      fullTripPricePerSeat: _pricePerSeat.value,
+      passengerDistanceKm: passengerDistanceKm.value,
+      tripDistanceKm: _tripDistanceKm.value,
+    );
   }
 
   bool get isPriceProrated =>
@@ -707,10 +706,16 @@ class ConfirmationReservationController extends GetxController {
     final backendMissingTripDist = booking.tripDistanceKm <= 0;
     final frontendHasBothDists = _tripDistanceKm.value > 0 && passengerDistanceKm.value > 0;
     if (backendMissingTripDist && frontendHasBothDists && _pricePerSeat.value > 0) {
-      final ratio = (passengerDistanceKm.value / _tripDistanceKm.value).clamp(0.0, 1.0);
-      final prorated = (ratio * _pricePerSeat.value).round().clamp(1, _pricePerSeat.value);
-      final base = prorated * reservedSeats.value;
-      _confirmedPrice = base + (base * commissionRate.value / 100).round();
+      final prorated = ReservationPricing.proratedPricePerSeat(
+        fullTripPricePerSeat: _pricePerSeat.value,
+        passengerDistanceKm: passengerDistanceKm.value,
+        tripDistanceKm: _tripDistanceKm.value,
+      );
+      _confirmedPrice = ReservationPricing.total(
+        pricePerSeat: prorated,
+        seats: reservedSeats.value,
+        serviceFeePercent: commissionRate.value,
+      );
     } else if (booking.priceTotal > 0) {
       _confirmedPrice = booking.priceTotal;
     } else if (booking.calculatedPrice > 0) {
@@ -720,12 +725,18 @@ class ConfirmationReservationController extends GetxController {
       if (backendTotal > 0) {
         _confirmedPrice = backendTotal;
       } else {
-        final subtotal = booking.calculatedPrice * reservedSeats.value;
-        _confirmedPrice = subtotal + (subtotal * commissionRate.value / 100).round();
+        _confirmedPrice = ReservationPricing.total(
+          pricePerSeat: booking.calculatedPrice,
+          seats: reservedSeats.value,
+          serviceFeePercent: commissionRate.value,
+        );
       }
     } else if (_pricePerSeat.value > 0) {
-      final subtotal = _pricePerSeat.value * reservedSeats.value;
-      _confirmedPrice = subtotal + (subtotal * commissionRate.value / 100).round();
+      _confirmedPrice = ReservationPricing.total(
+        pricePerSeat: _pricePerSeat.value,
+        seats: reservedSeats.value,
+        serviceFeePercent: commissionRate.value,
+      );
     }
 
     logger.d('_showPriceSheet: calculatedPrice=${booking.calculatedPrice} '
@@ -737,6 +748,7 @@ class ConfirmationReservationController extends GetxController {
     Get.bottomSheet(
       _PriceConfirmSheet(
         booking: booking,
+        bookingMode: _bookingMode,
         seats: reservedSeats.value,
         confirmedTotal: _confirmedPrice,
         onConfirm: _proceedToNextStep,
@@ -827,8 +839,11 @@ class ConfirmationReservationController extends GetxController {
     if (_confirmedPrice > 0) return _confirmedPrice;
     final perSeat = estimatedProratedPricePerSeat;
     if (perSeat > 0) {
-      final base = perSeat * reservedSeats.value;
-      return base + (base * commissionRate.value / 100).round();
+      return ReservationPricing.total(
+        pricePerSeat: perSeat,
+        seats: reservedSeats.value,
+        serviceFeePercent: commissionRate.value,
+      );
     }
     if (_argsTotalAmount > 0) return _argsTotalAmount;
     final price = ride.value?.price ?? '';
@@ -836,8 +851,11 @@ class ConfirmationReservationController extends GetxController {
       final digits = price.replaceAll(RegExp(r'[^0-9]'), '');
       final unit = int.tryParse(digits) ?? 0;
       if (unit > 0) {
-        final base = unit * reservedSeats.value;
-        return base + (base * commissionRate.value / 100).round();
+        return ReservationPricing.total(
+          pricePerSeat: unit,
+          seats: reservedSeats.value,
+          serviceFeePercent: commissionRate.value,
+        );
       }
     }
     return 0;
@@ -932,6 +950,7 @@ class ConfirmationReservationController extends GetxController {
 class _PriceConfirmSheet extends StatelessWidget {
   const _PriceConfirmSheet({
     required this.booking,
+    required this.bookingMode,
     required this.seats,
     required this.confirmedTotal,
     required this.onConfirm,
@@ -945,6 +964,7 @@ class _PriceConfirmSheet extends StatelessWidget {
   });
 
   final CreateBookingResult booking;
+  final String bookingMode;
   final int seats;
   final int confirmedTotal;
   final VoidCallback onConfirm;
@@ -955,10 +975,6 @@ class _PriceConfirmSheet extends StatelessWidget {
   final String dropoffCity;
   final String dropoffNeighborhood;
   final String dropoffAddress;
-
-  String _fmt(int v) => v
-      .toString()
-      .replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ' ');
 
   @override
   Widget build(BuildContext context) {
@@ -1006,6 +1022,28 @@ class _PriceConfirmSheet extends StatelessWidget {
                 ? 'Calculé sur ${booking.formattedPassengerDistance} de trajet'
                 : 'Basé sur le tarif du conducteur',
             style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: bookingMode == 'instant'
+                  ? AppColors.successSurface
+                  : AppColors.warningSurface,
+              borderRadius: BorderRadius.circular(9999),
+            ),
+            child: Text(
+              bookingMode == 'instant'
+                  ? 'Réservation instantanée · confirmation immédiate'
+                  : 'Réponse du conducteur requise',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: bookingMode == 'instant'
+                    ? AppColors.successDark
+                    : AppColors.badgeSilver,
+              ),
+            ),
           ),
           // ── Prise et dépôt ───────────────────────────────────────────────
           if (pickupCity.isNotEmpty || dropoffCity.isNotEmpty) ...[
@@ -1157,7 +1195,9 @@ class _PriceConfirmSheet extends StatelessWidget {
             child: Column(
               children: [
                 Text(
-                  confirmedTotal > 0 ? '${_fmt(confirmedTotal)} FCFA' : '-- FCFA',
+                  confirmedTotal > 0
+                      ? ReservationPricing.formatCfa(confirmedTotal)
+                      : '-- FCFA',
                   style: const TextStyle(
                     fontSize: 30,
                     fontWeight: FontWeight.w900,
@@ -1167,7 +1207,8 @@ class _PriceConfirmSheet extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   seats > 1 && booking.calculatedPrice > 0
-                      ? '${_fmt(booking.calculatedPrice)} FCFA × $seats places + frais'
+                      ? '${ReservationPricing.formatCfa(booking.calculatedPrice)} × '
+                          '$seats places + frais'
                       : 'pour 1 place (frais inclus)',
                   style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                 ),
@@ -1197,23 +1238,28 @@ class _PriceConfirmSheet extends StatelessWidget {
                   _DetailRow(
                     icon: Icons.confirmation_number_outlined,
                     label: 'Prix / place',
-                    value: '${_fmt(booking.calculatedPrice)} FCFA',
+                    value: ReservationPricing.formatCfa(booking.calculatedPrice),
                   ),
                   if (seats > 1) ...[
                     const SizedBox(height: 8),
                     _DetailRow(
                       icon: Icons.group_outlined,
                       label: '× $seats places',
-                      value: '${_fmt(booking.priceSubtotal > 0 ? booking.priceSubtotal : booking.calculatedPrice * seats)} FCFA',
+                      value: ReservationPricing.formatCfa(
+                        booking.priceSubtotal > 0
+                            ? booking.priceSubtotal
+                            : booking.calculatedPrice * seats,
+                      ),
                     ),
                   ],
                   const SizedBox(height: 8),
                 ],
                 _DetailRow(
                   icon: Icons.receipt_outlined,
-                  label: 'Frais de service (5%)',
+                  label:
+                      'Frais de service (${ReservationPricing.defaultServiceFeePercent}%)',
                   value: booking.serviceFee > 0
-                      ? '${_fmt(booking.serviceFee)} FCFA'
+                      ? ReservationPricing.formatCfa(booking.serviceFee)
                       : '—',
                 ),
                 const Padding(
@@ -1230,7 +1276,7 @@ class _PriceConfirmSheet extends StatelessWidget {
                             color: AppColors.textPrimary)),
                     Text(
                       confirmedTotal > 0
-                          ? '${_fmt(confirmedTotal)} FCFA'
+                          ? ReservationPricing.formatCfa(confirmedTotal)
                           : '—',
                       style: const TextStyle(
                           fontSize: 15,

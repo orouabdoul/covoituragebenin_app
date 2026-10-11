@@ -85,6 +85,7 @@ class CompleteProfileController extends GetxController {
       'skipAuth': true,
       'registerToken': _registerToken,
       'phone': _authPhone,
+      'returnToPhone': true,
     });
   }
 

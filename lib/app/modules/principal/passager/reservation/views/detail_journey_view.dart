@@ -5,10 +5,11 @@ import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
+import 'package:covoiturage_benin_app/app/core/utils/reservation_pricing.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
+import 'package:covoiturage_benin_app/app/modules/widgets/reservation_section_card.dart';
 
 import '../../search/controllers/search_controller.dart';
-import '../bindings/detail_reservation_binding.dart';
 import '../controllers/detail_reservation_controller.dart';
 import '../controllers/reservation_controller.dart';
 
@@ -17,9 +18,6 @@ class DetailJourneyView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!Get.isRegistered<DetailReservationController>()) {
-      DetailReservationBinding().dependencies();
-    }
     final DetailReservationController controller =
         Get.find<DetailReservationController>();
     final responsive = AppResponsive(context);
@@ -219,34 +217,6 @@ class _CircleIconButton extends StatelessWidget {
 }
 
 // ── Section Card ──────────────────────────────────────────────────────────
-
-class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.responsive, required this.child});
-
-  final AppResponsive responsive;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(responsive.adaptive(
-          phone: 20, smallPhone: 18, tablet: 20, desktop: 20)),
-      decoration: ShapeDecoration(
-        color: Colors.white,
-        shape: RoundedRectangleBorder(
-          side: const BorderSide(color: Colors.transparent),
-          borderRadius: BorderRadius.circular(responsive.radius(24)),
-        ),
-        shadows: const [
-          BoxShadow(
-              color: AppColors.shadowSoft, blurRadius: 2, offset: Offset(0, 1)),
-        ],
-      ),
-      child: child,
-    );
-  }
-}
 
 // ── Booking Status Card ────────────────────────────────────────────────────
 
@@ -488,7 +458,7 @@ class _DriverCard extends StatelessWidget {
     final String vehiclePlate = ride?.vehiclePlate ?? '';
     final String reviewCount = ride?.reviewCount ?? '0';
 
-    return _SectionCard(
+    return ReservationSectionCard(
       responsive: responsive,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -693,7 +663,7 @@ class _VehicleCard extends StatelessWidget {
     final String vehicle = ride?.vehicle ?? '—';
     final String vehiclePlate = ride?.vehiclePlate ?? '';
 
-    return _SectionCard(
+    return ReservationSectionCard(
       responsive: responsive,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -773,7 +743,7 @@ class _PassengerRouteCard extends StatelessWidget {
         reservation.displayPickupCity.toLowerCase() !=
             reservation.tripOrigin.toLowerCase();
 
-    return _SectionCard(
+    return ReservationSectionCard(
       responsive: responsive,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -953,7 +923,7 @@ class _ItineraryCard extends StatelessWidget {
         (ride?.waypointCity?.isNotEmpty ?? false) ? ride!.waypointCity : null;
     final String? waypointNote = ride?.waypointNote;
 
-    return _SectionCard(
+    return ReservationSectionCard(
       responsive: responsive,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1150,7 +1120,7 @@ class _ConditionsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _SectionCard(
+    return ReservationSectionCard(
       responsive: responsive,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1241,13 +1211,6 @@ class _PriceCard extends StatelessWidget {
   final AppResponsive responsive;
   final DetailReservationController controller;
 
-  String _fmt(int value) {
-    final text = value
-        .toString()
-        .replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ' ');
-    return '$text FCFA';
-  }
-
   @override
   Widget build(BuildContext context) {
     return Obx(() {
@@ -1267,14 +1230,14 @@ class _PriceCard extends StatelessWidget {
           subtotal = bd.subtotal;
           serviceFee = bd.serviceFee;
           total = bd.total;
-          isProrated = seatsCount > 1;
+          isProrated = _hasDistanceProration(r);
           hasBreakdown = true;
         } else if (r.totalPriceValue > 0) {
           unitPrice = r.totalPriceValue;
           subtotal = unitPrice * seatsCount;
-          serviceFee = (subtotal * 0.05).round();
+          serviceFee = ReservationPricing.serviceFee(subtotal);
           total = subtotal + serviceFee;
-          isProrated = seatsCount > 1;
+          isProrated = _hasDistanceProration(r);
           hasBreakdown = true;
         } else {
           unitPrice = 0;
@@ -1287,12 +1250,12 @@ class _PriceCard extends StatelessWidget {
         seatsCount = 1;
         unitPrice = ride?.priceValue ?? 0;
         subtotal = unitPrice;
-        serviceFee = (unitPrice * 0.05).round();
+        serviceFee = ReservationPricing.serviceFee(unitPrice);
         total = subtotal + serviceFee;
         hasBreakdown = unitPrice > 0;
       }
 
-      return _SectionCard(
+      return ReservationSectionCard(
         responsive: responsive,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1332,7 +1295,7 @@ class _PriceCard extends StatelessWidget {
               _PriceLineRow(
                   responsive: responsive,
                   left: 'Prix par place',
-                  right: _fmt(unitPrice)),
+                  right: ReservationPricing.formatCfa(unitPrice)),
               SizedBox(height: responsive.h(8)),
               _PriceLineRow(
                   responsive: responsive,
@@ -1343,7 +1306,7 @@ class _PriceCard extends StatelessWidget {
                 _PriceLineRow(
                     responsive: responsive,
                     left: 'Sous-total',
-                    right: _fmt(subtotal)),
+                    right: ReservationPricing.formatCfa(subtotal)),
                 SizedBox(height: responsive.h(8)),
               ],
               Container(
@@ -1360,7 +1323,9 @@ class _PriceCard extends StatelessWidget {
                   SizedBox(width: responsive.w(8)),
                   Expanded(
                       child: Text(
-                    'Frais de service MINIZON (5%) : ${_fmt(serviceFee)}',
+                    'Frais de service MINIZON '
+                    '(${ReservationPricing.defaultServiceFeePercent}%) : '
+                    '${ReservationPricing.formatCfa(serviceFee)}',
                     style: AppTextStyles.caption(responsive)
                         .copyWith(color: AppColors.badgeSilver),
                   )),
@@ -1398,7 +1363,7 @@ class _PriceCard extends StatelessWidget {
                       ]),
                   Text(
                     hasBreakdown
-                        ? _fmt(total)
+                        ? ReservationPricing.formatCfa(total)
                         : (r?.totalPrice ?? ride?.price ?? '—'),
                     style: AppTextStyles.price(responsive),
                   ),
@@ -1409,6 +1374,14 @@ class _PriceCard extends StatelessWidget {
         ),
       );
     });
+  }
+
+  bool _hasDistanceProration(ReservationItem reservation) {
+    final passengerDistance = reservation.passengerDistanceKm;
+    return passengerDistance != null &&
+        passengerDistance > 0 &&
+        reservation.tripDistanceKm > 0 &&
+        passengerDistance < reservation.tripDistanceKm;
   }
 }
 
@@ -1447,7 +1420,7 @@ class _ReviewsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _SectionCard(
+    return ReservationSectionCard(
       responsive: responsive,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
