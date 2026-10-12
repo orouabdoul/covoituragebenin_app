@@ -87,6 +87,12 @@ class DetailJourneyView extends StatelessWidget {
                     _ItineraryCard(responsive: responsive, ride: controller.ride.value)),
                 SizedBox(height: responsive.h(16)),
 
+                Obx(() => _BookingModeCard(
+                      responsive: responsive,
+                      instant: controller.ride.value?.bookingMode != 'approval',
+                    )),
+                SizedBox(height: responsive.h(16)),
+
                 // ── Conditions ────────────────────────────────────────────
                 _ConditionsCard(responsive: responsive),
                 SizedBox(height: responsive.h(16)),
@@ -111,7 +117,9 @@ class DetailJourneyView extends StatelessWidget {
                     children: [
                       AppPrimaryButton(
                         responsive: responsive,
-                        label: AppStrings.searchReserve,
+                        label: controller.ride.value?.bookingMode == 'approval'
+                            ? 'Demander une place'
+                            : 'Réserver instantanément',
                         onTap: controller.bookNow,
                         backgroundColor: AppColors.primary,
                         textColor: AppColors.white,
@@ -134,6 +142,62 @@ class DetailJourneyView extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _BookingModeCard extends StatelessWidget {
+  const _BookingModeCard({required this.responsive, required this.instant});
+
+  final AppResponsive responsive;
+  final bool instant;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = instant ? AppColors.success : AppColors.warning;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(responsive.w(14)),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(responsive.radius(14)),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            instant ? Icons.bolt_rounded : Icons.schedule_rounded,
+            color: color,
+            size: responsive.text(22),
+          ),
+          SizedBox(width: responsive.w(10)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  instant ? 'Réservation instantanée' : 'Validation par le conducteur',
+                  style: AppTextStyles.bodyMedium(responsive).copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                SizedBox(height: responsive.h(3)),
+                Text(
+                  instant
+                      ? 'Votre place est bloquée dès la confirmation. Le paiement se fait ensuite en toute sécurité.'
+                      : 'Le conducteur reçoit votre demande et vous êtes averti dès sa réponse.',
+                  style: AppTextStyles.bodySmall(responsive).copyWith(
+                    color: AppColors.textSecondary,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

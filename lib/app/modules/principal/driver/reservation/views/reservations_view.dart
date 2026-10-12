@@ -272,6 +272,7 @@ class _ReservationCard extends StatelessWidget {
 
     return Obx(() {
       final urgency = request.urgency;
+      final isProcessing = controller.isProcessing(request.id);
       final borderColor = isPending ? request.borderColor : AppColors.border;
 
       return GestureDetector(
@@ -393,9 +394,7 @@ class _ReservationCard extends StatelessWidget {
                           icon: request.paymentConfirmed
                               ? Icons.verified_rounded
                               : Icons.hourglass_top_rounded,
-                          label: request.paymentConfirmed
-                              ? request.amountLabel
-                              : 'Paiement en attente',
+                          label: request.amountLabel,
                           iconColor: request.paymentConfirmed
                               ? AppColors.success
                               : AppColors.warning,
@@ -415,11 +414,13 @@ class _ReservationCard extends StatelessWidget {
                         Expanded(
                           child: _ActionBtn(
                             r: r,
-                            label: 'Refuser',
+                            label: isProcessing ? 'Traitement…' : 'Refuser',
                             bgColor: AppColors.dangerSurface,
                             textColor: AppColors.danger,
                             borderColor: AppColors.dangerBorder,
-                            onTap: () => controller.onReject(request),
+                            onTap: isProcessing
+                                ? null
+                                : () => controller.onReject(request),
                           ),
                         ),
                         SizedBox(width: r.w(8)),
@@ -434,11 +435,13 @@ class _ReservationCard extends StatelessWidget {
                         Expanded(
                           child: _ActionBtn(
                             r: r,
-                            label: 'Accepter ✓',
+                            label: isProcessing ? 'Traitement…' : 'Accepter ✓',
                             bgColor: AppColors.primary,
                             textColor: Colors.white,
                             borderColor: AppColors.primary,
-                            onTap: () => controller.onAccept(request),
+                            onTap: isProcessing
+                                ? null
+                                : () => controller.onAccept(request),
                           ),
                         ),
                       ],
@@ -765,7 +768,7 @@ class _ActionBtn extends StatelessWidget {
   final Color bgColor;
   final Color textColor;
   final Color borderColor;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {

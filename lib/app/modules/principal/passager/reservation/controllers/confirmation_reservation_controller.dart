@@ -125,7 +125,8 @@ class ConfirmationReservationController extends GetxController {
   final RxInt _pricePerSeat = 0.obs;
   int _argsTotalAmount = 0;
   int _confirmedPrice = 0;
-  String _bookingMode = 'approval';
+  String _bookingMode = 'instant';
+  String get bookingMode => _bookingMode;
 
   // ── Distance / prorata ────────────────────────────────────────────────────
   final RoutingService _routing = RoutingService();
@@ -186,6 +187,7 @@ class ConfirmationReservationController extends GetxController {
       if (selectedRide is SearchRide) {
         ride.value = selectedRide;
         _buildCityLists(selectedRide);
+        _prefillStops(selectedRide);
         _tripDistanceKm.value = selectedRide.distanceKm;
         unawaited(_fetchTripDistanceOsrm(selectedRide));
         if (selectedRide.uuid.isNotEmpty) _fetchContext(selectedRide.uuid);
@@ -194,6 +196,7 @@ class ConfirmationReservationController extends GetxController {
           reservedSeats.value = available;
         }
       }
+
       final dynamic seats = savedArgs['seats'];
       if (seats is int) {
         final available = ride.value?.seatsAvailable ?? 0;
@@ -214,6 +217,59 @@ class ConfirmationReservationController extends GetxController {
   }
 
   // ── Listes de villes ordonnées selon le trajet ────────────────────────────
+
+  void _prefillStops(SearchRide selectedRide) {
+    pickupSelectedCity.value =
+        BeninLocationHelpers.normalizeCommune(selectedRide.origin);
+    pickupCityController.text =
+        pickupSelectedCity.value ?? selectedRide.origin;
+    pickupSelectedArrondissement.value =
+        selectedRide.departureArrondissement.isNotEmpty
+            ? selectedRide.departureArrondissement
+            : null;
+    pickupArrondissementController.text = selectedRide.departureArrondissement;
+    pickupSelectedNeighborhood.value =
+        selectedRide.departureNeighborhood.isNotEmpty
+            ? selectedRide.departureNeighborhood
+            : null;
+    pickupNeighborhoodController.text =
+        selectedRide.departureNeighborhood.isNotEmpty
+            ? selectedRide.departureNeighborhood
+            : pickupCityController.text;
+    pickupController.text = selectedRide.departureNote.isNotEmpty
+        ? selectedRide.departureNote
+        : pickupNeighborhoodController.text;
+
+    dropoffSelectedCity.value =
+        BeninLocationHelpers.normalizeCommune(selectedRide.destination);
+    dropoffCityController.text =
+        dropoffSelectedCity.value ?? selectedRide.destination;
+    dropoffSelectedArrondissement.value =
+        selectedRide.arrivalArrondissement.isNotEmpty
+            ? selectedRide.arrivalArrondissement
+            : null;
+    dropoffArrondissementController.text = selectedRide.arrivalArrondissement;
+    dropoffSelectedNeighborhood.value =
+        selectedRide.arrivalNeighborhood.isNotEmpty
+            ? selectedRide.arrivalNeighborhood
+            : null;
+    dropoffNeighborhoodController.text =
+        selectedRide.arrivalNeighborhood.isNotEmpty
+            ? selectedRide.arrivalNeighborhood
+            : dropoffCityController.text;
+    dropoffController.text = selectedRide.arrivalNote.isNotEmpty
+        ? selectedRide.arrivalNote
+        : dropoffNeighborhoodController.text;
+
+    final pickupCoords =
+        BeninLocationHelpers.getCityCoords(pickupCityController.text);
+    pickupLat.value = pickupCoords?.lat;
+    pickupLng.value = pickupCoords?.lng;
+    final dropoffCoords =
+        BeninLocationHelpers.getCityCoords(dropoffCityController.text);
+    dropoffLat.value = dropoffCoords?.lat;
+    dropoffLng.value = dropoffCoords?.lng;
+  }
 
   void _buildCityLists(SearchRide r) {
     final tripCities = <String>[

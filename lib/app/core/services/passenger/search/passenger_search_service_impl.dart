@@ -9,6 +9,7 @@ import 'package:covoiturage_benin_app/app/data/benin_location_helpers.dart';
 
 import 'package:covoiturage_benin_app/app/modules/principal/passager/search/controllers/search_controller.dart';
 import 'package:dio/dio.dart';
+
 import 'passenger_search_service.dart';
 
 class PassengerSearchServiceImpl implements PassengerSearchService {
@@ -39,7 +40,9 @@ class PassengerSearchServiceImpl implements PassengerSearchService {
       logger.d('passengerSearch [$origin→$destination] [$statusCode]');
 
       if (statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
-      if (statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
+      if (statusCode == 403) {
+        return ApiResult.failure(AppError.permissionDenied);
+      }
 
       if (statusCode == 200) {
         final data = res.data;
@@ -49,8 +52,10 @@ class PassengerSearchServiceImpl implements PassengerSearchService {
         if (data is Map && data['success'] == true) {
           final body = data['body'];
           if (body is Map) {
-            rawList = (body['rides'] ?? body['data'] ?? body['trips']) as List<dynamic>?
-                ?? const [];
+            rawList =
+                (body['rides'] ?? body['data'] ?? body['trips'])
+                    as List<dynamic>? ??
+                const [];
           } else if (body is List) {
             rawList = body;
           }
@@ -90,20 +95,30 @@ class PassengerSearchServiceImpl implements PassengerSearchService {
     final rawPrice = j['price'] ?? j['price_per_seat'];
     final priceStr = rawPrice is String
         ? rawPrice
-        : rawPrice != null ? '${(rawPrice as num).toInt()} FCFA' : '0 FCFA';
+        : rawPrice != null
+        ? '${(rawPrice as num).toInt()} FCFA'
+        : '0 FCFA';
     final priceValue = rawPrice is int
         ? rawPrice
         : rawPrice is double
-            ? rawPrice.toInt()
-            : int.tryParse(priceStr.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+        ? rawPrice.toInt()
+        : int.tryParse(priceStr.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
 
     // rating peut être String ou num
     final rawRating = j['rating'] ?? j['driver_rating'];
-    final rating = rawRating is String ? rawRating : (rawRating?.toString() ?? '0.0');
+    final rating = rawRating is String
+        ? rawRating
+        : (rawRating?.toString() ?? '0.0');
 
     // origin / destination : clé directe ou departure_city / arrival_city
-    final origin = (j['origin'] ?? j['departure_city'] ?? j['departure'] ?? '') as String? ?? '';
-    final destination = (j['destination'] ?? j['arrival_city'] ?? j['arrival'] ?? '') as String? ?? '';
+    final origin =
+        (j['origin'] ?? j['departure_city'] ?? j['departure'] ?? '')
+            as String? ??
+        '';
+    final destination =
+        (j['destination'] ?? j['arrival_city'] ?? j['arrival'] ?? '')
+            as String? ??
+        '';
 
     // seats : available_seats ou seats_available ou seats
     final rawSeats = j['available_seats'] ?? j['seats_available'] ?? j['seats'];
@@ -124,11 +139,14 @@ class PassengerSearchServiceImpl implements PassengerSearchService {
       origin: origin,
       destination: destination,
       departureTime: (j['departure_time'] ?? '') as String? ?? '',
-      departureArrondissement: (j['departure_arrondissement'] ?? '') as String? ?? '',
-      departureNeighborhood: (j['departure_neighborhood'] ?? '') as String? ?? '',
+      departureArrondissement:
+          (j['departure_arrondissement'] ?? '') as String? ?? '',
+      departureNeighborhood:
+          (j['departure_neighborhood'] ?? '') as String? ?? '',
       departureNote: (j['departure_note'] ?? '') as String? ?? '',
       arrivalTime: (j['arrival_time'] ?? '') as String? ?? '',
-      arrivalArrondissement: (j['arrival_arrondissement'] ?? '') as String? ?? '',
+      arrivalArrondissement:
+          (j['arrival_arrondissement'] ?? '') as String? ?? '',
       arrivalNeighborhood: (j['arrival_neighborhood'] ?? '') as String? ?? '',
       arrivalNote: (j['arrival_note'] ?? '') as String? ?? '',
       duration: (j['duration'] ?? '') as String? ?? '',
@@ -141,10 +159,15 @@ class PassengerSearchServiceImpl implements PassengerSearchService {
       waypointCity: j['waypoint_city'] as String?,
       waypointNote: j['waypoint_note'] as String?,
       distanceKm: _resolveDistanceKm(j, origin, destination),
+      bookingMode: (j['booking_mode'] ?? 'instant').toString(),
     );
   }
 
-  double _resolveDistanceKm(Map<String, dynamic> j, String origin, String destination) {
+  double _resolveDistanceKm(
+    Map<String, dynamic> j,
+    String origin,
+    String destination,
+  ) {
     final apiDist = (j['distance_km'] as num?)?.toDouble();
     if (apiDist != null && apiDist > 0) return apiDist;
     final dep = BeninLocationHelpers.getCityCoords(origin);
@@ -155,7 +178,8 @@ class PassengerSearchServiceImpl implements PassengerSearchService {
     final lat2 = dest.lat * (pi / 180);
     final dLat = (dest.lat - dep.lat) * (pi / 180);
     final dLng = (dest.lng - dep.lng) * (pi / 180);
-    final a = sin(dLat / 2) * sin(dLat / 2) +
+    final a =
+        sin(dLat / 2) * sin(dLat / 2) +
         cos(lat1) * cos(lat2) * sin(dLng / 2) * sin(dLng / 2);
     return R * 2 * atan2(sqrt(a), sqrt(1 - a));
   }

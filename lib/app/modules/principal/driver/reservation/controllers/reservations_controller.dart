@@ -14,7 +14,9 @@ import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 // ── Enums ────────────────────────────────────────────────────────────────────
 
 enum ReservationStatus { pending, accepted, rejected, expired }
+
 enum ReservationUrgency { normal, warning, critical }
+
 enum ReservationTab { pending, accepted, rejected }
 
 // ── Model ────────────────────────────────────────────────────────────────────
@@ -32,6 +34,10 @@ class LiveReservationRequest {
     required this.dropoffPoint,
     required this.seats,
     required this.amount,
+    required this.pricePerSeat,
+    required this.subtotal,
+    required this.serviceFee,
+    required this.paymentStatus,
     required this.paymentConfirmed,
     required this.expiresInSeconds,
     required this.departureDate,
@@ -51,6 +57,10 @@ class LiveReservationRequest {
   final String dropoffPoint;
   final int seats;
   final double amount;
+  final double pricePerSeat;
+  final double subtotal;
+  final double serviceFee;
+  final String paymentStatus;
   final bool paymentConfirmed;
   final int expiresInSeconds;
   final String departureDate;
@@ -66,22 +76,28 @@ class LiveReservationRequest {
     final rawName = (json['passenger_name'] as String?)?.trim() ?? '';
     final name = rawName.isNotEmpty ? rawName : 'Passager';
 
-    final origin      = (json['origin']      as String?) ?? '';
+    final origin = (json['origin'] as String?) ?? '';
     final destination = (json['destination'] as String?) ?? '';
 
     final pickupPoint = _resolvePoint(
-      json['pickup_address']      as String?,
+      json['pickup_address'] as String?,
       json['pickup_neighborhood'] as String?,
-      (json['pickup_city']        as String?) ?? origin,
+      (json['pickup_city'] as String?) ?? origin,
     );
     final dropoffPoint = _resolvePoint(
-      json['dropoff_address']      as String?,
+      json['dropoff_address'] as String?,
       json['dropoff_neighborhood'] as String?,
-      (json['dropoff_city']        as String?) ?? destination,
+      (json['dropoff_city'] as String?) ?? destination,
     );
 
-    final seats           = (json['seats_booked']    as num?)?.toInt()    ?? 1;
-    final calculatedPrice = (json['calculated_price'] as num?)?.toDouble() ?? 0.0;
+    final seats = (json['seats_booked'] as num?)?.toInt() ?? 1;
+    final pricePerSeat =
+        (json['calculated_price'] as num?)?.toDouble() ?? 0.0;
+    final subtotal = (json['price_subtotal'] as num?)?.toDouble() ??
+        pricePerSeat * seats;
+    final serviceFee = (json['service_fee'] as num?)?.toDouble() ?? 0.0;
+    final calculatedPrice =
+        (json['total_price'] as num?)?.toDouble() ?? subtotal + serviceFee;
 
     // 15-minute window from creation time
     const windowSec = 15 * 60;
@@ -97,30 +113,37 @@ class LiveReservationRequest {
     }
 
     final rawPaymentStatus = json['payment_status']?.toString() ?? '';
-    final paymentConfirmed = (json['is_paid'] as bool? ?? false) ||
+    final paymentConfirmed =
+        (json['is_paid'] as bool? ?? false) ||
         rawPaymentStatus == 'escrow_locked' ||
         rawPaymentStatus == 'released_to_driver';
 
     return LiveReservationRequest(
-      id:               json['uuid'] as String? ?? json['id'].toString(),
-      passengerName:    name,
+      id: json['uuid'] as String? ?? json['id'].toString(),
+      passengerName: name,
       passengerInitial: name[0].toUpperCase(),
-      rating:           (json['passenger_rating']      as num?)?.toDouble() ?? 0.0,
-      tripsCount:       (json['passenger_trips_count'] as num?)?.toInt()    ?? 0,
-      isVerified:       json['passenger_is_verified']  as bool?             ?? false,
-      routeLabel:       '$origin → $destination',
-      pickupPoint:      pickupPoint,
-      dropoffPoint:     dropoffPoint,
-      seats:            seats,
-      amount:           calculatedPrice,
+      rating: (json['passenger_rating'] as num?)?.toDouble() ?? 0.0,
+      tripsCount: (json['passenger_trips_count'] as num?)?.toInt() ?? 0,
+      isVerified: json['passenger_is_verified'] as bool? ?? false,
+      routeLabel: '$origin → $destination',
+      pickupPoint: pickupPoint,
+      dropoffPoint: dropoffPoint,
+      seats: seats,
+      amount: calculatedPrice,
+      pricePerSeat: pricePerSeat,
+      subtotal: subtotal,
+      serviceFee: serviceFee,
+      paymentStatus: rawPaymentStatus,
       paymentConfirmed: paymentConfirmed,
       expiresInSeconds: expiresIn,
-      departureDate:    _formatDate(
-                          json['departure_time'] as String? ??
-                          json['departure_date'] as String? ??
-                          json['created_at']     as String? ?? ''),
-      status:           _parseStatus(json['status'] as String? ?? 'pending'),
-      phone:            json['passenger_phone'] as String?,
+      departureDate: _formatDate(
+        json['departure_time'] as String? ??
+            json['departure_date'] as String? ??
+            json['created_at'] as String? ??
+            '',
+      ),
+      status: _parseStatus(json['status'] as String? ?? 'pending'),
+      phone: json['passenger_phone'] as String?,
       conversationUuid: json['conversation_uuid'] as String?,
     );
   }
@@ -130,8 +153,20 @@ class LiveReservationRequest {
     try {
       final dt = DateTime.parse(raw).toLocal();
       const jours = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
-      const mois  = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin',
-                     'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+      const mois = [
+        'Jan',
+        'Fév',
+        'Mar',
+        'Avr',
+        'Mai',
+        'Juin',
+        'Juil',
+        'Août',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Déc',
+      ];
       final h = dt.hour.toString().padLeft(2, '0');
       final m = dt.minute.toString().padLeft(2, '0');
       return '${jours[dt.weekday - 1]}. ${dt.day} ${mois[dt.month - 1]} · $h:$m';
@@ -140,18 +175,24 @@ class LiveReservationRequest {
     }
   }
 
-  static String _resolvePoint(String? point, String? neighborhood, String city) {
+  static String _resolvePoint(
+    String? point,
+    String? neighborhood,
+    String city,
+  ) {
     if (point != null && point.isNotEmpty) return point;
-    if (neighborhood != null && neighborhood.isNotEmpty) return '$neighborhood, $city';
+    if (neighborhood != null && neighborhood.isNotEmpty) {
+      return '$neighborhood, $city';
+    }
     return city;
   }
 
   static ReservationStatus _parseStatus(String s) => switch (s) {
-        'accepted'  => ReservationStatus.accepted,
-        'rejected'  => ReservationStatus.rejected,
-        'cancelled' => ReservationStatus.rejected,
-        _           => ReservationStatus.pending,
-      };
+    'accepted' => ReservationStatus.accepted,
+    'rejected' => ReservationStatus.rejected,
+    'cancelled' => ReservationStatus.rejected,
+    _ => ReservationStatus.pending,
+  };
 
   // ── Computed ──────────────────────────────────────────────────────────────
 
@@ -159,6 +200,15 @@ class LiveReservationRequest {
       '${amount.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]} ')} FCFA';
 
   String get seatsLabel => seats == 1 ? '1 place' : '$seats places';
+
+  String get paymentLabel {
+    if (paymentConfirmed) return 'Paiement sécurisé';
+    if (paymentStatus == 'refunded') return 'Paiement remboursé';
+    return 'Paiement en attente';
+  }
+
+  String formatAmount(double value) =>
+      '${value.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]} ')} FCFA';
 
   Color get urgencyColor {
     final secs = remainingSeconds.value;
@@ -184,10 +234,10 @@ class LiveReservationRequest {
   }
 
   Color get borderColor => switch (urgency) {
-        ReservationUrgency.critical => AppColors.danger,
-        ReservationUrgency.warning  => AppColors.warning,
-        ReservationUrgency.normal   => AppColors.border,
-      };
+    ReservationUrgency.critical => AppColors.danger,
+    ReservationUrgency.warning => AppColors.warning,
+    ReservationUrgency.normal => AppColors.border,
+  };
 
   void startTimer(VoidCallback onExpire) {
     _timer?.cancel();
@@ -212,14 +262,19 @@ class ReservationsController extends GetxController {
   final Rx<ReservationTab> selectedTab = ReservationTab.pending.obs;
   final RxBool isLoading = false.obs;
 
-  final RxList<LiveReservationRequest> pendingRequests  = <LiveReservationRequest>[].obs;
-  final RxList<LiveReservationRequest> acceptedRequests = <LiveReservationRequest>[].obs;
-  final RxList<LiveReservationRequest> rejectedRequests = <LiveReservationRequest>[].obs;
+  final RxList<LiveReservationRequest> pendingRequests =
+      <LiveReservationRequest>[].obs;
+  final RxList<LiveReservationRequest> acceptedRequests =
+      <LiveReservationRequest>[].obs;
+  final RxList<LiveReservationRequest> rejectedRequests =
+      <LiveReservationRequest>[].obs;
 
   // Prevents double-tap on accept/reject during an in-flight API call
   final _processingIds = <String>{};
 
-  int get pendingCount  => pendingRequests.length;
+  bool isProcessing(String id) => _processingIds.contains(id);
+
+  int get pendingCount => pendingRequests.length;
   int get acceptedCount => acceptedRequests.length;
   int get rejectedCount => rejectedRequests.length;
 
@@ -243,7 +298,7 @@ class ReservationsController extends GetxController {
       return;
     }
 
-    final pending  = <LiveReservationRequest>[];
+    final pending = <LiveReservationRequest>[];
     final accepted = <LiveReservationRequest>[];
     final rejected = <LiveReservationRequest>[];
 
@@ -298,7 +353,11 @@ class ReservationsController extends GetxController {
     pendingRequests.remove(r);
     acceptedRequests.insert(0, r);
     AppSync.i.refreshDriverDashboard();
-    UIHelper().showSnackBar('MINIZON', '✅ Réservation de ${r.passengerName} acceptée !', 0);
+    UIHelper().showSnackBar(
+      'MINIZON',
+      '✅ Réservation de ${r.passengerName} acceptée !',
+      0,
+    );
   }
 
   void onReject(LiveReservationRequest r) => _showRejectDialog(r);
@@ -307,24 +366,37 @@ class ReservationsController extends GetxController {
     Get.dialog(
       AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Refuser la demande ?',
-            style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700)),
+        title: const Text(
+          'Refuser la demande ?',
+          style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700),
+        ),
         content: Text(
           'La demande de ${r.passengerName} sera annulée et le passager sera notifié.',
-          style: const TextStyle(fontFamily: 'Inter', color: AppColors.textSecondary),
+          style: const TextStyle(
+            fontFamily: 'Inter',
+            color: AppColors.textSecondary,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: Get.back,
-            child: const Text('Annuler', style: TextStyle(color: AppColors.textSecondary)),
+            child: const Text(
+              'Annuler',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           ),
           TextButton(
             onPressed: () {
               Get.back();
               _confirmReject(r);
             },
-            child: const Text('Refuser',
-                style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.w700)),
+            child: const Text(
+              'Refuser',
+              style: TextStyle(
+                color: AppColors.danger,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ],
       ),
@@ -349,7 +421,11 @@ class ReservationsController extends GetxController {
     pendingRequests.remove(r);
     rejectedRequests.insert(0, r);
     AppSync.i.refreshDriverDashboard();
-    UIHelper().showSnackBar('MINIZON', 'Demande de ${r.passengerName} refusée.', 2);
+    UIHelper().showSnackBar(
+      'MINIZON',
+      'Demande de ${r.passengerName} refusée.',
+      2,
+    );
   }
 
   void onViewPassenger(LiveReservationRequest r) {
@@ -365,134 +441,196 @@ class ReservationsController extends GetxController {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-            Center(
-              child: Container(
-                width: 40, height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.border,
-                  borderRadius: BorderRadius.circular(9999),
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.border,
+                    borderRadius: BorderRadius.circular(9999),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Container(
-              width: 72, height: 72,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Text(r.passengerInitial,
+              const SizedBox(height: 20),
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    r.passengerInitial,
                     style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w700,
                       color: AppColors.primary,
-                    )),
+                    ),
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(r.passengerName,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-                if (r.isVerified) ...[
-                  const SizedBox(width: 6),
-                  const Icon(Icons.verified_rounded, color: AppColors.primary, size: 18),
-                ],
-              ],
-            ),
-            const SizedBox(height: 6),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.star_rounded, color: AppColors.warning, size: 16),
-                const SizedBox(width: 4),
-                Text('${r.rating}  ·  ${r.tripsCount} trajets',
-                    style: const TextStyle(fontSize: 13, color: AppColors.textMuted)),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.transparent),
-              ),
-              child: Column(
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _PassengerInfoRow(label: 'Trajet', value: r.routeLabel),
-                  const SizedBox(height: 8),
-                  _PassengerInfoRow(label: 'Départ', value: r.pickupPoint),
-                  const SizedBox(height: 8),
-                  _PassengerInfoRow(label: 'Arrivée', value: r.dropoffPoint),
-                  const SizedBox(height: 8),
-                  _PassengerInfoRow(label: 'Places', value: r.seatsLabel),
-                  const SizedBox(height: 8),
-                  _PassengerInfoRow(label: 'Montant', value: r.amountLabel),
+                  Text(
+                    r.passengerName,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (r.isVerified) ...[
+                    const SizedBox(width: 6),
+                    const Icon(
+                      Icons.verified_rounded,
+                      color: AppColors.primary,
+                      size: 18,
+                    ),
+                  ],
                 ],
               ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () { Get.back(); onChatPassenger(r); },
-                    child: Container(
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceAccent,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.primary.withValues(alpha: 0.30)),
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.chat_bubble_outline_rounded, color: AppColors.primary, size: 18),
-                          SizedBox(width: 8),
-                          Text('Chatter',
+              const SizedBox(height: 6),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.star_rounded,
+                    color: AppColors.warning,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${r.rating}  ·  ${r.tripsCount} trajets',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.transparent),
+                ),
+                child: Column(
+                  children: [
+                    _PassengerInfoRow(label: 'Trajet', value: r.routeLabel),
+                    const SizedBox(height: 8),
+                    _PassengerInfoRow(label: 'Départ', value: r.pickupPoint),
+                    const SizedBox(height: 8),
+                    _PassengerInfoRow(label: 'Arrivée', value: r.dropoffPoint),
+                    const SizedBox(height: 8),
+                    _PassengerInfoRow(label: 'Places', value: r.seatsLabel),
+                    const SizedBox(height: 8),
+                    _PassengerInfoRow(
+                      label: 'Prix par place',
+                      value: r.formatAmount(r.pricePerSeat),
+                    ),
+                    const SizedBox(height: 8),
+                    _PassengerInfoRow(
+                      label: 'Sous-total',
+                      value: r.formatAmount(r.subtotal),
+                    ),
+                    const SizedBox(height: 8),
+                    _PassengerInfoRow(
+                      label: 'Frais de service',
+                      value: r.formatAmount(r.serviceFee),
+                    ),
+                    const SizedBox(height: 8),
+                    _PassengerInfoRow(label: 'Total', value: r.amountLabel),
+                    const SizedBox(height: 8),
+                    _PassengerInfoRow(
+                      label: 'Paiement',
+                      value: r.paymentLabel,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        Get.back();
+                        onChatPassenger(r);
+                      },
+                      child: Container(
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceAccent,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.30),
+                          ),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.chat_bubble_outline_rounded,
+                              color: AppColors.primary,
+                              size: 18,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'Chatter',
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.primary,
                                 fontSize: 15,
-                              )),
-                        ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () { Get.back(); onCallPassenger(r); },
-                    child: Container(
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.call_rounded, color: Colors.white, size: 18),
-                          SizedBox(width: 8),
-                          Text('Appeler',
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        Get.back();
+                        onCallPassenger(r);
+                      },
+                      child: Container(
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.call_rounded,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'Appeler',
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,
                                 color: Colors.white,
                                 fontSize: 15,
-                              )),
-                        ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ],
-        ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
       isScrollControlled: true,
@@ -521,9 +659,17 @@ class ReservationsController extends GetxController {
       AppRoutes.driverMessageDetail,
       arguments: convUuid != null
           // Thread connu → fetchThread direct, pas de startConversation
-          ? {'uuid': convUuid, 'name': r.passengerName, 'initial': r.passengerInitial}
+          ? {
+              'uuid': convUuid,
+              'name': r.passengerName,
+              'initial': r.passengerInitial,
+            }
           // Thread inconnu → le detail controller appelera startConversation
-          : {'bookingUuid': r.id, 'name': r.passengerName, 'initial': r.passengerInitial},
+          : {
+              'bookingUuid': r.id,
+              'name': r.passengerName,
+              'initial': r.passengerInitial,
+            },
     );
   }
 
@@ -578,7 +724,8 @@ class _ContactSheet extends StatelessWidget {
         children: [
           Center(
             child: Container(
-              width: 40, height: 4,
+              width: 40,
+              height: 4,
               decoration: BoxDecoration(
                 color: AppColors.border,
                 borderRadius: BorderRadius.circular(9999),
@@ -589,17 +736,21 @@ class _ContactSheet extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 52, height: 52,
+                width: 52,
+                height: 52,
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Center(
-                  child: Text(request.passengerInitial,
-                      style: const TextStyle(
-                        fontSize: 22, fontWeight: FontWeight.w700,
-                        color: AppColors.primary,
-                      )),
+                  child: Text(
+                    request.passengerInitial,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -609,20 +760,31 @@ class _ContactSheet extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Text(request.passengerName,
-                            style: const TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.w700)),
+                        Text(
+                          request.passengerName,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                         if (request.isVerified) ...[
                           const SizedBox(width: 6),
-                          const Icon(Icons.verified_rounded,
-                              color: AppColors.primary, size: 16),
+                          const Icon(
+                            Icons.verified_rounded,
+                            color: AppColors.primary,
+                            size: 16,
+                          ),
                         ],
                       ],
                     ),
                     const SizedBox(height: 2),
-                    Text('Contacter le passager',
-                        style: const TextStyle(
-                            fontSize: 13, color: AppColors.textMuted)),
+                    Text(
+                      'Contacter le passager',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -658,18 +820,22 @@ class _ContactSheet extends StatelessWidget {
           GestureDetector(
             onTap: Get.back,
             child: Container(
-              width: double.infinity, height: 46,
+              width: double.infinity,
+              height: 46,
               decoration: BoxDecoration(
                 color: AppColors.surfaceSoft,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: Colors.transparent),
               ),
               child: const Center(
-                child: Text('Annuler',
-                    style: TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w600,
-                      color: AppColors.textSecondary,
-                    )),
+                child: Text(
+                  'Annuler',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
               ),
             ),
           ),
@@ -712,7 +878,8 @@ class _ContactOption extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 48, height: 48,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
                   color: iconBg,
                   borderRadius: BorderRadius.circular(14),
@@ -724,19 +891,30 @@ class _ContactOption extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title,
-                        style: const TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary)),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
                     const SizedBox(height: 2),
-                    Text(subtitle,
-                        style: const TextStyle(
-                            fontSize: 12, color: AppColors.textMuted)),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right_rounded,
-                  color: AppColors.textGhost, size: 20),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.textGhost,
+                size: 20,
+              ),
             ],
           ),
         ),
@@ -757,15 +935,20 @@ class _PassengerInfoRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(fontSize: 13, color: AppColors.textMuted)),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
+        ),
         Flexible(
-          child: Text(value,
-              textAlign: TextAlign.right,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              )),
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
         ),
       ],
     );

@@ -679,6 +679,7 @@ class SearchRide {
 		this.waypointCity,
 		this.waypointNote,
 		this.distanceKm = 0.0,
+		this.bookingMode = 'instant',
 	});
 
 	final String uuid;
@@ -708,6 +709,7 @@ class SearchRide {
 	final String? waypointCity;
 	final String? waypointNote;
 	final double distanceKm;
+	final String bookingMode;
 
 	String get displayOrigin {
 		final parts = [origin, departureArrondissement, departureNeighborhood].where((p) => p.isNotEmpty).toList();

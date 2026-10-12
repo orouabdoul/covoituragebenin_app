@@ -940,6 +940,7 @@ class TripDetailRide {
     this.waypointNote,
     this.distanceKm = 0.0,
     this.departureDateLabel = '',
+    this.bookingMode = 'instant',
   });
 
   final String uuid;
@@ -966,6 +967,7 @@ class TripDetailRide {
   final String? waypointNote;
   final double distanceKm;
   final String departureDateLabel;
+  final String bookingMode;
 
   String get displayOrigin {
     final parts = [origin, departureArrondissement, departureNeighborhood]
@@ -1006,6 +1008,7 @@ class TripDetailRide {
         waypointNote: j['waypoint_note']?.toString(),
         distanceKm: (j['distance_km'] as num?)?.toDouble() ?? 0.0,
         departureDateLabel: (j['departure_date'] ?? j['departure_date_formatted'] ?? j['departure_datetime_label'] ?? '').toString(),
+        bookingMode: (j['booking_mode'] ?? 'instant').toString(),
       );
 }
 

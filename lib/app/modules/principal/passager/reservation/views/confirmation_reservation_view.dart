@@ -51,15 +51,21 @@ class ConfirmationReservationView extends StatelessWidget {
 								SizedBox(height: responsive.h(16)),
 								_SafetyCard(responsive: responsive),
 								SizedBox(height: responsive.h(16)),
-								AppPrimaryButton(
+								Obx(() => AppPrimaryButton(
 									responsive: responsive,
-									label: AppStrings.reservationConfirmButton,
-									onTap: controller.confirmReservation,
+									label: controller.isProcessingPayment.value
+											? 'Préparation…'
+											: (controller.bookingMode == 'approval'
+													? 'Demander cette place'
+													: 'Réserver et continuer'),
+									onTap: controller.isProcessingPayment.value
+											? () {}
+											: controller.confirmReservation,
 									backgroundColor: AppColors.primary,
 									textColor: AppColors.white,
 									borderRadius: responsive.radius(16),
 									height: responsive.h(56),
-								),
+								)),
 							],
 						),
 					),

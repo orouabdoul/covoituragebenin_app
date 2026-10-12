@@ -214,6 +214,7 @@ class DetailReservationController extends GetxController {
       seatsAvailable: detail.ride.availableSeats,
       minutesUntilDeparture: 0,
       isVerified: false,
+      bookingMode: detail.ride.bookingMode,
       waypointCity: detail.ride.waypointCity,
       waypointNote: detail.ride.waypointNote,
     );
