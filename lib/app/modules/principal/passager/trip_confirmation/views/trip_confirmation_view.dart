@@ -544,7 +544,7 @@ class _SubmittedState extends StatelessWidget {
 					AppPrimaryButton(
 						responsive: responsive,
 						label: 'Voir mes réservations',
-						onTap: () => BottonNavController.goToTab(2),
+						onTap: () => BottonNavController.goToTab(1),
 						backgroundColor: AppColors.white,
 						textColor: AppColors.textSecondary,
 						borderColor: Colors.transparent,

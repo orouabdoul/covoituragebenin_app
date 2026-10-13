@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
@@ -254,6 +254,24 @@ class _SummaryCard extends StatelessWidget {
 											)
 										: const Icon(Icons.person_rounded, color: AppColors.textHint, size: 48),
 							),
+							Positioned(
+								left: -responsive.w(2),
+								bottom: -responsive.w(2),
+								child: GestureDetector(
+									onTap: controller.editProfile,
+									child: Container(
+										width: responsive.w(28),
+										height: responsive.w(28),
+										decoration: BoxDecoration(
+											color: AppColors.white,
+											shape: BoxShape.circle,
+											border: Border.all(color: AppColors.border),
+											boxShadow: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 4)],
+										),
+										child: Icon(Icons.camera_alt_rounded, size: responsive.text(14), color: AppColors.primary),
+									),
+								),
+							),
 							if (summary.isVerified)
 								Positioned(
 									right: -responsive.w(2),
@@ -287,6 +305,20 @@ class _SummaryCard extends StatelessWidget {
 					),
 					SizedBox(height: responsive.h(4)),
 					Text(summary.phone, style: AppTextStyles.profileMeta(responsive)),
+					if (summary.city.isNotEmpty) ...[
+						SizedBox(height: responsive.h(4)),
+						Row(
+							mainAxisSize: MainAxisSize.min,
+							children: [
+								Icon(Icons.location_on_rounded, size: responsive.text(12), color: AppColors.textHint),
+								SizedBox(width: responsive.w(3)),
+								Text(
+									summary.neighborhood.isNotEmpty ? '${summary.neighborhood}, ${summary.city}' : summary.city,
+									style: AppTextStyles.profileMeta(responsive).copyWith(color: AppColors.textHint),
+								),
+							],
+						),
+					],
 					SizedBox(height: responsive.h(12)),
 					if (summary.isVerified)
 						Container(
@@ -320,7 +352,17 @@ class _SummaryCard extends StatelessWidget {
 								],
 							),
 						),
-					SizedBox(height: responsive.h(24)),
+					SizedBox(height: responsive.h(10)),
+					TextButton.icon(
+						onPressed: controller.editProfile,
+						icon: Icon(Icons.edit_rounded, size: responsive.text(13)),
+						label: const Text('Modifier le profil'),
+						style: TextButton.styleFrom(
+							foregroundColor: AppColors.primary,
+							padding: EdgeInsets.symmetric(horizontal: responsive.w(12), vertical: responsive.h(6)),
+						),
+					),
+					SizedBox(height: responsive.h(14)),
 					Obx(() => Row(
 						children: [
 							Expanded(

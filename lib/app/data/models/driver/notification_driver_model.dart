@@ -322,7 +322,7 @@ class DriverNotificationModel {
     final s = raw.toString().trim();
     if (s.isEmpty) return 'À l\'instant';
     DateTime? dt = DateTime.tryParse(s);
-    if (dt == null) dt = DateTime.tryParse(s.replaceFirst(' ', 'T'));
+    dt ??= DateTime.tryParse(s.replaceFirst(' ', 'T'));
     // Unix timestamp (secondes ou millisecondes)
     if (dt == null) {
       final n = int.tryParse(s);

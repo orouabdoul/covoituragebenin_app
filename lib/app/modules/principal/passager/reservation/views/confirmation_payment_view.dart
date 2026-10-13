@@ -892,12 +892,10 @@ class _PhoneInputField extends StatelessWidget {
 	const _PhoneInputField({
 		required this.responsive,
 		required this.controller,
-		this.hintText = '01 XX XX XX XX',
 	});
 
 	final AppResponsive responsive;
 	final TextEditingController controller;
-	final String hintText;
 
 	@override
 	Widget build(BuildContext context) {
@@ -938,7 +936,7 @@ class _PhoneInputField extends StatelessWidget {
 									vertical: responsive.h(14),
 								),
 								border: InputBorder.none,
-								hintText: hintText,
+								hintText: '01 XX XX XX XX',
 								hintStyle: AppTextStyles.subtitle(responsive).copyWith(color: AppColors.textHint),
 							),
 						),

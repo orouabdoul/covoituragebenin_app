@@ -8,6 +8,7 @@ import '../../driver/messager/bindings/messager_binding.dart'
 import '../../driver/profil/bindings/profil_driver_binding.dart';
 import '../../driver/trajet/bindings/trajet_binding.dart';
 import '../../driver/revenus/bindings/revenus_binding.dart';
+import '../../driver/reservation/bindings/reservations_binding.dart';
 import '../../passager/search/bindings/search_binding.dart';
 import '../../passager/reservation/bindings/reservation_binding.dart';
 import '../../passager/messager/bindings/messager_binding.dart'
@@ -29,6 +30,7 @@ class BottonNavBinding extends Bindings {
     if (role == BottonNavRole.driver) {
       DriverHomeBinding().dependencies();
       TrajetBinding().dependencies();
+      ReservationsBinding().dependencies();
       RevenusBinding().dependencies();
       driver_messager.MessagerBinding().dependencies();
       ProfilDriverBinding().dependencies();

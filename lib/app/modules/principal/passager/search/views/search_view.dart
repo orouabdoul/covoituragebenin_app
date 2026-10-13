@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart' hide SearchController;
+﻿import 'package:flutter/material.dart' hide SearchController;
 import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
@@ -48,34 +48,73 @@ class SearchView extends StatelessWidget {
 												);
 											}
 											if (rides.isEmpty && controller.hasSearched.value) {
+												final hp = responsive.adaptive(phone: 16.0, smallPhone: 14.0, tablet: 24.0, desktop: 32.0);
 												return Column(
+													crossAxisAlignment: CrossAxisAlignment.stretch,
 													children: [
-														_ResultsHeader(responsive: responsive, controller: controller),
+														Padding(
+															padding: EdgeInsets.fromLTRB(hp, responsive.h(16), hp, responsive.h(8)),
+															child: _ResultsHeader(responsive: responsive, controller: controller),
+														),
 														Expanded(
-															child: Center(
-																child: Padding(
-																	padding: EdgeInsets.all(responsive.w(32)),
-																	child: Column(
-																		mainAxisSize: MainAxisSize.min,
-																		children: [
-																			Icon(Icons.search_off_rounded,
-																					size: responsive.text(56),
-																					color: AppColors.textHint),
-																			SizedBox(height: responsive.h(16)),
-																			Text(
-																				'Aucun trajet trouvé',
-																				style: AppTextStyles.homeSectionTitle(responsive),
-																				textAlign: TextAlign.center,
+															child: SingleChildScrollView(
+																padding: EdgeInsets.symmetric(horizontal: responsive.w(24)),
+																child: Column(
+																	children: [
+																		SizedBox(height: responsive.h(28)),
+																		Container(
+																			width: responsive.w(80),
+																			height: responsive.w(80),
+																			decoration: const BoxDecoration(
+																				color: AppColors.surfaceMuted,
+																				shape: BoxShape.circle,
 																			),
-																			SizedBox(height: responsive.h(8)),
-																			Text(
-																				'Essayez une autre date, une autre ville ou réinitialisez les filtres.',
-																				style: AppTextStyles.caption(responsive)
-																						.copyWith(color: AppColors.textSecondary),
-																				textAlign: TextAlign.center,
+																			child: Icon(Icons.search_off_rounded,
+																					size: responsive.text(34),
+																					color: AppColors.textHint),
+																		),
+																		SizedBox(height: responsive.h(20)),
+																		Text(
+																			'Aucun trajet disponible',
+																			style: AppTextStyles.homeSectionTitle(responsive),
+																			textAlign: TextAlign.center,
+																		),
+																		SizedBox(height: responsive.h(10)),
+																		Text(
+																			'Aucun conducteur ne couvre ce trajet pour le moment. Essayez une autre date ou modifiez votre itinéraire.',
+																			style: AppTextStyles.body(responsive)
+																					.copyWith(color: AppColors.textSecondary, height: 1.5),
+																			textAlign: TextAlign.center,
+																		),
+																		SizedBox(height: responsive.h(28)),
+																		AppPrimaryButton(
+																			responsive: responsive,
+																			label: 'Modifier la recherche',
+																			onTap: controller.expandPanel,
+																			backgroundColor: AppColors.primary,
+																			textColor: AppColors.white,
+																			height: responsive.h(50),
+																			borderRadius: responsive.radius(14),
+																		),
+																		if (controller.activeFilterCount > 0) ...[
+																			SizedBox(height: responsive.h(10)),
+																			OutlinedButton.icon(
+																				onPressed: controller.resetFilters,
+																				icon: Icon(Icons.filter_alt_off_rounded, size: responsive.text(15)),
+																				label: Text('Réinitialiser les filtres (${controller.activeFilterCount})'),
+																				style: OutlinedButton.styleFrom(
+																					foregroundColor: AppColors.textSecondary,
+																					side: const BorderSide(color: AppColors.border),
+																					padding: EdgeInsets.symmetric(vertical: responsive.h(14)),
+																					minimumSize: Size(double.infinity, 0),
+																					shape: RoundedRectangleBorder(
+																						borderRadius: BorderRadius.circular(responsive.radius(14)),
+																					),
+																				),
 																			),
 																		],
-																	),
+																		SizedBox(height: responsive.h(32)),
+																	],
 																),
 															),
 														),
@@ -122,7 +161,13 @@ class _SearchErrorState extends StatelessWidget {
 	Widget build(BuildContext context) {
 		return Column(
 			children: [
-				_ResultsHeader(responsive: responsive, controller: Get.find<SearchController>()),
+				Padding(
+					padding: EdgeInsets.symmetric(
+						horizontal: responsive.adaptive(phone: 16.0, smallPhone: 14.0, tablet: 24.0, desktop: 32.0),
+						vertical: responsive.h(16),
+					),
+					child: _ResultsHeader(responsive: responsive, controller: Get.find<SearchController>()),
+				),
 				Expanded(
 					child: Center(
 						child: Padding(

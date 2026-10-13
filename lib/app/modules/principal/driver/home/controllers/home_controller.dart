@@ -146,11 +146,11 @@ class DriverTripCard {
 
   Color get statusColor => switch (statusLabel) {
     'En attente' => AppColors.warning,
-    'Confirmé'   => AppColors.primary,
-    'En cours'   => AppColors.primary,
-    'Terminé'    => AppColors.textSecondary,
-    'Annulé'     => AppColors.danger,
-    _            => AppColors.primary,
+    'Confirmé' => AppColors.primary,
+    'En cours' => AppColors.primary,
+    'Terminé' => AppColors.textSecondary,
+    'Annulé' => AppColors.danger,
+    _ => AppColors.primary,
   };
 
   Color get statusBg => statusColor.withValues(alpha: 0.12);
@@ -244,7 +244,6 @@ class DriverBadge {
   final Color iconColor;
 }
 
-
 // ── Controller ──────────────────────────────────────────────────────────────
 
 class DriverHomeController extends GetxController {
@@ -264,18 +263,20 @@ class DriverHomeController extends GetxController {
   final RxList<QuickRequest> quickRequests = <QuickRequest>[].obs;
 
   // ── Données du tableau de bord (réactives) ───────────────────────────────
-  final summary = Rx<DriverSummary>(const DriverSummary(
-    todayLabel: 'Revenus d\'aujourd\'hui',
-    todayValue: '—',
-    weekLabel: 'Semaine',
-    weekValue: '—',
-    monthLabel: 'Mois',
-    monthValue: '—',
-    pendingLabel: 'En attente',
-    pendingValue: '—',
-    commissionLabel: 'Commission MINIZON',
-    commissionValue: '—',
-  ));
+  final summary = Rx<DriverSummary>(
+    const DriverSummary(
+      todayLabel: 'Revenus d\'aujourd\'hui',
+      todayValue: '—',
+      weekLabel: 'Semaine',
+      weekValue: '—',
+      monthLabel: 'Mois',
+      monthValue: '—',
+      pendingLabel: 'En attente',
+      pendingValue: '—',
+      commissionLabel: 'Commission MINIZON',
+      commissionValue: '—',
+    ),
+  );
 
   final metrics = <DriverMetric>[
     const DriverMetric(
@@ -357,24 +358,27 @@ class DriverHomeController extends GetxController {
     ),
   ];
 
-  final wallet = Rx<DriverWallet>(const DriverWallet(
-    balance: '—',
-    blockedAmount: '—',
-    methods: ['MTN Money', 'Moov Money'],
-  ));
+  final wallet = Rx<DriverWallet>(
+    const DriverWallet(
+      balance: '—',
+      blockedAmount: '—',
+      methods: ['MTN Money', 'Moov Money'],
+    ),
+  );
 
-  final level = Rx<DriverLevel>(const DriverLevel(
-    currentLevel: '—',
-    progressLabel: 'Progrès',
-    progressValue: '0%',
-    progressFraction: 0.0,
-    badges: [],
-  ));
+  final level = Rx<DriverLevel>(
+    const DriverLevel(
+      currentLevel: '—',
+      progressLabel: 'Progrès',
+      progressValue: '0%',
+      progressFraction: 0.0,
+      badges: [],
+    ),
+  );
 
   final RxList<DriverNotificationModel> notifications =
       <DriverNotificationModel>[].obs;
   final RxInt unreadNotifCount = 0.obs;
-
 
   // ── Cycle de vie ─────────────────────────────────────────────────────────
 
@@ -403,7 +407,8 @@ class DriverHomeController extends GetxController {
   }
 
   @override
-  Future<void> refresh() => Future.wait([_loadDashboard(), _loadNotifications()]);
+  Future<void> refresh() =>
+      Future.wait([_loadDashboard(), _loadNotifications()]);
 
   Future<void> _loadNotifications() async {
     final result = await _notifService.fetchNotifications(perPage: 5);
@@ -440,9 +445,16 @@ class DriverHomeController extends GetxController {
 
     metrics.assignAll(data.metrics.map(_metricFromApi));
 
-    const visibleStatuses = {'pending', 'confirmed', 'active', 'in_progress', 'started'};
+    const visibleStatuses = {
+      'pending',
+      'confirmed',
+      'active',
+      'in_progress',
+      'started',
+    };
     final rawTrip = data.nextTrip;
-    final tripVisible = rawTrip != null &&
+    final tripVisible =
+        rawTrip != null &&
         visibleStatuses.contains(rawTrip.status) &&
         _isTripVisible(rawTrip.status, rawTrip.departureTime);
 
@@ -462,9 +474,12 @@ class DriverHomeController extends GetxController {
         departure: depLabel,
         destinationLabel: 'Destination',
         destination: arrLabel,
-        passengersLabel: '${t.passengersCount} passager${t.passengersCount > 1 ? 's' : ''} confirmé${t.passengersCount > 1 ? 's' : ''}',
+        passengersLabel:
+            '${t.passengersCount} passager${t.passengersCount > 1 ? 's' : ''} confirmé${t.passengersCount > 1 ? 's' : ''}',
         avatarUrls: t.passengers.map((p) => p.name).toList(),
-        tripProgress: (t.status == 'in_progress' || t.status == 'started') ? 0.5 : 0.0,
+        tripProgress: (t.status == 'in_progress' || t.status == 'started')
+            ? 0.5
+            : 0.0,
       );
     } else {
       nextTrip.value = null;
@@ -478,24 +493,25 @@ class DriverHomeController extends GetxController {
     final newQuick = data.quickRequests
         .where((r) => _isTripVisible('pending', r.trip.departureTime))
         .map((r) {
-      final secs = _expirySeconds(r.createdAt);
-      return QuickRequest(
-        id: r.uuid,
-        passengerName: r.passenger.name,
-        passengerInitial: r.passenger.initials.isNotEmpty
-            ? r.passenger.initials[0]
-            : r.passenger.name.isNotEmpty
+          final secs = _expirySeconds(r.createdAt);
+          return QuickRequest(
+            id: r.uuid,
+            passengerName: r.passenger.name,
+            passengerInitial: r.passenger.initials.isNotEmpty
+                ? r.passenger.initials[0]
+                : r.passenger.name.isNotEmpty
                 ? r.passenger.name[0]
                 : '?',
-        rating: r.passenger.rating,
-        routeLabel: '${r.trip.departureCity} → ${r.trip.arrivalCity}',
-        amount: 0,
-        seats: r.seatsBooked,
-        // Si la demande est ancienne (>15min), le countdown démarre à 0
-        // mais la carte reste visible jusqu'à action du conducteur
-        expiresInSeconds: secs,
-      );
-    }).toList();
+            rating: r.passenger.rating,
+            routeLabel: '${r.trip.departureCity} → ${r.trip.arrivalCity}',
+            amount: 0,
+            seats: r.seatsBooked,
+            // Si la demande est ancienne (>15min), le countdown démarre à 0
+            // mais la carte reste visible jusqu'à action du conducteur
+            expiresInSeconds: secs,
+          );
+        })
+        .toList();
     quickRequests.assignAll(newQuick);
     for (final r in quickRequests) {
       r.startTimer(() => _onRequestExpired(r));
@@ -505,24 +521,27 @@ class DriverHomeController extends GetxController {
     const hiddenStatuses = {'cancelled', 'accepted', 'rejected', 'expired'};
     recentRequests.assignAll(
       data.recentRequests
-          .where((r) =>
-              !hiddenStatuses.contains(r.status) &&
-              _isTripVisible('pending', r.trip.departureTime))
+          .where(
+            (r) =>
+                !hiddenStatuses.contains(r.status) &&
+                _isTripVisible('pending', r.trip.departureTime),
+          )
           .map((r) {
-        final statusInfo = _requestStatusInfo(r.status);
-        return DriverRequest(
-          id: r.uuid,
-          name: r.passenger.name,
-          rating: '${r.passenger.rating.toStringAsFixed(1)} ★',
-          route: '${r.trip.departureCity} → ${r.trip.arrivalCity}',
-          timeAgo: _timeAgo(r.createdAt),
-          seats: '${r.seatsBooked} place${r.seatsBooked > 1 ? 's' : ''} demandée${r.seatsBooked > 1 ? 's' : ''}',
-          status: statusInfo.$1,
-          statusColor: statusInfo.$2,
-          statusBackground: statusInfo.$3,
-          avatarUrl: r.passenger.name,
-        );
-      }),
+            final statusInfo = _requestStatusInfo(r.status);
+            return DriverRequest(
+              id: r.uuid,
+              name: r.passenger.name,
+              rating: '${r.passenger.rating.toStringAsFixed(1)} ★',
+              route: '${r.trip.departureCity} → ${r.trip.arrivalCity}',
+              timeAgo: _timeAgo(r.createdAt),
+              seats:
+                  '${r.seatsBooked} place${r.seatsBooked > 1 ? 's' : ''} demandée${r.seatsBooked > 1 ? 's' : ''}',
+              status: statusInfo.$1,
+              statusColor: statusInfo.$2,
+              statusBackground: statusInfo.$3,
+              avatarUrl: r.passenger.name,
+            );
+          }),
     );
     wallet.value = DriverWallet(
       balance: data.wallet.availableBalance.toCurrency,
@@ -532,7 +551,8 @@ class DriverHomeController extends GetxController {
 
     level.value = DriverLevel(
       currentLevel: data.level.currentLevel,
-      progressLabel: 'Progrès vers ${data.level.nextLevel} (${data.level.tripsToNext} trajets)',
+      progressLabel:
+          'Progrès vers ${data.level.nextLevel} (${data.level.tripsToNext} trajets)',
       progressValue: '${(data.level.progress * 100).toStringAsFixed(0)}%',
       progressFraction: data.level.progress.clamp(0.0, 1.0),
       badges: data.level.badges.map(_badgeFromApi).toList(),
@@ -563,7 +583,10 @@ class DriverHomeController extends GetxController {
     quickRequests.remove(r);
     pendingRequestsCount.value = quickRequests.length;
     UIHelper().showSnackBar(
-        'MINIZON', 'Demande de ${r.passengerName} expirée.', 1);
+      'MINIZON',
+      'Demande de ${r.passengerName} expirée.',
+      1,
+    );
   }
 
   @override
@@ -612,13 +635,13 @@ class DriverHomeController extends GetxController {
   }
 
   String _statusLabel(String status) => switch (status) {
-        'pending' => 'En attente',
-        'confirmed' => 'Confirmé',
-        'active' => 'En cours',
-        'completed' => 'Terminé',
-        'cancelled' => 'Annulé',
-        _ => status,
-      };
+    'pending' => 'En attente',
+    'confirmed' => 'Confirmé',
+    'active' => 'En cours',
+    'completed' => 'Terminé',
+    'cancelled' => 'Annulé',
+    _ => status,
+  };
 
   int _expirySeconds(String createdAt) {
     final created = DateTime.tryParse(createdAt) ?? DateTime.now();
@@ -637,11 +660,11 @@ class DriverHomeController extends GetxController {
   }
 
   (String, Color, Color) _requestStatusInfo(String status) => switch (status) {
-        'accepted' => ('Accepté', AppColors.success, AppColors.successLight),
-        'rejected' => ('Refusé', AppColors.danger, AppColors.dangerLight),
-        'cancelled' => ('Annulé', AppColors.textSecondary, AppColors.primaryLight),
-        _ => ('En attente', AppColors.warning, AppColors.warningLight),
-      };
+    'accepted' => ('Accepté', AppColors.success, AppColors.successLight),
+    'rejected' => ('Refusé', AppColors.danger, AppColors.dangerLight),
+    'cancelled' => ('Annulé', AppColors.textSecondary, AppColors.primaryLight),
+    _ => ('En attente', AppColors.warning, AppColors.warningLight),
+  };
 
   DriverMetric _metricFromApi(DashboardMetricData m) {
     final displayValue = m.value is double
@@ -650,74 +673,75 @@ class DriverHomeController extends GetxController {
     final progress = m.progress > 0 ? m.progress : null;
     return switch (m.key) {
       'trips' => DriverMetric(
-          title: m.label,
-          value: displayValue,
-          icon: Icons.route_rounded,
-          color: AppColors.primaryLight,
-          iconColor: AppColors.primary,
-          progress: progress,
-        ),
+        title: m.label,
+        value: displayValue,
+        icon: Icons.route_rounded,
+        color: AppColors.primaryLight,
+        iconColor: AppColors.primary,
+        progress: progress,
+      ),
       'passengers' => DriverMetric(
-          title: m.label,
-          value: displayValue,
-          icon: Icons.groups_rounded,
-          color: AppColors.warningLight,
-          iconColor: AppColors.warning,
-          progress: progress,
-        ),
+        title: m.label,
+        value: displayValue,
+        icon: Icons.groups_rounded,
+        color: AppColors.warningLight,
+        iconColor: AppColors.warning,
+        progress: progress,
+      ),
       'rating' => DriverMetric(
-          title: m.label,
-          value: displayValue,
-          icon: Icons.star_rounded,
-          color: AppColors.successLight,
-          iconColor: AppColors.success,
-          progress: progress,
-        ),
+        title: m.label,
+        value: displayValue,
+        icon: Icons.star_rounded,
+        color: AppColors.successLight,
+        iconColor: AppColors.success,
+        progress: progress,
+      ),
       'acceptance_rate' => DriverMetric(
-          title: m.label,
-          value: '${(m.value is num ? (m.value as num).toDouble() * 100 : 0).toStringAsFixed(0)}%',
-          icon: Icons.verified_rounded,
-          color: AppColors.primaryLight,
-          iconColor: AppColors.primary,
-          progress: m.value is num ? (m.value as num).toDouble() : progress,
-        ),
+        title: m.label,
+        value:
+            '${(m.value is num ? (m.value as num).toDouble() * 100 : 0).toStringAsFixed(0)}%',
+        icon: Icons.verified_rounded,
+        color: AppColors.primaryLight,
+        iconColor: AppColors.primary,
+        progress: m.value is num ? (m.value as num).toDouble() : progress,
+      ),
       _ => DriverMetric(
-          title: m.label,
-          value: displayValue,
-          icon: Icons.analytics_rounded,
-          color: AppColors.primaryLight,
-          iconColor: AppColors.primary,
-          progress: progress,
-        ),
+        title: m.label,
+        value: displayValue,
+        icon: Icons.analytics_rounded,
+        color: AppColors.primaryLight,
+        iconColor: AppColors.primary,
+        progress: progress,
+      ),
     };
   }
 
   DriverBadge _badgeFromApi(DashboardBadgeData b) => switch (b.key) {
-        'top_rated' => DriverBadge(
-            label: b.label,
-            color: AppColors.primaryMedium,
-            icon: Icons.verified_rounded,
-            iconColor: AppColors.primary,
-          ),
-        'top_driver' || 'top_10' => DriverBadge(
-            label: b.label,
-            color: AppColors.warningLight,
-            icon: Icons.workspace_premium_rounded,
-            iconColor: AppColors.warning,
-          ),
-        'fast' || 'punctual' => DriverBadge(
-            label: b.label,
-            color: AppColors.primaryMedium,
-            icon: Icons.speed_rounded,
-            iconColor: AppColors.primary,
-          ),
-        _ => DriverBadge(
-            label: b.label,
-            color: AppColors.primaryMedium,
-            icon: Icons.emoji_events_rounded,
-            iconColor: AppColors.primary,
-          ),
-      };
+    'top_rated' => DriverBadge(
+      label: b.label,
+      color: AppColors.primaryMedium,
+      icon: Icons.verified_rounded,
+      iconColor: AppColors.primary,
+    ),
+    'top_driver' || 'top_10' => DriverBadge(
+      label: b.label,
+      color: AppColors.warningLight,
+      icon: Icons.workspace_premium_rounded,
+      iconColor: AppColors.warning,
+    ),
+    'fast' || 'punctual' => DriverBadge(
+      label: b.label,
+      color: AppColors.primaryMedium,
+      icon: Icons.speed_rounded,
+      iconColor: AppColors.primary,
+    ),
+    _ => DriverBadge(
+      label: b.label,
+      color: AppColors.primaryMedium,
+      icon: Icons.emoji_events_rounded,
+      iconColor: AppColors.primary,
+    ),
+  };
 
   // ── Actions ──────────────────────────────────────────────────────────────
 
@@ -735,7 +759,11 @@ class DriverHomeController extends GetxController {
     );
     if (!result.isSuccess) {
       isOnline.value = !newState;
-      UIHelper().showSnackBar('MINIZON', 'Erreur de mise à jour de la disponibilité.', 2);
+      UIHelper().showSnackBar(
+        'MINIZON',
+        'Erreur de mise à jour de la disponibilité.',
+        2,
+      );
     } else {
       availabilityMode.value = result.data!.mode;
       AppSync.i.refreshDriverDashboard();
@@ -746,7 +774,11 @@ class DriverHomeController extends GetxController {
     if (r.isProcessing.value) return;
     logger.d('onQuickAccept uuid=${r.id}');
     if (r.id.isEmpty) {
-      UIHelper().showSnackBar('MINIZON', 'Identifiant de réservation manquant.', 2);
+      UIHelper().showSnackBar(
+        'MINIZON',
+        'Identifiant de réservation manquant.',
+        2,
+      );
       return;
     }
     r.isProcessing.value = true;
@@ -757,10 +789,18 @@ class DriverHomeController extends GetxController {
       quickRequests.remove(r);
       pendingRequestsCount.value = quickRequests.length;
       recentRequests.removeWhere((req) => req.id == r.id);
-      UIHelper().showSnackBar('MINIZON', '✅ ${r.passengerName} accepté(e) !', 0);
+      UIHelper().showSnackBar(
+        'MINIZON',
+        '✅ ${r.passengerName} accepté(e) !',
+        0,
+      );
       _loadDashboard();
     } else {
-      UIHelper().showSnackBar('MINIZON', 'Erreur lors de l\'acceptation. Réessayez.', 2);
+      UIHelper().showSnackBar(
+        'MINIZON',
+        'Erreur lors de l\'acceptation. Réessayez.',
+        2,
+      );
     }
   }
 
@@ -768,7 +808,11 @@ class DriverHomeController extends GetxController {
     if (r.isProcessing.value) return;
     logger.d('onQuickReject uuid=${r.id}');
     if (r.id.isEmpty) {
-      UIHelper().showSnackBar('MINIZON', 'Identifiant de réservation manquant.', 2);
+      UIHelper().showSnackBar(
+        'MINIZON',
+        'Identifiant de réservation manquant.',
+        2,
+      );
       return;
     }
     r.isProcessing.value = true;
@@ -778,7 +822,11 @@ class DriverHomeController extends GetxController {
       r.cancelTimer();
       quickRequests.remove(r);
       pendingRequestsCount.value = quickRequests.length;
-      UIHelper().showSnackBar('MINIZON', 'Demande de ${r.passengerName} refusée.', 2);
+      UIHelper().showSnackBar(
+        'MINIZON',
+        'Demande de ${r.passengerName} refusée.',
+        2,
+      );
       _loadDashboard();
     } else {
       UIHelper().showSnackBar('MINIZON', 'Erreur lors du refus. Réessayez.', 2);
@@ -786,14 +834,12 @@ class DriverHomeController extends GetxController {
   }
 
   void onSeeAllRequests() {
-    if (Get.currentRoute == AppRoutes.driverReservations) {
-      if (Get.isRegistered<ReservationsController>()) {
-        Get.find<ReservationsController>().refresh();
-      }
-    } else {
-      Get.toNamed(AppRoutes.driverReservations);
+    BottonNavController.goToTab(2);
+    if (Get.isRegistered<ReservationsController>()) {
+      Get.find<ReservationsController>().refresh();
     }
   }
+
   void onPublishTrip() => Get.toNamed(AppRoutes.driverAddTrip);
 
   void selectWalletMethod(int index) => selectedWalletMethod.value = index;
@@ -812,11 +858,13 @@ class DriverHomeController extends GetxController {
     Get.dialog(
       AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(children: [
-          Icon(Icons.call_rounded, color: AppColors.primary, size: 22),
-          SizedBox(width: 10),
-          Text('Appeler le passager', style: TextStyle(fontSize: 16)),
-        ]),
+        title: const Row(
+          children: [
+            Icon(Icons.call_rounded, color: AppColors.primary, size: 22),
+            SizedBox(width: 10),
+            Text('Appeler le passager', style: TextStyle(fontSize: 16)),
+          ],
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -826,13 +874,21 @@ class DriverHomeController extends GetxController {
                 color: AppColors.successSurface,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text(phone,
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900,
-                      color: AppColors.primary, letterSpacing: 1)),
+              child: const Text(
+                phone,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.primary,
+                  letterSpacing: 1,
+                ),
+              ),
             ),
             const SizedBox(height: 6),
-            const Text('Numéro masqué pour votre sécurité',
-                style: TextStyle(fontSize: 11, color: AppColors.textGhost)),
+            const Text(
+              'Numéro masqué pour votre sécurité',
+              style: TextStyle(fontSize: 11, color: AppColors.textGhost),
+            ),
           ],
         ),
         actions: [
@@ -843,8 +899,13 @@ class DriverHomeController extends GetxController {
               Get.back();
               UIHelper().showSnackBar('MINIZON', 'Numéro copié.', 0);
             },
-            child: const Text('Copier',
-                style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
+            child: const Text(
+              'Copier',
+              style: TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ],
       ),

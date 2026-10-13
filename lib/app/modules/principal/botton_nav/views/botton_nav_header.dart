@@ -60,7 +60,7 @@ class BottonNavHeader extends StatelessWidget {
                 children: [
                   InkWell(
                     borderRadius: BorderRadius.circular(9999),
-                    onTap: () => BottonNavController.goToTab(4),
+                    onTap: () => BottonNavController.goToTab(3),
                     child: CircleAvatar(
                       radius: responsive.w(22),
                       backgroundColor: AppColors.surfaceSoft,
@@ -119,6 +119,24 @@ class BottonNavHeader extends StatelessWidget {
           // Right actions
           Row(
             children: [
+              InkWell(
+                borderRadius: BorderRadius.circular(9999),
+                onTap: controller.onMessagesTap,
+                child: Container(
+                  width: responsive.w(40),
+                  height: responsive.w(40),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceMuted,
+                    borderRadius: BorderRadius.circular(9999),
+                  ),
+                  child: Icon(
+                    Icons.chat_bubble_outline_rounded,
+                    size: responsive.text(18),
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+              SizedBox(width: responsive.w(8)),
               Obx(() {
                 controller.currentIndex.value; // always subscribe
                 int count = 0;

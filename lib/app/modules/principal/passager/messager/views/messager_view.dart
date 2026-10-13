@@ -3,11 +3,9 @@ import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
-import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/messenger_model.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
-import 'package:covoiturage_benin_app/app/modules/widgets/app_field.dart';
 
 import '../controllers/messager_controller.dart';
 
@@ -18,7 +16,7 @@ class MessagerView extends StatelessWidget {
   Widget build(BuildContext context) {
     final MessagerController controller = Get.find<MessagerController>(tag: 'passenger');
     final responsive = AppResponsive(context);
-    final double pagePadding = responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32);
+    final hp = responsive.adaptive(phone: 16.0, smallPhone: 14.0, tablet: 24.0, desktop: 32.0);
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -26,73 +24,47 @@ class MessagerView extends StatelessWidget {
         child: Center(
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: responsive.maxContentWidth),
-            child: ListView(
-              padding: EdgeInsets.fromLTRB(
-                pagePadding,
-                responsive.adaptive(phone: 8, smallPhone: 8, tablet: 12, desktop: 16),
-                pagePadding,
-                responsive.adaptive(phone: 24, smallPhone: 20, tablet: 28, desktop: 32),
-              ),
+            child: Column(
               children: [
-                _SearchHeader(responsive: responsive),
-                SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                _FilterRow(responsive: responsive, controller: controller),
-                SizedBox(height: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
-                Obx(() {
-                  if (controller.isLoading.value && controller.threads.isEmpty) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (controller.hasError.value && controller.threads.isEmpty) {
-                    return Padding(
-                      padding: EdgeInsets.only(top: responsive.h(32)),
-                      child: Column(
-                        children: [
-                          Icon(Icons.wifi_off_rounded, size: responsive.text(40), color: AppColors.border),
-                          SizedBox(height: responsive.h(12)),
-                          Text(
-                            'Erreur de chargement',
-                            style: AppTextStyles.subtitle(responsive).copyWith(color: AppColors.textHint),
-                          ),
-                          SizedBox(height: responsive.h(16)),
-                          AppPrimaryButton(
-                            responsive: responsive,
-                            label: 'Réessayer',
-                            onTap: controller.refresh,
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-                  final threads = controller.filteredThreads;
-                  if (threads.isEmpty) {
-                    return Padding(
-                      padding: EdgeInsets.only(top: responsive.h(48)),
-                      child: Column(
-                        children: [
-                          Icon(Icons.chat_bubble_outline_rounded, size: responsive.text(48), color: AppColors.border),
-                          SizedBox(height: responsive.h(12)),
-                          Text(
-                            'Aucune conversation trouvée',
-                            style: AppTextStyles.subtitle(responsive).copyWith(color: AppColors.textHint),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-                  return Column(
-                    children: [
-                      for (var index = 0; index < threads.length; index++) ...[
-                        _ThreadCard(
-                          responsive: responsive,
-                          thread: threads[index],
-                          onTap: () => controller.openThread(threads[index]),
+                // ── Sticky header ─────────────────────────────────────────
+                _Header(responsive: responsive, controller: controller, hp: hp),
+                // ── Scrollable content ────────────────────────────────────
+                Expanded(
+                  child: Obx(() {
+                    if (controller.isLoading.value && controller.threads.isEmpty) {
+                      return const Center(
+                        child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2.5),
+                      );
+                    }
+                    if (controller.hasError.value && controller.threads.isEmpty) {
+                      return _ErrorState(responsive: responsive, onRetry: controller.refresh);
+                    }
+                    final threads = controller.filteredThreads;
+                    if (threads.isEmpty) {
+                      return _EmptyState(
+                        responsive: responsive,
+                        isSearching: controller.searchQuery.value.isNotEmpty,
+                      );
+                    }
+                    return RefreshIndicator(
+                      color: AppColors.primary,
+                      onRefresh: controller.refresh,
+                      child: ListView.separated(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: hp,
+                          vertical: responsive.h(12),
                         ),
-                        if (index != threads.length - 1)
-                          SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                      ],
-                    ],
-                  );
-                }),
+                        itemCount: threads.length,
+                        separatorBuilder: (_, _) => SizedBox(height: responsive.h(10)),
+                        itemBuilder: (_, i) => _ThreadCard(
+                          responsive: responsive,
+                          thread: threads[i],
+                          onTap: () => controller.openThread(threads[i]),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
               ],
             ),
           ),
@@ -102,112 +74,137 @@ class MessagerView extends StatelessWidget {
   }
 }
 
-class _SearchHeader extends StatelessWidget {
-  const _SearchHeader({required this.responsive});
+// ── Header (sticky: titre + recherche + filtres) ───────────────────────────
+
+class _Header extends StatelessWidget {
+  const _Header({required this.responsive, required this.controller, required this.hp});
 
   final AppResponsive responsive;
+  final MessagerController controller;
+  final double hp;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(responsive.adaptive(phone: 16, smallPhone: 14, tablet: 16, desktop: 16)),
-      decoration: ShapeDecoration(
-        color: Colors.white.withValues(alpha: 0.95),
-        shape: RoundedRectangleBorder(
-          side: const BorderSide(width: 1, color: AppColors.surface),
-          borderRadius: BorderRadius.circular(responsive.radius(16)),
-        ),
-      ),
+      color: AppColors.white,
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppField(
-            responsive: responsive,
-            label: '',
-            borderRadius: responsive.radius(22),
-            backgroundColor: AppColors.surface,
-            padding: EdgeInsets.symmetric(
-              horizontal: responsive.w(16),
-              vertical: responsive.h(12),
-            ),
+          // Title row
+          Padding(
+            padding: EdgeInsets.fromLTRB(hp, responsive.h(16), hp, responsive.h(12)),
             child: Row(
               children: [
-                Container(
-                  width: responsive.w(16),
-                  height: responsive.w(16),
-                  decoration: ShapeDecoration(
-                    shape: RoundedRectangleBorder(
-                      side: const BorderSide(color: Colors.transparent),
-                      borderRadius: BorderRadius.circular(responsive.radius(4)),
+                Text('Messages', style: AppTextStyles.title(responsive)),
+                const Spacer(),
+                Obx(() {
+                  final count = controller.totalUnread.value;
+                  if (count == 0) return const SizedBox.shrink();
+                  return Container(
+                    padding: EdgeInsets.symmetric(horizontal: responsive.w(10), vertical: responsive.h(4)),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(9999),
                     ),
-                  ),
-                  child: const Icon(Icons.search_rounded, size: 16, color: AppColors.textGhost),
-                ),
-                SizedBox(width: responsive.w(12)),
-                Expanded(
-                  child: TextField(
-                    controller: Get.find<MessagerController>(tag: 'passenger').searchController,
-                    style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textPrimary),
-                    decoration: InputDecoration(
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      disabledBorder: InputBorder.none,
-                      errorBorder: InputBorder.none,
-                      focusedErrorBorder: InputBorder.none,
-                      filled: false,
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
-                      hintText: AppStrings.messengerSearchHint,
-                      hintStyle: AppTextStyles.caption(responsive).copyWith(color: AppColors.textGhost),
+                    child: Text(
+                      '$count non lu${count > 1 ? 's' : ''}',
+                      style: AppTextStyles.caption(responsive).copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: responsive.text(11),
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                }),
               ],
             ),
           ),
+          // Search bar
+          Padding(
+            padding: EdgeInsets.fromLTRB(hp, 0, hp, responsive.h(10)),
+            child: Container(
+              height: responsive.h(44),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceMuted,
+                borderRadius: BorderRadius.circular(responsive.radius(12)),
+              ),
+              child: Row(
+                children: [
+                  SizedBox(width: responsive.w(12)),
+                  Icon(Icons.search_rounded, size: responsive.text(18), color: AppColors.textHint),
+                  SizedBox(width: responsive.w(8)),
+                  Expanded(
+                    child: TextField(
+                      controller: controller.searchController,
+                      style: AppTextStyles.body(responsive),
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        hintText: 'Rechercher une conversation…',
+                        hintStyle: AppTextStyles.body(responsive).copyWith(color: AppColors.textHint),
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                  ),
+                  Obx(() {
+                    if (controller.searchQuery.value.isEmpty) return const SizedBox.shrink();
+                    return GestureDetector(
+                      onTap: () => controller.searchController.clear(),
+                      child: Padding(
+                        padding: EdgeInsets.only(right: responsive.w(10)),
+                        child: Icon(Icons.close_rounded, size: responsive.text(16), color: AppColors.textHint),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+          ),
+          // Filter chips
+          Obx(() {
+            if (controller.filters.isEmpty) return const SizedBox.shrink();
+            return SizedBox(
+              height: responsive.h(38),
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: EdgeInsets.only(left: hp, right: hp, bottom: responsive.h(6)),
+                itemCount: controller.filters.length,
+                separatorBuilder: (_, _) => SizedBox(width: responsive.w(8)),
+                itemBuilder: (_, i) {
+                  final filter = controller.filters[i];
+                  final selected = controller.selectedFilterIndex == i;
+                  return InkWell(
+                    onTap: () => controller.selectFilter(i),
+                    borderRadius: BorderRadius.circular(9999),
+                    child: AnimatedContainer(
+                      duration: AppResponsive.fastDuration,
+                      padding: EdgeInsets.symmetric(horizontal: responsive.w(14), vertical: responsive.h(5)),
+                      decoration: BoxDecoration(
+                        color: selected ? AppColors.primary : AppColors.surfaceMuted,
+                        borderRadius: BorderRadius.circular(9999),
+                        border: Border.all(color: selected ? AppColors.primary : Colors.transparent),
+                      ),
+                      child: Text(
+                        filter.label,
+                        style: AppTextStyles.caption(responsive).copyWith(
+                          color: selected ? Colors.white : AppColors.textSecondary,
+                          fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          }),
+          const Divider(height: 1, color: AppColors.border),
         ],
       ),
     );
   }
 }
 
-class _FilterRow extends StatelessWidget {
-  const _FilterRow({required this.responsive, required this.controller});
-
-  final AppResponsive responsive;
-  final MessagerController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    return Obx(
-      () => SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: List.generate(controller.filters.length, (index) {
-            final filter = controller.filters[index];
-            final bool selected = controller.selectedFilterIndex == index;
-
-            return Padding(
-              padding: EdgeInsets.only(right: index == controller.filters.length - 1 ? 0 : responsive.w(8)),
-              child: AppChipButton(
-                responsive: responsive,
-                label: filter.label,
-                onTap: () => controller.selectFilter(index),
-                height: responsive.h(40),
-                backgroundColor: selected ? AppColors.primary : AppColors.surface,
-                textColor: selected ? AppColors.white : AppColors.textPrimary,
-                borderColor: selected ? AppColors.primary : Colors.transparent,
-              ),
-            );
-          }),
-        ),
-      ),
-    );
-  }
-}
+// ── Thread Card ────────────────────────────────────────────────────────────
 
 class _ThreadCard extends StatelessWidget {
   const _ThreadCard({required this.responsive, required this.thread, required this.onTap});
@@ -218,101 +215,108 @@ class _ThreadCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool unread = thread.isUnread;
+
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(responsive.radius(14)),
       child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.all(responsive.adaptive(phone: 16, smallPhone: 14, tablet: 16, desktop: 16)),
+        padding: EdgeInsets.all(responsive.w(14)),
         decoration: ShapeDecoration(
           color: AppColors.white,
           shape: RoundedRectangleBorder(
-            side: const BorderSide(color: Colors.transparent),
-            borderRadius: BorderRadius.circular(responsive.radius(16)),
+            side: BorderSide(
+              color: unread ? AppColors.primary.withValues(alpha: 0.30) : AppColors.border,
+            ),
+            borderRadius: BorderRadius.circular(responsive.radius(14)),
           ),
-          shadows: const [
-            BoxShadow(color: AppColors.shadowSoft, blurRadius: 2, offset: Offset(0, 1)),
-          ],
+          shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 4, offset: Offset(0, 1))],
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _Avatar(
-                  responsive: responsive,
-                  imageUrl: thread.avatarUrl,
-                  badge: thread.badge,
-                  badgeColor: thread.badgeColor,
-                ),
-                SizedBox(width: responsive.w(16)),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            // Avatar
+            _Avatar(
+              responsive: responsive,
+              imageUrl: thread.avatarUrl,
+              badge: thread.badge,
+              badgeColor: thread.badgeColor,
+            ),
+            SizedBox(width: responsive.w(12)),
+            // Content
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Name + time row
+                  Row(
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(thread.name, style: AppTextStyles.h6(responsive)),
+                      Expanded(
+                        child: Text(
+                          thread.name,
+                          style: AppTextStyles.subtitle(responsive).copyWith(
+                            fontWeight: unread ? FontWeight.w700 : FontWeight.w500,
                           ),
-                          Text(thread.time, style: AppTextStyles.caption(responsive)),
-                        ],
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      SizedBox(height: responsive.h(4)),
+                      SizedBox(width: responsive.w(8)),
                       Text(
-                        thread.preview,
-                        style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textSecondary),
+                        thread.time,
+                        style: AppTextStyles.caption(responsive).copyWith(
+                          color: unread ? AppColors.primary : AppColors.textHint,
+                          fontWeight: unread ? FontWeight.w600 : FontWeight.w400,
+                          fontSize: responsive.text(11),
+                        ),
                       ),
                     ],
                   ),
-                ),
-              ],
-            ),
-            SizedBox(height: responsive.h(14)),
-            InkWell(
-              onTap: onTap,
-              borderRadius: BorderRadius.circular(responsive.radius(12)),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: responsive.w(8), vertical: responsive.h(4)),
-                          decoration: ShapeDecoration(
-                            color: Color(thread.statusBackgroundColor),
-                            shape: RoundedRectangleBorder(
-                              side: const BorderSide(color: Colors.transparent),
-                              borderRadius: BorderRadius.circular(responsive.radius(9999)),
-                            ),
-                          ),
-                          child: Text(
-                            thread.statusLabel,
-                            style: AppTextStyles.caption(responsive).copyWith(
-                              color: Color(thread.statusLabelColor),
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: responsive.h(8)),
-                        Row(
-                          children: [
-                            if (thread.isUnread)
-                              Container(
-                                width: responsive.w(8),
-                                height: responsive.w(8),
-                                decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
-                              ),
-                            if (thread.isUnread) SizedBox(width: responsive.w(8)),
-                            Text(
-                              thread.roleLabel,
-                              style: AppTextStyles.caption(responsive).copyWith(color: Color(thread.roleLabelColor)),
-                            ),
-                          ],
-                        ),
-                      ],
+                  SizedBox(height: responsive.h(4)),
+                  // Preview
+                  Text(
+                    thread.preview,
+                    style: AppTextStyles.caption(responsive).copyWith(
+                      color: unread ? AppColors.textPrimary : AppColors.textSecondary,
+                      fontWeight: unread ? FontWeight.w600 : FontWeight.w400,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: responsive.h(8)),
+                  // Status chip + role row
+                  Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: responsive.w(8), vertical: responsive.h(3)),
+                        decoration: BoxDecoration(
+                          color: Color(thread.statusBackgroundColor),
+                          borderRadius: BorderRadius.circular(9999),
+                        ),
+                        child: Text(
+                          thread.statusLabel,
+                          style: AppTextStyles.caption(responsive).copyWith(
+                            color: Color(thread.statusLabelColor),
+                            fontSize: responsive.text(10),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: responsive.w(6)),
+                      Text(
+                        '· ${thread.roleLabel}',
+                        style: AppTextStyles.caption(responsive).copyWith(
+                          color: Color(thread.roleLabelColor),
+                          fontSize: responsive.text(10),
+                        ),
+                      ),
+                      const Spacer(),
+                      if (unread)
+                        Container(
+                          width: responsive.w(8),
+                          height: responsive.w(8),
+                          decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+                        ),
+                    ],
                   ),
                 ],
               ),
@@ -323,6 +327,8 @@ class _ThreadCard extends StatelessWidget {
     );
   }
 }
+
+// ── Avatar ─────────────────────────────────────────────────────────────────
 
 class _Avatar extends StatelessWidget {
   const _Avatar({
@@ -341,50 +347,145 @@ class _Avatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final url = imageUrl;
     return Stack(
+      clipBehavior: Clip.none,
       children: [
         Container(
-          width: responsive.w(56),
-          height: responsive.w(56),
+          width: responsive.w(52),
+          height: responsive.w(52),
           clipBehavior: Clip.antiAlias,
-          decoration: ShapeDecoration(
-            color: AppColors.border,
-            shape: RoundedRectangleBorder(
-              side: const BorderSide(color: Colors.transparent),
-              borderRadius: BorderRadius.circular(9999),
-            ),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceMuted,
+            shape: BoxShape.circle,
           ),
           child: (url != null && url.isNotEmpty)
               ? Image.network(
                   url,
                   fit: BoxFit.cover,
-                  errorBuilder: (ctx, e, s) =>
-                      const Icon(Icons.person_rounded, color: AppColors.textGhost),
+                  errorBuilder: (ctx, e, s) => Icon(
+                    Icons.person_rounded,
+                    color: AppColors.primary,
+                    size: responsive.text(24),
+                  ),
                 )
-              : const Icon(Icons.person_rounded, color: AppColors.textGhost),
+              : Icon(Icons.person_rounded, color: AppColors.primary, size: responsive.text(24)),
         ),
         if (badge.isNotEmpty)
           Positioned(
-            left: responsive.w(40),
-            top: responsive.w(40),
+            right: -responsive.w(2),
+            bottom: -responsive.h(2),
             child: Container(
-              width: responsive.w(23),
-              height: responsive.h(20),
+              constraints: BoxConstraints(minWidth: responsive.w(20)),
+              padding: EdgeInsets.symmetric(horizontal: responsive.w(5), vertical: responsive.h(2)),
               decoration: ShapeDecoration(
                 color: Color(badgeColor),
                 shape: RoundedRectangleBorder(
-                  side: const BorderSide(color: Colors.white),
+                  side: const BorderSide(color: AppColors.white, width: 1.5),
                   borderRadius: BorderRadius.circular(9999),
                 ),
               ),
               child: Center(
                 child: Text(
                   badge,
-                  style: AppTextStyles.caption(responsive).copyWith(color: Colors.white, fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: responsive.text(9),
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ),
           ),
       ],
+    );
+  }
+}
+
+// ── Error State ────────────────────────────────────────────────────────────
+
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.responsive, required this.onRetry});
+  final AppResponsive responsive;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(responsive.w(32)),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: responsive.w(72),
+              height: responsive.w(72),
+              decoration: const BoxDecoration(color: AppColors.surfaceMuted, shape: BoxShape.circle),
+              child: Icon(Icons.wifi_off_rounded, size: responsive.text(32), color: AppColors.textHint),
+            ),
+            SizedBox(height: responsive.h(20)),
+            Text('Impossible de charger les messages',
+                style: AppTextStyles.subtitle(responsive), textAlign: TextAlign.center),
+            SizedBox(height: responsive.h(8)),
+            Text('Vérifiez votre connexion et réessayez.',
+                style: AppTextStyles.body(responsive).copyWith(color: AppColors.textHint),
+                textAlign: TextAlign.center),
+            SizedBox(height: responsive.h(24)),
+            AppPrimaryButton(
+              responsive: responsive,
+              label: 'Réessayer',
+              onTap: onRetry,
+              height: responsive.h(48),
+              borderRadius: responsive.radius(12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Empty State ────────────────────────────────────────────────────────────
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.responsive, required this.isSearching});
+  final AppResponsive responsive;
+  final bool isSearching;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(responsive.w(32)),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: responsive.w(80),
+              height: responsive.w(80),
+              decoration: const BoxDecoration(color: AppColors.surfaceMuted, shape: BoxShape.circle),
+              child: Icon(
+                isSearching ? Icons.search_off_rounded : Icons.chat_bubble_outline_rounded,
+                size: responsive.text(34),
+                color: AppColors.textHint,
+              ),
+            ),
+            SizedBox(height: responsive.h(20)),
+            Text(
+              isSearching ? 'Aucun résultat' : 'Aucune conversation',
+              style: AppTextStyles.subtitle(responsive),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: responsive.h(8)),
+            Text(
+              isSearching
+                  ? 'Aucune conversation ne correspond à votre recherche.'
+                  : 'Vos échanges avec les conducteurs\napparaîtront ici après une réservation.',
+              style: AppTextStyles.body(responsive).copyWith(color: AppColors.textHint, height: 1.6),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

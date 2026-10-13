@@ -151,7 +151,7 @@ class PaymentSuccessController extends GetxController {
     _autoRedirectTimer?.cancel();
     AppSync.i.refreshPassenger();
     Get.until((route) => route.settings.name == AppRoutes.dashboardPassenger || route.isFirst);
-    BottonNavController.goToTab(2);
+    BottonNavController.goToTab(1);
   }
 
   void goHome() {

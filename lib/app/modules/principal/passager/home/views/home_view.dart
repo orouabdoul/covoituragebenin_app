@@ -1153,7 +1153,7 @@ class _HeroSection extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.primary, AppColors.primary],
+          colors: [Color(0xFF1A5FB4), Color(0xFF0D3680)],
         ),
         shape: RoundedRectangleBorder(
           side: const BorderSide(color: Colors.transparent),
@@ -1789,9 +1789,34 @@ class _ActivityRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(activity.route, style: AppTextStyles.homeCardTitle(responsive)),
-              SizedBox(height: responsive.h(2)),
-              Text(activity.time, style: AppTextStyles.homeCardBody(responsive)),
+              Text(
+                '${activity.displayFrom} → ${activity.displayTo}',
+                style: AppTextStyles.homeCardTitle(responsive),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              SizedBox(height: responsive.h(4)),
+              Row(
+                children: [
+                  _ActivityStatusDot(status: activity.status, responsive: responsive),
+                  SizedBox(width: responsive.w(5)),
+                  Flexible(
+                    child: Text(activity.time, style: AppTextStyles.homeCardBody(responsive)),
+                  ),
+                  if (activity.price > 0) ...[
+                    SizedBox(width: responsive.w(6)),
+                    Text('·', style: AppTextStyles.homeCardBody(responsive).copyWith(color: AppColors.textHint)),
+                    SizedBox(width: responsive.w(6)),
+                    Text(
+                      '${activity.price.toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ' ')} FCFA',
+                      style: AppTextStyles.homeCardBody(responsive).copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ],
           ),
         ),
@@ -1803,6 +1828,26 @@ class _ActivityRow extends StatelessWidget {
           fontWeight: FontWeight.w600,
         ),
       ],
+    );
+  }
+}
+
+class _ActivityStatusDot extends StatelessWidget {
+  const _ActivityStatusDot({required this.status, required this.responsive});
+  final String status;
+  final AppResponsive responsive;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color color = switch (status) {
+      'completed' => AppColors.success,
+      'cancelled' || 'canceled' => AppColors.danger,
+      _ => AppColors.warning,
+    };
+    return Container(
+      width: responsive.w(7),
+      height: responsive.w(7),
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }
 }

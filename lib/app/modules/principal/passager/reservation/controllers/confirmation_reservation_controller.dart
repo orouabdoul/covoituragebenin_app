@@ -19,6 +19,7 @@ import 'package:covoiturage_benin_app/app/data/benin_locations_data.dart';
 import 'package:covoiturage_benin_app/app/data/models/passenger/reservations_model.dart';
 import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
+import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 
 import '../../search/controllers/search_controller.dart';
@@ -178,6 +179,11 @@ class ConfirmationReservationController extends GetxController {
     final allCities = BeninLocationHelpers.allCities;
     pickupCityItems.assignAll(allCities);
     dropoffCityItems.assignAll(allCities);
+
+    final userPhone = UserController.instance.user.value?.phone ?? '';
+    if (userPhone.isNotEmpty && paymentContactController.text.isEmpty) {
+      paymentContactController.text = userPhone;
+    }
 
     _autoLocate();
 
@@ -682,6 +688,32 @@ class ConfirmationReservationController extends GetxController {
       UIHelper().showSnackBar('MINIZON', 'Choisissez le quartier de dépose.', 2);
       return false;
     }
+
+    // Validation paiement
+    if (isCardPayment) {
+      final cardNum = paymentContactController.text.trim().replaceAll(' ', '');
+      if (cardNum.length < 13) {
+        UIHelper().showSnackBar('MINIZON', 'Numéro de carte invalide.', 2);
+        return false;
+      }
+      final expiry = cardExpiryController.text.trim();
+      if (expiry.length < 5 || !expiry.contains('/')) {
+        UIHelper().showSnackBar('MINIZON', 'Date d\'expiration invalide (MM/AA).', 2);
+        return false;
+      }
+      final cvv = cardCodeController.text.trim();
+      if (cvv.length < 3) {
+        UIHelper().showSnackBar('MINIZON', 'Code CVV invalide.', 2);
+        return false;
+      }
+    } else {
+      final phone = paymentContactController.text.trim().replaceAll(RegExp(r'\s'), '');
+      if (phone.length < 8) {
+        UIHelper().showSnackBar('MINIZON', 'Entrez votre numéro Mobile Money.', 2);
+        return false;
+      }
+    }
+
     return true;
   }
 
@@ -848,25 +880,8 @@ class ConfirmationReservationController extends GetxController {
     _priceConfirmed = true;
     Get.back();
     if (_bookingUuid.isEmpty) return;
-
-    if (_bookingMode == 'instant') {
-      AppSync.i.refreshPassenger();
-      Get.toNamed(AppRoutes.passengerReservationPayment, arguments: {
-        'ride': ride.value,
-        'seats': reservedSeats.value,
-        'bookingUuid': _bookingUuid,
-        'paymentIndex': selectedPaymentIndex.value,
-        'totalAmount': totalAmount,
-      });
-    } else {
-      AppSync.i.refreshPassenger();
-      BottonNavController.goToTab(0);
-      UIHelper().showSnackBar(
-        'MINIZON',
-        'Réservation envoyée ! Vous serez notifié dès que le conducteur accepte.',
-        0,
-      );
-    }
+    AppSync.i.refreshPassenger();
+    unawaited(confirmPayment());
   }
 
   // ── Paiement ──────────────────────────────────────────────────────────────
@@ -959,7 +974,7 @@ class ConfirmationReservationController extends GetxController {
       if (!result.isSuccess) {
         if (result.error == AppError.alreadyPaid) {
           AppSync.i.refreshPassenger();
-          BottonNavController.goToTab(2);
+          BottonNavController.goToTab(1);
           return;
         }
         if (result.error != AppError.socket) {
@@ -1090,8 +1105,8 @@ class _PriceConfirmSheet extends StatelessWidget {
             ),
             child: Text(
               bookingMode == 'instant'
-                  ? 'Réservation instantanée · confirmation immédiate'
-                  : 'Réponse du conducteur requise',
+                  ? 'Réservation instantanée · paiement puis confirmation'
+                  : 'Paiement requis avant validation par le conducteur',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
@@ -1358,7 +1373,7 @@ class _PriceConfirmSheet extends StatelessWidget {
                 elevation: 0,
               ),
               child: const Text(
-                'Continuer vers le paiement',
+                'Réserver et payer',
                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
               ),
             ),

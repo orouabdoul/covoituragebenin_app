@@ -390,7 +390,7 @@ class ReservationController extends GetxController {
 			Get.toNamed(AppRoutes.passengerRefundRequest, arguments: r);
 
 	void rebookTrip(ReservationItem r) =>
-			BottonNavController.goToTab(1);
+			BottonNavController.goToTab(0);
 
 	void cancelReservation(ReservationItem r, {VoidCallback? onSuccess}) {
 		// etaMinutes is only set for in_progress trips; if null, we can't compute the

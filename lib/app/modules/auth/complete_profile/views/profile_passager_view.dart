@@ -10,7 +10,6 @@ import 'package:covoiturage_benin_app/app/modules/widgets/face_verification_sect
 import 'package:covoiturage_benin_app/app/modules/widgets/id_card_preview_tile.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/phone_field_widget.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/selfie_capture_widget.dart';
-import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';

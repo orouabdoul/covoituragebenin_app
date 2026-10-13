@@ -34,7 +34,15 @@ class HomeController extends GetxController {
   List<HomeActivity> recentActivities = [];
 
   // ── Greeting ───────────────────────────────────────────────────────────────
-  String get greeting => 'Bienvenue 👋';
+  String _apiGreeting = '';
+
+  String get greeting {
+    if (_apiGreeting.isNotEmpty) return _apiGreeting;
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Bonjour 👋';
+    if (hour < 18) return 'Bon après-midi 👋';
+    return 'Bonsoir 👋';
+  }
 
   bool get showHeroMetrics =>
       heroMetrics.isNotEmpty && UserController.instance.profileComplete.value;
@@ -209,6 +217,7 @@ class HomeController extends GetxController {
             ))
         .toList();
 
+    _apiGreeting = data.greeting;
     dashboardVersion.value++;
     _scheduleActiveRefresh();
   }
@@ -377,7 +386,7 @@ class HomeController extends GetxController {
         HomeQuickAction(
           label: 'Mes trajets',
           icon: Icons.directions_car_rounded,
-          color: AppColors.primary,
+          color: AppColors.success,
           onTap: openTripHistory,
         ),
         HomeQuickAction(
@@ -389,7 +398,7 @@ class HomeController extends GetxController {
         HomeQuickAction(
           label: 'Assistance',
           icon: Icons.headset_mic_rounded,
-          color: AppColors.primary,
+          color: const Color(0xFF7C3AED),
           onTap: openSupport,
         ),
       ];
@@ -432,15 +441,10 @@ class HomeController extends GetxController {
   void openNotifications() => Get.toNamed(AppRoutes.passengerNotifications);
   void openTrustHub() => Get.toNamed(AppRoutes.passengerTrustHub);
 
-  void openSearch() {
-    BottonNavController.goToTab(1);
-    if (Get.isRegistered<SearchController>()) {
-      Get.find<SearchController>().expandPanel();
-    }
-  }
+  void openSearch() => Get.toNamed(AppRoutes.passengerSearch);
 
   void openRouteSearch(HomePopularRoute route) {
-    BottonNavController.goToTab(1);
+    Get.toNamed(AppRoutes.passengerSearch);
     if (Get.isRegistered<SearchController>()) {
       final sc = Get.find<SearchController>();
       sc.expandPanel();
@@ -449,8 +453,8 @@ class HomeController extends GetxController {
     }
   }
 
-  void onSeeAllTrips() => BottonNavController.goToTab(1);
-  void openReservations() => BottonNavController.goToTab(2);
+  void onSeeAllTrips() => Get.toNamed(AppRoutes.passengerSearch);
+  void openReservations() => BottonNavController.goToTab(1);
   void openTripHistory() => Get.toNamed(AppRoutes.passengerTripHistory);
   void openRefundHistory() => Get.toNamed(AppRoutes.passengerRefundHistory);
   void openRefundRequest() => Get.toNamed(AppRoutes.passengerRefundRequest);
@@ -461,7 +465,7 @@ class HomeController extends GetxController {
       Get.toNamed(AppRoutes.passengerMessages);
 
   void onRepeatTrip(HomeActivity activity) {
-    BottonNavController.goToTab(1);
+    Get.toNamed(AppRoutes.passengerSearch);
     if (Get.isRegistered<SearchController>()) {
       final parts = activity.route.split(' → ');
       final sc = Get.find<SearchController>();

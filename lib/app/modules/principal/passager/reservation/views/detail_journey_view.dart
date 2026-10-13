@@ -117,9 +117,7 @@ class DetailJourneyView extends StatelessWidget {
                     children: [
                       AppPrimaryButton(
                         responsive: responsive,
-                        label: controller.ride.value?.bookingMode == 'approval'
-                            ? 'Demander une place'
-                            : 'Réserver instantanément',
+                        label: 'Réserver et payer',
                         onTap: controller.bookNow,
                         backgroundColor: AppColors.primary,
                         textColor: AppColors.white,

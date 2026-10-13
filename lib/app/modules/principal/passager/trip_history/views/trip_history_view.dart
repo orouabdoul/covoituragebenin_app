@@ -5,6 +5,7 @@ import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 import '../controllers/trip_history_controller.dart';
 
 class TripHistoryView extends StatelessWidget {
@@ -128,6 +129,38 @@ class _HeaderBar extends StatelessWidget {
 							),
 						],
 					)),
+					SizedBox(height: responsive.h(10)),
+					// Total spent banner
+					Obx(() {
+						final spent = controller.totalSpent;
+						if (spent == 0) return const SizedBox.shrink();
+						return Container(
+							width: double.infinity,
+							padding: EdgeInsets.symmetric(horizontal: responsive.w(14), vertical: responsive.h(10)),
+							decoration: BoxDecoration(
+								color: AppColors.primarySurface,
+								borderRadius: BorderRadius.circular(responsive.radius(10)),
+								border: Border.all(color: AppColors.primary.withValues(alpha: 0.20)),
+							),
+							child: Row(
+								children: [
+									Icon(Icons.payments_rounded, size: responsive.text(15), color: AppColors.primary),
+									SizedBox(width: responsive.w(8)),
+									Text(
+										'Total dépensé : ',
+										style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textSecondary),
+									),
+									Text(
+										controller.formattedPrice(spent),
+										style: AppTextStyles.caption(responsive).copyWith(
+											color: AppColors.primary,
+											fontWeight: FontWeight.w800,
+										),
+									),
+								],
+							),
+						);
+					}),
 				],
 			),
 		);
@@ -269,188 +302,242 @@ class _TripCard extends StatelessWidget {
 	@override
 	Widget build(BuildContext context) {
 		final color = _statusColor;
-		return Container(
-			decoration: ShapeDecoration(
-				color: AppColors.white,
-				shape: RoundedRectangleBorder(
-					side: BorderSide(color: trip.status == 'upcoming' ? color.withValues(alpha: 0.30) : AppColors.border),
-					borderRadius: BorderRadius.circular(responsive.radius(16)),
-				),
-				shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 8, offset: Offset(0, 2))],
-			),
-			child: Column(
-				children: [
-					// Top bar: status + date + time
-					Container(
-						padding: EdgeInsets.symmetric(horizontal: responsive.w(14), vertical: responsive.h(10)),
-						decoration: BoxDecoration(
-							color: color.withValues(alpha: 0.06),
-							borderRadius: BorderRadius.only(
-								topLeft: Radius.circular(responsive.radius(16)),
-								topRight: Radius.circular(responsive.radius(16)),
-							),
-							border: Border(bottom: BorderSide(color: color.withValues(alpha: 0.15))),
-						),
-						child: Row(
-							children: [
-								Icon(_statusIcon, size: responsive.text(14), color: color),
-								SizedBox(width: responsive.w(6)),
-								Text(
-									_statusLabel,
-									style: AppTextStyles.caption(responsive).copyWith(color: color, fontWeight: FontWeight.w700),
-								),
-								const Spacer(),
-								Icon(Icons.calendar_today_rounded, size: responsive.text(12), color: AppColors.textHint),
-								SizedBox(width: responsive.w(4)),
-								Text(
-									trip.date,
-									style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textSecondary),
-								),
-								SizedBox(width: responsive.w(8)),
-								Icon(Icons.access_time_rounded, size: responsive.text(12), color: AppColors.textHint),
-								SizedBox(width: responsive.w(4)),
-								Text(
-									trip.time,
-									style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w600),
-								),
-							],
-						),
+		return InkWell(
+			onTap: () => controller.viewDetails(trip),
+			borderRadius: BorderRadius.circular(responsive.radius(16)),
+			child: Container(
+				decoration: ShapeDecoration(
+					color: AppColors.white,
+					shape: RoundedRectangleBorder(
+						side: BorderSide(color: trip.status == 'upcoming' ? color.withValues(alpha: 0.30) : AppColors.border),
+						borderRadius: BorderRadius.circular(responsive.radius(16)),
 					),
-					// Route section
-					Padding(
-						padding: EdgeInsets.all(responsive.w(14)),
-						child: Column(
-							children: [
-								// Route visual
-								Row(
-									children: [
-										Column(
-											children: [
-												Container(
-													width: responsive.w(12),
-													height: responsive.w(12),
-													decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.primary),
-												),
-												Container(width: 2, height: responsive.h(28), color: AppColors.border),
-												Container(
-													width: responsive.w(12),
-													height: responsive.w(12),
-													decoration: BoxDecoration(
-														shape: BoxShape.circle,
-														color: Colors.white,
-														border: Border.all(color: AppColors.danger, width: 2),
-													),
-													child: Center(
-														child: Container(
-															width: responsive.w(5),
-															height: responsive.w(5),
-															decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.danger),
-														),
-													),
-												),
-											],
-										),
-										SizedBox(width: responsive.w(12)),
-										Expanded(
-											child: Column(
-												crossAxisAlignment: CrossAxisAlignment.start,
-												children: [
-													Text(trip.origin, style: AppTextStyles.subtitle(responsive)),
-													SizedBox(height: responsive.h(16)),
-													Text(trip.destination, style: AppTextStyles.subtitle(responsive)),
-												],
-											),
-										),
-										Column(
-											crossAxisAlignment: CrossAxisAlignment.end,
-											children: [
-												Text(
-													controller.formattedPrice(trip.price),
-													style: AppTextStyles.h6(responsive).copyWith(color: AppColors.primary, fontWeight: FontWeight.w800),
-												),
-												SizedBox(height: responsive.h(14)),
-												Row(
+					shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 8, offset: Offset(0, 2))],
+				),
+				child: Column(
+					children: [
+						// Top bar: status + date + time
+						Container(
+							padding: EdgeInsets.symmetric(horizontal: responsive.w(14), vertical: responsive.h(10)),
+							decoration: BoxDecoration(
+								color: color.withValues(alpha: 0.06),
+								borderRadius: BorderRadius.only(
+									topLeft: Radius.circular(responsive.radius(16)),
+									topRight: Radius.circular(responsive.radius(16)),
+								),
+								border: Border(bottom: BorderSide(color: color.withValues(alpha: 0.15))),
+							),
+							child: Row(
+								children: [
+									Icon(_statusIcon, size: responsive.text(14), color: color),
+									SizedBox(width: responsive.w(6)),
+									Text(
+										_statusLabel,
+										style: AppTextStyles.caption(responsive).copyWith(color: color, fontWeight: FontWeight.w700),
+									),
+									const Spacer(),
+									Icon(Icons.calendar_today_rounded, size: responsive.text(12), color: AppColors.textHint),
+									SizedBox(width: responsive.w(4)),
+									Text(
+										trip.date,
+										style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textSecondary),
+									),
+									SizedBox(width: responsive.w(8)),
+									Icon(Icons.access_time_rounded, size: responsive.text(12), color: AppColors.textHint),
+									SizedBox(width: responsive.w(4)),
+									Text(
+										trip.time,
+										style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+									),
+								],
+							),
+						),
+						// Route section
+						Padding(
+							padding: EdgeInsets.all(responsive.w(14)),
+							child: Column(
+								children: [
+									// Route visual
+									Row(
+										crossAxisAlignment: CrossAxisAlignment.start,
+										children: [
+											Padding(
+												padding: EdgeInsets.only(top: responsive.h(3)),
+												child: Column(
 													children: [
-														Icon(Icons.event_seat_rounded, size: responsive.text(12), color: AppColors.textHint),
-														SizedBox(width: responsive.w(3)),
-														Text(
-															'${trip.seats} place${trip.seats > 1 ? 's' : ''}',
-															style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textSecondary),
+														Container(
+															width: responsive.w(10),
+															height: responsive.w(10),
+															decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.primary),
+														),
+														Container(width: 2, height: responsive.h(26), color: AppColors.border),
+														Container(
+															width: responsive.w(10),
+															height: responsive.w(10),
+															decoration: BoxDecoration(
+																shape: BoxShape.circle,
+																color: Colors.white,
+																border: Border.all(color: AppColors.danger, width: 2),
+															),
 														),
 													],
 												),
-											],
-										),
-									],
-								),
-								SizedBox(height: responsive.h(12)),
-								Divider(color: AppColors.border, height: 1),
-								SizedBox(height: responsive.h(12)),
-								// Driver row
-								Row(
-									children: [
-										_Avatar(name: trip.driverName, size: responsive.w(32)),
-										SizedBox(width: responsive.w(8)),
-										Expanded(
-											child: Column(
-												crossAxisAlignment: CrossAxisAlignment.start,
+											),
+											SizedBox(width: responsive.w(12)),
+											Expanded(
+												child: Column(
+													crossAxisAlignment: CrossAxisAlignment.start,
+													children: [
+														Text(
+															trip.displayOrigin,
+															style: AppTextStyles.subtitle(responsive),
+															maxLines: 1,
+															overflow: TextOverflow.ellipsis,
+														),
+														SizedBox(height: responsive.h(14)),
+														Text(
+															trip.displayDestination,
+															style: AppTextStyles.subtitle(responsive),
+															maxLines: 1,
+															overflow: TextOverflow.ellipsis,
+														),
+													],
+												),
+											),
+											SizedBox(width: responsive.w(8)),
+											Column(
+												crossAxisAlignment: CrossAxisAlignment.end,
 												children: [
-													Text(trip.driverName, style: AppTextStyles.caption(responsive).copyWith(fontWeight: FontWeight.w600)),
 													Text(
-														'${trip.vehicle} · ${trip.vehiclePlate}',
+														controller.formattedPrice(trip.price * trip.seats),
+														style: AppTextStyles.h6(responsive).copyWith(color: AppColors.primary, fontWeight: FontWeight.w800),
+													),
+													SizedBox(height: responsive.h(2)),
+													Text(
+														'${trip.seats} place${trip.seats > 1 ? 's' : ''}',
 														style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint),
 													),
 												],
 											),
+										],
+									),
+									// Duration/distance pills (if available)
+									if (trip.durationLabel.isNotEmpty || trip.distanceKm > 0) ...[
+										SizedBox(height: responsive.h(10)),
+										Row(
+											children: [
+												if (trip.durationLabel.isNotEmpty) _InfoPill(
+													responsive: responsive,
+													icon: Icons.timelapse_rounded,
+													label: trip.durationLabel,
+												),
+												if (trip.durationLabel.isNotEmpty && trip.distanceKm > 0)
+													SizedBox(width: responsive.w(6)),
+												if (trip.distanceKm > 0) _InfoPill(
+													responsive: responsive,
+													icon: Icons.straighten_rounded,
+													label: '${trip.distanceKm.toStringAsFixed(0)} km',
+												),
+											],
 										),
-										if (trip.status == 'completed' && trip.rating != null)
-											Row(
-												children: [
-													Icon(Icons.star_rounded, color: AppColors.warning, size: responsive.text(14)),
-													SizedBox(width: responsive.w(3)),
-													Text(
-														'${trip.rating!.toStringAsFixed(0)}/5',
-														style: AppTextStyles.caption(responsive).copyWith(
-															color: AppColors.warning,
-															fontWeight: FontWeight.w700,
-														),
-													),
-												],
-											),
 									],
-								),
-								// Action buttons
-								if (trip.status == 'completed' || trip.status == 'cancelled') ...[
 									SizedBox(height: responsive.h(12)),
+									Divider(color: AppColors.border, height: 1),
+									SizedBox(height: responsive.h(12)),
+									// Driver row
 									Row(
 										children: [
+											_Avatar(name: trip.driverName, size: responsive.w(32)),
+											SizedBox(width: responsive.w(8)),
 											Expanded(
-												child: _ActionButton(
-													responsive: responsive,
-													label: 'Réserver à nouveau',
-													icon: Icons.refresh_rounded,
-													color: AppColors.primary,
-													onTap: () => controller.rebookTrip(trip),
+												child: Column(
+													crossAxisAlignment: CrossAxisAlignment.start,
+													children: [
+														Text(trip.driverName, style: AppTextStyles.caption(responsive).copyWith(fontWeight: FontWeight.w600)),
+														Text(
+															'${trip.vehicle} · ${trip.vehiclePlate}',
+															style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint),
+														),
+													],
 												),
 											),
-											if (trip.status == 'cancelled') ...[
-												SizedBox(width: responsive.w(8)),
+											if (trip.status == 'completed' && trip.rating != null)
+												Row(
+													children: [
+														Icon(Icons.star_rounded, color: AppColors.warning, size: responsive.text(14)),
+														SizedBox(width: responsive.w(3)),
+														Text(
+															'${trip.rating!.toStringAsFixed(1)}/5',
+															style: AppTextStyles.caption(responsive).copyWith(
+																color: AppColors.warning,
+																fontWeight: FontWeight.w700,
+															),
+														),
+													],
+												)
+											else
+												Icon(Icons.chevron_right_rounded, size: responsive.text(18), color: AppColors.textHint),
+										],
+									),
+									// Action buttons
+									if (trip.status == 'completed' || trip.status == 'cancelled') ...[
+										SizedBox(height: responsive.h(12)),
+										Row(
+											children: [
 												Expanded(
 													child: _ActionButton(
 														responsive: responsive,
-														label: 'Remboursement',
-														icon: Icons.account_balance_wallet_outlined,
-														color: AppColors.danger,
-														onTap: () => controller.requestRefund(trip),
+														label: 'Réserver à nouveau',
+														icon: Icons.refresh_rounded,
+														color: AppColors.primary,
+														onTap: () => controller.rebookTrip(trip),
 													),
 												),
+												if (trip.status == 'cancelled') ...[
+													SizedBox(width: responsive.w(8)),
+													Expanded(
+														child: _ActionButton(
+															responsive: responsive,
+															label: 'Remboursement',
+															icon: Icons.account_balance_wallet_outlined,
+															color: AppColors.danger,
+															onTap: () => controller.requestRefund(trip),
+														),
+													),
+												],
 											],
-										],
-									),
+										),
+									],
 								],
-							],
+							),
 						),
-					),
+					],
+				),
+			),
+		);
+	}
+}
+
+class _InfoPill extends StatelessWidget {
+	const _InfoPill({required this.responsive, required this.icon, required this.label});
+	final AppResponsive responsive;
+	final IconData icon;
+	final String label;
+
+	@override
+	Widget build(BuildContext context) {
+		return Container(
+			padding: EdgeInsets.symmetric(horizontal: responsive.w(8), vertical: responsive.h(4)),
+			decoration: BoxDecoration(
+				color: AppColors.surfaceMuted,
+				borderRadius: BorderRadius.circular(responsive.radius(6)),
+			),
+			child: Row(
+				mainAxisSize: MainAxisSize.min,
+				children: [
+					Icon(icon, size: responsive.text(11), color: AppColors.textHint),
+					SizedBox(width: responsive.w(4)),
+					Text(label, style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textSecondary, fontSize: responsive.text(11))),
 				],
 			),
 		);
@@ -536,14 +623,25 @@ class _EmptyState extends StatelessWidget {
 	final AppResponsive responsive;
 	final String filter;
 
-	String get _message {
+	String get _title {
 		switch (filter) {
-			case 'upcoming': return 'Aucun trajet à venir.\nRéservez votre prochain voyage !';
-			case 'completed': return 'Aucun trajet terminé pour l\'instant.';
-			case 'cancelled': return 'Aucun trajet annulé.';
-			default: return 'Vous n\'avez encore effectué\naucun trajet.';
+			case 'upcoming': return 'Aucun trajet à venir';
+			case 'completed': return 'Aucun trajet terminé';
+			case 'cancelled': return 'Aucun trajet annulé';
+			default: return 'Aucun trajet pour l\'instant';
 		}
 	}
+
+	String get _message {
+		switch (filter) {
+			case 'upcoming': return 'Vous n\'avez pas de trajet réservé.\nTrouvez un trajet et réservez dès maintenant !';
+			case 'completed': return 'Vous n\'avez encore effectué aucun trajet. Vos trajets terminés apparaîtront ici.';
+			case 'cancelled': return 'Aucune réservation annulée. Continuez à voyager avec MINIZON !';
+			default: return 'Vous n\'avez encore effectué aucun trajet.\nRéservez votre premier voyage maintenant !';
+		}
+	}
+
+	bool get _showSearchCta => filter == 'all' || filter == 'upcoming';
 
 	@override
 	Widget build(BuildContext context) {
@@ -560,13 +658,25 @@ class _EmptyState extends StatelessWidget {
 							child: Icon(Icons.route_rounded, size: responsive.text(36), color: AppColors.textHint),
 						),
 						SizedBox(height: responsive.h(20)),
-						Text('Aucun trajet', style: AppTextStyles.subtitle(responsive)),
+						Text(_title, style: AppTextStyles.subtitle(responsive), textAlign: TextAlign.center),
 						SizedBox(height: responsive.h(8)),
 						Text(
 							_message,
 							style: AppTextStyles.body(responsive).copyWith(color: AppColors.textHint, height: 1.6),
 							textAlign: TextAlign.center,
 						),
+						if (_showSearchCta) ...[
+							SizedBox(height: responsive.h(28)),
+							AppPrimaryButton(
+								responsive: responsive,
+								label: 'Rechercher un trajet',
+								onTap: () => BottonNavController.goToTab(0),
+								backgroundColor: AppColors.primary,
+								textColor: AppColors.white,
+								height: responsive.h(50),
+								borderRadius: responsive.radius(14),
+							),
+						],
 					],
 				),
 			),

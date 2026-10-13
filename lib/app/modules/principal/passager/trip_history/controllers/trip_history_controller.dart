@@ -49,6 +49,10 @@ class TripHistoryController extends GetxController {
     }
   }
 
+  int get totalSpent => trips
+      .where((t) => t.status == 'completed')
+      .fold(0, (sum, t) => sum + t.price * t.seats);
+
   @override
   void onInit() {
     super.onInit();
@@ -88,7 +92,7 @@ class TripHistoryController extends GetxController {
 
   void selectFilter(String filter) => selectedFilter.value = filter;
 
-  void rebookTrip(TripRecord trip) => BottonNavController.goToTab(1);
+  void rebookTrip(TripRecord trip) => BottonNavController.goToTab(0);
 
   void requestRefund(TripRecord trip) {
     Get.toNamed(

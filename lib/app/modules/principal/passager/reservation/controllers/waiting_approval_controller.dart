@@ -191,12 +191,12 @@ class WaitingApprovalController extends GetxController {
 
   void retrySearch() {
     _cancelTimers();
-    BottonNavController.goToTab(1);
+    BottonNavController.goToTab(0);
   }
 
   void searchAnother() {
     _cancelTimers();
-    BottonNavController.goToTab(1);
+    BottonNavController.goToTab(0);
   }
 
   void requestRefund() {

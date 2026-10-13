@@ -131,7 +131,7 @@ class NotificationsController extends GetxController {
       case 'reservation_rejected':
       case 'booking_cancelled':
       case 'trip_cancelled':
-        BottonNavController.goToTab(2);
+        BottonNavController.goToTab(1);
 
       case 'booking_status_changed':
         final bookingUuid = data['booking_uuid'] as String?;
@@ -141,7 +141,7 @@ class NotificationsController extends GetxController {
             arguments: {'bookingUuid': bookingUuid},
           );
         } else {
-          BottonNavController.goToTab(2);
+          BottonNavController.goToTab(1);
         }
 
       // ── Trajets ───────────────────────────────────────────────────────────
@@ -167,7 +167,7 @@ class NotificationsController extends GetxController {
             arguments: {'bookingUuid': bookingUuid},
           );
         } else {
-          BottonNavController.goToTab(2);
+          BottonNavController.goToTab(1);
         }
 
       // ── Remboursements ────────────────────────────────────────────────────
@@ -180,7 +180,7 @@ class NotificationsController extends GetxController {
       case 'new_message':
       case 'message_new':
         final convUuid = data['conversation_uuid'] as String?;
-        BottonNavController.goToTab(3);
+        BottonNavController.goToTab(2);
         if (convUuid != null) {
           Get.toNamed(AppRoutes.passengerMessageDetail, arguments: {'uuid': convUuid});
         }
@@ -214,7 +214,7 @@ class NotificationsController extends GetxController {
           case 'reservations':
           case 'trips':
           case 'payments':
-            BottonNavController.goToTab(2);
+            BottonNavController.goToTab(1);
           default:
             break;
         }

@@ -12,8 +12,9 @@ import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/driver/home/views/home_view.dart'
     as driver_home;
-import 'package:covoiturage_benin_app/app/modules/principal/driver/messager/views/messager_view.dart'
-    as driver_messager;
+import 'package:covoiturage_benin_app/app/modules/principal/driver/reservation/views/reservations_view.dart'
+    as driver_reservations;
+import 'package:covoiturage_benin_app/app/modules/principal/driver/reservation/controllers/reservations_controller.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/driver/profil/views/profil_driver_view.dart'
     as driver_profile;
 import 'package:covoiturage_benin_app/app/modules/principal/driver/revenus/views/revenus_view.dart'
@@ -22,8 +23,6 @@ import 'package:covoiturage_benin_app/app/modules/principal/driver/trajet/views/
     as driver_trajet;
 import 'package:covoiturage_benin_app/app/modules/principal/passager/home/views/home_view.dart'
     as passenger_home;
-import 'package:covoiturage_benin_app/app/modules/principal/passager/search/views/search_view.dart'
-    as passenger_search;
 import 'package:covoiturage_benin_app/app/modules/principal/passager/reservation/views/reservation_view.dart'
     as passenger_reservation;
 import 'package:covoiturage_benin_app/app/modules/principal/passager/messager/views/messager_view.dart'
@@ -63,11 +62,11 @@ class BottonNavController extends GetxController with WidgetsBindingObserver {
       }
 
       if (index == 2) {
-        return const driver_revenus.RevenusView();
+        return const driver_reservations.ReservationsView();
       }
 
       if (index == 3) {
-        return const driver_messager.MessagerView();
+        return const driver_revenus.RevenusView();
       }
 
       if (index == 4) {
@@ -81,23 +80,20 @@ class BottonNavController extends GetxController with WidgetsBindingObserver {
       );
     }
 
+    // Passenger: 4 tabs — Accueil / Trajets / Messages / Profil
     if (index == 0) {
       return const passenger_home.HomeView();
     }
 
     if (index == 1) {
-      return const passenger_search.SearchView();
-    }
-
-    if (index == 2) {
       return const passenger_reservation.ReservationView();
     }
 
-    if (index == 3) {
+    if (index == 2) {
       return const passenger_messager.MessagerView();
     }
 
-    if (index == 4) {
+    if (index == 3) {
       return const passenger_profile.ProfilView();
     }
 
@@ -170,14 +166,18 @@ class BottonNavController extends GetxController with WidgetsBindingObserver {
       switch (index) {
         case 0: AppSync.i.refreshDriverDashboard(); break;
         case 1: AppSync.i.refreshDriverTrips();     break;
-        case 2: AppSync.i.refreshDriverDashboard(); break;
-        case 3: AppSync.i.refreshDriverMessages();  break;
+        case 2:
+          if (Get.isRegistered<ReservationsController>()) {
+            Get.find<ReservationsController>().refresh();
+          }
+          break;
+        case 3: AppSync.i.refreshDriverDashboard(); break;
       }
     } else {
       switch (index) {
         case 0: AppSync.i.refreshPassenger(); break;
-        case 2: AppSync.i.refreshPassenger(); break;
-        case 3: AppSync.i.refreshPassengerMessages(); break;
+        case 1: AppSync.i.refreshPassenger(); break;
+        case 2: AppSync.i.refreshPassengerMessages(); break;
       }
     }
   }
@@ -293,6 +293,13 @@ class BottonNavController extends GetxController with WidgetsBindingObserver {
     Get.toNamed(route);
   }
 
+  void onMessagesTap() {
+    final route = role == BottonNavRole.driver
+        ? AppRoutes.driverMessages
+        : AppRoutes.passengerMessages;
+    Get.toNamed(route);
+  }
+
   /// Remonte la pile de navigation jusqu'au dashboard et bascule sur l'onglet voulu.
   /// Fonctionne depuis n'importe quelle sous-page, passager ou conducteur.
   static void goToTab(int tabIndex) {
@@ -325,14 +332,14 @@ class BottonNavController extends GetxController with WidgetsBindingObserver {
       icon: Icons.route_rounded,
     ),
     BottonNavItemData(
-      label: AppStrings.navEarnings,
-      description: 'Consultez vos revenus',
-      icon: Icons.payments_outlined,
+      label: 'Demandes',
+      description: 'Répondez aux demandes de réservation',
+      icon: Icons.assignment_turned_in_outlined,
     ),
     BottonNavItemData(
-      label: AppStrings.navMessages,
-      description: 'Messages reçus',
-      icon: Icons.chat_bubble_outline_rounded,
+      label: AppStrings.navEarnings,
+      description: 'Consultez vos revenus et retraits',
+      icon: Icons.payments_outlined,
     ),
     BottonNavItemData(
       label: AppStrings.navProfile,
@@ -348,14 +355,9 @@ class BottonNavController extends GetxController with WidgetsBindingObserver {
       icon: Icons.home_rounded,
     ),
     BottonNavItemData(
-      label: AppStrings.navSearch,
-      description: 'Rechercher un trajet',
-      icon: Icons.search_rounded,
-    ),
-    BottonNavItemData(
-      label: AppStrings.navReservations,
-      description: 'Vos réservations',
-      icon: Icons.event_note_rounded,
+      label: 'Trajets',
+      description: 'Vos réservations et trajets',
+      icon: Icons.route_rounded,
     ),
     BottonNavItemData(
       label: AppStrings.navMessages,

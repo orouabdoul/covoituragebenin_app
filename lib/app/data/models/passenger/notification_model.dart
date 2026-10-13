@@ -212,7 +212,7 @@ class PassengerNotificationModel {
   static DateTime _parseDate(String s) {
     if (s.isEmpty) return DateTime.now();
     DateTime? dt = DateTime.tryParse(s);
-    if (dt == null) dt = DateTime.tryParse(s.replaceFirst(' ', 'T'));
+    dt ??= DateTime.tryParse(s.replaceFirst(' ', 'T'));
     // Unix timestamp (secondes ou millisecondes)
     if (dt == null) {
       final n = int.tryParse(s);

@@ -5,1698 +5,2358 @@ import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
+
 import '../../search/controllers/search_controller.dart';
 import '../controllers/confirmation_reservation_controller.dart';
 
 class ConfirmationReservationView extends StatelessWidget {
-	const ConfirmationReservationView({super.key});
+  const ConfirmationReservationView({super.key});
 
-	@override
-	Widget build(BuildContext context) {
-		final ConfirmationReservationController controller =
-				Get.isRegistered<ConfirmationReservationController>()
-						? Get.find<ConfirmationReservationController>()
-						: Get.put(ConfirmationReservationController());
-		final responsive = AppResponsive(context);
+  @override
+  Widget build(BuildContext context) {
+    final ConfirmationReservationController controller =
+        Get.isRegistered<ConfirmationReservationController>()
+        ? Get.find<ConfirmationReservationController>()
+        : Get.put(ConfirmationReservationController());
+    final responsive = AppResponsive(context);
 
-		return Scaffold(
-			backgroundColor: AppColors.surface,
-			body: SafeArea(
-				child: Center(
-					child: ConstrainedBox(
-						constraints: BoxConstraints(maxWidth: responsive.maxContentWidth),
-						child: ListView(
-							padding: EdgeInsets.fromLTRB(
-								responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
-								responsive.adaptive(phone: 8, smallPhone: 8, tablet: 12, desktop: 16),
-								responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
-								responsive.adaptive(phone: 24, smallPhone: 20, tablet: 28, desktop: 32),
-							),
-							children: [
-								_HeaderBar(responsive: responsive),
-								SizedBox(height: responsive.h(16)),
-								Obx(() => _TripCard(responsive: responsive, ride: controller.ride.value)),
-								SizedBox(height: responsive.h(16)),
-								_StopsCard(responsive: responsive, controller: controller),
-								SizedBox(height: responsive.h(16)),
-								Obx(() => _DriverCard(responsive: responsive, ride: controller.ride.value)),
-								SizedBox(height: responsive.h(16)),
-								_SeatsCard(responsive: responsive, controller: controller),
-								SizedBox(height: responsive.h(16)),
-								Obx(() => _PriceCard(responsive: responsive, controller: controller, ride: controller.ride.value)),
-								SizedBox(height: responsive.h(16)),
-								_PaymentCard(responsive: responsive, controller: controller),
-								SizedBox(height: responsive.h(16)),
-								_PolicyCard(responsive: responsive),
-								SizedBox(height: responsive.h(16)),
-								_SafetyCard(responsive: responsive),
-								SizedBox(height: responsive.h(16)),
-								Obx(() => AppPrimaryButton(
-									responsive: responsive,
-									label: controller.isProcessingPayment.value
-											? 'Préparation…'
-											: (controller.bookingMode == 'approval'
-													? 'Demander cette place'
-													: 'Réserver et continuer'),
-									onTap: controller.isProcessingPayment.value
-											? () {}
-											: controller.confirmReservation,
-									backgroundColor: AppColors.primary,
-									textColor: AppColors.white,
-									borderRadius: responsive.radius(16),
-									height: responsive.h(56),
-								)),
-							],
-						),
-					),
-				),
-			),
-		);
-	}
+    final hp = responsive.adaptive(
+      phone: 16,
+      smallPhone: 14,
+      tablet: 24,
+      desktop: 32,
+    );
+
+    return Scaffold(
+      backgroundColor: AppColors.surface,
+      body: Column(
+        children: [
+          Expanded(
+            child: SafeArea(
+              bottom: false,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints:
+                      BoxConstraints(maxWidth: responsive.maxContentWidth),
+                  child: ListView(
+                    padding: EdgeInsets.fromLTRB(
+                      hp,
+                      responsive.adaptive(
+                        phone: 8,
+                        smallPhone: 8,
+                        tablet: 12,
+                        desktop: 16,
+                      ),
+                      hp,
+                      responsive.adaptive(
+                        phone: 16,
+                        smallPhone: 12,
+                        tablet: 20,
+                        desktop: 24,
+                      ),
+                    ),
+                    children: [
+                      _HeaderBar(responsive: responsive),
+                      SizedBox(height: responsive.h(16)),
+                      Obx(
+                        () => _TripCard(
+                          responsive: responsive,
+                          ride: controller.ride.value,
+                        ),
+                      ),
+                      SizedBox(height: responsive.h(16)),
+                      _StopsCard(
+                          responsive: responsive, controller: controller),
+                      SizedBox(height: responsive.h(16)),
+                      Obx(
+                        () => _DriverCard(
+                          responsive: responsive,
+                          ride: controller.ride.value,
+                        ),
+                      ),
+                      SizedBox(height: responsive.h(16)),
+                      _SeatsCard(
+                          responsive: responsive, controller: controller),
+                      SizedBox(height: responsive.h(16)),
+                      Obx(
+                        () => _PriceCard(
+                          responsive: responsive,
+                          controller: controller,
+                          ride: controller.ride.value,
+                        ),
+                      ),
+                      SizedBox(height: responsive.h(16)),
+                      _PaymentCard(
+                          responsive: responsive, controller: controller),
+                      SizedBox(height: responsive.h(16)),
+                      _PolicyCard(responsive: responsive),
+                      SizedBox(height: responsive.h(16)),
+                      _SafetyCard(responsive: responsive),
+                      SizedBox(height: responsive.h(8)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Bouton fixe en bas — visible pendant tout le scroll
+          SafeArea(
+            top: false,
+            child: Container(
+              decoration: const BoxDecoration(
+                color: AppColors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.shadowSoft,
+                    blurRadius: 12,
+                    offset: Offset(0, -3),
+                  ),
+                ],
+              ),
+              padding: EdgeInsets.fromLTRB(
+                responsive.w(16),
+                responsive.h(12),
+                responsive.w(16),
+                responsive.h(16),
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints:
+                      BoxConstraints(maxWidth: responsive.maxContentWidth),
+                  child: Obx(
+                    () => AppPrimaryButton(
+                      responsive: responsive,
+                      label: controller.isProcessingPayment.value
+                          ? 'Paiement en cours…'
+                          : 'Réserver et payer',
+                      onTap: controller.isProcessingPayment.value
+                          ? () {}
+                          : controller.confirmReservation,
+                      backgroundColor: AppColors.primary,
+                      textColor: AppColors.white,
+                      borderRadius: responsive.radius(16),
+                      height: responsive.h(56),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _HeaderBar extends StatelessWidget {
-	const _HeaderBar({required this.responsive});
+  const _HeaderBar({required this.responsive});
 
-	final AppResponsive responsive;
+  final AppResponsive responsive;
 
-	@override
-	Widget build(BuildContext context) {
-		return Container(
-			width: double.infinity,
-			padding: EdgeInsets.symmetric(
-				horizontal: responsive.adaptive(phone: 20, smallPhone: 20, tablet: 24, desktop: 28),
-				vertical: responsive.h(16),
-			),
-			decoration: const BoxDecoration(
-				color: AppColors.white,
-				border: Border(bottom: BorderSide(color: AppColors.surface)),
-			),
-			child: Row(
-				children: [
-					_RoundIconButton(icon: Icons.chevron_left_rounded, onTap: Get.back),
-					const Spacer(),
-					Text(AppStrings.reservationConfirmationTitle, style: AppTextStyles.title(responsive)),
-					const Spacer(),
-					SizedBox(width: responsive.w(40)),
-				],
-			),
-		);
-	}
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+        horizontal: responsive.adaptive(
+          phone: 20,
+          smallPhone: 20,
+          tablet: 24,
+          desktop: 28,
+        ),
+        vertical: responsive.h(16),
+      ),
+      decoration: const BoxDecoration(
+        color: AppColors.white,
+        border: Border(bottom: BorderSide(color: AppColors.surface)),
+      ),
+      child: Row(
+        children: [
+          _RoundIconButton(icon: Icons.chevron_left_rounded, onTap: Get.back),
+          const Spacer(),
+          Text(
+            AppStrings.reservationConfirmationTitle,
+            style: AppTextStyles.title(responsive),
+          ),
+          const Spacer(),
+          SizedBox(width: responsive.w(40)),
+        ],
+      ),
+    );
+  }
 }
 
 class _RoundIconButton extends StatelessWidget {
-	const _RoundIconButton({required this.icon, required this.onTap});
+  const _RoundIconButton({required this.icon, required this.onTap});
 
-	final IconData icon;
-	final VoidCallback onTap;
+  final IconData icon;
+  final VoidCallback onTap;
 
-	@override
-	Widget build(BuildContext context) {
-		final responsive = AppResponsive(context);
+  @override
+  Widget build(BuildContext context) {
+    final responsive = AppResponsive(context);
 
-		return Material(
-			color: Colors.transparent,
-			child: InkWell(
-				onTap: onTap,
-				borderRadius: BorderRadius.circular(9999),
-				child: Container(
-					width: responsive.w(40),
-					height: responsive.w(40),
-					decoration: ShapeDecoration(
-						color: AppColors.surface,
-						shape: RoundedRectangleBorder(
-							side: const BorderSide(color: Colors.transparent),
-							borderRadius: BorderRadius.circular(9999),
-						),
-					),
-					child: Icon(icon, size: responsive.text(22), color: AppColors.textPrimary),
-				),
-			),
-		);
-	}
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(9999),
+        child: Container(
+          width: responsive.w(40),
+          height: responsive.w(40),
+          decoration: ShapeDecoration(
+            color: AppColors.surface,
+            shape: RoundedRectangleBorder(
+              side: const BorderSide(color: Colors.transparent),
+              borderRadius: BorderRadius.circular(9999),
+            ),
+          ),
+          child: Icon(
+            icon,
+            size: responsive.text(22),
+            color: AppColors.textPrimary,
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _SectionCard extends StatelessWidget {
-	const _SectionCard({required this.responsive, required this.child});
+  const _SectionCard({required this.responsive, required this.child});
 
-	final AppResponsive responsive;
-	final Widget child;
+  final AppResponsive responsive;
+  final Widget child;
 
-	@override
-	Widget build(BuildContext context) {
-		return Container(
-			width: double.infinity,
-			padding: EdgeInsets.all(responsive.adaptive(phone: 20, smallPhone: 18, tablet: 20, desktop: 20)),
-			decoration: ShapeDecoration(
-				color: AppColors.white,
-				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: Colors.transparent),
-					borderRadius: BorderRadius.circular(responsive.radius(20)),
-				),
-				shadows: const [
-					BoxShadow(color: AppColors.shadowSoft, blurRadius: 12, offset: Offset(0, 2)),
-				],
-			),
-			child: child,
-		);
-	}
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(
+        responsive.adaptive(phone: 20, smallPhone: 18, tablet: 20, desktop: 20),
+      ),
+      decoration: ShapeDecoration(
+        color: AppColors.white,
+        shape: RoundedRectangleBorder(
+          side: const BorderSide(color: Colors.transparent),
+          borderRadius: BorderRadius.circular(responsive.radius(20)),
+        ),
+        shadows: const [
+          BoxShadow(
+            color: AppColors.shadowSoft,
+            blurRadius: 12,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
 }
 
 // ── Stops Card ─────────────────────────────────────────────────────────────
 
 class _StopsCard extends StatelessWidget {
-	const _StopsCard({required this.responsive, required this.controller});
+  const _StopsCard({required this.responsive, required this.controller});
 
-	final AppResponsive responsive;
-	final ConfirmationReservationController controller;
+  final AppResponsive responsive;
+  final ConfirmationReservationController controller;
 
-	@override
-	Widget build(BuildContext context) {
-		return Container(
-			padding: EdgeInsets.all(responsive.w(16)),
-			decoration: ShapeDecoration(
-				color: AppColors.white,
-				shape: RoundedRectangleBorder(
-					side: BorderSide(color: AppColors.primary.withValues(alpha: 0.30)),
-					borderRadius: BorderRadius.circular(responsive.radius(16)),
-				),
-				shadows: const [BoxShadow(color: AppColors.shadowSoft, blurRadius: 8, offset: Offset(0, 2))],
-			),
-			child: Column(
-				crossAxisAlignment: CrossAxisAlignment.start,
-				children: [
-					// Header
-					Row(
-						children: [
-							Container(
-								padding: EdgeInsets.symmetric(
-										horizontal: responsive.w(8), vertical: responsive.h(4)),
-								decoration: BoxDecoration(
-									color: AppColors.primary.withValues(alpha: 0.10),
-									borderRadius: BorderRadius.circular(9999),
-								),
-								child: Row(
-									children: [
-										Icon(Icons.pin_drop_rounded,
-												size: responsive.text(12), color: AppColors.primary),
-										SizedBox(width: responsive.w(4)),
-										Text(
-											'Obligatoire',
-											style: AppTextStyles.caption(responsive).copyWith(
-													color: AppColors.primary,
-													fontWeight: FontWeight.w700,
-													fontSize: responsive.text(10)),
-										),
-									],
-								),
-							),
-							SizedBox(width: responsive.w(8)),
-							Expanded(
-								child: Text('Votre itinéraire précis',
-										style: AppTextStyles.subtitle(responsive)),
-							),
-						],
-					),
-					SizedBox(height: responsive.h(4)),
-					Text(
-						'Sélectionnez votre ville et quartier de prise en charge et de dépose.',
-						style: AppTextStyles.caption(responsive)
-								.copyWith(color: AppColors.textHint, height: 1.4),
-					),
-					SizedBox(height: responsive.h(16)),
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(responsive.w(16)),
+      decoration: ShapeDecoration(
+        color: AppColors.white,
+        shape: RoundedRectangleBorder(
+          side: BorderSide(color: AppColors.primary.withValues(alpha: 0.30)),
+          borderRadius: BorderRadius.circular(responsive.radius(16)),
+        ),
+        shadows: const [
+          BoxShadow(
+            color: AppColors.shadowSoft,
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: responsive.w(8),
+                  vertical: responsive.h(4),
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(9999),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.pin_drop_rounded,
+                      size: responsive.text(12),
+                      color: AppColors.primary,
+                    ),
+                    SizedBox(width: responsive.w(4)),
+                    Text(
+                      'Obligatoire',
+                      style: AppTextStyles.caption(responsive).copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: responsive.text(10),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(width: responsive.w(8)),
+              Expanded(
+                child: Text(
+                  'Votre itinéraire précis',
+                  style: AppTextStyles.subtitle(responsive),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: responsive.h(4)),
+          Text(
+            'Sélectionnez votre ville et quartier de prise en charge et de dépose.',
+            style: AppTextStyles.caption(responsive)
+                .copyWith(color: AppColors.textHint, height: 1.4),
+          ),
+          SizedBox(height: responsive.h(16)),
 
-					// ── PRISE EN CHARGE ──────────────────────────────────────────
-					_SectionLabel(
-						responsive: responsive,
-						icon: Icons.trip_origin_rounded,
-						iconColor: AppColors.primary,
-						label: 'Prise en charge',
-					),
-					SizedBox(height: responsive.h(8)),
+          // ── PRISE EN CHARGE ──────────────────────────────────────────
+          _SectionLabel(
+            responsive: responsive,
+            icon: Icons.trip_origin_rounded,
+            iconColor: AppColors.primary,
+            label: 'Prise en charge',
+          ),
+          SizedBox(height: responsive.h(8)),
 
-					// Ville (autocomplete avec villes du trajet en priorité)
-					Obx(() => _LocationAutocompleteField(
-						key: const ValueKey('pickup-city'),
-						responsive: responsive,
-						label: 'Ville *',
-						icon: Icons.location_city_rounded,
-						iconColor: AppColors.primary,
-						controller: controller.pickupCityController,
-						items: controller.pickupCityItems,
-						isSelected: controller.pickupSelectedCity.value != null,
-						onSelected: controller.onPickupCitySelected,
-						onTextChanged: controller.onPickupCityTyped,
-					)),
-					SizedBox(height: responsive.h(8)),
+          // Ville (autocomplete avec villes du trajet en priorité)
+          Obx(
+            () => _LocationAutocompleteField(
+              key: const ValueKey('pickup-city'),
+              responsive: responsive,
+              label: 'Ville *',
+              icon: Icons.location_city_rounded,
+              iconColor: AppColors.primary,
+              controller: controller.pickupCityController,
+              items: controller.pickupCityItems,
+              isSelected: controller.pickupSelectedCity.value != null,
+              onSelected: controller.onPickupCitySelected,
+              onTextChanged: controller.onPickupCityTyped,
+            ),
+          ),
+          SizedBox(height: responsive.h(8)),
 
-					// Arrondissement
-					Obx(() {
-						return Column(
-							children: [
-								_LocationAutocompleteField(
-									key: ValueKey('pickup-arr-${controller.pickupSelectedCity.value}'),
-									responsive: responsive,
-									label: 'Arrondissement *',
-									icon: Icons.grid_view_rounded,
-									iconColor: AppColors.primary,
-									controller: controller.pickupArrondissementController,
-									items: controller.pickupArrondissementItems,
-									isSelected: controller.pickupSelectedArrondissement.value != null,
-									onSelected: controller.onPickupArrondissementSelected,
-									onTextChanged: controller.onPickupArrondissementTyped,
-									enabled: controller.pickupSelectedCity.value != null,
-									emptyHint: 'Choisissez un arrondissement',
-								),
-								SizedBox(height: responsive.h(8)),
-							],
-						);
-					}),
+          // Arrondissement
+          Obx(() {
+            return Column(
+              children: [
+                _LocationAutocompleteField(
+                  key: ValueKey(
+                    'pickup-arr-${controller.pickupSelectedCity.value}',
+                  ),
+                  responsive: responsive,
+                  label: 'Arrondissement *',
+                  icon: Icons.grid_view_rounded,
+                  iconColor: AppColors.primary,
+                  controller: controller.pickupArrondissementController,
+                  items: controller.pickupArrondissementItems,
+                  isSelected:
+                      controller.pickupSelectedArrondissement.value != null,
+                  onSelected: controller.onPickupArrondissementSelected,
+                  onTextChanged: controller.onPickupArrondissementTyped,
+                  enabled: controller.pickupSelectedCity.value != null,
+                  emptyHint: 'Choisissez un arrondissement',
+                ),
+                SizedBox(height: responsive.h(8)),
+              ],
+            );
+          }),
 
-					// Quartier (filtré selon l'arrondissement)
-					Obx(() {
-						final arrSelected = controller.pickupSelectedArrondissement.value;
-						final districts = controller.pickupNeighborhoodItems;
-						return _LocationAutocompleteField(
-							key: ValueKey('pickup-district-${controller.pickupSelectedCity.value}-$arrSelected'),
-							responsive: responsive,
-							label: 'Quartier *',
-							icon: Icons.map_rounded,
-							iconColor: AppColors.primary,
-							controller: controller.pickupNeighborhoodController,
-							items: districts,
-							isSelected: controller.pickupSelectedNeighborhood.value != null,
-							onSelected: controller.onPickupNeighborhoodSelected,
-							onTextChanged: controller.onPickupNeighborhoodTyped,
-							enabled: arrSelected != null,
-							emptyHint: arrSelected == null
-									? 'Choisissez d\'abord un arrondissement'
-									: controller.pickupSelectedCity.value == null
-											? 'Choisissez d\'abord une ville'
-											: 'Saisissez votre quartier',
-						);
-					}),
-					SizedBox(height: responsive.h(8)),
+          // Quartier (filtré selon l'arrondissement)
+          Obx(() {
+            final arrSelected = controller.pickupSelectedArrondissement.value;
+            final districts = controller.pickupNeighborhoodItems;
+            return _LocationAutocompleteField(
+              key: ValueKey(
+                'pickup-district-${controller.pickupSelectedCity.value}-$arrSelected',
+              ),
+              responsive: responsive,
+              label: 'Quartier *',
+              icon: Icons.map_rounded,
+              iconColor: AppColors.primary,
+              controller: controller.pickupNeighborhoodController,
+              items: districts,
+              isSelected: controller.pickupSelectedNeighborhood.value != null,
+              onSelected: controller.onPickupNeighborhoodSelected,
+              onTextChanged: controller.onPickupNeighborhoodTyped,
+              enabled: arrSelected != null,
+              emptyHint: arrSelected == null
+                  ? 'Choisissez d\'abord un arrondissement'
+                  : controller.pickupSelectedCity.value == null
+                  ? 'Choisissez d\'abord une ville'
+                  : 'Saisissez votre quartier',
+            );
+          }),
+          SizedBox(height: responsive.h(8)),
 
-					// Repère (champ libre)
-					_PlainTextField(
-						responsive: responsive,
-						label: 'Repère / Adresse (optionnel)',
-						hint: 'Ex: Face pharmacie du centre',
-						controller: controller.pickupController,
-					),
-					SizedBox(height: responsive.h(8)),
+          // Repère (champ libre)
+          _PlainTextField(
+            responsive: responsive,
+            label: 'Repère / Adresse (optionnel)',
+            hint: 'Ex: Face pharmacie du centre',
+            controller: controller.pickupController,
+          ),
+          SizedBox(height: responsive.h(8)),
 
-					// Statut GPS auto (prise en charge)
-					Obx(() {
-						if (controller.isAutoLocating.value) {
-							return _GpsStatusBadge(
-								responsive: responsive,
-								isLoading: true,
-								message: 'Détection de votre position en cours…',
-							);
-						}
-						if (controller.pickupLat.value != null) {
-							return _GpsStatusBadge(
-								responsive: responsive,
-								isLoading: false,
-								message: 'Position GPS obtenue automatiquement',
-							);
-						}
-						return const SizedBox.shrink();
-					}),
+          // Statut GPS auto (prise en charge)
+          Obx(() {
+            if (controller.isAutoLocating.value) {
+              return _GpsStatusBadge(
+                responsive: responsive,
+                isLoading: true,
+                message: 'Détection de votre position en cours…',
+              );
+            }
+            if (controller.pickupLat.value != null) {
+              return _GpsStatusBadge(
+                responsive: responsive,
+                isLoading: false,
+                message: 'Position GPS obtenue automatiquement',
+              );
+            }
+            return const SizedBox.shrink();
+          }),
 
-					// ── Séparateur ───────────────────────────────────────────────
-					Padding(
-						padding: EdgeInsets.symmetric(vertical: responsive.h(14)),
-						child: Row(
-							children: [
-								const Expanded(child: Divider(color: AppColors.border)),
-								Padding(
-									padding: EdgeInsets.symmetric(horizontal: responsive.w(10)),
-									child: Icon(Icons.swap_vert_rounded,
-											size: responsive.text(18), color: AppColors.textHint),
-								),
-								const Expanded(child: Divider(color: AppColors.border)),
-							],
-						),
-					),
+          // ── Séparateur ───────────────────────────────────────────────
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: responsive.h(14)),
+            child: Row(
+              children: [
+                const Expanded(child: Divider(color: AppColors.border)),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: responsive.w(10)),
+                  child: Icon(
+                    Icons.swap_vert_rounded,
+                    size: responsive.text(18),
+                    color: AppColors.textHint,
+                  ),
+                ),
+                const Expanded(child: Divider(color: AppColors.border)),
+              ],
+            ),
+          ),
 
-					// ── DÉPOSE ───────────────────────────────────────────────────
-					_SectionLabel(
-						responsive: responsive,
-						icon: Icons.location_on_rounded,
-						iconColor: AppColors.danger,
-						label: 'Dépose',
-					),
-					SizedBox(height: responsive.h(8)),
+          // ── DÉPOSE ───────────────────────────────────────────────────
+          _SectionLabel(
+            responsive: responsive,
+            icon: Icons.location_on_rounded,
+            iconColor: AppColors.danger,
+            label: 'Dépose',
+          ),
+          SizedBox(height: responsive.h(8)),
 
-					// Ville
-					Obx(() => _LocationAutocompleteField(
-						key: const ValueKey('dropoff-city'),
-						responsive: responsive,
-						label: 'Ville *',
-						icon: Icons.location_city_rounded,
-						iconColor: AppColors.danger,
-						controller: controller.dropoffCityController,
-						items: controller.dropoffCityItems,
-						isSelected: controller.dropoffSelectedCity.value != null,
-						onSelected: controller.onDropoffCitySelected,
-						onTextChanged: controller.onDropoffCityTyped,
-					)),
-					SizedBox(height: responsive.h(8)),
+          // Ville
+          Obx(
+            () => _LocationAutocompleteField(
+              key: const ValueKey('dropoff-city'),
+              responsive: responsive,
+              label: 'Ville *',
+              icon: Icons.location_city_rounded,
+              iconColor: AppColors.danger,
+              controller: controller.dropoffCityController,
+              items: controller.dropoffCityItems,
+              isSelected: controller.dropoffSelectedCity.value != null,
+              onSelected: controller.onDropoffCitySelected,
+              onTextChanged: controller.onDropoffCityTyped,
+            ),
+          ),
+          SizedBox(height: responsive.h(8)),
 
-					// Arrondissement
-					Obx(() {
-						return Column(
-							children: [
-								_LocationAutocompleteField(
-									key: ValueKey('dropoff-arr-${controller.dropoffSelectedCity.value}'),
-									responsive: responsive,
-									label: 'Arrondissement *',
-									icon: Icons.grid_view_rounded,
-									iconColor: AppColors.danger,
-									controller: controller.dropoffArrondissementController,
-									items: controller.dropoffArrondissementItems,
-									isSelected: controller.dropoffSelectedArrondissement.value != null,
-									onSelected: controller.onDropoffArrondissementSelected,
-									onTextChanged: controller.onDropoffArrondissementTyped,
-									enabled: controller.dropoffSelectedCity.value != null,
-									emptyHint: 'Choisissez un arrondissement',
-								),
-								SizedBox(height: responsive.h(8)),
-							],
-						);
-					}),
+          // Arrondissement
+          Obx(() {
+            return Column(
+              children: [
+                _LocationAutocompleteField(
+                  key: ValueKey(
+                    'dropoff-arr-${controller.dropoffSelectedCity.value}',
+                  ),
+                  responsive: responsive,
+                  label: 'Arrondissement *',
+                  icon: Icons.grid_view_rounded,
+                  iconColor: AppColors.danger,
+                  controller: controller.dropoffArrondissementController,
+                  items: controller.dropoffArrondissementItems,
+                  isSelected:
+                      controller.dropoffSelectedArrondissement.value != null,
+                  onSelected: controller.onDropoffArrondissementSelected,
+                  onTextChanged: controller.onDropoffArrondissementTyped,
+                  enabled: controller.dropoffSelectedCity.value != null,
+                  emptyHint: 'Choisissez un arrondissement',
+                ),
+                SizedBox(height: responsive.h(8)),
+              ],
+            );
+          }),
 
-					// Quartier
-					Obx(() {
-						final arrSelected = controller.dropoffSelectedArrondissement.value;
-						final districts = controller.dropoffNeighborhoodItems;
-						return _LocationAutocompleteField(
-							key: ValueKey('dropoff-district-${controller.dropoffSelectedCity.value}-$arrSelected'),
-							responsive: responsive,
-							label: 'Quartier *',
-							icon: Icons.map_rounded,
-							iconColor: AppColors.danger,
-							controller: controller.dropoffNeighborhoodController,
-							items: districts,
-							isSelected: controller.dropoffSelectedNeighborhood.value != null,
-							onSelected: controller.onDropoffNeighborhoodSelected,
-							onTextChanged: controller.onDropoffNeighborhoodTyped,
-							enabled: arrSelected != null,
-							emptyHint: arrSelected == null
-									? 'Choisissez d\'abord un arrondissement'
-									: controller.dropoffSelectedCity.value == null
-											? 'Choisissez d\'abord une ville'
-											: 'Saisissez votre quartier',
-						);
-					}),
-					SizedBox(height: responsive.h(8)),
+          // Quartier
+          Obx(() {
+            final arrSelected = controller.dropoffSelectedArrondissement.value;
+            final districts = controller.dropoffNeighborhoodItems;
+            return _LocationAutocompleteField(
+              key: ValueKey(
+                'dropoff-district-${controller.dropoffSelectedCity.value}-$arrSelected',
+              ),
+              responsive: responsive,
+              label: 'Quartier *',
+              icon: Icons.map_rounded,
+              iconColor: AppColors.danger,
+              controller: controller.dropoffNeighborhoodController,
+              items: districts,
+              isSelected: controller.dropoffSelectedNeighborhood.value != null,
+              onSelected: controller.onDropoffNeighborhoodSelected,
+              onTextChanged: controller.onDropoffNeighborhoodTyped,
+              enabled: arrSelected != null,
+              emptyHint: arrSelected == null
+                  ? 'Choisissez d\'abord un arrondissement'
+                  : controller.dropoffSelectedCity.value == null
+                  ? 'Choisissez d\'abord une ville'
+                  : 'Saisissez votre quartier',
+            );
+          }),
+          SizedBox(height: responsive.h(8)),
 
-					// Repère (champ libre)
-					_PlainTextField(
-						responsive: responsive,
-						label: 'Repère / Adresse (optionnel)',
-						hint: 'Ex: Carrefour étoile rouge',
-						controller: controller.dropoffController,
-					),
+          // Repère (champ libre)
+          _PlainTextField(
+            responsive: responsive,
+            label: 'Repère / Adresse (optionnel)',
+            hint: 'Ex: Carrefour étoile rouge',
+            controller: controller.dropoffController,
+          ),
 
-					// Statut coordonnées dépose
-					Obx(() {
-						final city = controller.dropoffSelectedCity.value;
-						final hasCoords = controller.dropoffLat.value != null;
-						if (city == null) return const SizedBox.shrink();
-						if (hasCoords) {
-							return Padding(
-								padding: EdgeInsets.only(top: responsive.h(8)),
-								child: _GpsStatusBadge(
-									responsive: responsive,
-									isLoading: false,
-									message: 'Coordonnées définies pour $city',
-								),
-							);
-						}
-						return Padding(
-							padding: EdgeInsets.only(top: responsive.h(8)),
-							child: Container(
-								padding: EdgeInsets.symmetric(
-										horizontal: responsive.w(10), vertical: responsive.h(8)),
-								decoration: BoxDecoration(
-									color: AppColors.warningSurface,
-									borderRadius: BorderRadius.circular(responsive.radius(8)),
-									border: Border.all(
-											color: AppColors.warning.withValues(alpha: 0.4)),
-								),
-								child: Row(
-									children: [
-										Icon(Icons.warning_amber_rounded,
-												size: responsive.text(13),
-												color: AppColors.warning),
-										SizedBox(width: responsive.w(6)),
-										Expanded(
-											child: Text(
-												'"$city" non reconnue. Choisissez une ville de la liste.',
-												style: AppTextStyles.caption(responsive).copyWith(
-													color: AppColors.warningDark,
-													fontSize: responsive.text(11),
-												),
-											),
-										),
-									],
-								),
-							),
-						);
-					}),
+          // Statut coordonnées dépose
+          Obx(() {
+            final city = controller.dropoffSelectedCity.value;
+            final hasCoords = controller.dropoffLat.value != null;
+            if (city == null) return const SizedBox.shrink();
+            if (hasCoords) {
+              return Padding(
+                padding: EdgeInsets.only(top: responsive.h(8)),
+                child: _GpsStatusBadge(
+                  responsive: responsive,
+                  isLoading: false,
+                  message: 'Coordonnées définies pour $city',
+                ),
+              );
+            }
+            return Padding(
+              padding: EdgeInsets.only(top: responsive.h(8)),
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: responsive.w(10),
+                  vertical: responsive.h(8),
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.warningSurface,
+                  borderRadius: BorderRadius.circular(responsive.radius(8)),
+                  border: Border.all(
+                    color: AppColors.warning.withValues(alpha: 0.4),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      size: responsive.text(13),
+                      color: AppColors.warning,
+                    ),
+                    SizedBox(width: responsive.w(6)),
+                    Expanded(
+                      child: Text(
+                        '"$city" non reconnue. Choisissez une ville de la liste.',
+                        style: AppTextStyles.caption(responsive).copyWith(
+                          color: AppColors.warningDark,
+                          fontSize: responsive.text(11),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
 
-					SizedBox(height: responsive.h(12)),
-					// Info calcul prix
-					Container(
-						padding: EdgeInsets.symmetric(
-								horizontal: responsive.w(12), vertical: responsive.h(8)),
-						decoration: BoxDecoration(
-							color: AppColors.successSurface,
-							borderRadius: BorderRadius.circular(responsive.radius(10)),
-							border: Border.all(
-									color: AppColors.primary.withValues(alpha: 0.20)),
-						),
-						child: Row(
-							children: [
-								Icon(Icons.calculate_outlined,
-										size: responsive.text(14), color: AppColors.primary),
-								SizedBox(width: responsive.w(8)),
-								Expanded(
-									child: Text(
-										'Le prix est calculé selon votre distance exacte, pas celle du trajet complet.',
-										style: AppTextStyles.caption(responsive).copyWith(
-											color: AppColors.primary,
-											height: 1.3,
-											fontSize: responsive.text(11),
-										),
-									),
-								),
-							],
-						),
-					),
-				],
-			),
-		);
-	}
+          SizedBox(height: responsive.h(12)),
+          // Info calcul prix
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: responsive.w(12),
+              vertical: responsive.h(8),
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.successSurface,
+              borderRadius: BorderRadius.circular(responsive.radius(10)),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.20),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.calculate_outlined,
+                  size: responsive.text(14),
+                  color: AppColors.primary,
+                ),
+                SizedBox(width: responsive.w(8)),
+                Expanded(
+                  child: Text(
+                    'Le prix est calculé selon votre distance exacte, pas celle du trajet complet.',
+                    style: AppTextStyles.caption(responsive).copyWith(
+                      color: AppColors.primary,
+                      height: 1.3,
+                      fontSize: responsive.text(11),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ── Section label ──────────────────────────────────────────────────────────
 
 class _SectionLabel extends StatelessWidget {
-	const _SectionLabel({
-		required this.responsive,
-		required this.icon,
-		required this.iconColor,
-		required this.label,
-	});
+  const _SectionLabel({
+    required this.responsive,
+    required this.icon,
+    required this.iconColor,
+    required this.label,
+  });
 
-	final AppResponsive responsive;
-	final IconData icon;
-	final Color iconColor;
-	final String label;
+  final AppResponsive responsive;
+  final IconData icon;
+  final Color iconColor;
+  final String label;
 
-	@override
-	Widget build(BuildContext context) {
-		return Row(
-			children: [
-				Icon(icon, size: responsive.text(14), color: iconColor),
-				SizedBox(width: responsive.w(6)),
-				Text(
-					label,
-					style: AppTextStyles.caption(responsive).copyWith(
-						fontWeight: FontWeight.w700,
-						color: AppColors.textPrimary,
-					),
-				),
-			],
-		);
-	}
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: responsive.text(14), color: iconColor),
+        SizedBox(width: responsive.w(6)),
+        Text(
+          label,
+          style: AppTextStyles.caption(
+            responsive,
+          ).copyWith(fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+        ),
+      ],
+    );
+  }
 }
 
 // ── Champ texte libre (repère/adresse) ────────────────────────────────────
 
 class _PlainTextField extends StatelessWidget {
-	const _PlainTextField({
-		required this.responsive,
-		required this.label,
-		required this.hint,
-		required this.controller,
-	});
+  const _PlainTextField({
+    required this.responsive,
+    required this.label,
+    required this.hint,
+    required this.controller,
+  });
 
-	final AppResponsive responsive;
-	final String label;
-	final String hint;
-	final TextEditingController controller;
+  final AppResponsive responsive;
+  final String label;
+  final String hint;
+  final TextEditingController controller;
 
-	@override
-	Widget build(BuildContext context) {
-		return Container(
-			padding: EdgeInsets.symmetric(
-					horizontal: responsive.w(12), vertical: responsive.h(10)),
-			decoration: BoxDecoration(
-				color: AppColors.surfaceMuted,
-				borderRadius: BorderRadius.circular(responsive.radius(10)),
-			),
-			child: Column(
-				crossAxisAlignment: CrossAxisAlignment.start,
-				children: [
-					Text(
-						label,
-						style: AppTextStyles.caption(responsive)
-								.copyWith(color: AppColors.textHint, fontSize: responsive.text(10)),
-					),
-					SizedBox(height: responsive.h(2)),
-					TextField(
-						controller: controller,
-						style: AppTextStyles.subtitle(responsive),
-						textCapitalization: TextCapitalization.sentences,
-						decoration: InputDecoration(
-							hintText: hint,
-							hintStyle: AppTextStyles.caption(responsive)
-									.copyWith(color: AppColors.textHint),
-							isDense: true,
-							contentPadding: EdgeInsets.zero,
-							border: InputBorder.none,
-							enabledBorder: InputBorder.none,
-							focusedBorder: InputBorder.none,
-							filled: false,
-						),
-					),
-				],
-			),
-		);
-	}
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: responsive.w(12),
+        vertical: responsive.h(10),
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceMuted,
+        borderRadius: BorderRadius.circular(responsive.radius(10)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: AppTextStyles.caption(responsive).copyWith(
+              color: AppColors.textHint,
+              fontSize: responsive.text(10),
+            ),
+          ),
+          SizedBox(height: responsive.h(2)),
+          TextField(
+            controller: controller,
+            style: AppTextStyles.subtitle(responsive),
+            textCapitalization: TextCapitalization.sentences,
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: AppTextStyles.caption(responsive)
+                  .copyWith(color: AppColors.textHint),
+              isDense: true,
+              contentPadding: EdgeInsets.zero,
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              filled: false,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ── Badge statut GPS ───────────────────────────────────────────────────────
 
 class _GpsStatusBadge extends StatelessWidget {
-	const _GpsStatusBadge({
-		required this.responsive,
-		required this.isLoading,
-		required this.message,
-	});
+  const _GpsStatusBadge({
+    required this.responsive,
+    required this.isLoading,
+    required this.message,
+  });
 
-	final AppResponsive responsive;
-	final bool isLoading;
-	final String message;
+  final AppResponsive responsive;
+  final bool isLoading;
+  final String message;
 
-	@override
-	Widget build(BuildContext context) {
-		return Container(
-			padding: EdgeInsets.symmetric(
-					horizontal: responsive.w(10), vertical: responsive.h(6)),
-			decoration: BoxDecoration(
-				color: isLoading
-						? AppColors.surface
-						: AppColors.successSurface,
-				borderRadius: BorderRadius.circular(responsive.radius(8)),
-				border: Border.all(
-					color: isLoading
-							? AppColors.border
-							: AppColors.primary.withValues(alpha: 0.25),
-				),
-			),
-			child: Row(
-				children: [
-					if (isLoading)
-						SizedBox(
-							width: responsive.w(12),
-							height: responsive.w(12),
-							child: const CircularProgressIndicator(
-								strokeWidth: 2,
-								color: AppColors.primary,
-							),
-						)
-					else
-						Icon(Icons.gps_fixed_rounded,
-								size: responsive.text(13), color: AppColors.primary),
-					SizedBox(width: responsive.w(6)),
-					Expanded(
-						child: Text(
-							message,
-							style: AppTextStyles.caption(responsive).copyWith(
-								color: isLoading
-										? AppColors.textSecondary
-										: AppColors.primary,
-								fontSize: responsive.text(11),
-							),
-						),
-					),
-				],
-			),
-		);
-	}
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: responsive.w(10),
+        vertical: responsive.h(6),
+      ),
+      decoration: BoxDecoration(
+        color: isLoading ? AppColors.surface : AppColors.successSurface,
+        borderRadius: BorderRadius.circular(responsive.radius(8)),
+        border: Border.all(
+          color: isLoading
+              ? AppColors.border
+              : AppColors.primary.withValues(alpha: 0.25),
+        ),
+      ),
+      child: Row(
+        children: [
+          if (isLoading)
+            SizedBox(
+              width: responsive.w(12),
+              height: responsive.w(12),
+              child: const CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.primary,
+              ),
+            )
+          else
+            Icon(
+              Icons.gps_fixed_rounded,
+              size: responsive.text(13),
+              color: AppColors.primary,
+            ),
+          SizedBox(width: responsive.w(6)),
+          Expanded(
+            child: Text(
+              message,
+              style: AppTextStyles.caption(responsive).copyWith(
+                color: isLoading ? AppColors.textSecondary : AppColors.primary,
+                fontSize: responsive.text(11),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ── Champ autocomplete ville/quartier ─────────────────────────────────────
 
 class _LocationAutocompleteField extends StatelessWidget {
-	const _LocationAutocompleteField({
-		super.key,
-		required this.responsive,
-		required this.label,
-		required this.icon,
-		required this.iconColor,
-		required this.controller,
-		required this.items,
-		required this.isSelected,
-		required this.onSelected,
-		this.onTextChanged,
-		this.enabled = true,
-		this.emptyHint,
-	});
+  const _LocationAutocompleteField({
+    super.key,
+    required this.responsive,
+    required this.label,
+    required this.icon,
+    required this.iconColor,
+    required this.controller,
+    required this.items,
+    required this.isSelected,
+    required this.onSelected,
+    this.onTextChanged,
+    this.enabled = true,
+    this.emptyHint,
+  });
 
-	final AppResponsive responsive;
-	final String label;
-	final IconData icon;
-	final Color iconColor;
-	final TextEditingController controller;
-	final List<String> items;
-	final bool isSelected;
-	final ValueChanged<String> onSelected;
-	final VoidCallback? onTextChanged;
-	final bool enabled;
-	final String? emptyHint;
+  final AppResponsive responsive;
+  final String label;
+  final IconData icon;
+  final Color iconColor;
+  final TextEditingController controller;
+  final List<String> items;
+  final bool isSelected;
+  final ValueChanged<String> onSelected;
+  final VoidCallback? onTextChanged;
+  final bool enabled;
+  final String? emptyHint;
 
-	void _openPicker(BuildContext context) {
-		if (!enabled || items.isEmpty) return;
-		showModalBottomSheet<void>(
-			context: context,
-			isScrollControlled: true,
-			backgroundColor: Colors.transparent,
-			builder: (_) => _LocationPickerSheet(
-				label: label,
-				items: items,
-				responsive: responsive,
-				onSelected: (item) {
-					controller.text = item;
-					onSelected(item);
-				},
-			),
-		);
-	}
+  void _openPicker(BuildContext context) {
+    if (!enabled || items.isEmpty) return;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _LocationPickerSheet(
+        label: label,
+        items: items,
+        responsive: responsive,
+        onSelected: (item) {
+          controller.text = item;
+          onSelected(item);
+        },
+      ),
+    );
+  }
 
-	@override
-	Widget build(BuildContext context) {
-		final bool hasValue = controller.text.isNotEmpty;
-		// Bordure transparente si non sélectionné (supprime le "petit contour")
-		final Color borderColor = isSelected ? iconColor : Colors.transparent;
-		final Color effectiveIconColor =
-				isSelected ? iconColor : AppColors.textHint;
+  @override
+  Widget build(BuildContext context) {
+    final bool hasValue = controller.text.isNotEmpty;
+    // Bordure transparente si non sélectionné (supprime le "petit contour")
+    final Color borderColor = isSelected ? iconColor : Colors.transparent;
+    final Color effectiveIconColor = isSelected
+        ? iconColor
+        : AppColors.textHint;
 
-		return GestureDetector(
-			onTap: enabled ? () => _openPicker(context) : null,
-			child: Container(
-				decoration: BoxDecoration(
-					color: enabled ? AppColors.surfaceMuted : AppColors.surface,
-					borderRadius: BorderRadius.circular(responsive.radius(10)),
-					border: Border.all(color: borderColor),
-				),
-				child: Row(
-					children: [
-						Padding(
-							padding: EdgeInsets.symmetric(horizontal: responsive.w(12)),
-							child: Icon(
-								isSelected ? Icons.check_circle_rounded : icon,
-								size: responsive.text(16),
-								color: effectiveIconColor,
-							),
-						),
-						Expanded(
-							child: Padding(
-								padding: EdgeInsets.symmetric(vertical: responsive.h(10)),
-								child: Column(
-									crossAxisAlignment: CrossAxisAlignment.start,
-									children: [
-										Text(
-											label,
-											style: AppTextStyles.caption(responsive).copyWith(
-												color: AppColors.textHint,
-												fontSize: responsive.text(10),
-											),
-										),
-										SizedBox(height: responsive.h(2)),
-										Text(
-											hasValue
-													? controller.text
-													: (emptyHint ?? 'Appuyer pour choisir…'),
-											style: hasValue
-													? AppTextStyles.subtitle(responsive)
-													: AppTextStyles.caption(responsive)
-															.copyWith(color: AppColors.textHint),
-										),
-									],
-								),
-							),
-						),
-						if (hasValue && enabled)
-							GestureDetector(
-								onTap: () {
-									controller.clear();
-									onTextChanged?.call();
-								},
-								child: Padding(
-									padding: EdgeInsets.only(right: responsive.w(12)),
-									child: Icon(
-										Icons.close_rounded,
-										size: responsive.text(16),
-										color: AppColors.textHint,
-									),
-								),
-							)
-						else
-							Padding(
-								padding: EdgeInsets.only(right: responsive.w(12)),
-								child: Icon(
-									Icons.arrow_drop_down_rounded,
-									size: responsive.text(20),
-									color: AppColors.textHint,
-								),
-							),
-					],
-				),
-			),
-		);
-	}
+    return GestureDetector(
+      onTap: enabled ? () => _openPicker(context) : null,
+      child: Container(
+        decoration: BoxDecoration(
+          color: enabled ? AppColors.surfaceMuted : AppColors.surface,
+          borderRadius: BorderRadius.circular(responsive.radius(10)),
+          border: Border.all(color: borderColor),
+        ),
+        child: Row(
+          children: [
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: responsive.w(12)),
+              child: Icon(
+                isSelected ? Icons.check_circle_rounded : icon,
+                size: responsive.text(16),
+                color: effectiveIconColor,
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: responsive.h(10)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: AppTextStyles.caption(responsive).copyWith(
+                        color: AppColors.textHint,
+                        fontSize: responsive.text(10),
+                      ),
+                    ),
+                    SizedBox(height: responsive.h(2)),
+                    Text(
+                      hasValue
+                          ? controller.text
+                          : (emptyHint ?? 'Appuyer pour choisir…'),
+                      style: hasValue
+                          ? AppTextStyles.subtitle(responsive)
+                          : AppTextStyles.caption(responsive)
+                                .copyWith(color: AppColors.textHint),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (hasValue && enabled)
+              GestureDetector(
+                onTap: () {
+                  controller.clear();
+                  onTextChanged?.call();
+                },
+                child: Padding(
+                  padding: EdgeInsets.only(right: responsive.w(12)),
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: responsive.text(16),
+                    color: AppColors.textHint,
+                  ),
+                ),
+              )
+            else
+              Padding(
+                padding: EdgeInsets.only(right: responsive.w(12)),
+                child: Icon(
+                  Icons.arrow_drop_down_rounded,
+                  size: responsive.text(20),
+                  color: AppColors.textHint,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _LocationPickerSheet extends StatefulWidget {
-	const _LocationPickerSheet({
-		required this.label,
-		required this.items,
-		required this.responsive,
-		required this.onSelected,
-	});
+  const _LocationPickerSheet({
+    required this.label,
+    required this.items,
+    required this.responsive,
+    required this.onSelected,
+  });
 
-	final String label;
-	final List<String> items;
-	final AppResponsive responsive;
-	final ValueChanged<String> onSelected;
+  final String label;
+  final List<String> items;
+  final AppResponsive responsive;
+  final ValueChanged<String> onSelected;
 
-	@override
-	State<_LocationPickerSheet> createState() => _LocationPickerSheetState();
+  @override
+  State<_LocationPickerSheet> createState() => _LocationPickerSheetState();
 }
 
 class _LocationPickerSheetState extends State<_LocationPickerSheet> {
-	late List<String> _filtered;
-	final TextEditingController _searchCtrl = TextEditingController();
+  late List<String> _filtered;
+  final TextEditingController _searchCtrl = TextEditingController();
 
-	@override
-	void initState() {
-		super.initState();
-		_filtered = widget.items;
-		_searchCtrl.addListener(_onSearch);
-	}
+  @override
+  void initState() {
+    super.initState();
+    _filtered = widget.items;
+    _searchCtrl.addListener(_onSearch);
+  }
 
-	@override
-	void dispose() {
-		_searchCtrl.removeListener(_onSearch);
-		_searchCtrl.dispose();
-		super.dispose();
-	}
+  @override
+  void dispose() {
+    _searchCtrl.removeListener(_onSearch);
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
-	void _onSearch() {
-		final q = _searchCtrl.text.toLowerCase();
-		setState(() {
-			_filtered = q.isEmpty
-					? widget.items
-					: widget.items
-							.where((item) => item.toLowerCase().contains(q))
-							.toList();
-		});
-	}
+  void _onSearch() {
+    final q = _searchCtrl.text.toLowerCase();
+    setState(() {
+      _filtered = q.isEmpty
+          ? widget.items
+          : widget.items
+                .where((item) => item.toLowerCase().contains(q))
+                .toList();
+    });
+  }
 
-	@override
-	Widget build(BuildContext context) {
-		final responsive = widget.responsive;
-		final double bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+  @override
+  Widget build(BuildContext context) {
+    final responsive = widget.responsive;
+    final double bottomInset = MediaQuery.viewInsetsOf(context).bottom;
 
-		return Container(
-			padding: EdgeInsets.only(
-				bottom: bottomInset > 0 ? bottomInset : responsive.h(24),
-			),
-			constraints: BoxConstraints(
-				maxHeight: MediaQuery.sizeOf(context).height * 0.85,
-			),
-			decoration: const BoxDecoration(
-				color: Colors.white,
-				borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-			),
-			child: Column(
-				mainAxisSize: MainAxisSize.min,
-				children: [
-					Container(
-						width: 40,
-						height: 4,
-						margin: EdgeInsets.symmetric(vertical: responsive.h(10)),
-						decoration: BoxDecoration(
-							color: AppColors.border,
-							borderRadius: BorderRadius.circular(2),
-						),
-					),
-					Padding(
-						padding: EdgeInsets.symmetric(horizontal: responsive.w(16)),
-						child: Align(
-							alignment: Alignment.centerLeft,
-							child: Text(widget.label, style: AppTextStyles.h6(responsive)),
-						),
-					),
-					SizedBox(height: responsive.h(12)),
-					Padding(
-						padding: EdgeInsets.symmetric(horizontal: responsive.w(16)),
-						child: TextField(
-							controller: _searchCtrl,
-							autofocus: true,
-							style: AppTextStyles.body(responsive),
-							decoration: InputDecoration(
-								hintText: 'Rechercher…',
-								hintStyle: AppTextStyles.caption(responsive)
-										.copyWith(color: AppColors.textHint),
-								prefixIcon: Icon(
-									Icons.search_rounded,
-									size: responsive.text(18),
-									color: AppColors.textHint,
-								),
-								filled: true,
-								fillColor: AppColors.surfaceMuted,
-								border: OutlineInputBorder(
-									borderRadius:
-											BorderRadius.circular(responsive.radius(10)),
-									borderSide: BorderSide.none,
-								),
-								contentPadding: EdgeInsets.symmetric(
-									horizontal: responsive.w(12),
-									vertical: responsive.h(10),
-								),
-								isDense: true,
-							),
-						),
-					),
-					SizedBox(height: responsive.h(8)),
-					Flexible(
-						child: _filtered.isEmpty
-								? Padding(
-										padding: EdgeInsets.symmetric(vertical: responsive.h(32)),
-										child: Text(
-											'Aucun résultat',
-											style: AppTextStyles.caption(responsive)
-													.copyWith(color: AppColors.textHint),
-										),
-									)
-								: ListView.builder(
-										shrinkWrap: true,
-										itemCount: _filtered.length,
-										itemBuilder: (_, i) {
-											final item = _filtered[i];
-											return InkWell(
-												onTap: () {
-													Navigator.pop(context);
-													widget.onSelected(item);
-												},
-												child: Padding(
-													padding: EdgeInsets.symmetric(
-														horizontal: responsive.w(16),
-														vertical: responsive.h(13),
-													),
-													child: Row(
-														children: [
-															Icon(
-																Icons.place_rounded,
-																size: responsive.text(15),
-																color: AppColors.textHint,
-															),
-															SizedBox(width: responsive.w(10)),
-															Expanded(
-																child: Text(
-																	item,
-																	style: AppTextStyles.body(responsive),
-																),
-															),
-														],
-													),
-												),
-											);
-										},
-									),
-					),
-				],
-			),
-		);
-	}
+    return Container(
+      padding: EdgeInsets.only(
+        bottom: bottomInset > 0 ? bottomInset : responsive.h(24),
+      ),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+      ),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            margin: EdgeInsets.symmetric(vertical: responsive.h(10)),
+            decoration: BoxDecoration(
+              color: AppColors.border,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: responsive.w(16)),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(widget.label, style: AppTextStyles.h6(responsive)),
+            ),
+          ),
+          SizedBox(height: responsive.h(12)),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: responsive.w(16)),
+            child: TextField(
+              controller: _searchCtrl,
+              autofocus: true,
+              style: AppTextStyles.body(responsive),
+              decoration: InputDecoration(
+                hintText: 'Rechercher…',
+                hintStyle: AppTextStyles.caption(responsive)
+                    .copyWith(color: AppColors.textHint),
+                prefixIcon: Icon(
+                  Icons.search_rounded,
+                  size: responsive.text(18),
+                  color: AppColors.textHint,
+                ),
+                filled: true,
+                fillColor: AppColors.surfaceMuted,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(responsive.radius(10)),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: responsive.w(12),
+                  vertical: responsive.h(10),
+                ),
+                isDense: true,
+              ),
+            ),
+          ),
+          SizedBox(height: responsive.h(8)),
+          Flexible(
+            child: _filtered.isEmpty
+                ? Padding(
+                    padding: EdgeInsets.symmetric(vertical: responsive.h(32)),
+                    child: Text(
+                      'Aucun résultat',
+                      style: AppTextStyles.caption(responsive)
+                          .copyWith(color: AppColors.textHint),
+                    ),
+                  )
+                : ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: _filtered.length,
+                    itemBuilder: (_, i) {
+                      final item = _filtered[i];
+                      return InkWell(
+                        onTap: () {
+                          Navigator.pop(context);
+                          widget.onSelected(item);
+                        },
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: responsive.w(16),
+                            vertical: responsive.h(13),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.place_rounded,
+                                size: responsive.text(15),
+                                color: AppColors.textHint,
+                              ),
+                              SizedBox(width: responsive.w(10)),
+                              Expanded(
+                                child: Text(
+                                  item,
+                                  style: AppTextStyles.body(responsive),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _TripCard extends StatelessWidget {
-	const _TripCard({required this.responsive, required this.ride});
+  const _TripCard({required this.responsive, required this.ride});
 
-	final AppResponsive responsive;
-	final SearchRide? ride;
+  final AppResponsive responsive;
+  final SearchRide? ride;
 
-	@override
-	Widget build(BuildContext context) {
-		final String departureCity = ride?.displayOrigin ?? 'Cotonou, Cadjèhoun';
-		final String arrivalCity = ride?.displayDestination ?? 'Porto-Novo, Centre-ville';
-		final String departureTime = ride?.departureTime ?? 'Aujourd\'hui, 14:30';
-		final String arrivalTime = ride?.arrivalTime ?? 'Aujourd\'hui, 15:45';
-		final String departureNote = ride?.departureNote ?? 'Départ';
-		final String arrivalNote = ride?.arrivalNote ?? 'Arrivée';
-		final String duration = ride?.duration ?? '1h 15min';
-		final double distKm = ride?.distanceKm ?? 0.0;
-		final String distance = distKm > 0 ? '${distKm.round()} km' : '-- km';
+  @override
+  Widget build(BuildContext context) {
+    final String departureCity = ride?.displayOrigin ?? 'Cotonou, Cadjèhoun';
+    final String arrivalCity =
+        ride?.displayDestination ?? 'Porto-Novo, Centre-ville';
+    final String departureTime = ride?.departureTime ?? 'Aujourd\'hui, 14:30';
+    final String arrivalTime = ride?.arrivalTime ?? 'Aujourd\'hui, 15:45';
+    final String departureNote = ride?.departureNote ?? 'Départ';
+    final String arrivalNote = ride?.arrivalNote ?? 'Arrivée';
+    final String duration = ride?.duration ?? '1h 15min';
+    final double distKm = ride?.distanceKm ?? 0.0;
+    final String distance = distKm > 0 ? '${distKm.round()} km' : '-- km';
 
-		return _SectionCard(
-			responsive: responsive,
-			child: Column(
-				crossAxisAlignment: CrossAxisAlignment.start,
-				children: [
-					Row(
-						mainAxisAlignment: MainAxisAlignment.spaceBetween,
-						children: [
-							Text(AppStrings.reservationDetailTitle, style: AppTextStyles.h6(responsive)),
-							Container(
-								padding: EdgeInsets.symmetric(horizontal: responsive.w(12), vertical: responsive.h(4)),
-								decoration: ShapeDecoration(
-									color: AppColors.primaryLight,
-									shape: RoundedRectangleBorder(
-										side: const BorderSide(color: Colors.transparent),
-										borderRadius: BorderRadius.circular(9999),
-									),
-								),
-								child: Text(
-									AppStrings.reservationConfirmedBadge,
-									style: AppTextStyles.caption(responsive).copyWith(
-										color: AppColors.primary,
-										fontWeight: FontWeight.w600,
-									),
-								),
-							),
-						],
-					),
-					SizedBox(height: responsive.h(20)),
-					_TimelineRow(
-						responsive: responsive,
-						topColor: AppColors.primary,
-						title: departureCity,
-						subtitle: departureNote,
-						meta: departureTime,
-					),
-					SizedBox(height: responsive.h(12)),
-					_TimelineRow(
-						responsive: responsive,
-						topColor: Colors.white,
-						outlinedTop: true,
-						title: arrivalCity,
-						subtitle: arrivalNote,
-						meta: arrivalTime,
-					),
-					SizedBox(height: responsive.h(16)),
-					Row(
-						mainAxisAlignment: MainAxisAlignment.spaceBetween,
-						children: [
-							_SummaryLabel(label: AppStrings.reservationDistanceLabel, value: duration, responsive: responsive),
-							_SummaryLabel(label: 'Distance', value: distance, responsive: responsive),
-						],
-					),
-				],
-			),
-		);
-	}
+    return _SectionCard(
+      responsive: responsive,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                AppStrings.reservationDetailTitle,
+                style: AppTextStyles.h6(responsive),
+              ),
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: responsive.w(12),
+                  vertical: responsive.h(4),
+                ),
+                decoration: ShapeDecoration(
+                  color: AppColors.primaryLight,
+                  shape: RoundedRectangleBorder(
+                    side: const BorderSide(color: Colors.transparent),
+                    borderRadius: BorderRadius.circular(9999),
+                  ),
+                ),
+                child: Text(
+                  AppStrings.reservationConfirmedBadge,
+                  style: AppTextStyles.caption(responsive).copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: responsive.h(20)),
+          _TimelineRow(
+            responsive: responsive,
+            topColor: AppColors.primary,
+            title: departureCity,
+            subtitle: departureNote,
+            meta: departureTime,
+          ),
+          SizedBox(height: responsive.h(12)),
+          _TimelineRow(
+            responsive: responsive,
+            topColor: Colors.white,
+            outlinedTop: true,
+            title: arrivalCity,
+            subtitle: arrivalNote,
+            meta: arrivalTime,
+          ),
+          SizedBox(height: responsive.h(16)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _SummaryLabel(
+                label: AppStrings.reservationDistanceLabel,
+                value: duration,
+                responsive: responsive,
+              ),
+              _SummaryLabel(
+                label: 'Distance',
+                value: distance,
+                responsive: responsive,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _TimelineRow extends StatelessWidget {
-	const _TimelineRow({
-		required this.responsive,
-		required this.topColor,
-		required this.title,
-		required this.subtitle,
-		required this.meta,
-		this.outlinedTop = false,
-	});
+  const _TimelineRow({
+    required this.responsive,
+    required this.topColor,
+    required this.title,
+    required this.subtitle,
+    required this.meta,
+    this.outlinedTop = false,
+  });
 
-	final AppResponsive responsive;
-	final Color topColor;
-	final bool outlinedTop;
-	final String title;
-	final String subtitle;
-	final String meta;
+  final AppResponsive responsive;
+  final Color topColor;
+  final bool outlinedTop;
+  final String title;
+  final String subtitle;
+  final String meta;
 
-	@override
-	Widget build(BuildContext context) {
-		return Row(
-			crossAxisAlignment: CrossAxisAlignment.start,
-			children: [
-				Column(
-					children: [
-						Container(
-							width: responsive.w(12),
-							height: responsive.w(12),
-							decoration: ShapeDecoration(
-								color: outlinedTop ? Colors.white : topColor,
-								shape: RoundedRectangleBorder(
-									side: BorderSide(color: outlinedTop ? AppColors.primary : AppColors.border, width: outlinedTop ? 2 : 1),
-									borderRadius: BorderRadius.circular(9999),
-								),
-							),
-						),
-						Container(width: 2, height: responsive.h(48), color: AppColors.border),
-						if (outlinedTop)
-							Container(
-								width: responsive.w(12),
-								height: responsive.w(12),
-								decoration: ShapeDecoration(
-									color: AppColors.primary,
-									shape: RoundedRectangleBorder(
-										side: const BorderSide(color: Colors.transparent),
-										borderRadius: BorderRadius.circular(9999),
-									),
-								),
-							),
-					],
-				),
-				SizedBox(width: responsive.w(12)),
-				Expanded(
-					child: Column(
-						crossAxisAlignment: CrossAxisAlignment.start,
-						children: [
-							Text(meta, style: AppTextStyles.caption(responsive)),
-							SizedBox(height: responsive.h(2)),
-							Text(title, style: AppTextStyles.subtitle(responsive)),
-							SizedBox(height: responsive.h(2)),
-							Text(subtitle, style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textSecondary)),
-						],
-					),
-				),
-			],
-		);
-	}
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Column(
+          children: [
+            Container(
+              width: responsive.w(12),
+              height: responsive.w(12),
+              decoration: ShapeDecoration(
+                color: outlinedTop ? Colors.white : topColor,
+                shape: RoundedRectangleBorder(
+                  side: BorderSide(
+                    color: outlinedTop ? AppColors.primary : AppColors.border,
+                    width: outlinedTop ? 2 : 1,
+                  ),
+                  borderRadius: BorderRadius.circular(9999),
+                ),
+              ),
+            ),
+            Container(
+              width: 2,
+              height: responsive.h(48),
+              color: AppColors.border,
+            ),
+            if (outlinedTop)
+              Container(
+                width: responsive.w(12),
+                height: responsive.w(12),
+                decoration: ShapeDecoration(
+                  color: AppColors.primary,
+                  shape: RoundedRectangleBorder(
+                    side: const BorderSide(color: Colors.transparent),
+                    borderRadius: BorderRadius.circular(9999),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        SizedBox(width: responsive.w(12)),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(meta, style: AppTextStyles.caption(responsive)),
+              SizedBox(height: responsive.h(2)),
+              Text(title, style: AppTextStyles.subtitle(responsive)),
+              SizedBox(height: responsive.h(2)),
+              Text(
+                subtitle,
+                style: AppTextStyles.caption(responsive)
+                    .copyWith(color: AppColors.textSecondary),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _SummaryLabel extends StatelessWidget {
-	const _SummaryLabel({required this.label, required this.value, required this.responsive});
+  const _SummaryLabel({
+    required this.label,
+    required this.value,
+    required this.responsive,
+  });
 
-	final String label;
-	final String value;
-	final AppResponsive responsive;
+  final String label;
+  final String value;
+  final AppResponsive responsive;
 
-	@override
-	Widget build(BuildContext context) {
-		return Column(
-			crossAxisAlignment: CrossAxisAlignment.start,
-			children: [
-				Text(label, style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textSecondary)),
-				SizedBox(height: responsive.h(2)),
-				Text(value, style: AppTextStyles.subtitle(responsive)),
-			],
-		);
-	}
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: AppTextStyles.caption(responsive)
+              .copyWith(color: AppColors.textSecondary),
+        ),
+        SizedBox(height: responsive.h(2)),
+        Text(value, style: AppTextStyles.subtitle(responsive)),
+      ],
+    );
+  }
 }
 
 class _DriverCard extends StatelessWidget {
-	const _DriverCard({required this.responsive, required this.ride});
+  const _DriverCard({required this.responsive, required this.ride});
 
-	final AppResponsive responsive;
-	final SearchRide? ride;
+  final AppResponsive responsive;
+  final SearchRide? ride;
 
-	@override
-	Widget build(BuildContext context) {
-		final String driverName = ride?.driverName ?? AppStrings.reservationSampleDriver;
-		final String rating = ride?.rating ?? AppStrings.passengerProfileRating;
-		final String vehicle = ride?.vehicle ?? AppStrings.reservationSampleVehicle;
-		final String plate = AppStrings.reservationSamplePlate;
+  @override
+  Widget build(BuildContext context) {
+    final String driverName =
+        ride?.driverName ?? AppStrings.reservationSampleDriver;
+    final String rating = ride?.rating ?? AppStrings.passengerProfileRating;
+    final String reviewCount = ride?.reviewCount ?? '';
+    final String vehicle = ride?.vehicle ?? AppStrings.reservationSampleVehicle;
+    final String plate =
+        ride?.vehiclePlate.isNotEmpty == true
+            ? ride!.vehiclePlate
+            : AppStrings.reservationSamplePlate;
 
-		return _SectionCard(
-			responsive: responsive,
-			child: Row(
-				crossAxisAlignment: CrossAxisAlignment.start,
-				children: [
-					_Avatar(size: responsive.w(56), name: driverName),
-					SizedBox(width: responsive.w(12)),
-					Expanded(
-						child: Column(
-							crossAxisAlignment: CrossAxisAlignment.start,
-							children: [
-								Row(
-									children: [
-										Expanded(child: Text(driverName, style: AppTextStyles.h6(responsive))),
-										_Pill(text: '4.9', background: AppColors.primaryLight, responsive: responsive),
-									],
-								),
-								SizedBox(height: responsive.h(4)),
-								Row(
-									children: [
-										Icon(Icons.star_rounded, size: responsive.text(14), color: AppColors.warning),
-										SizedBox(width: responsive.w(4)),
-										Text(rating, style: AppTextStyles.caption(responsive)),
-										SizedBox(width: responsive.w(6)),
-										Text('•', style: AppTextStyles.caption(responsive)),
-										SizedBox(width: responsive.w(6)),
-										Text('127 trajets', style: AppTextStyles.caption(responsive)),
-									],
-								),
-								SizedBox(height: responsive.h(10)),
-								Wrap(
-									spacing: responsive.w(8),
-									runSpacing: responsive.h(8),
-									children: [
-										_Pill(text: AppStrings.reservationVerifiedLicense, background: AppColors.surface, responsive: responsive),
-										_Pill(text: AppStrings.reservationQuickReply, background: AppColors.surface, responsive: responsive),
-									],
-								),
-								SizedBox(height: responsive.h(10)),
-								Row(
-									children: [
-										Expanded(
-											child: _InfoRow(label: AppStrings.reservationVehicleTitle, value: '$vehicle • $plate', responsive: responsive),
-										),
-									],
-								),
-							],
-						),
-					),
-				],
-			),
-		);
-	}
+    return _SectionCard(
+      responsive: responsive,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _Avatar(size: responsive.w(56), name: driverName),
+          SizedBox(width: responsive.w(12)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        driverName,
+                        style: AppTextStyles.h6(responsive),
+                      ),
+                    ),
+                    if (rating.isNotEmpty)
+                      _Pill(
+                        text: '★ $rating',
+                        background: AppColors.warningSurface,
+                        textColor: AppColors.warningDark,
+                        responsive: responsive,
+                      ),
+                  ],
+                ),
+                SizedBox(height: responsive.h(4)),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.directions_car_rounded,
+                      size: responsive.text(13),
+                      color: AppColors.textHint,
+                    ),
+                    SizedBox(width: responsive.w(4)),
+                    Text(
+                      '$vehicle · $plate',
+                      style: AppTextStyles.caption(responsive)
+                          .copyWith(color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+                if (reviewCount.isNotEmpty) ...[
+                  SizedBox(height: responsive.h(2)),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.route_rounded,
+                        size: responsive.text(13),
+                        color: AppColors.textHint,
+                      ),
+                      SizedBox(width: responsive.w(4)),
+                      Text(
+                        '$reviewCount trajet${reviewCount == '1' ? '' : 's'}',
+                        style: AppTextStyles.caption(responsive)
+                            .copyWith(color: AppColors.textSecondary),
+                      ),
+                    ],
+                  ),
+                ],
+                SizedBox(height: responsive.h(10)),
+                Wrap(
+                  spacing: responsive.w(8),
+                  runSpacing: responsive.h(6),
+                  children: [
+                    _Pill(
+                      text: AppStrings.reservationVerifiedLicense,
+                      background: AppColors.successSurface,
+                      textColor: AppColors.successDark,
+                      responsive: responsive,
+                    ),
+                    _Pill(
+                      text: AppStrings.reservationQuickReply,
+                      background: AppColors.primaryLight,
+                      textColor: AppColors.primary,
+                      responsive: responsive,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _Avatar extends StatelessWidget {
-	const _Avatar({required this.size, required this.name});
+  const _Avatar({required this.size, required this.name});
 
-	final double size;
-	final String name;
+  final double size;
+  final String name;
 
-	@override
-	Widget build(BuildContext context) {
-		final initials = _initials(name);
-		return Container(
-			width: size,
-			height: size,
-			decoration: ShapeDecoration(
-				color: AppColors.surface,
-				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: Colors.transparent),
-					borderRadius: BorderRadius.circular(16),
-				),
-			),
-			child: Center(
-				child: Text(
-					initials,
-					style: TextStyle(
-						color: AppColors.primary,
-						fontSize: size * 0.34,
-						fontFamily: 'Inter',
-						fontWeight: FontWeight.w700,
-					),
-				),
-			),
-		);
-	}
+  @override
+  Widget build(BuildContext context) {
+    final initials = _initials(name);
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: AppColors.primaryLight,
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.20), width: 1.5),
+      ),
+      child: Center(
+        child: Text(
+          initials,
+          style: TextStyle(
+            color: AppColors.primary,
+            fontSize: size * 0.34,
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _Pill extends StatelessWidget {
-	const _Pill({required this.text, required this.background, required this.responsive});
+  const _Pill({
+    required this.text,
+    required this.background,
+    required this.responsive,
+    this.textColor,
+  });
 
-	final String text;
-	final Color background;
-	final AppResponsive responsive;
+  final String text;
+  final Color background;
+  final Color? textColor;
+  final AppResponsive responsive;
 
-	@override
-	Widget build(BuildContext context) {
-		return Container(
-			padding: EdgeInsets.symmetric(horizontal: responsive.w(12), vertical: responsive.h(6)),
-			decoration: ShapeDecoration(
-				color: background,
-				shape: RoundedRectangleBorder(
-					side: const BorderSide(color: Colors.transparent),
-					borderRadius: BorderRadius.circular(9999),
-				),
-			),
-			child: Text(text, style: AppTextStyles.caption(responsive).copyWith(fontWeight: FontWeight.w600)),
-		);
-	}
-}
-
-class _InfoRow extends StatelessWidget {
-	const _InfoRow({required this.label, required this.value, required this.responsive});
-
-	final String label;
-	final String value;
-	final AppResponsive responsive;
-
-	@override
-	Widget build(BuildContext context) {
-		return Column(
-			crossAxisAlignment: CrossAxisAlignment.start,
-			children: [
-				Text(label, style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textSecondary)),
-				SizedBox(height: responsive.h(2)),
-				Text(value, style: AppTextStyles.subtitle(responsive)),
-			],
-		);
-	}
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: responsive.w(12),
+        vertical: responsive.h(6),
+      ),
+      decoration: ShapeDecoration(
+        color: background,
+        shape: RoundedRectangleBorder(
+          side: const BorderSide(color: Colors.transparent),
+          borderRadius: BorderRadius.circular(9999),
+        ),
+      ),
+      child: Text(
+        text,
+        style: AppTextStyles.caption(responsive).copyWith(
+          fontWeight: FontWeight.w600,
+          color: textColor,
+        ),
+      ),
+    );
+  }
 }
 
 class _SeatsCard extends StatelessWidget {
-	const _SeatsCard({required this.responsive, required this.controller});
+  const _SeatsCard({required this.responsive, required this.controller});
 
-	final AppResponsive responsive;
-	final ConfirmationReservationController controller;
+  final AppResponsive responsive;
+  final ConfirmationReservationController controller;
 
-	@override
-	Widget build(BuildContext context) {
-		return _SectionCard(
-			responsive: responsive,
-			child: Column(
-				crossAxisAlignment: CrossAxisAlignment.start,
-				children: [
-					Text(AppStrings.reservationSeatsTitle, style: AppTextStyles.h6(responsive)),
-					SizedBox(height: responsive.h(12)),
-					Container(
-						width: double.infinity,
-						padding: EdgeInsets.all(responsive.w(16)),
-						decoration: ShapeDecoration(
-							color: AppColors.surface,
-							shape: RoundedRectangleBorder(
-								side: const BorderSide(color: Colors.transparent),
-								borderRadius: BorderRadius.circular(responsive.radius(16)),
-							),
-						),
-						child: Obx(() {
-							final current = controller.reservedSeats.value;
-							final max = controller.maxSeats;
-							final available = controller.effectiveAvailable;
-							final cap = controller.maxPerBooking.value;
-							final isLoading = controller.isLoadingContext.value && available == 0;
-							return Column(
-								children: [
-									Row(
-										mainAxisAlignment: MainAxisAlignment.spaceBetween,
-										children: [
-											AppCircularButton(
-												responsive: responsive,
-												icon: Icons.remove_rounded,
-												onTap: controller.decrementSeats,
-												enabled: current > 1,
-												size: responsive.w(48),
-											),
-											Column(
-												children: [
-													isLoading
-															? SizedBox(
-																	width: responsive.w(30),
-																	height: responsive.w(30),
-																	child: const CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
-																)
-															: Text(
-																	current.toString(),
-																	textAlign: TextAlign.center,
-																	style: AppTextStyles.price(responsive).copyWith(fontSize: responsive.text(30)),
-																),
-													Text(AppStrings.reservationSeatsReserved, style: AppTextStyles.caption(responsive)),
-													if (!isLoading && available > 0) ...[
-														SizedBox(height: responsive.h(4)),
-														Text(
-															'$available place${available > 1 ? 's' : ''} disponible${available > 1 ? 's' : ''}',
-															style: AppTextStyles.caption(responsive).copyWith(
-																color: AppColors.primary,
-																fontSize: responsive.text(10),
-																fontWeight: FontWeight.w600,
-															),
-														),
-													],
-												],
-											),
-											AppCircularButton(
-												responsive: responsive,
-												icon: Icons.add_rounded,
-												onTap: controller.incrementSeats,
-												filled: true,
-												enabled: !isLoading && (max <= 0 || current < max),
-												size: responsive.w(48),
-											),
-										],
-									),
-									if (!isLoading && cap > 0 && available > cap) ...[
-										SizedBox(height: responsive.h(10)),
-										Container(
-											padding: EdgeInsets.symmetric(horizontal: responsive.w(10), vertical: responsive.h(6)),
-											decoration: BoxDecoration(
-												color: AppColors.warningSurface,
-												borderRadius: BorderRadius.circular(responsive.radius(8)),
-												border: Border.all(color: AppColors.warning.withValues(alpha: 0.4)),
-											),
-											child: Row(
-												children: [
-													Icon(Icons.info_outline_rounded, size: responsive.text(13), color: AppColors.warning),
-													SizedBox(width: responsive.w(6)),
-													Expanded(
-														child: Text(
-															'Le conducteur autorise max $cap place${cap > 1 ? 's' : ''} par réservation',
-															style: AppTextStyles.caption(responsive).copyWith(
-																color: AppColors.warningDark,
-																fontSize: responsive.text(11),
-															),
-														),
-													),
-												],
-											),
-										),
-									],
-								],
-							);
-						}),
-					),
-				],
-			),
-		);
-	}
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      responsive: responsive,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            AppStrings.reservationSeatsTitle,
+            style: AppTextStyles.h6(responsive),
+          ),
+          SizedBox(height: responsive.h(12)),
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(responsive.w(16)),
+            decoration: ShapeDecoration(
+              color: AppColors.surface,
+              shape: RoundedRectangleBorder(
+                side: const BorderSide(color: Colors.transparent),
+                borderRadius: BorderRadius.circular(responsive.radius(16)),
+              ),
+            ),
+            child: Obx(() {
+              final current = controller.reservedSeats.value;
+              final max = controller.maxSeats;
+              final available = controller.effectiveAvailable;
+              final cap = controller.maxPerBooking.value;
+              final isLoading =
+                  controller.isLoadingContext.value && available == 0;
+              return Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      AppCircularButton(
+                        responsive: responsive,
+                        icon: Icons.remove_rounded,
+                        onTap: controller.decrementSeats,
+                        enabled: current > 1,
+                        size: responsive.w(48),
+                      ),
+                      Column(
+                        children: [
+                          isLoading
+                              ? SizedBox(
+                                  width: responsive.w(30),
+                                  height: responsive.w(30),
+                                  child: const CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: AppColors.primary,
+                                  ),
+                                )
+                              : Text(
+                                  current.toString(),
+                                  textAlign: TextAlign.center,
+                                  style: AppTextStyles.price(responsive)
+                                      .copyWith(fontSize: responsive.text(30)),
+                                ),
+                          Text(
+                            AppStrings.reservationSeatsReserved,
+                            style: AppTextStyles.caption(responsive),
+                          ),
+                          if (!isLoading && available > 0) ...[
+                            SizedBox(height: responsive.h(4)),
+                            Text(
+                              '$available place${available > 1 ? 's' : ''} disponible${available > 1 ? 's' : ''}',
+                              style: AppTextStyles.caption(responsive).copyWith(
+                                color: AppColors.primary,
+                                fontSize: responsive.text(10),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      AppCircularButton(
+                        responsive: responsive,
+                        icon: Icons.add_rounded,
+                        onTap: controller.incrementSeats,
+                        filled: true,
+                        enabled: !isLoading && (max <= 0 || current < max),
+                        size: responsive.w(48),
+                      ),
+                    ],
+                  ),
+                  if (!isLoading && cap > 0 && available > cap) ...[
+                    SizedBox(height: responsive.h(10)),
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: responsive.w(10),
+                        vertical: responsive.h(6),
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.warningSurface,
+                        borderRadius: BorderRadius.circular(
+                          responsive.radius(8),
+                        ),
+                        border: Border.all(
+                          color: AppColors.warning.withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline_rounded,
+                            size: responsive.text(13),
+                            color: AppColors.warning,
+                          ),
+                          SizedBox(width: responsive.w(6)),
+                          Expanded(
+                            child: Text(
+                              'Le conducteur autorise max $cap place${cap > 1 ? 's' : ''} par réservation',
+                              style: AppTextStyles.caption(responsive).copyWith(
+                                color: AppColors.warningDark,
+                                fontSize: responsive.text(11),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _PriceCard extends StatelessWidget {
-	const _PriceCard({required this.responsive, required this.controller, required this.ride});
+  const _PriceCard({
+    required this.responsive,
+    required this.controller,
+    required this.ride,
+  });
 
-	final AppResponsive responsive;
-	final ConfirmationReservationController controller;
-	final SearchRide? ride;
+  final AppResponsive responsive;
+  final ConfirmationReservationController controller;
+  final SearchRide? ride;
 
-	int _parsePrice(String? value) {
-		final source = value ?? '1 500 FCFA';
-		final digits = source.replaceAll(RegExp(r'[^0-9]'), '');
-		return int.tryParse(digits) ?? 1500;
-	}
+  int _parsePrice(String? value) {
+    final source = value ?? '1 500 FCFA';
+    final digits = source.replaceAll(RegExp(r'[^0-9]'), '');
+    return int.tryParse(digits) ?? 1500;
+  }
 
-	String _formatPrice(int value) {
-		final formatted = value.toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (match) => ' ');
-		return '$formatted FCFA';
-	}
+  String _formatPrice(int value) {
+    final formatted = value.toString().replaceAllMapped(
+      RegExp(r'\B(?=(\d{3})+(?!\d))'),
+      (match) => ' ',
+    );
+    return '$formatted FCFA';
+  }
 
-	@override
-	Widget build(BuildContext context) {
-		return _SectionCard(
-			responsive: responsive,
-			child: Obx(() {
-				final bool isProrated = controller.isPriceProrated;
-				final bool fromApi = controller.estimatedPricePerSeat > 0;
-				final int unitPrice = controller.estimatedProratedPricePerSeat > 0
-						? controller.estimatedProratedPricePerSeat
-						: _parsePrice(ride?.price);
-				final int seats = controller.reservedSeats.value;
-				final int commissionPct = controller.commissionRate.value;
-				final int baseTotal = unitPrice * seats;
-				final int serviceFee = (baseTotal * commissionPct / 100).round();
-				final int total = baseTotal + serviceFee;
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      responsive: responsive,
+      child: Obx(() {
+        final bool isProrated = controller.isPriceProrated;
+        final bool fromApi = controller.estimatedPricePerSeat > 0;
+        final int unitPrice = controller.estimatedProratedPricePerSeat > 0
+            ? controller.estimatedProratedPricePerSeat
+            : _parsePrice(ride?.price);
+        final int seats = controller.reservedSeats.value;
+        final int commissionPct = controller.commissionRate.value;
+        final int baseTotal = unitPrice * seats;
+        final int serviceFee = (baseTotal * commissionPct / 100).round();
+        final int total = baseTotal + serviceFee;
 
-				String? badgeLabel;
-				Color badgeColor = AppColors.warningSurface;
-				Color badgeBorder = AppColors.badgeYellow;
-				Color badgeText = AppColors.warningDark;
-				if (isProrated) {
-					badgeLabel = 'Au prorata';
-					badgeColor = AppColors.successSurface;
-					badgeBorder = AppColors.success;
-					badgeText = AppColors.successDark;
-				} else if (!fromApi) {
-					badgeLabel = 'Estimé';
-				}
+        String? badgeLabel;
+        Color badgeColor = AppColors.warningSurface;
+        Color badgeBorder = AppColors.badgeYellow;
+        Color badgeText = AppColors.warningDark;
+        if (isProrated) {
+          badgeLabel = 'Au prorata';
+          badgeColor = AppColors.successSurface;
+          badgeBorder = AppColors.success;
+          badgeText = AppColors.successDark;
+        } else if (!fromApi) {
+          badgeLabel = 'Estimé';
+        }
 
-				String? noteText;
-				if (!isProrated) {
-					noteText = fromApi
-							? 'Choisissez vos villes pour obtenir le prix exact au prorata'
-							: 'Le prix exact sera calculé selon votre distance réelle';
-				}
+        String? noteText;
+        if (!isProrated) {
+          noteText = fromApi
+              ? 'Choisissez vos villes pour obtenir le prix exact au prorata'
+              : 'Le prix exact sera calculé selon votre distance réelle';
+        }
 
-				return Column(
-					crossAxisAlignment: CrossAxisAlignment.start,
-					children: [
-						Row(
-							mainAxisAlignment: MainAxisAlignment.spaceBetween,
-							children: [
-								Text(AppStrings.reservationTotalToPay, style: AppTextStyles.h6(responsive)),
-								if (badgeLabel != null)
-									Container(
-										padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-										decoration: BoxDecoration(
-											color: badgeColor,
-											borderRadius: BorderRadius.circular(9999),
-											border: Border.all(color: badgeBorder),
-										),
-										child: Text(
-											badgeLabel,
-											style: AppTextStyles.caption(responsive).copyWith(
-												color: badgeText,
-												fontWeight: FontWeight.w600,
-											),
-										),
-									),
-							],
-						),
-						SizedBox(height: responsive.h(12)),
-						_PriceLine(label: 'Prix par place', value: _formatPrice(unitPrice), responsive: responsive),
-						SizedBox(height: responsive.h(8)),
-						_PriceLine(label: AppStrings.reservationServiceFee, value: _formatPrice(serviceFee), responsive: responsive),
-						SizedBox(height: responsive.h(12)),
-						Container(height: 1, color: AppColors.surface),
-						SizedBox(height: responsive.h(12)),
-						Row(
-							mainAxisAlignment: MainAxisAlignment.spaceBetween,
-							children: [
-								Text(AppStrings.reservationTotalToPay, style: AppTextStyles.subtitle(responsive)),
-								Text(_formatPrice(total), style: AppTextStyles.price(responsive)),
-							],
-						),
-						if (noteText != null) ...[
-							SizedBox(height: responsive.h(8)),
-							Text(
-								noteText,
-								style: AppTextStyles.caption(responsive).copyWith(
-									color: AppColors.textSecondary,
-									fontStyle: FontStyle.italic,
-								),
-							),
-						],
-					],
-				);
-			}),
-		);
-	}
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  AppStrings.reservationTotalToPay,
+                  style: AppTextStyles.h6(responsive),
+                ),
+                if (badgeLabel != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: badgeColor,
+                      borderRadius: BorderRadius.circular(9999),
+                      border: Border.all(color: badgeBorder),
+                    ),
+                    child: Text(
+                      badgeLabel,
+                      style: AppTextStyles.caption(
+                        responsive,
+                      ).copyWith(color: badgeText, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+              ],
+            ),
+            SizedBox(height: responsive.h(12)),
+            _PriceLine(
+              label: 'Prix par place',
+              value: _formatPrice(unitPrice),
+              responsive: responsive,
+            ),
+            SizedBox(height: responsive.h(8)),
+            _PriceLine(
+              label: AppStrings.reservationServiceFee,
+              value: _formatPrice(serviceFee),
+              responsive: responsive,
+            ),
+            SizedBox(height: responsive.h(12)),
+            Container(height: 1, color: AppColors.surface),
+            SizedBox(height: responsive.h(10)),
+            Container(
+              padding: EdgeInsets.symmetric(
+                  horizontal: responsive.w(14), vertical: responsive.h(12)),
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight,
+                borderRadius: BorderRadius.circular(responsive.radius(10)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    AppStrings.reservationTotalToPay,
+                    style: AppTextStyles.subtitle(responsive)
+                        .copyWith(color: AppColors.primary),
+                  ),
+                  Text(
+                    _formatPrice(total),
+                    style: AppTextStyles.price(responsive)
+                        .copyWith(color: AppColors.primary),
+                  ),
+                ],
+              ),
+            ),
+            if (noteText != null) ...[
+              SizedBox(height: responsive.h(8)),
+              Text(
+                noteText,
+                style: AppTextStyles.caption(responsive).copyWith(
+                  color: AppColors.textSecondary,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ],
+        );
+      }),
+    );
+  }
 }
 
 class _PriceLine extends StatelessWidget {
-	const _PriceLine({required this.label, required this.value, required this.responsive});
+  const _PriceLine({
+    required this.label,
+    required this.value,
+    required this.responsive,
+  });
 
-	final String label;
-	final String value;
-	final AppResponsive responsive;
+  final String label;
+  final String value;
+  final AppResponsive responsive;
 
-	@override
-	Widget build(BuildContext context) {
-		return Row(
-			mainAxisAlignment: MainAxisAlignment.spaceBetween,
-			children: [
-				Text(label, style: AppTextStyles.body(responsive).copyWith(color: AppColors.textSecondary)),
-				Text(value, style: AppTextStyles.body(responsive).copyWith(fontWeight: FontWeight.w600)),
-			],
-		);
-	}
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: AppTextStyles.body(responsive)
+              .copyWith(color: AppColors.textSecondary),
+        ),
+        Text(
+          value,
+          style: AppTextStyles.body(responsive)
+              .copyWith(fontWeight: FontWeight.w600),
+        ),
+      ],
+    );
+  }
 }
 
 class _PaymentCard extends StatelessWidget {
-	const _PaymentCard({required this.responsive, required this.controller});
+  const _PaymentCard({required this.responsive, required this.controller});
 
-	final AppResponsive responsive;
-	final ConfirmationReservationController controller;
+  final AppResponsive responsive;
+  final ConfirmationReservationController controller;
 
-	@override
-	Widget build(BuildContext context) {
-		return _SectionCard(
-			responsive: responsive,
-			child: Column(
-				crossAxisAlignment: CrossAxisAlignment.start,
-				children: [
-					Text(AppStrings.passengerProfilePaymentTitle, style: AppTextStyles.h6(responsive)),
-					SizedBox(height: responsive.h(12)),
-					Obx(
-						() => Column(
-							children: List.generate(controller.paymentMethods.length, (index) {
-								final method = controller.paymentMethods[index];
-								final bool selected = controller.selectedPaymentIndex.value == index;
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      responsive: responsive,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            AppStrings.passengerProfilePaymentTitle,
+            style: AppTextStyles.h6(responsive),
+          ),
+          SizedBox(height: responsive.h(12)),
+          Obx(
+            () => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ...List.generate(controller.paymentMethods.length, (index) {
+                  final method = controller.paymentMethods[index];
+                  final bool selected =
+                      controller.selectedPaymentIndex.value == index;
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      bottom: index == controller.paymentMethods.length - 1
+                          ? 0
+                          : responsive.h(12),
+                    ),
+                    child: InkWell(
+                      onTap: () => controller.selectPayment(index),
+                      borderRadius:
+                          BorderRadius.circular(responsive.radius(16)),
+                      child: Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(responsive.w(16)),
+                        decoration: ShapeDecoration(
+                          color:
+                              selected ? AppColors.primaryLight : Colors.white,
+                          shape: RoundedRectangleBorder(
+                            side: BorderSide(
+                              width: selected ? 2 : 1,
+                              color: selected
+                                  ? AppColors.primary
+                                  : Colors.transparent,
+                            ),
+                            borderRadius:
+                                BorderRadius.circular(responsive.radius(16)),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: responsive.w(40),
+                              height: responsive.w(40),
+                              decoration: ShapeDecoration(
+                                color: AppColors.surface,
+                                shape: RoundedRectangleBorder(
+                                  side: const BorderSide(
+                                      color: Colors.transparent),
+                                  borderRadius:
+                                      BorderRadius.circular(9999),
+                                ),
+                              ),
+                              child: Icon(
+                                _paymentMethodIcon(index, method.title),
+                                size: responsive.text(22),
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            SizedBox(width: responsive.w(12)),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(method.title,
+                                      style:
+                                          AppTextStyles.subtitle(responsive)),
+                                  SizedBox(height: responsive.h(2)),
+                                  Text(method.description,
+                                      style: AppTextStyles.caption(responsive)),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              width: responsive.w(20),
+                              height: responsive.w(20),
+                              decoration: ShapeDecoration(
+                                color: selected
+                                    ? AppColors.primary
+                                    : Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  side: BorderSide(
+                                    color: selected
+                                        ? AppColors.primary
+                                        : Colors.transparent,
+                                  ),
+                                  borderRadius:
+                                      BorderRadius.circular(9999),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+                if (!controller.isCardPayment) ...[
+                  SizedBox(height: responsive.h(16)),
+                  _OperatorRow(responsive: responsive, controller: controller),
+                  SizedBox(height: responsive.h(12)),
+                  _PaymentPhoneField(
+                      responsive: responsive, controller: controller),
+                ] else ...[
+                  SizedBox(height: responsive.h(16)),
+                  _CardFields(responsive: responsive, controller: controller),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-								return Padding(
-									padding: EdgeInsets.only(bottom: index == controller.paymentMethods.length - 1 ? 0 : responsive.h(12)),
-									child: InkWell(
-										onTap: () => controller.selectPayment(index),
-										borderRadius: BorderRadius.circular(responsive.radius(16)),
-										child: Container(
-											width: double.infinity,
-											padding: EdgeInsets.all(responsive.w(16)),
-											decoration: ShapeDecoration(
-												color: selected ? AppColors.primaryLight : Colors.white,
-												shape: RoundedRectangleBorder(
-													side: BorderSide(
-														width: selected ? 2 : 1,
-														color: selected ? AppColors.primary : Colors.transparent,
-													),
-													borderRadius: BorderRadius.circular(responsive.radius(16)),
-												),
-											),
-											child: Row(
-												children: [
-													Container(
-														width: responsive.w(40),
-														height: responsive.w(40),
-														decoration: ShapeDecoration(
-															color: AppColors.surface,
-															shape: RoundedRectangleBorder(
-																side: const BorderSide(color: Colors.transparent),
-																borderRadius: BorderRadius.circular(9999),
-															),
-														),
-														child: Icon(_paymentMethodIcon(index, method.title), size: responsive.text(22), color: AppColors.primary),
-													),
-													SizedBox(width: responsive.w(12)),
-													Expanded(
-														child: Column(
-															crossAxisAlignment: CrossAxisAlignment.start,
-															children: [
-																Text(method.title, style: AppTextStyles.subtitle(responsive)),
-																SizedBox(height: responsive.h(2)),
-																Text(method.description, style: AppTextStyles.caption(responsive)),
-															],
-														),
-													),
-													Container(
-														width: responsive.w(20),
-														height: responsive.w(20),
-														decoration: ShapeDecoration(
-															color: selected ? AppColors.primary : Colors.white,
-															shape: RoundedRectangleBorder(
-																side: BorderSide(color: selected ? AppColors.primary : Colors.transparent),
-																borderRadius: BorderRadius.circular(9999),
-															),
-														),
-													),
-												],
-											),
-										),
-									),
-								);
-							}),
-						),
-					),
-				],
-			),
-		);
-	}
+class _OperatorRow extends StatelessWidget {
+  const _OperatorRow({required this.responsive, required this.controller});
+
+  final AppResponsive responsive;
+  final ConfirmationReservationController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Opérateur',
+          style: AppTextStyles.caption(responsive)
+              .copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+        ),
+        SizedBox(height: responsive.h(8)),
+        Obx(() => Row(
+              children: [
+                _OperatorChip(
+                  responsive: responsive,
+                  label: 'MTN',
+                  color: const Color(0xFFFFCC00),
+                  selected: controller.selectedMobileService.value ==
+                      MobileMoneyService.mtn,
+                  onTap: () =>
+                      controller.selectMobileService(MobileMoneyService.mtn),
+                ),
+                SizedBox(width: responsive.w(8)),
+                _OperatorChip(
+                  responsive: responsive,
+                  label: 'Moov',
+                  color: const Color(0xFF0078C8),
+                  selected: controller.selectedMobileService.value ==
+                      MobileMoneyService.moov,
+                  onTap: () =>
+                      controller.selectMobileService(MobileMoneyService.moov),
+                ),
+                SizedBox(width: responsive.w(8)),
+                _OperatorChip(
+                  responsive: responsive,
+                  label: 'Celtiis',
+                  color: const Color(0xFFE2211B),
+                  selected: controller.selectedMobileService.value ==
+                      MobileMoneyService.celtiis,
+                  onTap: () => controller
+                      .selectMobileService(MobileMoneyService.celtiis),
+                ),
+              ],
+            )),
+      ],
+    );
+  }
+}
+
+class _OperatorChip extends StatelessWidget {
+  const _OperatorChip({
+    required this.responsive,
+    required this.label,
+    required this.color,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final AppResponsive responsive;
+  final String label;
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: EdgeInsets.symmetric(vertical: responsive.h(10)),
+          decoration: BoxDecoration(
+            color: selected ? color.withValues(alpha: 0.12) : AppColors.surfaceMuted,
+            borderRadius: BorderRadius.circular(responsive.radius(10)),
+            border: Border.all(
+              color: selected ? color : Colors.transparent,
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: AppTextStyles.caption(responsive).copyWith(
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                color: selected ? AppColors.textPrimary : AppColors.textSecondary,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PaymentPhoneField extends StatelessWidget {
+  const _PaymentPhoneField(
+      {required this.responsive, required this.controller});
+
+  final AppResponsive responsive;
+  final ConfirmationReservationController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Numéro Mobile Money',
+          style: AppTextStyles.caption(responsive)
+              .copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+        ),
+        SizedBox(height: responsive.h(8)),
+        TextField(
+          controller: controller.paymentContactController,
+          keyboardType: TextInputType.phone,
+          style: AppTextStyles.body(responsive),
+          decoration: InputDecoration(
+            prefixText: '+229 ',
+            prefixStyle: AppTextStyles.body(responsive)
+                .copyWith(color: AppColors.textSecondary),
+            hintText: '01 00 00 00 00',
+            hintStyle: AppTextStyles.body(responsive)
+                .copyWith(color: AppColors.textHint),
+            contentPadding: EdgeInsets.symmetric(
+                horizontal: responsive.w(14), vertical: responsive.h(12)),
+            filled: true,
+            fillColor: AppColors.surfaceMuted,
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(responsive.radius(10)),
+              borderSide: const BorderSide(color: Colors.transparent),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(responsive.radius(10)),
+              borderSide:
+                  const BorderSide(color: AppColors.primary, width: 1.5),
+            ),
+          ),
+        ),
+        SizedBox(height: responsive.h(6)),
+        Row(
+          children: [
+            Icon(Icons.lock_outline_rounded,
+                size: responsive.text(12), color: AppColors.textHint),
+            SizedBox(width: responsive.w(4)),
+            Text(
+              'Paiement sécurisé via FedaPay',
+              style: AppTextStyles.caption(responsive)
+                  .copyWith(color: AppColors.textHint, fontSize: responsive.text(11)),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _CardFields extends StatelessWidget {
+  const _CardFields({required this.responsive, required this.controller});
+
+  final AppResponsive responsive;
+  final ConfirmationReservationController controller;
+
+  InputDecoration _fieldDecoration({
+    required String hint,
+    String? prefix,
+    Widget? suffixIcon,
+  }) {
+    return InputDecoration(
+      prefixText: prefix,
+      prefixStyle: TextStyle(
+        color: AppColors.textSecondary,
+        fontSize: responsive.text(14),
+        fontWeight: FontWeight.w500,
+      ),
+      hintText: hint,
+      hintStyle: TextStyle(color: AppColors.textHint, fontSize: responsive.text(14)),
+      suffixIcon: suffixIcon,
+      contentPadding: EdgeInsets.symmetric(
+          horizontal: responsive.w(14), vertical: responsive.h(13)),
+      filled: true,
+      fillColor: AppColors.surfaceMuted,
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(responsive.radius(10)),
+        borderSide: const BorderSide(color: Colors.transparent),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(responsive.radius(10)),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Numéro de carte
+        _FieldLabel(responsive: responsive, label: 'Numéro de carte'),
+        SizedBox(height: responsive.h(6)),
+        TextField(
+          controller: controller.paymentContactController,
+          keyboardType: TextInputType.number,
+          style: AppTextStyles.body(responsive),
+          maxLength: 19,
+          buildCounter: (_, {required currentLength, required isFocused, maxLength}) =>
+              null,
+          decoration: _fieldDecoration(
+            hint: '0000 0000 0000 0000',
+            suffixIcon: Padding(
+              padding: EdgeInsets.all(responsive.w(10)),
+              child: Icon(Icons.credit_card_rounded,
+                  size: responsive.text(20), color: AppColors.textHint),
+            ),
+          ),
+        ),
+        SizedBox(height: responsive.h(10)),
+        // Expiration + CVV côte à côte
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _FieldLabel(responsive: responsive, label: 'Date d\'expiration'),
+                  SizedBox(height: responsive.h(6)),
+                  TextField(
+                    controller: controller.cardExpiryController,
+                    keyboardType: TextInputType.number,
+                    style: AppTextStyles.body(responsive),
+                    maxLength: 5,
+                    buildCounter: (_, {required currentLength, required isFocused, maxLength}) =>
+                        null,
+                    decoration: _fieldDecoration(hint: 'MM/AA'),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(width: responsive.w(12)),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _FieldLabel(responsive: responsive, label: 'Code CVV'),
+                  SizedBox(height: responsive.h(6)),
+                  TextField(
+                    controller: controller.cardCodeController,
+                    keyboardType: TextInputType.number,
+                    obscureText: true,
+                    style: AppTextStyles.body(responsive),
+                    maxLength: 4,
+                    buildCounter: (_, {required currentLength, required isFocused, maxLength}) =>
+                        null,
+                    decoration: _fieldDecoration(
+                      hint: '•••',
+                      suffixIcon: Padding(
+                        padding: EdgeInsets.all(responsive.w(10)),
+                        child: Icon(Icons.help_outline_rounded,
+                            size: responsive.text(18), color: AppColors.textHint),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: responsive.h(10)),
+        // Bandeau sécurité
+        Container(
+          padding: EdgeInsets.symmetric(
+              horizontal: responsive.w(12), vertical: responsive.h(10)),
+          decoration: BoxDecoration(
+            color: AppColors.successSurface,
+            borderRadius: BorderRadius.circular(responsive.radius(10)),
+            border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.20)),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.lock_rounded,
+                  size: responsive.text(15), color: AppColors.primary),
+              SizedBox(width: responsive.w(8)),
+              Expanded(
+                child: Text(
+                  'Paiement sécurisé SSL — vos données ne sont jamais stockées',
+                  style: AppTextStyles.caption(responsive).copyWith(
+                      color: AppColors.primary,
+                      height: 1.4,
+                      fontSize: responsive.text(11)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _FieldLabel extends StatelessWidget {
+  const _FieldLabel({required this.responsive, required this.label});
+  final AppResponsive responsive;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      style: AppTextStyles.caption(responsive).copyWith(
+          color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+    );
+  }
 }
 
 class _PolicyCard extends StatelessWidget {
-	const _PolicyCard({required this.responsive});
+  const _PolicyCard({required this.responsive});
 
-	final AppResponsive responsive;
+  final AppResponsive responsive;
 
-	@override
-	Widget build(BuildContext context) {
-		return _SectionCard(
-			responsive: responsive,
-			child: Row(
-				crossAxisAlignment: CrossAxisAlignment.start,
-				children: [
-					Container(
-						width: responsive.w(40),
-						height: responsive.w(40),
-						decoration: ShapeDecoration(
-							color: AppColors.warningLight,
-							shape: RoundedRectangleBorder(
-								side: const BorderSide(color: Colors.transparent),
-								borderRadius: BorderRadius.circular(9999),
-							),
-						),
-						child: Icon(Icons.info_outline_rounded, size: responsive.text(18), color: AppColors.warning),
-					),
-					SizedBox(width: responsive.w(12)),
-					Expanded(
-						child: Column(
-							crossAxisAlignment: CrossAxisAlignment.start,
-							children: [
-								Text(AppStrings.reservationCancellationTitle, style: AppTextStyles.subtitle(responsive)),
-								SizedBox(height: responsive.h(4)),
-								Text(AppStrings.reservationCancellationText, style: AppTextStyles.body(responsive).copyWith(color: AppColors.textSecondary, height: 1.6)),
-							],
-						),
-					),
-				],
-			),
-		);
-	}
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      responsive: responsive,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: responsive.w(40),
+            height: responsive.w(40),
+            decoration: ShapeDecoration(
+              color: AppColors.warningLight,
+              shape: RoundedRectangleBorder(
+                side: const BorderSide(color: Colors.transparent),
+                borderRadius: BorderRadius.circular(9999),
+              ),
+            ),
+            child: Icon(
+              Icons.info_outline_rounded,
+              size: responsive.text(18),
+              color: AppColors.warning,
+            ),
+          ),
+          SizedBox(width: responsive.w(12)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  AppStrings.reservationCancellationTitle,
+                  style: AppTextStyles.subtitle(responsive),
+                ),
+                SizedBox(height: responsive.h(4)),
+                Text(
+                  AppStrings.reservationCancellationText,
+                  style: AppTextStyles.body(responsive)
+                      .copyWith(color: AppColors.textSecondary, height: 1.6),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _SafetyCard extends StatelessWidget {
-	const _SafetyCard({required this.responsive});
+  const _SafetyCard({required this.responsive});
 
-	final AppResponsive responsive;
+  final AppResponsive responsive;
 
-	@override
-	Widget build(BuildContext context) {
-		return _SectionCard(
-			responsive: responsive,
-			child: Row(
-				crossAxisAlignment: CrossAxisAlignment.start,
-				children: [
-					Container(
-						width: responsive.w(40),
-						height: responsive.w(40),
-						decoration: ShapeDecoration(
-							color: AppColors.primaryMedium,
-							shape: RoundedRectangleBorder(
-								side: const BorderSide(color: Colors.transparent),
-								borderRadius: BorderRadius.circular(9999),
-							),
-						),
-						child: Icon(Icons.verified_rounded, size: responsive.text(18), color: AppColors.primary),
-					),
-					SizedBox(width: responsive.w(12)),
-					Expanded(
-						child: Column(
-							crossAxisAlignment: CrossAxisAlignment.start,
-							children: [
-								Text(AppStrings.reservationSafetyTitle, style: AppTextStyles.subtitle(responsive)),
-								SizedBox(height: responsive.h(4)),
-								Text(AppStrings.reservationSafetyText, style: AppTextStyles.body(responsive).copyWith(color: AppColors.textSecondary, height: 1.6)),
-							],
-						),
-					),
-				],
-			),
-		);
-	}
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      responsive: responsive,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: responsive.w(40),
+            height: responsive.w(40),
+            decoration: ShapeDecoration(
+              color: AppColors.primaryMedium,
+              shape: RoundedRectangleBorder(
+                side: const BorderSide(color: Colors.transparent),
+                borderRadius: BorderRadius.circular(9999),
+              ),
+            ),
+            child: Icon(
+              Icons.verified_rounded,
+              size: responsive.text(18),
+              color: AppColors.primary,
+            ),
+          ),
+          SizedBox(width: responsive.w(12)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  AppStrings.reservationSafetyTitle,
+                  style: AppTextStyles.subtitle(responsive),
+                ),
+                SizedBox(height: responsive.h(4)),
+                Text(
+                  AppStrings.reservationSafetyText,
+                  style: AppTextStyles.body(responsive)
+                      .copyWith(color: AppColors.textSecondary, height: 1.6),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 String _initials(String name) {
-	final parts = name.trim().split(RegExp(r'\s+'));
-	if (parts.isEmpty) {
-		return 'M';
-	}
+  final parts = name.trim().split(RegExp(r'\s+'));
+  if (parts.isEmpty) {
+    return 'M';
+  }
 
-	final first = parts.first.isNotEmpty ? parts.first[0] : 'M';
-	final second = parts.length > 1 && parts[1].isNotEmpty ? parts[1][0] : '';
-	return (first + second).toUpperCase();
+  final first = parts.first.isNotEmpty ? parts.first[0] : 'M';
+  final second = parts.length > 1 && parts[1].isNotEmpty ? parts[1][0] : '';
+  return (first + second).toUpperCase();
 }
 
 IconData _paymentMethodIcon(int index, String title) {
-	switch (index) {
-		case 0:
-			return Icons.phone_android_rounded;
-		case 1:
-			return Icons.credit_card_rounded;
-		default:
-			if (title.toLowerCase().contains('mobile') || title.toLowerCase().contains('money')) {
-				return Icons.phone_android_rounded;
-			}
-			return Icons.credit_card_rounded;
-	}
+  switch (index) {
+    case 0:
+      return Icons.phone_android_rounded;
+    case 1:
+      return Icons.credit_card_rounded;
+    default:
+      if (title.toLowerCase().contains('mobile') ||
+          title.toLowerCase().contains('money')) {
+        return Icons.phone_android_rounded;
+      }
+      return Icons.credit_card_rounded;
+  }
 }

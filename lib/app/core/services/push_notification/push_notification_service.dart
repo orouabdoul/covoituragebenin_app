@@ -309,7 +309,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     // Message avec bloc notification et corps non-vide → le système l'affiche déjà.
     // Si le corps FCM est vide (cas message_new sans preview), on affiche nous-mêmes.
     if (message.notification != null &&
-        message.notification!.body?.trim().isNotEmpty == true) return;
+        message.notification!.body?.trim().isNotEmpty == true) { return; }
 
     final data = message.data;
     final type = data['type'] as String? ?? '';
@@ -734,7 +734,7 @@ class PushNotificationService {
               arguments: {'bookingUuid': bookingUuid},
             );
           } else {
-            _navigateToTab(2, isDriverRole: false);
+            _navigateToTab(1, isDriverRole: false);
           }
         }
 
@@ -749,13 +749,13 @@ class PushNotificationService {
 
       case 'reservation_rejected':
       case 'reservation_cancelled':
-        if (!isDriver) _navigateToTab(2, isDriverRole: false);
+        if (!isDriver) _navigateToTab(1, isDriverRole: false);
 
       case 'booking_created':
         if (isDriver) {
           Get.toNamed(AppRoutes.driverReservations);
         } else {
-          _navigateToTab(2, isDriverRole: false);
+          _navigateToTab(1, isDriverRole: false);
         }
 
       case 'booking_cancelled':
@@ -763,7 +763,7 @@ class PushNotificationService {
         if (isDriver) Get.toNamed(AppRoutes.driverReservations);
 
       case 'trip_cancelled':
-        if (!isDriver) _navigateToTab(2, isDriverRole: false);
+        if (!isDriver) _navigateToTab(1, isDriverRole: false);
 
       // ── Trajet démarré → passager (live tracking) ─────────────────────────
       case 'trip_started':
@@ -807,7 +807,7 @@ class PushNotificationService {
         if (isDriver) {
           Get.toNamed(AppRoutes.driverActiveTrip);
         } else {
-          _navigateToTab(2, isDriverRole: false);
+          _navigateToTab(1, isDriverRole: false);
         }
 
       // ── Messagerie ────────────────────────────────────────────────────────
@@ -825,9 +825,9 @@ class PushNotificationService {
           }
         } else {
           if (Get.isRegistered<BottonNavController>()) {
-            BottonNavController.goToTab(3);
+            BottonNavController.goToTab(2);
           } else {
-            Get.offAllNamed(AppRoutes.dashboardPassenger, arguments: 3);
+            Get.offAllNamed(AppRoutes.dashboardPassenger, arguments: 2);
           }
           if (convUuid != null) {
             Get.toNamed(AppRoutes.passengerMessageDetail, arguments: {'uuid': convUuid});
@@ -839,12 +839,12 @@ class PushNotificationService {
         if (isDriver) {
           Get.toNamed(AppRoutes.driverPaymentHistory);
         } else {
-          _navigateToTab(2, isDriverRole: false);
+          _navigateToTab(1, isDriverRole: false);
         }
 
       case 'payment_failed':
       case 'payment_pending':
-        if (!isDriver) _navigateToTab(2, isDriverRole: false);
+        if (!isDriver) _navigateToTab(1, isDriverRole: false);
         if (isDriver) Get.toNamed(AppRoutes.driverPaymentHistory);
 
       case 'payment_confirmed':
@@ -973,7 +973,7 @@ class PushNotificationService {
           if (tripUuid != null) {
             Get.toNamed(AppRoutes.passengerLiveTracking, arguments: {'tripUuid': tripUuid});
           } else {
-            _navigateToTab(2, isDriverRole: false);
+            _navigateToTab(1, isDriverRole: false);
           }
         }
 

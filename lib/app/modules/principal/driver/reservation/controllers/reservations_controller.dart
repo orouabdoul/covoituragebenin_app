@@ -91,10 +91,9 @@ class LiveReservationRequest {
     );
 
     final seats = (json['seats_booked'] as num?)?.toInt() ?? 1;
-    final pricePerSeat =
-        (json['calculated_price'] as num?)?.toDouble() ?? 0.0;
-    final subtotal = (json['price_subtotal'] as num?)?.toDouble() ??
-        pricePerSeat * seats;
+    final pricePerSeat = (json['calculated_price'] as num?)?.toDouble() ?? 0.0;
+    final subtotal =
+        (json['price_subtotal'] as num?)?.toDouble() ?? pricePerSeat * seats;
     final serviceFee = (json['service_fee'] as num?)?.toDouble() ?? 0.0;
     final calculatedPrice =
         (json['total_price'] as num?)?.toDouble() ?? subtotal + serviceFee;
@@ -191,6 +190,7 @@ class LiveReservationRequest {
     'accepted' => ReservationStatus.accepted,
     'rejected' => ReservationStatus.rejected,
     'cancelled' => ReservationStatus.rejected,
+    'expired' => ReservationStatus.expired,
     _ => ReservationStatus.pending,
   };
 
@@ -269,8 +269,8 @@ class ReservationsController extends GetxController {
   final RxList<LiveReservationRequest> rejectedRequests =
       <LiveReservationRequest>[].obs;
 
-  // Prevents double-tap on accept/reject during an in-flight API call
-  final _processingIds = <String>{};
+  // Reactive so action buttons immediately reflect the in-flight request.
+  final RxSet<String> _processingIds = <String>{}.obs;
 
   bool isProcessing(String id) => _processingIds.contains(id);
 
@@ -345,13 +345,11 @@ class ReservationsController extends GetxController {
 
     if (!result.isSuccess) {
       UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
-      r.startTimer(() => _onExpired(r));
+      await _loadBookings();
       return;
     }
 
-    r.status = ReservationStatus.accepted;
-    pendingRequests.remove(r);
-    acceptedRequests.insert(0, r);
+    await _loadBookings();
     AppSync.i.refreshDriverDashboard();
     UIHelper().showSnackBar(
       'MINIZON',
@@ -413,13 +411,11 @@ class ReservationsController extends GetxController {
 
     if (!result.isSuccess) {
       UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
-      r.startTimer(() => _onExpired(r));
+      await _loadBookings();
       return;
     }
 
-    r.status = ReservationStatus.rejected;
-    pendingRequests.remove(r);
-    rejectedRequests.insert(0, r);
+    await _loadBookings();
     AppSync.i.refreshDriverDashboard();
     UIHelper().showSnackBar(
       'MINIZON',
@@ -545,10 +541,7 @@ class ReservationsController extends GetxController {
                     const SizedBox(height: 8),
                     _PassengerInfoRow(label: 'Total', value: r.amountLabel),
                     const SizedBox(height: 8),
-                    _PassengerInfoRow(
-                      label: 'Paiement',
-                      value: r.paymentLabel,
-                    ),
+                    _PassengerInfoRow(label: 'Paiement', value: r.paymentLabel),
                   ],
                 ),
               ),

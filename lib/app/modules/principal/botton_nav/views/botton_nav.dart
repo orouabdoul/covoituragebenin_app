@@ -693,7 +693,7 @@ class _BottonNavBar extends StatelessWidget {
                       item: item,
                       selected: selected,
                       onTap: () => onTap(index),
-                      badgeCount: index == 3
+                      badgeCount: index == 2
                           ? messageBadgeCount
                           : (index == 0 ? notifBadgeCount : 0),
                     ),
