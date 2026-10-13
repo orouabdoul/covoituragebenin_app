@@ -535,7 +535,7 @@ class _SubmittedState extends StatelessWidget {
 					SizedBox(height: responsive.h(40)),
 					AppPrimaryButton(
 						responsive: responsive,
-						label: 'Retour à l\'accueil',
+						label: 'Trouver un nouveau trajet',
 						onTap: controller.goHome,
 						height: responsive.h(56),
 						borderRadius: responsive.radius(16),

@@ -36,7 +36,17 @@ class SafetyCenterView extends StatelessWidget {
 										),
 										children: [
 											_SOSButton(responsive: responsive, controller: controller),
-											SizedBox(height: responsive.h(24)),
+											SizedBox(height: responsive.h(10)),
+											Obx(() => controller.sosActivated.value
+													? const SizedBox.shrink()
+													: Text(
+															'Appuyez pour alerter vos contacts d\'urgence\net partager votre position',
+															style: AppTextStyles.caption(responsive).copyWith(
+																	color: AppColors.textHint, height: 1.5,
+															),
+															textAlign: TextAlign.center,
+													)),
+											SizedBox(height: responsive.h(14)),
 											_ShareTripCard(responsive: responsive, controller: controller),
 											SizedBox(height: responsive.h(16)),
 											_EmergencyServicesCard(responsive: responsive, controller: controller),

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
@@ -135,7 +135,7 @@ class _ActiveTripBanner extends StatelessWidget {
 				padding: EdgeInsets.symmetric(horizontal: responsive.w(16), vertical: responsive.h(12)),
 				decoration: BoxDecoration(
 					gradient: const LinearGradient(
-						colors: [AppColors.primary, AppColors.primary],
+						colors: [Color(0xFF1A5FB4), Color(0xFF0D3680)],
 					),
 					borderRadius: BorderRadius.circular(responsive.radius(14)),
 					boxShadow: [
@@ -1232,9 +1232,9 @@ class _EmptyState extends StatelessWidget {
 	String get _message {
 		switch (status) {
 			case ReservationStatus.pending: return 'Aucune réservation en attente.\nVos nouvelles réservations apparaîtront ici.';
-			case ReservationStatus.confirmed: return 'Aucun trajet confirmé.\nRéservez un trajet pour commencer.';
+			case ReservationStatus.confirmed: return 'Aucun trajet à venir.\nRéservez un trajet pour commencer.';
 			case ReservationStatus.inProgress: return 'Aucun trajet en cours actuellement.';
-			case ReservationStatus.completed: return 'Vous n\'avez pas encore effectué\nde trajet avec MINIZON.';
+			case ReservationStatus.completed: return 'Aucun trajet passé.\nVos trajets terminés et annulés apparaîtront ici.';
 			case ReservationStatus.cancelled: return 'Aucune réservation annulée.';
 		}
 	}

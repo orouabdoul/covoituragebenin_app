@@ -77,7 +77,7 @@ class WaitingApprovalController extends GetxController {
 
   void _startPolling() {
     _pollOnce();
-    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (_) => _pollOnce());
+    _pollingTimer = Timer.periodic(const Duration(seconds: 10), (_) => _pollOnce());
   }
 
   Future<void> _pollOnce() async {

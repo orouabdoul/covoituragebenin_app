@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
@@ -74,7 +74,7 @@ class _PendingContent extends StatelessWidget {
 				),
 				SizedBox(height: responsive.h(8)),
 				Text(
-					'Le conducteur a généralement moins\nde 5 minutes pour répondre.',
+					'Le conducteur peut mettre jusqu\'à 15 minutes.\nVotre argent est sécurisé pendant l\'attente.',
 					textAlign: TextAlign.center,
 					style: AppTextStyles.body(responsive).copyWith(color: AppColors.textHint, height: 1.6),
 				),

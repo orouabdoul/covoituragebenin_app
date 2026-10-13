@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
@@ -25,11 +25,9 @@ class ReservationController extends GetxController {
 	final RxInt selectedStatusIndex = 0.obs;
 
 	final RxList<ReservationStatusTab> statusTabs = <ReservationStatusTab>[
-		const ReservationStatusTab(label: 'En attente', status: ReservationStatus.pending),
-		const ReservationStatusTab(label: 'Confirmé', status: ReservationStatus.confirmed),
-		const ReservationStatusTab(label: 'En cours', status: ReservationStatus.inProgress),
-		const ReservationStatusTab(label: 'Terminé', status: ReservationStatus.completed),
-		const ReservationStatusTab(label: 'Annulé', status: ReservationStatus.cancelled),
+		const ReservationStatusTab(label: 'À venir', status: ReservationStatus.confirmed, statuses: [ReservationStatus.pending, ReservationStatus.confirmed]),
+		const ReservationStatusTab(label: 'En cours', status: ReservationStatus.inProgress, statuses: [ReservationStatus.inProgress]),
+		const ReservationStatusTab(label: 'Passés', status: ReservationStatus.completed, statuses: [ReservationStatus.completed, ReservationStatus.cancelled]),
 	].obs;
 
 	final RxList<ReservationItem> _allReservations = <ReservationItem>[].obs;
@@ -49,8 +47,9 @@ class ReservationController extends GetxController {
 	List<ReservationItem> get filteredReservations {
 		if (statusTabs.isEmpty) return [];
 		final idx = selectedStatusIndex.value.clamp(0, statusTabs.length - 1);
-		final selected = statusTabs[idx].status;
-		return _allReservations.where((r) => r.status == selected).toList();
+		final tab = statusTabs[idx];
+		final selected = tab.statuses.isNotEmpty ? tab.statuses : [tab.status];
+		return _allReservations.where((r) => selected.contains(r.status)).toList();
 	}
 
 	ReservationItem? get activeTrip {
@@ -118,37 +117,8 @@ class ReservationController extends GetxController {
 		}
 	}
 
-	// Garantit que les 5 statuts sont toujours représentés, même si l'API n'en retourne pas.
-	void _applyStatusTabs(List<ReservationStatusTabApi> apiTabs) {
-		final apiByStatus = <ReservationStatus, ReservationStatusTabApi>{};
-		for (final t in apiTabs) {
-			apiByStatus.putIfAbsent(_parseStatus(t.status), () => t);
-		}
-
-		const defaults = <(ReservationStatus, String)>[
-			(ReservationStatus.pending,    'En attente'),
-			(ReservationStatus.confirmed,  'Confirmé'),
-			(ReservationStatus.inProgress, 'En cours'),
-			(ReservationStatus.completed,  'Terminé'),
-			(ReservationStatus.cancelled,  'Annulé'),
-		];
-
-		final merged = defaults.map((entry) {
-			final status = entry.$1;
-			final defaultLabel = entry.$2;
-			final api = apiByStatus[status];
-			if (api != null) {
-				return ReservationStatusTab(
-					label: api.count > 0 ? '${api.label} (${api.count})' : api.label,
-					status: status,
-				);
-			}
-			return ReservationStatusTab(label: defaultLabel, status: status);
-		}).toList();
-
-		statusTabs.assignAll(merged);
-
-		if (selectedStatusIndex.value >= merged.length) {
+	void _applyStatusTabs(List<ReservationStatusTabApi> _) {
+		if (selectedStatusIndex.value >= statusTabs.length) {
 			selectedStatusIndex.value = 0;
 		}
 	}
@@ -160,12 +130,13 @@ class ReservationController extends GetxController {
 			counts[item.status] = (counts[item.status] ?? 0) + 1;
 		}
 		final updated = statusTabs.map((tab) {
-			final n = counts[tab.status] ?? 0;
-			// Extraire le label sans le count existant pour le reformater
+			final effectiveStatuses = tab.statuses.isNotEmpty ? tab.statuses : [tab.status];
+			final n = effectiveStatuses.fold(0, (sum, s) => sum + (counts[s] ?? 0));
 			final baseLabel = tab.label.replaceAll(RegExp(r' \(\d+\)$'), '');
 			return ReservationStatusTab(
 				label: n > 0 ? '$baseLabel ($n)' : baseLabel,
 				status: tab.status,
+				statuses: tab.statuses,
 			);
 		}).toList();
 		statusTabs.assignAll(updated);
@@ -426,7 +397,10 @@ class ReservationController extends GetxController {
 				cancelReason: 'Annulé par le passager',
 			);
 		}
-		final cancelledIdx = statusTabs.indexWhere((t) => t.status == ReservationStatus.cancelled);
+		final cancelledIdx = statusTabs.indexWhere((t) {
+			final ss = t.statuses.isNotEmpty ? t.statuses : [t.status];
+			return ss.contains(ReservationStatus.cancelled);
+		});
 		if (cancelledIdx >= 0) selectStatus(cancelledIdx);
 		final formatted = _formatPrice(refundAmount);
 		UIHelper().showSnackBar(
@@ -869,9 +843,14 @@ class _InvoiceRow extends StatelessWidget {
 // ── Models ──────────────────────────────────────────────────────────────────
 
 class ReservationStatusTab {
-	const ReservationStatusTab({required this.label, required this.status});
+	const ReservationStatusTab({
+		required this.label,
+		required this.status,
+		this.statuses = const <ReservationStatus>[],
+	});
 	final String label;
 	final ReservationStatus status;
+	final List<ReservationStatus> statuses;
 }
 
 enum RefundStatus { none, pending, approved, refunded, rejected }
