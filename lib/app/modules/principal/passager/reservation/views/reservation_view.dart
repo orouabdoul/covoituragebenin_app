@@ -210,24 +210,23 @@ class _StatusTabBar extends StatelessWidget {
 	Widget build(BuildContext context) {
 		return Container(
 			color: AppColors.white,
-			child: Obx(() => SingleChildScrollView(
-				scrollDirection: Axis.horizontal,
-				padding: EdgeInsets.symmetric(
-					horizontal: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
-					vertical: responsive.h(10),
-				),
-				child: Row(
-					children: List.generate(controller.statusTabs.length, (i) {
-						final tab = controller.statusTabs[i];
-						final selected = controller.selectedStatusIndex.value == i;
-						final color = _tabColor(tab.status);
-						return Padding(
+			padding: EdgeInsets.symmetric(
+				horizontal: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
+				vertical: responsive.h(10),
+			),
+			child: Obx(() => Row(
+				children: List.generate(controller.statusTabs.length, (i) {
+					final tab = controller.statusTabs[i];
+					final selected = controller.selectedStatusIndex.value == i;
+					final color = _tabColor(tab.status);
+					return Expanded(
+						child: Padding(
 							padding: EdgeInsets.only(right: i < controller.statusTabs.length - 1 ? responsive.w(8) : 0),
 							child: GestureDetector(
 								onTap: () => controller.selectStatus(i),
 								child: AnimatedContainer(
 									duration: const Duration(milliseconds: 180),
-									padding: EdgeInsets.symmetric(horizontal: responsive.w(16), vertical: responsive.h(8)),
+									padding: EdgeInsets.symmetric(horizontal: responsive.w(8), vertical: responsive.h(8)),
 									decoration: BoxDecoration(
 										color: selected ? color.withValues(alpha: 0.12) : AppColors.surfaceMuted,
 										borderRadius: BorderRadius.circular(9999),
@@ -237,7 +236,7 @@ class _StatusTabBar extends StatelessWidget {
 										),
 									),
 									child: Row(
-										mainAxisSize: MainAxisSize.min,
+										mainAxisAlignment: MainAxisAlignment.center,
 										children: [
 											Icon(_tabIcon(tab.status), size: responsive.text(12), color: selected ? color : AppColors.textHint),
 											SizedBox(width: responsive.w(5)),
@@ -252,9 +251,9 @@ class _StatusTabBar extends StatelessWidget {
 									),
 								),
 							),
-						);
-					}),
-				),
+						),
+					);
+				}),
 			)),
 		);
 	}
@@ -483,11 +482,12 @@ class _PulsingDotState extends State<_PulsingDot> with SingleTickerProviderState
 
 	@override
 	Widget build(BuildContext context) {
+		final r = AppResponsive(context);
 		return ScaleTransition(
 			scale: _scale,
 			child: Container(
-				width: 10,
-				height: 10,
+				width: r.w(10),
+				height: r.w(10),
 				decoration: BoxDecoration(color: widget.color, shape: BoxShape.circle),
 			),
 		);
@@ -694,14 +694,14 @@ class _RouteBlock extends StatelessWidget {
 								Row(
 									children: [
 										Icon(Icons.directions_car_outlined,
-												size: 11, color: AppColors.textHint),
+												size: responsive.text(11), color: AppColors.textHint),
 										SizedBox(width: responsive.w(4)),
 										Flexible(
 											child: Text(
 												'${reservation.tripOrigin} → ${reservation.tripDestination}',
 												style: AppTextStyles.caption(responsive).copyWith(
 													color: AppColors.textHint,
-													fontSize: 11,
+													fontSize: responsive.text(11),
 												),
 												overflow: TextOverflow.ellipsis,
 											),
@@ -975,15 +975,14 @@ class _ActionButtons extends StatelessWidget {
 					child: Row(
 						mainAxisAlignment: MainAxisAlignment.center,
 						children: [
-							const Icon(Icons.check_circle_rounded,
-									color: AppColors.primary, size: 16),
+							Icon(Icons.check_circle_rounded,
+									color: AppColors.primary, size: responsive.text(16)),
 							SizedBox(width: responsive.w(6)),
-							const Text(
+							Text(
 								'Payé',
-								style: TextStyle(
+								style: AppTextStyles.caption(responsive).copyWith(
 									color: AppColors.successDark,
 									fontWeight: FontWeight.w700,
-									fontSize: 13,
 								),
 							),
 						],

@@ -327,7 +327,7 @@ class _ReservationPickerSheet extends StatelessWidget {
 				children: [
 					Container(
 						width: responsive.w(40),
-						height: 4,
+						height: responsive.h(4),
 						decoration: BoxDecoration(
 							color: AppColors.border,
 							borderRadius: BorderRadius.circular(2),
@@ -803,24 +803,25 @@ class _LoadingOverlay extends StatelessWidget {
 
 	@override
 	Widget build(BuildContext context) {
+		final r = AppResponsive(context);
 		return Container(
 			color: Colors.black54,
 			child: Center(
 				child: Container(
-					padding: const EdgeInsets.all(28),
+					padding: EdgeInsets.all(r.w(28)),
 					decoration: BoxDecoration(
 						color: Colors.white,
-						borderRadius: BorderRadius.circular(20),
+						borderRadius: BorderRadius.circular(r.radius(20)),
 						boxShadow: const [BoxShadow(color: AppColors.shadow, blurRadius: 24)],
 					),
 					child: Column(
 						mainAxisSize: MainAxisSize.min,
 						children: [
 							const CircularProgressIndicator(color: AppColors.primary, strokeWidth: 3),
-							const SizedBox(height: 20),
-							const Text(
+							SizedBox(height: r.h(20)),
+							Text(
 								'Envoi en cours...',
-								style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+								style: AppTextStyles.bodyMedium(r).copyWith(color: AppColors.textPrimary),
 							),
 						],
 					),

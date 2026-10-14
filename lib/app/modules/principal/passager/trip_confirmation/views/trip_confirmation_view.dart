@@ -134,11 +134,11 @@ class _HeaderBar extends StatelessWidget {
 			padding: EdgeInsets.symmetric(vertical: responsive.h(12)),
 			child: Row(
 				children: [
-					const SizedBox(width: 40),
+					SizedBox(width: responsive.w(40)),
 					const Spacer(),
 					Text('Trajet terminé', style: AppTextStyles.title(responsive)),
 					const Spacer(),
-					const SizedBox(width: 40),
+					SizedBox(width: responsive.w(40)),
 				],
 			),
 		);

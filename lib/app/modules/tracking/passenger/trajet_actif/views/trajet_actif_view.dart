@@ -165,15 +165,16 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final r = AppResponsive(context);
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: r.w(12), vertical: r.h(8)),
         child: Row(
           children: [
             _MapBtn(icon: Icons.arrow_back_rounded, onTap: Get.back),
             const Spacer(),
             _MapBtn(icon: Icons.fit_screen_rounded, onTap: c.fitAll),
-            const SizedBox(width: 8),
+            SizedBox(width: r.w(8)),
             Obx(() => _MapBtn(
                   icon: c.cameraFollows.value
                       ? Icons.gps_fixed_rounded
@@ -199,11 +200,13 @@ class _MapBtn extends StatelessWidget {
   final bool active;
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
+  Widget build(BuildContext context) {
+    final r = AppResponsive(context);
+    return GestureDetector(
         onTap: onTap,
         child: Container(
-          width: 40,
-          height: 40,
+          width: r.w(40),
+          height: r.w(40),
           decoration: BoxDecoration(
             color: active ? AppColors.primary : Colors.white,
             shape: BoxShape.circle,
@@ -218,10 +221,11 @@ class _MapBtn extends StatelessWidget {
           child: Icon(
             icon,
             color: active ? Colors.white : AppColors.textPrimary,
-            size: 20,
+            size: r.text(20),
           ),
         ),
-      );
+    );
+  }
 }
 
 // ─── Bottom Sheet ─────────────────────────────────────────────────────────────
@@ -255,18 +259,18 @@ class _BottomSheet extends StatelessWidget {
           children: [
             _Handle(),
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+              padding: EdgeInsets.fromLTRB(r.w(20), r.h(4), r.w(20), 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _StatusRow(c: c, r: r),
-                  const SizedBox(height: 16),
+                  SizedBox(height: r.h(16)),
                   _MetricsRow(c: c, r: r),
-                  const SizedBox(height: 16),
+                  SizedBox(height: r.h(16)),
                   _ProgressBar(c: c, r: r),
                   const _Separator(),
                   _DriverCard(c: c, r: r),
-                  const SizedBox(height: 16),
+                  SizedBox(height: r.h(16)),
                   _PrimaryBtn(
                     onTap: c.callDriver,
                     icon: Icons.phone_rounded,
@@ -274,7 +278,7 @@ class _BottomSheet extends StatelessWidget {
                     color: AppColors.success,
                     r: r,
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: r.h(10)),
                   Center(
                     child: Text(
                       'Mise à jour toutes les 5 secondes',
@@ -296,27 +300,33 @@ class _BottomSheet extends StatelessWidget {
 
 class _Handle extends StatelessWidget {
   @override
-  Widget build(BuildContext context) => Center(
-        child: Container(
-          width: 40,
-          height: 4,
-          margin: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFFD1D5DB),
-            borderRadius: BorderRadius.circular(2),
-          ),
+  Widget build(BuildContext context) {
+    final r = AppResponsive(context);
+    return Center(
+      child: Container(
+        width: r.w(40),
+        height: r.h(4),
+        margin: EdgeInsets.symmetric(vertical: r.h(12)),
+        decoration: BoxDecoration(
+          color: AppColors.border,
+          borderRadius: BorderRadius.circular(2),
         ),
-      );
+      ),
+    );
+  }
 }
 
 class _Separator extends StatelessWidget {
   const _Separator();
 
   @override
-  Widget build(BuildContext context) => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 16),
-        child: Divider(height: 1, thickness: 1, color: Color(0xFFF0F2F5)),
-      );
+  Widget build(BuildContext context) {
+    final r = AppResponsive(context);
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: r.h(16)),
+      child: Divider(height: 1, thickness: 1, color: AppColors.surfaceMuted),
+    );
+  }
 }
 
 class _StatusRow extends StatelessWidget {
@@ -332,14 +342,14 @@ class _StatusRow extends StatelessWidget {
       return Row(
         children: [
           Container(
-            width: 10,
-            height: 10,
+            width: r.w(10),
+            height: r.w(10),
             decoration: const BoxDecoration(
               color: AppColors.success,
               shape: BoxShape.circle,
             ),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: r.w(8)),
           Expanded(
             child: Text(
               label,
@@ -348,9 +358,9 @@ class _StatusRow extends StatelessWidget {
             ),
           ),
           if (stale) ...[
-            const SizedBox(width: 8),
+            SizedBox(width: r.w(8)),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: EdgeInsets.symmetric(horizontal: r.w(10), vertical: r.h(4)),
               decoration: BoxDecoration(
                 color: AppColors.accent.withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(20),
@@ -359,8 +369,8 @@ class _StatusRow extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.signal_wifi_off_rounded,
-                      size: 13, color: AppColors.accent),
-                  const SizedBox(width: 4),
+                      size: r.text(13), color: AppColors.accent),
+                  SizedBox(width: r.w(4)),
                   Text('GPS perdu',
                       style: AppTextStyles.labelSmall(r)
                           .copyWith(color: AppColors.accent)),
@@ -428,7 +438,7 @@ class _MetricChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Expanded(
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+          padding: EdgeInsets.symmetric(vertical: r.h(12), horizontal: r.w(10)),
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.07),
             borderRadius: BorderRadius.circular(14),
@@ -438,8 +448,8 @@ class _MetricChip extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, color: color, size: 18),
-              const SizedBox(height: 6),
+              Icon(icon, color: color, size: r.text(18)),
+              SizedBox(height: r.h(6)),
               Text(value,
                   style: AppTextStyles.h6(r).copyWith(color: color)),
               Text(label, style: AppTextStyles.labelSmall(r)),
@@ -482,12 +492,12 @@ class _ProgressBar extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: r.h(6)),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: pct,
-              backgroundColor: const Color(0xFFEEF0F3),
+              backgroundColor: AppColors.surfaceMuted,
               valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
               minHeight: 6,
             ),
@@ -518,8 +528,8 @@ class _DriverCard extends StatelessWidget {
       return Row(
         children: [
           Container(
-            width: 52,
-            height: 52,
+            width: r.w(52),
+            height: r.w(52),
             decoration: BoxDecoration(
               color: AppColors.primary.withValues(alpha: 0.10),
               shape: BoxShape.circle,
@@ -536,7 +546,7 @@ class _DriverCard extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 14),
+          SizedBox(width: r.w(14)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -551,7 +561,7 @@ class _DriverCard extends StatelessWidget {
           ),
           Container(
             padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                EdgeInsets.symmetric(horizontal: r.w(10), vertical: r.h(5)),
             decoration: BoxDecoration(
               color: AppColors.success.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(20),
@@ -560,8 +570,8 @@ class _DriverCard extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.verified_rounded,
-                    size: 14, color: AppColors.success),
-                const SizedBox(width: 4),
+                    size: r.text(14), color: AppColors.success),
+                SizedBox(width: r.w(4)),
                 Text(
                   'En route',
                   style: AppTextStyles.labelSmall(r)
@@ -593,10 +603,10 @@ class _PrimaryBtn extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SizedBox(
         width: double.infinity,
-        height: 52,
+        height: r.h(52),
         child: ElevatedButton.icon(
           onPressed: onTap,
-          icon: Icon(icon, size: 20),
+          icon: Icon(icon, size: r.text(20)),
           label: Text(label, style: AppTextStyles.button(r)),
           style: ElevatedButton.styleFrom(
             backgroundColor: color,

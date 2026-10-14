@@ -441,8 +441,8 @@ class _BookingStatusCard extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.info_outline_rounded,
-                      size: 14, color: AppColors.danger),
+                  Icon(Icons.info_outline_rounded,
+                      size: responsive.text(14), color: AppColors.danger),
                   SizedBox(width: responsive.w(8)),
                   Expanded(
                       child: Text(
@@ -480,7 +480,7 @@ class _InfoCell extends StatelessWidget {
           SizedBox(height: responsive.h(4)),
           Text(label,
               style: AppTextStyles.caption(responsive)
-                  .copyWith(color: AppColors.textHint, fontSize: 10)),
+                  .copyWith(color: AppColors.textHint, fontSize: responsive.text(10))),
           SizedBox(height: responsive.h(2)),
           Text(value,
               style: AppTextStyles.caption(responsive)
@@ -751,8 +751,8 @@ class _VehicleCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                child: const Icon(Icons.directions_car_filled_rounded,
-                    color: AppColors.primary, size: 40),
+                child: Icon(Icons.directions_car_filled_rounded,
+                    color: AppColors.primary, size: responsive.text(40)),
               ),
               SizedBox(width: responsive.w(16)),
               Expanded(
@@ -856,14 +856,14 @@ class _PassengerRouteCard extends StatelessWidget {
                     if (reservation.displayPickupAddress.isNotEmpty) ...[
                       SizedBox(height: responsive.h(2)),
                       Row(children: [
-                        const Icon(Icons.location_on_outlined,
-                            size: 11, color: AppColors.textHint),
+                        Icon(Icons.location_on_outlined,
+                            size: responsive.text(11), color: AppColors.textHint),
                         SizedBox(width: responsive.w(3)),
                         Flexible(
                             child: Text(
                           reservation.displayPickupAddress,
                           style: AppTextStyles.caption(responsive).copyWith(
-                              color: AppColors.textHint, fontSize: 11),
+                              color: AppColors.textHint, fontSize: responsive.text(11)),
                         )),
                       ]),
                     ],
@@ -913,14 +913,14 @@ class _PassengerRouteCard extends StatelessWidget {
                     if (reservation.displayDropoffAddress.isNotEmpty) ...[
                       SizedBox(height: responsive.h(2)),
                       Row(children: [
-                        const Icon(Icons.location_on_outlined,
-                            size: 11, color: AppColors.textHint),
+                        Icon(Icons.location_on_outlined,
+                            size: responsive.text(11), color: AppColors.textHint),
                         SizedBox(width: responsive.w(3)),
                         Flexible(
                             child: Text(
                           reservation.displayDropoffAddress,
                           style: AppTextStyles.caption(responsive).copyWith(
-                              color: AppColors.textHint, fontSize: 11),
+                              color: AppColors.textHint, fontSize: responsive.text(11)),
                         )),
                       ]),
                     ],
@@ -941,8 +941,8 @@ class _PassengerRouteCard extends StatelessWidget {
                 border: Border.all(color: Colors.transparent),
               ),
               child: Row(children: [
-                const Icon(Icons.directions_car_outlined,
-                    size: 13, color: AppColors.textHint),
+                Icon(Icons.directions_car_outlined,
+                    size: responsive.text(13), color: AppColors.textHint),
                 SizedBox(width: responsive.w(8)),
                 Flexible(
                     child: Text(
@@ -1041,8 +1041,8 @@ class _ItineraryCard extends StatelessWidget {
                   Expanded(
                     child: Row(
                       children: [
-                        const Icon(Icons.timelapse_rounded,
-                            size: 16, color: AppColors.primary),
+                        Icon(Icons.timelapse_rounded,
+                            size: responsive.text(16), color: AppColors.primary),
                         SizedBox(width: responsive.w(6)),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1070,8 +1070,8 @@ class _ItineraryCard extends StatelessWidget {
                   Expanded(
                     child: Row(
                       children: [
-                        const Icon(Icons.straighten_rounded,
-                            size: 16, color: AppColors.primary),
+                        Icon(Icons.straighten_rounded,
+                            size: responsive.text(16), color: AppColors.primary),
                         SizedBox(width: responsive.w(6)),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1347,7 +1347,7 @@ class _PriceCard extends StatelessWidget {
                           style: AppTextStyles.caption(responsive).copyWith(
                               color: AppColors.primary,
                               fontWeight: FontWeight.w600,
-                              fontSize: 11)),
+                              fontSize: responsive.text(11))),
                     ]),
                   ),
               ],
@@ -1380,8 +1380,8 @@ class _PriceCard extends StatelessWidget {
                   border: Border.all(color: AppColors.warningSurface),
                 ),
                 child: Row(children: [
-                  const Icon(Icons.info_outline_rounded,
-                      size: 13, color: AppColors.warning),
+                  Icon(Icons.info_outline_rounded,
+                      size: responsive.text(13), color: AppColors.warning),
                   SizedBox(width: responsive.w(8)),
                   Expanded(
                       child: Text(

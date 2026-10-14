@@ -402,7 +402,7 @@ class _EmptyState extends StatelessWidget {
 							child: Icon(Icons.star_border_rounded, size: responsive.text(36), color: AppColors.textHint),
 						),
 						SizedBox(height: responsive.h(20)),
-						Text('Aucun avis', style: AppTextStyles.subtitle(responsive)),
+						Text('Aucun avis', style: AppTextStyles.subtitle(responsive), textAlign: TextAlign.center),
 						SizedBox(height: responsive.h(8)),
 						Text(
 							'Vos évaluations de conducteurs\napparaîtront ici après chaque trajet.',

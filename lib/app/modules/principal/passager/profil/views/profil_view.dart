@@ -246,13 +246,13 @@ class _SummaryCard extends StatelessWidget {
 										? Image.network(
 												summary.avatarUrl,
 												fit: BoxFit.cover,
-												errorBuilder: (_, e, s) => const Icon(
+												errorBuilder: (_, e, s) => Icon(
 													Icons.person_rounded,
 													color: AppColors.textHint,
-													size: 48,
+													size: responsive.text(48),
 												),
 											)
-										: const Icon(Icons.person_rounded, color: AppColors.textHint, size: 48),
+										: Icon(Icons.person_rounded, color: AppColors.textHint, size: responsive.text(48)),
 							),
 							Positioned(
 								left: -responsive.w(2),

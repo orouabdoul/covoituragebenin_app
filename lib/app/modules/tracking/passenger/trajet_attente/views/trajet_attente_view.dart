@@ -176,9 +176,10 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final r = AppResponsive(context);
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: r.w(12), vertical: r.h(8)),
         child: Row(
           children: [
             _MapBtn(icon: Icons.arrow_back_rounded, onTap: Get.back),
@@ -200,11 +201,13 @@ class _MapBtn extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
+  Widget build(BuildContext context) {
+    final r = AppResponsive(context);
+    return GestureDetector(
         onTap: onTap,
         child: Container(
-          width: 40,
-          height: 40,
+          width: r.w(40),
+          height: r.w(40),
           decoration: const BoxDecoration(
             color: Colors.white,
             shape: BoxShape.circle,
@@ -216,9 +219,10 @@ class _MapBtn extends StatelessWidget {
               ),
             ],
           ),
-          child: Icon(icon, color: AppColors.textPrimary, size: 20),
+          child: Icon(icon, color: AppColors.textPrimary, size: r.text(20)),
         ),
-      );
+    );
+  }
 }
 
 // ─── Bottom Sheet ─────────────────────────────────────────────────────────────
@@ -252,18 +256,18 @@ class _BottomSheet extends StatelessWidget {
           children: [
             _Handle(),
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+              padding: EdgeInsets.fromLTRB(r.w(20), r.h(4), r.w(20), 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _CountdownCard(c: c, r: r),
-                  const SizedBox(height: 20),
+                  SizedBox(height: r.h(20)),
                   _RouteRow(c: c, r: r),
                   const _Separator(),
                   _DriverRow(c: c, r: r),
-                  const SizedBox(height: 16),
+                  SizedBox(height: r.h(16)),
                   _CallBtn(c: c, r: r),
-                  const SizedBox(height: 10),
+                  SizedBox(height: r.h(10)),
                   _AutoRefreshHint(r: r),
                   SizedBox(
                       height: MediaQuery.paddingOf(context).bottom + 12),
@@ -279,27 +283,33 @@ class _BottomSheet extends StatelessWidget {
 
 class _Handle extends StatelessWidget {
   @override
-  Widget build(BuildContext context) => Center(
-        child: Container(
-          width: 40,
-          height: 4,
-          margin: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFFD1D5DB),
-            borderRadius: BorderRadius.circular(2),
-          ),
+  Widget build(BuildContext context) {
+    final r = AppResponsive(context);
+    return Center(
+      child: Container(
+        width: r.w(40),
+        height: r.h(4),
+        margin: EdgeInsets.symmetric(vertical: r.h(12)),
+        decoration: BoxDecoration(
+          color: AppColors.border,
+          borderRadius: BorderRadius.circular(2),
         ),
-      );
+      ),
+    );
+  }
 }
 
 class _Separator extends StatelessWidget {
   const _Separator();
 
   @override
-  Widget build(BuildContext context) => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 16),
-        child: Divider(height: 1, thickness: 1, color: Color(0xFFF0F2F5)),
-      );
+  Widget build(BuildContext context) {
+    final r = AppResponsive(context);
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: r.h(16)),
+      child: Divider(height: 1, thickness: 1, color: AppColors.surfaceMuted),
+    );
+  }
 }
 
 class _CountdownCard extends StatelessWidget {
@@ -321,7 +331,7 @@ class _CountdownCard extends StatelessWidget {
 
       return Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(18),
+        padding: EdgeInsets.all(r.w(18)),
         decoration: BoxDecoration(
           color: bg,
           borderRadius: BorderRadius.circular(16),
@@ -333,15 +343,15 @@ class _CountdownCard extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              width: 44,
-              height: 44,
+              width: r.w(44),
+              height: r.w(44),
               decoration: BoxDecoration(
                 color: iconColor.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: iconColor, size: 22),
+              child: Icon(icon, color: iconColor, size: r.text(22)),
             ),
-            const SizedBox(width: 14),
+            SizedBox(width: r.w(14)),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -404,21 +414,21 @@ class _RouteRow extends StatelessWidget {
               Column(
                 children: [
                   Container(
-                    width: 12,
-                    height: 12,
+                    width: r.w(12),
+                    height: r.w(12),
                     decoration: const BoxDecoration(
                       color: AppColors.success,
                       shape: BoxShape.circle,
                     ),
                   ),
                   Container(
-                    width: 2,
-                    height: 28,
-                    color: const Color(0xFFD1D5DB),
+                    width: r.w(2),
+                    height: r.h(28),
+                    color: AppColors.border,
                   ),
                   Container(
-                    width: 12,
-                    height: 12,
+                    width: r.w(12),
+                    height: r.w(12),
                     decoration: const BoxDecoration(
                       color: AppColors.danger,
                       shape: BoxShape.circle,
@@ -446,8 +456,8 @@ class _RouteRow extends StatelessWidget {
                         ),
                         if (time.isNotEmpty)
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: r.w(8), vertical: r.h(3)),
                             decoration: BoxDecoration(
                               color: AppColors.primary
                                   .withValues(alpha: 0.08),
@@ -457,9 +467,9 @@ class _RouteRow extends StatelessWidget {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(Icons.access_time_rounded,
-                                    size: 12,
+                                    size: r.text(12),
                                     color: AppColors.primary),
-                                const SizedBox(width: 4),
+                                SizedBox(width: r.w(4)),
                                 Text(
                                   time,
                                   style: AppTextStyles.labelSmall(r)
@@ -501,8 +511,8 @@ class _DriverRow extends StatelessWidget {
       return Row(
         children: [
           Container(
-            width: 52,
-            height: 52,
+            width: r.w(52),
+            height: r.w(52),
             decoration: BoxDecoration(
               color: AppColors.primary.withValues(alpha: 0.10),
               shape: BoxShape.circle,
@@ -519,7 +529,7 @@ class _DriverRow extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 14),
+          SizedBox(width: r.w(14)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -534,7 +544,7 @@ class _DriverRow extends StatelessWidget {
           ),
           Container(
             padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                EdgeInsets.symmetric(horizontal: r.w(10), vertical: r.h(5)),
             decoration: BoxDecoration(
               color: AppColors.accent.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(20),
@@ -543,14 +553,14 @@ class _DriverRow extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 7,
-                  height: 7,
+                  width: r.w(7),
+                  height: r.w(7),
                   decoration: const BoxDecoration(
                     color: AppColors.accent,
                     shape: BoxShape.circle,
                   ),
                 ),
-                const SizedBox(width: 5),
+                SizedBox(width: r.w(5)),
                 Text(
                   'En attente',
                   style: AppTextStyles.labelSmall(r)
@@ -573,10 +583,10 @@ class _CallBtn extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SizedBox(
         width: double.infinity,
-        height: 52,
+        height: r.h(52),
         child: ElevatedButton.icon(
           onPressed: c.callDriver,
-          icon: const Icon(Icons.phone_rounded, size: 20),
+          icon: Icon(Icons.phone_rounded, size: r.text(20)),
           label: Text('Appeler le conducteur',
               style: AppTextStyles.button(r)),
           style: ElevatedButton.styleFrom(
@@ -619,31 +629,31 @@ class _ErrorState extends StatelessWidget {
     final r = AppResponsive(context);
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: EdgeInsets.all(r.w(32)),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.error_outline_rounded,
-                size: 64, color: AppColors.danger),
-            const SizedBox(height: 16),
+                size: r.text(64), color: AppColors.danger),
+            SizedBox(height: r.h(16)),
             Text('Réservation introuvable', style: AppTextStyles.h4(r)),
-            const SizedBox(height: 8),
+            SizedBox(height: r.h(8)),
             Text(
               'Impossible de charger les données de votre trajet.',
               style: AppTextStyles.muted(r),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: r.h(24)),
             ElevatedButton.icon(
               onPressed: Get.back,
-              icon: const Icon(Icons.arrow_back_rounded),
-              label: const Text('Retour'),
+              icon: Icon(Icons.arrow_back_rounded, size: r.text(20)),
+              label: Text('Retour', style: AppTextStyles.button(r)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                    borderRadius: BorderRadius.circular(r.radius(12))),
               ),
             ),
           ],

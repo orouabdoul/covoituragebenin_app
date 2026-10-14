@@ -337,7 +337,7 @@ class _AddContactSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final responsive = AppResponsive(context);
-    return Padding(
+    return SingleChildScrollView(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,

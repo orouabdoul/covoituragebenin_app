@@ -90,7 +90,7 @@ class HomeController extends GetxController {
       _applyDashboard(result.data!);
     } else {
       hasLoadError.value = true;
-      logger.e('passengerHome: ${result.error}');
+      logger.e('❌ [HOME] dashboard FAILED — ${result.error}');
       if (result.error == AppError.unAuthenticated) {
         _homeEndpointFailed = true;
         _refreshTimer?.cancel();
@@ -111,21 +111,14 @@ class HomeController extends GetxController {
   };
 
   void _applyDashboard(PassengerHomeDashboard data) {
-    // ── LOG : upcomingTrip ─────────────────────────────────────────────────
+    upcomingTrip = _resolveUpcomingTrip(data.upcomingTrip);
     if (data.upcomingTrip != null) {
       final t = data.upcomingTrip!;
-      logger.d('═══ [HOME] upcomingTrip reçu ═══');
-      logger.d('  bookingUuid    : ${t.bookingUuid}');
-      logger.d('  tripUuid       : ${t.tripUuid}');
-      logger.d('  status         : "${t.status}"');
-      logger.d('  departureTime  : "${t.departureTime}"');
-      logger.d('  origin → dest  : ${t.origin} → ${t.destination}');
+      final uid = t.bookingUuid.length > 8 ? t.bookingUuid.substring(0, 8) : t.bookingUuid;
+      logger.d('✅ [HOME] upcomingTrip — status="${t.status}" ${t.origin}→${t.destination} booking=$uid… shown=${upcomingTrip != null}');
     } else {
-      logger.d('[HOME] upcomingTrip = null (API n\'en a pas envoyé)');
+      logger.d('✅ [HOME] upcomingTrip = null');
     }
-
-    upcomingTrip = _resolveUpcomingTrip(data.upcomingTrip);
-    logger.d('[HOME] upcomingTrip AFFICHÉ : ${upcomingTrip != null}');
 
     heroMetrics = data.heroMetrics
         .map((m) => HomeMetric(label: m.label, value: m.value))
@@ -134,19 +127,6 @@ class HomeController extends GetxController {
     popularRoutes = data.popularRoutes
         .map((r) => HomePopularRoute(from: r.departureCity, to: r.arrivalCity))
         .toList();
-
-    // ── LOG : availableRides ───────────────────────────────────────────────
-    logger.d('═══ [HOME] availableRides reçus (${data.availableRides.length}) ═══');
-    for (var i = 0; i < data.availableRides.length; i++) {
-      final r = data.availableRides[i];
-      final bookable = _isRideBookable(r);
-      final shortId = r.uuid.length > 8 ? r.uuid.substring(0, 8) : r.uuid;
-      logger.d('  ride[$i] uuid=$shortId… '
-          'status="${r.status}" '
-          'departureTimeRaw="${r.departureTimeRaw}" '
-          'schedule="${r.schedule}" '
-          '→ AFFICHÉ=$bookable');
-    }
 
     availableRides = data.availableRides
         .where(_isRideBookable)
@@ -169,7 +149,6 @@ class HomeController extends GetxController {
               duration: r.duration,
             ))
         .toList();
-    logger.d('[HOME] availableRides AFFICHÉS : ${availableRides.length}');
 
     recommendedDrivers = data.recommendedDrivers
         .map((d) => HomeDriver(
@@ -191,14 +170,6 @@ class HomeController extends GetxController {
             ))
         .toList();
 
-    // ── LOG : recentActivities ─────────────────────────────────────────────
-    logger.d('═══ [HOME] recentActivities (${data.recentActivities.length}) ═══');
-    for (var i = 0; i < data.recentActivities.length; i++) {
-      final a = data.recentActivities[i];
-      logger.d('  activity[$i] route="${a.route}" '
-          'status="${a.status}" time="${a.time}"');
-    }
-
     recentActivities = data.recentActivities
         .map((a) => HomeActivity(
               bookingUuid: a.bookingUuid,
@@ -218,6 +189,7 @@ class HomeController extends GetxController {
         .toList();
 
     _apiGreeting = data.greeting;
+    logger.d('✅ [HOME] dashboard — rides=${availableRides.length} activities=${recentActivities.length} upcomingTrip=${upcomingTrip != null}');
     dashboardVersion.value++;
     _scheduleActiveRefresh();
   }
@@ -241,7 +213,7 @@ class HomeController extends GetxController {
         final dt = DateTime.parse(d.departureTime).toLocal();
         // Masquer si le départ était il y a plus de 2 heures
         if (dt.isBefore(DateTime.now().subtract(const Duration(hours: 2)))) {
-          logger.d('upcomingTrip masqué : départ passé ($dt) status=${d.status}');
+          logger.d('[HOME] upcomingTrip masked — departed=$dt status=${d.status}');
           return null;
         }
       } catch (_) {}

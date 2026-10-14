@@ -49,19 +49,6 @@ class PaymentWebviewController extends GetxController {
       }
       vp.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0';
 
-      window.open = function(url, target, features) {
-        if (url && url !== 'about:blank') window.location.href = url;
-        return window;
-      };
-      document.addEventListener('click', function(e) {
-        var el = e.target;
-        while (el && el.tagName !== 'A') el = el.parentElement;
-        if (el && el.getAttribute('target') === '_blank' && el.href) {
-          e.preventDefault();
-          window.location.href = el.href;
-        }
-      }, true);
-
       function checkPageStatus() {
         var body = (document.body && document.body.innerText) || '';
         var lower = body.toLowerCase();
@@ -237,13 +224,15 @@ class PaymentWebviewController extends GetxController {
       await Future.delayed(const Duration(seconds: 3));
       if (_closed || _navigationDone) return;
 
-      logger.d('paymentPolling[${i + 1}/$_maxPolls] uuid=$_paymentUuid');
       final result = await _service.fetchPaymentStatus(_paymentUuid);
       if (_closed || _navigationDone) return;
-      if (!result.isSuccess) continue;
+      if (!result.isSuccess) {
+        logger.d('❌ [PAY] poll[${i + 1}/$_maxPolls] — ${result.error}');
+        continue;
+      }
 
       final data = result.data!;
-      logger.d('paymentPolling status=${data.status}');
+      logger.d('✅ [PAY] poll[${i + 1}/$_maxPolls] — status=${data.status}');
 
       switch (data.status) {
         case 'locked':

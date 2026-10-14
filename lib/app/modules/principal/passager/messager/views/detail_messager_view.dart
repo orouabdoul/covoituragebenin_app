@@ -48,18 +48,18 @@ class DetailMessagerView extends GetView<PassengerDetailMessagerController> {
                     if (controller.hasError.value && controller.messages.isEmpty) {
                       return Center(
                         child: Padding(
-                          padding: const EdgeInsets.all(24),
+                          padding: EdgeInsets.all(responsive.w(24)),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.wifi_off_rounded, size: 40, color: AppColors.border),
-                              const SizedBox(height: 12),
+                              Icon(Icons.wifi_off_rounded, size: responsive.text(40), color: AppColors.border),
+                              SizedBox(height: responsive.h(12)),
                               Text(
                                 'Impossible de charger la conversation',
                                 style: AppTextStyles.subtitle(responsive).copyWith(color: AppColors.textHint),
                                 textAlign: TextAlign.center,
                               ),
-                              const SizedBox(height: 16),
+                              SizedBox(height: responsive.h(16)),
                               AppPrimaryButton(
                                 responsive: responsive,
                                 label: 'Réessayer',

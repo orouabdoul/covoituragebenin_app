@@ -774,6 +774,7 @@ class _LocationSheetState extends State<_LocationSheet> {
 												SizedBox(height: r.h(8)),
 												Text(
 													'Aucun résultat',
+													textAlign: TextAlign.center,
 													style: AppTextStyles.body(r)
 															.copyWith(color: AppColors.textSecondary),
 												),
@@ -929,14 +930,14 @@ class _StepBtn extends StatelessWidget {
 		return GestureDetector(
 			onTap: onTap,
 			child: Container(
-				width: responsive.w(28),
-				height: responsive.w(28),
+				width: responsive.w(36),
+				height: responsive.w(36),
 				decoration: BoxDecoration(
 					color: filled ? AppColors.primary : AppColors.white,
 					shape: BoxShape.circle,
 					border: Border.all(color: filled ? AppColors.primary : AppColors.border),
 				),
-				child: Icon(icon, size: responsive.text(14), color: filled ? Colors.white : AppColors.textPrimary),
+				child: Icon(icon, size: responsive.text(16), color: filled ? Colors.white : AppColors.textPrimary),
 			),
 		);
 	}

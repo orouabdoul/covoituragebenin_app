@@ -27,7 +27,7 @@ class ReservationController extends GetxController {
 	final RxList<ReservationStatusTab> statusTabs = <ReservationStatusTab>[
 		const ReservationStatusTab(label: 'À venir', status: ReservationStatus.confirmed, statuses: [ReservationStatus.pending, ReservationStatus.confirmed]),
 		const ReservationStatusTab(label: 'En cours', status: ReservationStatus.inProgress, statuses: [ReservationStatus.inProgress]),
-		const ReservationStatusTab(label: 'Passés', status: ReservationStatus.completed, statuses: [ReservationStatus.completed, ReservationStatus.cancelled]),
+		const ReservationStatusTab(label: 'Terminés', status: ReservationStatus.completed, statuses: [ReservationStatus.completed, ReservationStatus.cancelled]),
 	].obs;
 
 	final RxList<ReservationItem> _allReservations = <ReservationItem>[].obs;
@@ -186,14 +186,10 @@ class ReservationController extends GetxController {
 		final displayPrice = (bd != null && bd.totalFmt.isNotEmpty)
 				? bd.totalFmt
 				: a.totalPrice;
-		// Log diagnostic localisation + prix
-		logger.d('[RESA] uuid=${a.uuid.length > 8 ? a.uuid.substring(0, 8) : a.uuid}… '
-				'perSeat=$perSeatPrice totalPrice="${a.totalPrice}" seats=${a.seatsCount}\n'
-				'  deptCity="${a.departureCity}" arr="${a.departureArrondissement}" '
-				'neigh="${a.departureNeighborhood}" note="${a.departureNote}"\n'
-				'  arrCity="${a.arrivalCity}" arr="${a.arrivalArrondissement}" '
-				'neigh="${a.arrivalNeighborhood}" note="${a.arrivalNote}"\n'
-				'  tripOrigin="${a.tripOrigin}" tripDest="${a.tripDestination}"');
+		logger.d('✅ [RESA] ${a.uuid.length > 8 ? a.uuid.substring(0, 8) : a.uuid}… '
+				'${a.tripOrigin}→${a.tripDestination} | '
+				'stop: ${a.departureCity}→${a.arrivalCity} | '
+				'seats=${a.seatsCount} perSeat=$perSeatPrice');
 		final locallyPaid = _confirmedPaidIds.contains(a.uuid);
 		final backendPaid = a.isPaid || a.paymentStatus == 'escrow_locked';
 		if (locallyPaid && backendPaid) {
@@ -978,15 +974,9 @@ class ReservationItem {
 		return '$str F/place';
 	}
 
-	// Getters d'affichage
-	String get displayPickupCity {
-		final parts = [departureCity, departureArrondissement, departureNeighborhood].where((p) => p.isNotEmpty).toList();
-		return parts.join(', ');
-	}
-	String get displayDropoffCity {
-		final parts = [arrivalCity, arrivalArrondissement, arrivalNeighborhood].where((p) => p.isNotEmpty).toList();
-		return parts.join(', ');
-	}
+	// Getters d'affichage — titre de carte = ville uniquement (arrondissement/quartier en sous-titre)
+	String get displayPickupCity => departureCity.isNotEmpty ? departureCity : tripOrigin;
+	String get displayDropoffCity => arrivalCity.isNotEmpty ? arrivalCity : tripDestination;
 	String get displayPickupNote => departureNote;
 	String get displayDropoffNote => arrivalNote;
 	String get displayPickupAddress => departureAddress;

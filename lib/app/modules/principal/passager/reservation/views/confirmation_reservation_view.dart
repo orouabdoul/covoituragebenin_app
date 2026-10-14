@@ -989,8 +989,8 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 40,
-            height: 4,
+            width: responsive.w(40),
+            height: responsive.h(4),
             margin: EdgeInsets.symmetric(vertical: responsive.h(10)),
             decoration: BoxDecoration(
               color: AppColors.border,
@@ -1675,9 +1675,9 @@ class _PriceCard extends StatelessWidget {
                 ),
                 if (badgeLabel != null)
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: responsive.w(8),
+                      vertical: responsive.h(3),
                     ),
                     decoration: BoxDecoration(
                       color: badgeColor,

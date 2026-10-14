@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
+import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
+import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import '../controllers/payment_webview_controller.dart';
 
 class PaymentWebviewView extends GetView<PaymentWebviewController> {
@@ -68,9 +70,10 @@ class PaymentWebviewView extends GetView<PaymentWebviewController> {
 class _TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final r = AppResponsive(context);
     final topPad = MediaQuery.of(context).padding.top;
     return Container(
-      padding: EdgeInsets.fromLTRB(8, topPad + 4, 16, 8),
+      padding: EdgeInsets.fromLTRB(r.w(8), topPad + r.h(4), r.w(16), r.h(8)),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: AppColors.border)),
@@ -83,53 +86,45 @@ class _TopBar extends StatelessWidget {
             child: InkWell(
               onTap: () => Get.back(),
               borderRadius: BorderRadius.circular(9999),
-              child: const SizedBox(
-                width: 44,
-                height: 44,
+              child: SizedBox(
+                width: r.w(44),
+                height: r.w(44),
                 child: Icon(Icons.close_rounded,
-                    color: AppColors.textPrimary, size: 22),
+                    color: AppColors.textPrimary, size: r.text(22)),
               ),
             ),
           ),
-          const SizedBox(width: 4),
+          SizedBox(width: r.w(4)),
           // Logo + titre
           Container(
-            width: 32,
-            height: 32,
+            width: r.w(32),
+            height: r.w(32),
             decoration: BoxDecoration(
               color: AppColors.primary,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(r.radius(8)),
             ),
-            child: const Icon(Icons.lock_rounded, color: Colors.white, size: 16),
+            child: Icon(Icons.lock_rounded, color: Colors.white, size: r.text(16)),
           ),
-          const SizedBox(width: 10),
-          const Expanded(
+          SizedBox(width: r.w(10)),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   'Paiement sécurisé',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
+                  style: AppTextStyles.body(r).copyWith(fontWeight: FontWeight.w700),
                 ),
                 Text(
                   'Propulsé par FedaPay',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: AppColors.textHint,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: AppTextStyles.caption(r).copyWith(color: AppColors.textHint),
                 ),
               ],
             ),
           ),
           // Badge SSL
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: EdgeInsets.symmetric(horizontal: r.w(8), vertical: r.h(4)),
             decoration: BoxDecoration(
               color: AppColors.surfaceAccent,
               borderRadius: BorderRadius.circular(9999),
@@ -137,14 +132,13 @@ class _TopBar extends StatelessWidget {
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
-              children: const [
+              children: [
                 Icon(Icons.verified_user_rounded,
-                    color: AppColors.primary, size: 11),
-                SizedBox(width: 3),
+                    color: AppColors.primary, size: r.text(11)),
+                SizedBox(width: r.w(3)),
                 Text(
                   'SSL',
-                  style: TextStyle(
-                    fontSize: 10,
+                  style: AppTextStyles.labelSmall(r).copyWith(
                     fontWeight: FontWeight.w700,
                     color: AppColors.primary,
                   ),
@@ -166,48 +160,47 @@ class _ErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final r = AppResponsive(context);
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: EdgeInsets.all(r.w(32)),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 64,
-              height: 64,
+              width: r.w(64),
+              height: r.w(64),
               decoration: BoxDecoration(
                 color: AppColors.dangerSurface,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(r.radius(18)),
               ),
-              child: const Icon(Icons.wifi_off_rounded,
-                  color: AppColors.danger, size: 32),
+              child: Icon(Icons.wifi_off_rounded,
+                  color: AppColors.danger, size: r.text(32)),
             ),
-            const SizedBox(height: 16),
-            const Text(
+            SizedBox(height: r.h(16)),
+            Text(
               'Impossible de charger la page',
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary),
+              textAlign: TextAlign.center,
+              style: AppTextStyles.subtitle(r),
             ),
-            const SizedBox(height: 6),
-            const Text(
+            SizedBox(height: r.h(6)),
+            Text(
               'Vérifiez votre connexion internet et réessayez.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              style: AppTextStyles.body(r).copyWith(color: AppColors.textSecondary),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: r.h(24)),
             ElevatedButton.icon(
               onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text('Réessayer'),
+              icon: Icon(Icons.refresh_rounded, size: r.text(18)),
+              label: Text('Réessayer', style: AppTextStyles.button(r)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 24, vertical: 12),
+                padding: EdgeInsets.symmetric(
+                    horizontal: r.w(24), vertical: r.h(12)),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                    borderRadius: BorderRadius.circular(r.radius(12))),
                 elevation: 0,
               ),
             ),

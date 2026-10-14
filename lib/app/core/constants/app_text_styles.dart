@@ -759,9 +759,10 @@ class AppTextStyles {
     return TextStyle(
       fontSize: responsive.text(10),
       fontFamily: _fontFamily,
-      fontWeight: FontWeight.w500,
+      fontWeight: fontWeight,
       height: 1.40,
       letterSpacing: 0.0,
+      color: color,
     );
   }
 }

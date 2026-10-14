@@ -102,7 +102,7 @@ class _HeaderBar extends StatelessWidget {
 								title: const Row(children: [
 									Icon(Icons.lock_rounded, color: AppColors.primary, size: 20),
 									SizedBox(width: 8),
-									Text('Paiement sécurisé', style: TextStyle(fontSize: 15)),
+									Text('Paiement sécurisé'),
 								]),
 								content: const Text(
 									'Vos informations de paiement sont chiffrées et protégées. MINIZON ne stocke jamais vos données bancaires.',
@@ -837,9 +837,9 @@ class _ProcessingOverlay extends StatelessWidget {
 						child: Column(
 							mainAxisSize: MainAxisSize.min,
 							children: [
-								const SizedBox(
-									width: 48,
-									height: 48,
+								SizedBox(
+									width: responsive.w(48),
+									height: responsive.w(48),
 									child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 3),
 								),
 								SizedBox(height: responsive.h(20)),
