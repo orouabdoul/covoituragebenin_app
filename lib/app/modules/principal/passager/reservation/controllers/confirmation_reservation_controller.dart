@@ -108,6 +108,53 @@ class ConfirmationReservationController extends GetxController {
     return BeninLocationHelpers.getQuartiers(dropoffSelectedCity.value, null);
   }
 
+  // ── Réserver pour autrui ──────────────────────────────────────────────────
+  final RxBool isBookingForOther = false.obs;
+  final TextEditingController guestFirstNameController = TextEditingController();
+  final TextEditingController guestLastNameController = TextEditingController();
+  final TextEditingController guestPhoneController = TextEditingController();
+  final Rxn<DateTime> guestBirthDate = Rxn<DateTime>();
+
+  bool get isGuestAgeValid {
+    final dob = guestBirthDate.value;
+    if (dob == null) return false;
+    final now = DateTime.now();
+    int age = now.year - dob.year;
+    if (now.month < dob.month || (now.month == dob.month && now.day < dob.day)) age--;
+    return age >= 18;
+  }
+
+  Future<void> openGuestBirthDatePicker(BuildContext context) async {
+    final now = DateTime.now();
+    final maxDate = DateTime(now.year - 18, now.month, now.day);
+    final initial = guestBirthDate.value ?? DateTime(now.year - 25);
+    final clamped = initial.isAfter(maxDate) ? maxDate : initial;
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: clamped,
+      firstDate: DateTime(1924),
+      lastDate: maxDate,
+      helpText: 'Date de naissance du passager',
+      cancelText: 'Annuler',
+      confirmText: 'Confirmer',
+    );
+    if (picked != null) {
+      guestBirthDate.value = picked;
+      update();
+    }
+  }
+
+  void toggleBookingForOther(bool value) {
+    isBookingForOther.value = value;
+    if (!value) {
+      guestFirstNameController.clear();
+      guestLastNameController.clear();
+      guestPhoneController.clear();
+      guestBirthDate.value = null;
+    }
+    update();
+  }
+
   // ── Payment fields ─────────────────────────────────────────────────────────
   final TextEditingController paymentContactController =
       TextEditingController();
@@ -182,7 +229,8 @@ class ConfirmationReservationController extends GetxController {
 
     final userPhone = UserController.instance.user.value?.phone ?? '';
     if (userPhone.isNotEmpty && paymentContactController.text.isEmpty) {
-      paymentContactController.text = userPhone;
+      final d = userPhone.replaceAll(RegExp(r'[^0-9]'), '');
+      paymentContactController.text = d.length >= 8 ? d.substring(d.length - 8) : d;
     }
 
     _autoLocate();
@@ -225,56 +273,29 @@ class ConfirmationReservationController extends GetxController {
   // ── Listes de villes ordonnées selon le trajet ────────────────────────────
 
   void _prefillStops(SearchRide selectedRide) {
-    pickupSelectedCity.value =
-        BeninLocationHelpers.normalizeCommune(selectedRide.origin);
-    pickupCityController.text =
-        pickupSelectedCity.value ?? selectedRide.origin;
-    pickupSelectedArrondissement.value =
-        selectedRide.departureArrondissement.isNotEmpty
-            ? selectedRide.departureArrondissement
-            : null;
-    pickupArrondissementController.text = selectedRide.departureArrondissement;
-    pickupSelectedNeighborhood.value =
-        selectedRide.departureNeighborhood.isNotEmpty
-            ? selectedRide.departureNeighborhood
-            : null;
-    pickupNeighborhoodController.text =
-        selectedRide.departureNeighborhood.isNotEmpty
-            ? selectedRide.departureNeighborhood
-            : pickupCityController.text;
-    pickupController.text = selectedRide.departureNote.isNotEmpty
-        ? selectedRide.departureNote
-        : pickupNeighborhoodController.text;
+    // Prise en charge — tout vide, le passager remplit lui-même
+    pickupSelectedCity.value = null;
+    pickupCityController.text = '';
+    pickupSelectedArrondissement.value = null;
+    pickupArrondissementController.text = '';
+    pickupSelectedNeighborhood.value = null;
+    pickupNeighborhoodController.text = '';
+    pickupController.text = '';
+    pickupLat.value = null;
+    pickupLng.value = null;
 
-    dropoffSelectedCity.value =
-        BeninLocationHelpers.normalizeCommune(selectedRide.destination);
-    dropoffCityController.text =
-        dropoffSelectedCity.value ?? selectedRide.destination;
-    dropoffSelectedArrondissement.value =
-        selectedRide.arrivalArrondissement.isNotEmpty
-            ? selectedRide.arrivalArrondissement
-            : null;
-    dropoffArrondissementController.text = selectedRide.arrivalArrondissement;
-    dropoffSelectedNeighborhood.value =
-        selectedRide.arrivalNeighborhood.isNotEmpty
-            ? selectedRide.arrivalNeighborhood
-            : null;
-    dropoffNeighborhoodController.text =
-        selectedRide.arrivalNeighborhood.isNotEmpty
-            ? selectedRide.arrivalNeighborhood
-            : dropoffCityController.text;
-    dropoffController.text = selectedRide.arrivalNote.isNotEmpty
-        ? selectedRide.arrivalNote
-        : dropoffNeighborhoodController.text;
+    // Dépose — tout vide, le passager remplit lui-même
+    dropoffSelectedCity.value = null;
+    dropoffCityController.text = '';
+    dropoffSelectedArrondissement.value = null;
+    dropoffArrondissementController.text = '';
+    dropoffSelectedNeighborhood.value = null;
+    dropoffNeighborhoodController.text = '';
+    dropoffController.text = '';
+    dropoffLat.value = null;
+    dropoffLng.value = null;
 
-    final pickupCoords =
-        BeninLocationHelpers.getCityCoords(pickupCityController.text);
-    pickupLat.value = pickupCoords?.lat;
-    pickupLng.value = pickupCoords?.lng;
-    final dropoffCoords =
-        BeninLocationHelpers.getCityCoords(dropoffCityController.text);
-    dropoffLat.value = dropoffCoords?.lat;
-    dropoffLng.value = dropoffCoords?.lng;
+    passengerDistanceKm.value = 0.0;
   }
 
   void _buildCityLists(SearchRide r) {
@@ -582,7 +603,8 @@ class ConfirmationReservationController extends GetxController {
       reservedSeats.value = newMax;
     }
     if (ctx.userPhone.isNotEmpty) {
-      paymentContactController.text = ctx.userPhone;
+      final d = ctx.userPhone.replaceAll(RegExp(r'[^0-9]'), '');
+      paymentContactController.text = d.length >= 8 ? d.substring(d.length - 8) : d;
     }
     if (ctx.paymentMethods.isNotEmpty) {
       paymentMethods.assignAll(ctx.paymentMethods.map((m) =>
@@ -689,6 +711,30 @@ class ConfirmationReservationController extends GetxController {
       return false;
     }
 
+    // Validation pour autrui
+    if (isBookingForOther.value) {
+      if (guestFirstNameController.text.trim().isEmpty) {
+        UIHelper().showSnackBar('MINIZON', 'Entrez le prénom du passager.', 2);
+        return false;
+      }
+      if (guestLastNameController.text.trim().isEmpty) {
+        UIHelper().showSnackBar('MINIZON', 'Entrez le nom du passager.', 2);
+        return false;
+      }
+      if (guestPhoneController.text.trim().length < 8) {
+        UIHelper().showSnackBar('MINIZON', 'Entrez le numéro de téléphone du passager.', 2);
+        return false;
+      }
+      if (guestBirthDate.value == null) {
+        UIHelper().showSnackBar('MINIZON', 'La date de naissance du passager est requise.', 2);
+        return false;
+      }
+      if (!isGuestAgeValid) {
+        UIHelper().showSnackBar('MINIZON', 'Le passager doit avoir au moins 18 ans.', 3);
+        return false;
+      }
+    }
+
     // Validation paiement
     if (isCardPayment) {
       final cardNum = paymentContactController.text.trim().replaceAll(' ', '');
@@ -751,6 +797,10 @@ class ConfirmationReservationController extends GetxController {
         'dropoff=($effectiveDropoffLat,$effectiveDropoffLng)');
 
     isProcessingPayment.value = true;
+    final dob = guestBirthDate.value;
+    final guestBirthStr = (isBookingForOther.value && dob != null)
+        ? '${dob.year}-${dob.month.toString().padLeft(2, '0')}-${dob.day.toString().padLeft(2, '0')}'
+        : null;
     final result = await _service.createBooking(
       tripUuid,
       seats: reservedSeats.value,
@@ -766,6 +816,10 @@ class ConfirmationReservationController extends GetxController {
       dropoffAddress: dropoffController.text.trim(),
       dropoffLat: effectiveDropoffLat,
       dropoffLng: effectiveDropoffLng,
+      guestFirstName: isBookingForOther.value ? guestFirstNameController.text.trim() : null,
+      guestLastName: isBookingForOther.value ? guestLastNameController.text.trim() : null,
+      guestPhone: isBookingForOther.value ? '+22901${guestPhoneController.text.trim()}' : null,
+      guestBirthDate: guestBirthStr,
     );
     isProcessingPayment.value = false;
 
@@ -880,7 +934,6 @@ class ConfirmationReservationController extends GetxController {
     _priceConfirmed = true;
     Get.back();
     if (_bookingUuid.isEmpty) return;
-    AppSync.i.refreshPassenger();
     unawaited(confirmPayment());
   }
 
@@ -957,9 +1010,9 @@ class ConfirmationReservationController extends GetxController {
         provider = 'card';
       } else {
         // Numéro téléphone de contact (facultatif — pré-rempli depuis le profil)
-        final rawPhone = paymentContactController.text.trim().replaceAll(RegExp(r'\s'), '');
+        final rawPhone = paymentContactController.text.trim().replaceAll(RegExp(r'[^0-9]'), '');
         if (rawPhone.isNotEmpty) {
-          phone = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
+          phone = '+22901$rawPhone';
         }
         provider = selectedMobileService.value.name;
       }
@@ -977,9 +1030,10 @@ class ConfirmationReservationController extends GetxController {
           BottonNavController.goToTab(1);
           return;
         }
-        if (result.error != AppError.socket) {
-          UIHelper().showSnackBar('MINIZON', result.displayMessage, 3);
-        }
+        final msg = result.error == AppError.socket
+            ? 'Connexion impossible. Vérifiez votre réseau et réessayez.'
+            : result.displayMessage;
+        UIHelper().showSnackBar('MINIZON', msg, 3);
         return;
       }
 
@@ -1011,6 +1065,9 @@ class ConfirmationReservationController extends GetxController {
     cardExpiryController.dispose();
     cardCodeController.dispose();
     otpController.dispose();
+    guestFirstNameController.dispose();
+    guestLastNameController.dispose();
+    guestPhoneController.dispose();
     _otpCountdownTimer?.cancel();
     super.onClose();
   }
@@ -1054,10 +1111,14 @@ class _PriceConfirmSheet extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.92,
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
           Center(
             child: Container(
               width: 40,
@@ -1390,6 +1451,7 @@ class _PriceConfirmSheet extends StatelessWidget {
             ),
           ),
         ],
+        ),
       ),
     );
   }

@@ -70,6 +70,36 @@ class ProfilePassagerController extends GetxController {
   final RxInt progress = 60.obs;
   final RxString avatarImageName = ''.obs;
   final Rxn<String> selectedGender = Rxn<String>();
+  final Rxn<DateTime> birthDate = Rxn<DateTime>();
+
+  bool get isAgeValid {
+    final dob = birthDate.value;
+    if (dob == null) return false;
+    final now = DateTime.now();
+    int age = now.year - dob.year;
+    if (now.month < dob.month || (now.month == dob.month && now.day < dob.day)) age--;
+    return age >= 18;
+  }
+
+  Future<void> openBirthDatePicker(BuildContext context) async {
+    final now = DateTime.now();
+    final maxDate = DateTime(now.year - 18, now.month, now.day);
+    final initial = birthDate.value ?? DateTime(now.year - 25);
+    final clamped = initial.isAfter(maxDate) ? maxDate : initial;
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: clamped,
+      firstDate: DateTime(1924),
+      lastDate: maxDate,
+      helpText: 'Date de naissance',
+      cancelText: 'Annuler',
+      confirmText: 'Confirmer',
+    );
+    if (picked != null) {
+      birthDate.value = picked;
+      update();
+    }
+  }
 
   final Rx<XFile?> selfieFront = Rx<XFile?>(null);
   final Rx<XFile?> selfieLeft = Rx<XFile?>(null);
@@ -251,6 +281,15 @@ class ProfilePassagerController extends GetxController {
       UIHelper().showSnackBar('MINIZON', 'Prénom et nom sont requis.', 2);
       return;
     }
+    if (birthDate.value == null) {
+      UIHelper().showSnackBar('MINIZON', 'La date de naissance est requise.', 2);
+      return;
+    }
+    if (!isAgeValid) {
+      UIHelper().showSnackBar(
+          'MINIZON', 'Vous devez avoir au moins 18 ans pour créer un compte.', 3);
+      return;
+    }
 
     // Nouveau compte → register_token requis ; utilisateur existant → auth token
     final isNewRegistration = _registerToken != null;
@@ -295,6 +334,9 @@ class ProfilePassagerController extends GetxController {
       if (selectedNeighborhood.value != null) fields['neighborhood'] = selectedNeighborhood.value!;
       if (addressController.text.trim().isNotEmpty) fields['address_details'] = addressController.text.trim();
       if (genderCode != null) fields['gender'] = genderCode;
+      final dob = birthDate.value!;
+      fields['birth_date'] =
+          '${dob.year}-${dob.month.toString().padLeft(2, '0')}-${dob.day.toString().padLeft(2, '0')}';
 
       final formMap = <String, dynamic>{...fields};
       if (selfieFront.value != null) {

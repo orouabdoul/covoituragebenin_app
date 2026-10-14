@@ -379,8 +379,8 @@ class _AddContactSheet extends StatelessWidget {
                   keyboardType: TextInputType.number,
                   maxLength: 8,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: _inputDecoration('XX XX XX XX', responsive).copyWith(
-                    prefixText: '+229 01 ',
+                  decoration: _inputDecoration('XXXXXXXX', responsive).copyWith(
+                    prefixText: '+22901 ',
                     prefixStyle: AppTextStyles.body(responsive),
                     counterText: '',
                   ),

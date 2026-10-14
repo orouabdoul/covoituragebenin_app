@@ -45,6 +45,14 @@ class OtpCodeController extends GetxController {
     _startResendTimer();
   }
 
+  void goBack() {
+    if (Get.key.currentState?.canPop() ?? false) {
+      Get.back();
+    } else {
+      Get.offNamed(AppRoutes.register);
+    }
+  }
+
   void onCodeChanged(String value) {
     final String digits = value.replaceAll(RegExp(r'\D'), '');
     enteredCode.value = digits.length > 6 ? digits.substring(0, 6) : digits;

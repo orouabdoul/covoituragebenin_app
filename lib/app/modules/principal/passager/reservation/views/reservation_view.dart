@@ -26,10 +26,59 @@ class ReservationView extends StatelessWidget {
 							crossAxisAlignment: CrossAxisAlignment.start,
 							children: [
 								_Header(responsive: responsive),
-								_ActiveTripBanner(responsive: responsive, controller: controller),
+								Obx(() {
+									final active = controller.activeTrip;
+									if (active == null) return const SizedBox.shrink();
+									return _ActiveTripBanner(responsive: responsive, controller: controller, active: active);
+								}),
 								_StatusTabBar(responsive: responsive, controller: controller),
 								Expanded(
 									child: Obx(() {
+										// Premier chargement — liste encore vide
+										if (controller.isLoading.value && controller.reservationsList.isEmpty) {
+											return Center(
+												child: CircularProgressIndicator(
+													color: AppColors.primary,
+													strokeWidth: 2.5,
+												),
+											);
+										}
+										// Erreur et aucun item en cache
+										if (controller.hasError.value && controller.reservationsList.isEmpty) {
+											return Center(
+												child: Column(
+													mainAxisSize: MainAxisSize.min,
+													children: [
+														Icon(Icons.wifi_off_rounded, size: responsive.text(40), color: AppColors.textHint),
+														SizedBox(height: responsive.h(12)),
+														Text(
+															'Impossible de charger les réservations.',
+															style: AppTextStyles.subtitle(responsive).copyWith(color: AppColors.textSecondary),
+															textAlign: TextAlign.center,
+														),
+														SizedBox(height: responsive.h(16)),
+														GestureDetector(
+															onTap: controller.refresh,
+															child: Container(
+																padding: EdgeInsets.symmetric(horizontal: responsive.w(20), vertical: responsive.h(10)),
+																decoration: BoxDecoration(
+																	color: AppColors.primarySurface,
+																	borderRadius: BorderRadius.circular(responsive.radius(8)),
+																	border: Border.all(color: AppColors.primaryMedium),
+																),
+																child: Text(
+																	'Réessayer',
+																	style: AppTextStyles.subtitle(responsive).copyWith(
+																		color: AppColors.primary,
+																		fontWeight: FontWeight.w600,
+																	),
+																),
+															),
+														),
+													],
+												),
+											);
+										}
 										final items = controller.filteredReservations;
 										if (items.isEmpty) {
 											return _EmptyState(
@@ -115,14 +164,13 @@ class _Header extends StatelessWidget {
 // ── Active Trip Banner ─────────────────────────────────────────────────────
 
 class _ActiveTripBanner extends StatelessWidget {
-	const _ActiveTripBanner({required this.responsive, required this.controller});
+	const _ActiveTripBanner({required this.responsive, required this.controller, required this.active});
 	final AppResponsive responsive;
 	final ReservationController controller;
+	final ReservationItem active;
 
 	@override
 	Widget build(BuildContext context) {
-		final active = controller.activeTrip;
-		if (active == null) return const SizedBox.shrink();
 
 		return GestureDetector(
 			onTap: () => controller.trackLive(active),
@@ -226,7 +274,7 @@ class _StatusTabBar extends StatelessWidget {
 								onTap: () => controller.selectStatus(i),
 								child: AnimatedContainer(
 									duration: const Duration(milliseconds: 180),
-									padding: EdgeInsets.symmetric(horizontal: responsive.w(8), vertical: responsive.h(8)),
+									padding: EdgeInsets.symmetric(horizontal: responsive.w(6), vertical: responsive.h(8)),
 									decoration: BoxDecoration(
 										color: selected ? color.withValues(alpha: 0.12) : AppColors.surfaceMuted,
 										borderRadius: BorderRadius.circular(9999),
@@ -235,19 +283,22 @@ class _StatusTabBar extends StatelessWidget {
 											width: selected ? 1.5 : 1,
 										),
 									),
-									child: Row(
-										mainAxisAlignment: MainAxisAlignment.center,
-										children: [
-											Icon(_tabIcon(tab.status), size: responsive.text(12), color: selected ? color : AppColors.textHint),
-											SizedBox(width: responsive.w(5)),
-											Text(
-												tab.label,
-												style: AppTextStyles.caption(responsive).copyWith(
-													color: selected ? color : AppColors.textSecondary,
-													fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+									child: FittedBox(
+										fit: BoxFit.scaleDown,
+										child: Row(
+											mainAxisAlignment: MainAxisAlignment.center,
+											children: [
+												Icon(_tabIcon(tab.status), size: responsive.text(12), color: selected ? color : AppColors.textHint),
+												SizedBox(width: responsive.w(5)),
+												Text(
+													tab.label,
+													style: AppTextStyles.caption(responsive).copyWith(
+														color: selected ? color : AppColors.textSecondary,
+														fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+													),
 												),
-											),
-										],
+											],
+										),
 									),
 								),
 							),
@@ -369,6 +420,13 @@ class _ReservationCard extends StatelessWidget {
 					// Cancel reason for cancelled
 					if (reservation.status == ReservationStatus.cancelled && reservation.cancelReason != null)
 						_CancelReasonBanner(responsive: responsive, reason: reservation.cancelReason!),
+					// Fenêtre 1h pour signaler un problème après le trajet
+					if (reservation.isInComplaintWindow)
+						_ComplaintWindowBanner(
+							responsive: responsive,
+							reservation: reservation,
+							onTap: () => controller.reportProblem(reservation),
+						),
 					// Main body
 					Padding(
 						padding: EdgeInsets.all(responsive.adaptive(phone: 16, smallPhone: 14, tablet: 18, desktop: 20)),
@@ -554,6 +612,51 @@ class _CancelReasonBanner extends StatelessWidget {
 						),
 					),
 				],
+			),
+		);
+	}
+}
+
+// ── Complaint Window Banner ────────────────────────────────────────────────
+
+class _ComplaintWindowBanner extends StatelessWidget {
+	const _ComplaintWindowBanner({
+		required this.responsive,
+		required this.reservation,
+		required this.onTap,
+	});
+	final AppResponsive responsive;
+	final ReservationItem reservation;
+	final VoidCallback onTap;
+
+	@override
+	Widget build(BuildContext context) {
+		final remaining = reservation.complaintTimeRemaining;
+		if (remaining == null) return const SizedBox.shrink();
+		final mins = remaining.inMinutes;
+		final timeStr = mins > 0 ? '$mins min restantes' : 'Moins d\'1 min';
+		return GestureDetector(
+			onTap: onTap,
+			child: Container(
+				width: double.infinity,
+				padding: EdgeInsets.symmetric(horizontal: responsive.w(14), vertical: responsive.h(10)),
+				color: const Color(0xFFFFF8E1),
+				child: Row(
+					children: [
+						Icon(Icons.warning_amber_rounded, size: responsive.text(15), color: AppColors.warning),
+						SizedBox(width: responsive.w(8)),
+						Expanded(
+							child: Text(
+								'Signaler un problème · $timeStr',
+								style: AppTextStyles.caption(responsive).copyWith(
+									color: AppColors.warningDark,
+									fontWeight: FontWeight.w600,
+								),
+							),
+						),
+						Icon(Icons.chevron_right_rounded, size: responsive.text(16), color: AppColors.warning),
+					],
+				),
 			),
 		);
 	}
@@ -991,10 +1094,24 @@ class _ActionButtons extends StatelessWidget {
 				SizedBox(height: responsive.h(8)),
 				Row(
 					children: [
+						if (reservation.driverPhone.isNotEmpty) ...[
+							Expanded(
+								child: _Btn(
+									responsive: responsive,
+									label: 'Appeler',
+									icon: Icons.phone_rounded,
+									color: AppColors.primary,
+									bg: AppColors.primarySurface,
+									border: AppColors.primaryMedium,
+									onTap: () => controller.callDriver(reservation),
+								),
+							),
+							SizedBox(width: responsive.w(8)),
+						],
 						Expanded(
 							child: _Btn(
 								responsive: responsive,
-								label: 'Contacter',
+								label: 'Messagerie',
 								icon: Icons.chat_bubble_outline_rounded,
 								color: AppColors.textSecondary,
 								bg: AppColors.surfaceMuted,
@@ -1002,7 +1119,7 @@ class _ActionButtons extends StatelessWidget {
 								onTap: () => controller.contactDriver(reservation),
 							),
 						),
-						SizedBox(width: responsive.w(10)),
+						SizedBox(width: responsive.w(8)),
 						Expanded(
 							child: _Btn(
 								responsive: responsive,

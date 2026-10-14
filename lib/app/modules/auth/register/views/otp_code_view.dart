@@ -104,7 +104,7 @@ class OtpCodeView extends GetView<OtpCodeController> {
                           AppCircularButton(
                             responsive: responsive,
                             icon: Icons.arrow_back_ios_new_rounded,
-                            onTap: Get.back,
+                            onTap: controller.goBack,
                             size: responsive.w(40),
                           ),
                           SizedBox(height: responsive.h(24)),

@@ -424,6 +424,21 @@ class _PersonalCard extends StatelessWidget {
             onSelected: controller.selectGender,
           ),
           SizedBox(height: responsive.h(16)),
+          _DatePickerField(
+            responsive: responsive,
+            label: 'Date de naissance *',
+            hint: 'JJ/MM/AAAA',
+            value: controller.birthDate.value,
+            onTap: () => controller.openBirthDatePicker(context),
+          ),
+          if (controller.birthDate.value != null && !controller.isAgeValid) ...[
+            SizedBox(height: responsive.h(4)),
+            Text(
+              'Vous devez avoir au moins 18 ans.',
+              style: AppTextStyles.caption(responsive).copyWith(color: AppColors.danger),
+            ),
+          ],
+          SizedBox(height: responsive.h(16)),
           AppField(
             responsive: responsive,
             label: AppStrings.passengerFieldEmail,
@@ -1351,6 +1366,75 @@ class _ImageSourceSheet extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _DatePickerField extends StatelessWidget {
+  const _DatePickerField({
+    required this.responsive,
+    required this.label,
+    required this.hint,
+    required this.value,
+    required this.onTap,
+  });
+
+  final AppResponsive responsive;
+  final String label;
+  final String hint;
+  final DateTime? value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasValue = value != null;
+    final formatted = hasValue
+        ? '${value!.day.toString().padLeft(2, '0')}/${value!.month.toString().padLeft(2, '0')}/${value!.year}'
+        : null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: AppTextStyles.profileSectionLabel(responsive)),
+        SizedBox(height: responsive.h(8)),
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            height: responsive.h(44),
+            padding: EdgeInsets.symmetric(horizontal: responsive.w(14)),
+            decoration: ShapeDecoration(
+              color: AppColors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(responsive.radius(10)),
+                side: BorderSide(
+                  color: hasValue ? AppColors.primary : Colors.transparent,
+                  width: hasValue ? 1.5 : 1,
+                ),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  hasValue ? Icons.check_circle_rounded : Icons.calendar_today_rounded,
+                  size: responsive.text(16),
+                  color: hasValue ? AppColors.primary : AppColors.textGhost,
+                ),
+                SizedBox(width: responsive.w(8)),
+                Expanded(
+                  child: Text(
+                    formatted ?? hint,
+                    style: AppTextStyles.profileFieldValue(responsive).copyWith(
+                      color: hasValue ? AppColors.textPrimary : AppColors.textGhost,
+                      fontWeight: hasValue ? FontWeight.w500 : FontWeight.w400,
+                    ),
+                  ),
+                ),
+                Icon(Icons.keyboard_arrow_down_rounded,
+                    size: responsive.text(20), color: AppColors.textSecondary),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

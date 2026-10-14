@@ -10,12 +10,13 @@ class AppDio {
     final dio = Dio(BaseOptions(
       baseUrl: AppApi.baseUrl,
       connectTimeout: const Duration(seconds: 35),
-      receiveTimeout: const Duration(seconds: 40),
+      receiveTimeout: const Duration(seconds: 65),
       headers: {'Accept': 'application/json'},
     ));
     dio.transformer = BackgroundTransformer();
     dio.interceptors.add(_AccountStatusInterceptor());
     dio.interceptors.add(_UnauthorizedInterceptor());
+    dio.interceptors.add(_RetryOnTimeoutInterceptor(dio));
     return dio;
   }
 
@@ -95,5 +96,36 @@ class _UnauthorizedInterceptor extends Interceptor {
     }
     await Future.delayed(const Duration(seconds: 3));
     _redirecting = false;
+  }
+}
+
+/// Retry automatique sur receiveTimeout (Render.com cold start ~50-60s).
+/// Une seule tentative, uniquement pour les requêtes GET.
+/// Utilise l'en-tête interne _retried pour éviter les boucles infinies.
+class _RetryOnTimeoutInterceptor extends Interceptor {
+  static const String _retriedKey = '_retried';
+  final Dio dio;
+
+  _RetryOnTimeoutInterceptor(this.dio);
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) async {
+    final opts = err.requestOptions;
+    final alreadyRetried = opts.extra[_retriedKey] == true;
+    final isGet = opts.method.toUpperCase() == 'GET';
+
+    if (err.type == DioExceptionType.receiveTimeout && isGet && !alreadyRetried) {
+      // Attendre 3s — le serveur Render est maintenant chaud après le premier timeout
+      await Future.delayed(const Duration(seconds: 3));
+      try {
+        final retryOpts = opts.copyWith(extra: {...opts.extra, _retriedKey: true});
+        final response = await dio.fetch(retryOpts);
+        handler.resolve(response);
+        return;
+      } catch (e) {
+        // Le retry a aussi échoué — laisser passer l'erreur originale
+      }
+    }
+    handler.next(err);
   }
 }

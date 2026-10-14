@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/passenger_reservation_service.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/passager/reservation/controllers/reservation_controller.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
@@ -193,46 +194,42 @@ class PaymentWebviewController extends GetxController {
   void _onFedapayFailed() {
     if (_navigationDone) return;
     _navigationDone = true;
+    UIHelper().showSnackBar('MINIZON', 'Paiement annulé ou refusé. Veuillez réessayer.', 3);
     Get.back();
   }
 
   // ── Sync FedaPay → backend, puis polling ─────────────────────────────────
 
-  /// 1. Demande au backend de synchroniser le paiement avec FedaPay.
-  /// 2a. Si [fastSuccess] (URL redirect = confirmation FedaPay) → navigue directement.
-  /// 2b. Sinon → attend 1s puis poll jusqu'à confirmation backend.
+  /// Sync FedaPay → backend, puis polling.
+  /// [fastSuccess] = true → FedaPay a confirmé via URL redirect → poll rapide (5×1s).
   Future<void> _syncThenPoll({required bool fastSuccess}) async {
     if (_paymentUuid.isNotEmpty) {
-      // Déclenche la sync côté backend (non bloquant : erreur ignorée, on continue)
       await _service.syncPayment(_paymentUuid);
     }
     if (_closed || _navigationDone) return;
 
-    if (fastSuccess) {
-      isPolling.value = false;
-      _doNavigateSuccess();
-      return;
-    }
-
-    // Laisse 1s au backend pour mettre à jour la DB après la sync
+    // Laisse 1s au backend pour propager la sync
     await Future.delayed(const Duration(seconds: 1));
-    if (!_closed && !_navigationDone) await _runPollLoop();
+    if (!_closed && !_navigationDone) await _runPollLoop(fastSuccess: fastSuccess);
   }
 
-  Future<void> _runPollLoop() async {
-    for (int i = 0; i < _maxPolls; i++) {
-      await Future.delayed(const Duration(seconds: 3));
+  Future<void> _runPollLoop({bool fastSuccess = false}) async {
+    final maxPolls = fastSuccess ? 5 : _maxPolls;
+    final pollInterval = fastSuccess ? const Duration(seconds: 1) : const Duration(seconds: 3);
+
+    for (int i = 0; i < maxPolls; i++) {
+      await Future.delayed(pollInterval);
       if (_closed || _navigationDone) return;
 
       final result = await _service.fetchPaymentStatus(_paymentUuid);
       if (_closed || _navigationDone) return;
       if (!result.isSuccess) {
-        logger.d('❌ [PAY] poll[${i + 1}/$_maxPolls] — ${result.error}');
+        logger.d('❌ [PAY] poll[${i + 1}/$maxPolls] — ${result.error}');
         continue;
       }
 
       final data = result.data!;
-      logger.d('✅ [PAY] poll[${i + 1}/$_maxPolls] — status=${data.status}');
+      logger.d('✅ [PAY] poll[${i + 1}/$maxPolls] — status=${data.status}');
 
       switch (data.status) {
         case 'locked':
@@ -254,9 +251,15 @@ class PaymentWebviewController extends GetxController {
       }
     }
 
-    // Timeout après 45s
     isPolling.value = false;
-    if (!_closed && !_navigationDone) {
+    if (_closed || _navigationDone) return;
+
+    if (fastSuccess) {
+      // FedaPay a confirmé via URL — navigue même si le backend n'a pas encore répondu
+      _doNavigateSuccess();
+    } else {
+      // Réinitialise _pollingStarted pour permettre un retry si JS se déclenche à nouveau
+      _pollingStarted = false;
       UIHelper().showSnackBar(
         'MINIZON',
         'En attente de confirmation du paiement. Vérifiez vos réservations dans quelques instants.',
@@ -272,12 +275,14 @@ class PaymentWebviewController extends GetxController {
     if (_bookingUuid.isNotEmpty && Get.isRegistered<ReservationController>()) {
       Get.find<ReservationController>().markBookingAsPaid(_bookingUuid);
     }
+    // Rafraîchit les données passager maintenant que le paiement est confirmé
+    AppSync.i.refreshPassenger();
     Get.offNamed(AppRoutes.passengerPaymentSuccess, arguments: {
       'ride': _ride,
       'bookingUuid': _bookingUuid,
       'seats': _seats,
       'amount': amount ?? _amount,
-      'ref': ?transactionRef,
+      if (transactionRef != null) 'ref': transactionRef,
     });
   }
 

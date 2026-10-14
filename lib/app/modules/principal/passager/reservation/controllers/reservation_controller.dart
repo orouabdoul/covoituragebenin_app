@@ -8,6 +8,7 @@ import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/passenger_reservation_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
+import 'package:covoiturage_benin_app/app/core/utils/phone_utils.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/models/passenger/reservations_model.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
@@ -27,7 +28,8 @@ class ReservationController extends GetxController {
 	final RxList<ReservationStatusTab> statusTabs = <ReservationStatusTab>[
 		const ReservationStatusTab(label: 'À venir', status: ReservationStatus.confirmed, statuses: [ReservationStatus.pending, ReservationStatus.confirmed]),
 		const ReservationStatusTab(label: 'En cours', status: ReservationStatus.inProgress, statuses: [ReservationStatus.inProgress]),
-		const ReservationStatusTab(label: 'Terminés', status: ReservationStatus.completed, statuses: [ReservationStatus.completed, ReservationStatus.cancelled]),
+		const ReservationStatusTab(label: 'Terminés', status: ReservationStatus.completed, statuses: [ReservationStatus.completed]),
+		const ReservationStatusTab(label: 'Annulés', status: ReservationStatus.cancelled, statuses: [ReservationStatus.cancelled]),
 	].obs;
 
 	final RxList<ReservationItem> _allReservations = <ReservationItem>[].obs;
@@ -111,8 +113,15 @@ class ReservationController extends GetxController {
 			await _checkAndAutoCancelExpired();
 		} else {
 			hasError.value = true;
-			if (result.error != AppError.socket) {
-				UIHelper().showSnackBar('MINIZON', result.error!.message, 2);
+			final err = result.error;
+			if (err == AppError.serverTimeout) {
+				UIHelper().showSnackBar(
+					'MINIZON',
+					'Le serveur met du temps à répondre. Appuyez sur Réessayer.',
+					4,
+				);
+			} else if (err != AppError.socket) {
+				UIHelper().showSnackBar('MINIZON', err!.message, 2);
 			}
 		}
 	}
@@ -191,12 +200,13 @@ class ReservationController extends GetxController {
 				'stop: ${a.departureCity}→${a.arrivalCity} | '
 				'seats=${a.seatsCount} perSeat=$perSeatPrice');
 		final locallyPaid = _confirmedPaidIds.contains(a.uuid);
-		final backendPaid = a.isPaid || a.paymentStatus == 'escrow_locked';
-		if (locallyPaid && backendPaid) {
+		final backendPaid = a.isPaid || a.paymentStatus == 'escrow_locked' || a.paymentStatus == 'released';
+		final backendFailed = a.paymentStatus == 'failed';
+		if (locallyPaid && (backendPaid || backendFailed)) {
 			_confirmedPaidIds.remove(a.uuid);
-			_persistPaidIds(); // nettoyage du stockage une fois le backend à jour
+			_persistPaidIds();
 		}
-		final effectivelyPaid = locallyPaid || backendPaid;
+		final effectivelyPaid = backendPaid || (locallyPaid && !backendFailed);
 		return ReservationItem(
 			id: a.uuid,
 			driverName: a.driverName,
@@ -237,15 +247,17 @@ class ReservationController extends GetxController {
 			tripUuid: a.tripUuid,
 			passengerDistanceKm: a.passengerDistanceKm,
 			priceBreakdown: a.priceBreakdown,
-			paymentStatus: effectivelyPaid ? 'escrow_locked' : a.paymentStatus,
+			paymentStatus: backendFailed ? 'failed' : (effectivelyPaid ? 'escrow_locked' : a.paymentStatus),
 			pickupLat: a.departureLat,
 			pickupLng: a.departureLng,
 			dropoffLat: a.arrivalLat,
 			dropoffLng: a.arrivalLng,
 			departureDateTime: a.departureDateTime,
 			pickedUpAt: a.pickedUpAt,
+			completedAt: a.completedAt,
 			duration: a.duration,
 			tripDistanceKm: a.tripDistanceKm,
+			driverPhone: a.driverPhone,
 		);
 	}
 
@@ -355,6 +367,14 @@ class ReservationController extends GetxController {
 
 	void requestRefund(ReservationItem r) =>
 			Get.toNamed(AppRoutes.passengerRefundRequest, arguments: r);
+
+	void reportProblem(ReservationItem r) =>
+			Get.toNamed(AppRoutes.passengerSupportCenter, arguments: {'bookingUuid': r.id, 'bookingRef': r.bookingRef});
+
+	void callDriver(ReservationItem r) {
+		if (r.driverPhone.isEmpty) return;
+		PhoneUtils.call(r.driverPhone);
+	}
 
 	void rebookTrip(ReservationItem r) =>
 			BottonNavController.goToTab(0);
@@ -903,8 +923,10 @@ class ReservationItem {
 		this.dropoffLng,
 		this.departureDateTime,
 		this.pickedUpAt,
+		this.completedAt,
 		this.duration = '',
 		this.tripDistanceKm = 0.0,
+		this.driverPhone = '',
 	});
 
 	final String id;
@@ -957,8 +979,36 @@ class ReservationItem {
 	final double? dropoffLng;
 	final String? departureDateTime;
 	final String? pickedUpAt;
+	final String? completedAt;
 	final String duration;
 	final double tripDistanceKm;
+	final String driverPhone;
+
+	// Fenêtre 1h pour signaler un problème après la fin du trajet
+	bool get isInComplaintWindow {
+		if (status != ReservationStatus.completed) return false;
+		final raw = completedAt ?? pickedUpAt;
+		if (raw == null || raw.isEmpty) return false;
+		try {
+			final end = DateTime.parse(raw).toLocal().add(const Duration(hours: 1));
+			return DateTime.now().isBefore(end);
+		} catch (_) {
+			return false;
+		}
+	}
+
+	Duration? get complaintTimeRemaining {
+		if (!isInComplaintWindow) return null;
+		final raw = completedAt ?? pickedUpAt;
+		if (raw == null) return null;
+		try {
+			final end = DateTime.parse(raw).toLocal().add(const Duration(hours: 1));
+			final remaining = end.difference(DateTime.now());
+			return remaining.isNegative ? null : remaining;
+		} catch (_) {
+			return null;
+		}
+	}
 
 	// Alias pour compatibilité avec le code existant
 	String get pickupCity => departureCity;
@@ -1040,8 +1090,10 @@ class ReservationItem {
 			dropoffLng: dropoffLng,
 			departureDateTime: departureDateTime,
 			pickedUpAt: pickedUpAt,
+			completedAt: completedAt,
 			duration: duration,
 			tripDistanceKm: tripDistanceKm,
+			driverPhone: driverPhone,
 		);
 	}
 }

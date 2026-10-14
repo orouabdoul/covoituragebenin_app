@@ -564,8 +564,10 @@ class ReservationApiItem {
     this.departureDateTime,
     this.priceBreakdown,
     this.pickedUpAt,
+    this.completedAt,
     this.duration = '',
     this.tripDistanceKm = 0.0,
+    this.driverPhone = '',
   });
 
   final String uuid;
@@ -615,8 +617,10 @@ class ReservationApiItem {
   final String? departureDateTime;
   final PriceBreakdown? priceBreakdown;
   final String? pickedUpAt;
+  final String? completedAt;
   final String duration;
   final double tripDistanceKm;
+  final String driverPhone;
 
   // Alias pour la compatibilité avec le code existant
   String get pickupCity => departureCity;
@@ -676,8 +680,10 @@ class ReservationApiItem {
             ? PriceBreakdown.fromJson(j['price_breakdown'] as Map<String, dynamic>)
             : null,
         pickedUpAt:           j['picked_up_at']?.toString(),
+        completedAt:          j['completed_at']?.toString(),
         duration:             (j['duration_label'] ?? j['duration'] ?? j['estimated_duration'] ?? '').toString(),
         tripDistanceKm:       (j['distance_km'] ?? j['trip_distance_km'] as num?)?.toDouble() ?? 0.0,
+        driverPhone:          (j['driver_phone'] ?? '').toString(),
       );
 }
 

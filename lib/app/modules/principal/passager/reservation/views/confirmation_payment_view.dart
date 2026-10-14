@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
@@ -912,7 +912,7 @@ class _PhoneInputField extends StatelessWidget {
 					Padding(
 						padding: EdgeInsets.symmetric(horizontal: responsive.w(14)),
 						child: Text(
-							'🇧🇯 +229',
+							'🇧🇯 +22901',
 							style: AppTextStyles.body(responsive).copyWith(color: AppColors.textSecondary),
 						),
 					),
@@ -927,7 +927,7 @@ class _PhoneInputField extends StatelessWidget {
 							keyboardType: TextInputType.phone,
 							inputFormatters: [
 								FilteringTextInputFormatter.digitsOnly,
-								LengthLimitingTextInputFormatter(10),
+								LengthLimitingTextInputFormatter(8),
 							],
 							style: AppTextStyles.subtitle(responsive),
 							decoration: InputDecoration(
@@ -936,7 +936,7 @@ class _PhoneInputField extends StatelessWidget {
 									vertical: responsive.h(14),
 								),
 								border: InputBorder.none,
-								hintText: '01 XX XX XX XX',
+								hintText: 'XXXXXXXX',
 								hintStyle: AppTextStyles.subtitle(responsive).copyWith(color: AppColors.textHint),
 							),
 						),

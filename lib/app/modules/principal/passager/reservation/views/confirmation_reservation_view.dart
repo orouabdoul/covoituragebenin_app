@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
@@ -77,6 +78,8 @@ class ConfirmationReservationView extends StatelessWidget {
                       SizedBox(height: responsive.h(16)),
                       _SeatsCard(
                           responsive: responsive, controller: controller),
+                      SizedBox(height: responsive.h(16)),
+                      _GuestCard(responsive: responsive, controller: controller),
                       SizedBox(height: responsive.h(16)),
                       Obx(
                         () => _PriceCard(
@@ -677,12 +680,22 @@ class _PlainTextField extends StatelessWidget {
     required this.label,
     required this.hint,
     required this.controller,
+    this.keyboardType,
+    this.textCapitalization = TextCapitalization.sentences,
+    this.prefixText,
+    this.maxLength,
+    this.inputFormatters,
   });
 
   final AppResponsive responsive;
   final String label;
   final String hint;
   final TextEditingController controller;
+  final TextInputType? keyboardType;
+  final TextCapitalization textCapitalization;
+  final String? prefixText;
+  final int? maxLength;
+  final List<TextInputFormatter>? inputFormatters;
 
   @override
   Widget build(BuildContext context) {
@@ -709,13 +722,19 @@ class _PlainTextField extends StatelessWidget {
           TextField(
             controller: controller,
             style: AppTextStyles.subtitle(responsive),
-            textCapitalization: TextCapitalization.sentences,
+            keyboardType: keyboardType,
+            textCapitalization: textCapitalization,
+            maxLength: maxLength,
+            inputFormatters: inputFormatters,
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: AppTextStyles.caption(responsive)
                   .copyWith(color: AppColors.textHint),
+              prefixText: prefixText,
+              prefixStyle: AppTextStyles.subtitle(responsive),
               isDense: true,
               contentPadding: EdgeInsets.zero,
+              counterText: '',
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
               focusedBorder: InputBorder.none,
@@ -1602,6 +1621,194 @@ class _SeatsCard extends StatelessWidget {
   }
 }
 
+// ── Guest Card (réserver pour autrui) ─────────────────────────────────────
+
+class _GuestCard extends StatelessWidget {
+  const _GuestCard({required this.responsive, required this.controller});
+
+  final AppResponsive responsive;
+  final ConfirmationReservationController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final isForOther = controller.isBookingForOther.value;
+      return _SectionCard(
+        responsive: responsive,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Réserver pour autrui',
+                        style: AppTextStyles.subtitle(responsive)
+                            .copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      SizedBox(height: responsive.h(2)),
+                      Text(
+                        'Le trajet sera réservé pour une autre personne.',
+                        style: AppTextStyles.caption(responsive)
+                            .copyWith(color: AppColors.textHint, height: 1.4),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: responsive.w(12)),
+                Switch(
+                  value: isForOther,
+                  onChanged: controller.toggleBookingForOther,
+                  activeThumbColor: AppColors.primary,
+                  activeTrackColor: AppColors.primaryMedium,
+                ),
+              ],
+            ),
+            if (isForOther) ...[
+              SizedBox(height: responsive.h(16)),
+              Row(
+                children: [
+                  Expanded(
+                    child: _PlainTextField(
+                      responsive: responsive,
+                      label: 'Prénom *',
+                      hint: 'Ex: Koffi',
+                      controller: controller.guestFirstNameController,
+                      textCapitalization: TextCapitalization.words,
+                    ),
+                  ),
+                  SizedBox(width: responsive.w(10)),
+                  Expanded(
+                    child: _PlainTextField(
+                      responsive: responsive,
+                      label: 'Nom *',
+                      hint: 'Ex: Amoussou',
+                      controller: controller.guestLastNameController,
+                      textCapitalization: TextCapitalization.words,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: responsive.h(10)),
+              _PlainTextField(
+                responsive: responsive,
+                label: 'Téléphone *',
+                hint: 'XXXXXXXX',
+                controller: controller.guestPhoneController,
+                keyboardType: TextInputType.number,
+                textCapitalization: TextCapitalization.none,
+                prefixText: '+22901 ',
+                maxLength: 8,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              ),
+              SizedBox(height: responsive.h(10)),
+              _GuestDatePickerField(
+                responsive: responsive,
+                label: 'Date de naissance *',
+                hint: 'JJ/MM/AAAA',
+                value: controller.guestBirthDate.value,
+                onTap: () => controller.openGuestBirthDatePicker(context),
+              ),
+              if (controller.guestBirthDate.value != null &&
+                  !controller.isGuestAgeValid) ...[
+                SizedBox(height: responsive.h(4)),
+                Text(
+                  'Le passager doit avoir au moins 18 ans.',
+                  style: AppTextStyles.caption(responsive)
+                      .copyWith(color: AppColors.danger),
+                ),
+              ],
+              SizedBox(height: responsive.h(4)),
+              Text(
+                'Ces informations sont transmises au conducteur.',
+                style: AppTextStyles.caption(responsive)
+                    .copyWith(color: AppColors.textHint, height: 1.4),
+              ),
+            ],
+          ],
+        ),
+      );
+    });
+  }
+}
+
+class _GuestDatePickerField extends StatelessWidget {
+  const _GuestDatePickerField({
+    required this.responsive,
+    required this.label,
+    required this.hint,
+    required this.value,
+    required this.onTap,
+  });
+
+  final AppResponsive responsive;
+  final String label;
+  final String hint;
+  final DateTime? value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasValue = value != null;
+    final formatted = hasValue
+        ? '${value!.day.toString().padLeft(2, '0')}/'
+            '${value!.month.toString().padLeft(2, '0')}/'
+            '${value!.year}'
+        : null;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: responsive.w(12),
+          vertical: responsive.h(10),
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceMuted,
+          borderRadius: BorderRadius.circular(responsive.radius(10)),
+          border: hasValue
+              ? Border.all(color: AppColors.primaryMedium)
+              : null,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: AppTextStyles.caption(responsive).copyWith(
+                      color: AppColors.textHint,
+                      fontSize: responsive.text(10),
+                    ),
+                  ),
+                  SizedBox(height: responsive.h(2)),
+                  Text(
+                    formatted ?? hint,
+                    style: AppTextStyles.subtitle(responsive).copyWith(
+                      color: hasValue
+                          ? AppColors.textPrimary
+                          : AppColors.textHint,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.calendar_today_rounded,
+              size: responsive.text(16),
+              color: hasValue ? AppColors.primary : AppColors.textHint,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _PriceCard extends StatelessWidget {
   const _PriceCard({
     required this.responsive,
@@ -2030,15 +2237,18 @@ class _PaymentPhoneField extends StatelessWidget {
         SizedBox(height: responsive.h(8)),
         TextField(
           controller: controller.paymentContactController,
-          keyboardType: TextInputType.phone,
+          keyboardType: TextInputType.number,
+          maxLength: 8,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           style: AppTextStyles.body(responsive),
           decoration: InputDecoration(
-            prefixText: '+229 ',
+            prefixText: '+22901 ',
             prefixStyle: AppTextStyles.body(responsive)
                 .copyWith(color: AppColors.textSecondary),
-            hintText: '01 00 00 00 00',
+            hintText: 'XXXXXXXX',
             hintStyle: AppTextStyles.body(responsive)
                 .copyWith(color: AppColors.textHint),
+            counterText: '',
             contentPadding: EdgeInsets.symmetric(
                 horizontal: responsive.w(14), vertical: responsive.h(12)),
             filled: true,

@@ -64,6 +64,10 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
     required String dropoffAddress,
     double? dropoffLat,
     double? dropoffLng,
+    String? guestFirstName,
+    String? guestLastName,
+    String? guestPhone,
+    String? guestBirthDate,
   }) async {
     try {
       final opts = await _authOptions();
@@ -83,6 +87,14 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
         'dropoff_address': dropoffAddress,
         if (dropoffLat != null) 'dropoff_latitude': dropoffLat,
         if (dropoffLng != null) 'dropoff_longitude': dropoffLng,
+        if (guestFirstName != null && guestFirstName.isNotEmpty)
+          'guest_first_name': guestFirstName,
+        if (guestLastName != null && guestLastName.isNotEmpty)
+          'guest_last_name': guestLastName,
+        if (guestPhone != null && guestPhone.isNotEmpty)
+          'guest_phone': guestPhone,
+        if (guestBirthDate != null && guestBirthDate.isNotEmpty)
+          'guest_birth_date': guestBirthDate,
       };
       logger.d('createBooking[$tripUuid] body=$body');
       final res = await _dio.post(
@@ -185,8 +197,14 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       if (res.statusCode == 404) return ApiResult.failure(AppError.tripNotFound);
       if (res.statusCode == 200 && res.data is Map && res.data['success'] == true) {
-        final payload = res.data['body'] ?? res.data['data'];
-        if (payload is Map<String, dynamic>) {
+        final rawPayload = res.data['body'] ?? res.data['data'];
+        Map<String, dynamic>? payload;
+        if (rawPayload is Map<String, dynamic>) {
+          payload = rawPayload;
+        } else if (rawPayload is Map) {
+          payload = Map<String, dynamic>.from(rawPayload);
+        }
+        if (payload != null) {
           return ApiResult.success(PaymentStatusModel.fromJson(payload));
         }
       }
@@ -266,10 +284,17 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
           return ApiResult.failure(AppError.unexpected);
         }
         // Supporte à la fois 'body' (format actuel) et 'data' (format guide)
-        final payload = res.data is Map ? (res.data['body'] ?? res.data['data']) : null;
-        if (payload is Map<String, dynamic>) {
+        final rawPayload = res.data is Map ? (res.data['body'] ?? res.data['data']) : null;
+        Map<String, dynamic>? payload;
+        if (rawPayload is Map<String, dynamic>) {
+          payload = rawPayload;
+        } else if (rawPayload is Map) {
+          payload = Map<String, dynamic>.from(rawPayload);
+        }
+        if (payload != null) {
           return ApiResult.success(PaymentInitResult.fromJson(payload));
         }
+        logger.w('initiatePayment: payload null ou type inattendu (${rawPayload.runtimeType})');
         return ApiResult.failure(AppError.unexpected);
       }
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
@@ -365,13 +390,25 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
         queryParameters: params.isEmpty ? null : params,
         options: opts,
       );
-      logger.d('passengerReservations[${status ?? 'all'}] [${res.statusCode}]');
+      logger.d('passengerReservations[${status ?? 'all'}] [${res.statusCode}] body=${res.data}');
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       if (res.statusCode == 403) return ApiResult.failure(AppError.permissionDenied);
-      if (res.statusCode == 200 && res.data is Map && res.data['success'] == true) {
-        final body = res.data['body'];
-        if (body is Map<String, dynamic>) {
-          return ApiResult.success(ReservationsPageModel.fromJson(body));
+      if (res.statusCode == 200 && res.data is Map) {
+        final raw = res.data as Map;
+        if (raw['success'] == true) {
+          final rawBody = raw['body'] ?? raw['data'];
+          Map<String, dynamic>? body;
+          if (rawBody is Map<String, dynamic>) {
+            body = rawBody;
+          } else if (rawBody is Map) {
+            body = Map<String, dynamic>.from(rawBody);
+          }
+          if (body != null) {
+            return ApiResult.success(ReservationsPageModel.fromJson(body));
+          }
+          logger.w('passengerReservations: body null ou type inattendu rawBody=${rawBody?.runtimeType}');
+        } else {
+          logger.w('passengerReservations: success=false raw=$raw');
         }
       }
       return ApiResult.failure(AppError.unexpected);

@@ -19,6 +19,10 @@ abstract class PassengerReservationService {
     required String dropoffAddress,
     double? dropoffLat,
     double? dropoffLng,
+    String? guestFirstName,
+    String? guestLastName,
+    String? guestPhone,
+    String? guestBirthDate,
   });
 
   Future<ApiResult<void>> cancelBooking(String bookingUuid);
