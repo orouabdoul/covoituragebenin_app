@@ -824,6 +824,18 @@ class ConfirmationReservationController extends GetxController {
     isProcessingPayment.value = false;
 
     if (!result.isSuccess) {
+      if (result.error == AppError.alreadyBooked) {
+        // Réservation existante — récupère l'UUID existant et continue vers le paiement
+        final existingUuid = result.meta?['bookingUuid'] as String?;
+        if (existingUuid != null && existingUuid.isNotEmpty) {
+          logger.d('createBooking 409 — réutilise uuid=$existingUuid');
+          _bookingUuid = existingUuid;
+          unawaited(confirmPayment());
+        } else {
+          UIHelper().showSnackBar('MINIZON', result.displayMessage, 2);
+        }
+        return;
+      }
       if (result.error != AppError.socket) {
         UIHelper().showSnackBar('MINIZON', result.displayMessage, 2);
       }
@@ -1009,10 +1021,11 @@ class ConfirmationReservationController extends GetxController {
       if (isCardPayment) {
         provider = 'card';
       } else {
-        // Numéro téléphone de contact (facultatif — pré-rempli depuis le profil)
+        // Numéro téléphone de contact — 8 chiffres bruts sans préfixe
+        // Le backend valide [0-9]{8,12} et FedaPay reçoit {number, country:'bj'}
         final rawPhone = paymentContactController.text.trim().replaceAll(RegExp(r'[^0-9]'), '');
         if (rawPhone.isNotEmpty) {
-          phone = '+22901$rawPhone';
+          phone = rawPhone;
         }
         provider = selectedMobileService.value.name;
       }
@@ -1029,6 +1042,14 @@ class ConfirmationReservationController extends GetxController {
           AppSync.i.refreshPassenger();
           BottonNavController.goToTab(1);
           return;
+        }
+        // Annule la réservation si le paiement n'a pas pu démarrer (sauf erreur réseau)
+        // pour éviter une réservation orpheline bloquant une future tentative
+        if (result.error != AppError.socket && _bookingUuid.isNotEmpty) {
+          final uuidToCancel = _bookingUuid;
+          _bookingUuid = '';
+          unawaited(_service.cancelBooking(uuidToCancel));
+          AppSync.i.refreshPassenger();
         }
         final msg = result.error == AppError.socket
             ? 'Connexion impossible. Vérifiez votre réseau et réessayez.'

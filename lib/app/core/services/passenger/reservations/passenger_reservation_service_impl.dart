@@ -119,9 +119,17 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       if (res.statusCode == 409) {
         final d = res.data is Map ? res.data as Map : null;
         final msg = d?['message'] as String?;
-        final existingUuid = (d?['body'] is Map ? d!['body'] as Map : null)?['booking_uuid'] as String?;
+        final bodyRaw = d?['body'];
+        final bodyMap = bodyRaw is Map<String, dynamic>
+            ? bodyRaw
+            : (bodyRaw is Map ? Map<String, dynamic>.from(bodyRaw) : null);
+        final existingUuid = bodyMap?['booking_uuid'] as String?;
         logger.w('createBooking[$tripUuid] 409 — réservation existante uuid=$existingUuid msg=$msg');
-        return ApiResult.failure(AppError.alreadyBooked, message: msg);
+        return ApiResult.failure(
+          AppError.alreadyBooked,
+          message: msg,
+          meta: existingUuid != null ? {'bookingUuid': existingUuid} : null,
+        );
       }
       if (res.statusCode == 422) {
         final msg = res.data is Map ? res.data['message'] as String? : null;
