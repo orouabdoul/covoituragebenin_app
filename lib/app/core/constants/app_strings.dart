@@ -306,9 +306,9 @@ class AppStrings {
   static const String reservationConfirmedBadge = 'Confirmé';
   static const String reservationSeatsTitle = 'Nombre de places';
   static const String reservationSeatsReserved = 'places réservées';
-  static const String reservationMobileMoneyPaymentTitle = 'MTN Mobile Money';
+  static const String reservationMobileMoneyPaymentTitle = 'Mobile Money';
   static const String reservationMobileMoneyPaymentDescription =
-      'Paiement mobile sécurisé';
+      'MTN, Moov, Celtiis — choisissez votre opérateur';
   static const String reservationCardPaymentTitle = 'Carte bancaire';
   static const String reservationCardPaymentDescription = 'Visa, Mastercard';
   static const String reservationCancellationTitle = 'Conditions d\'annulation';

@@ -17,13 +17,23 @@ class SearchView extends StatelessWidget {
 				: Get.put(SearchController());
 		final responsive = AppResponsive(context);
 
-		return Scaffold(
-			backgroundColor: AppColors.surface,
-			body: SafeArea(
-				child: Center(
-					child: ConstrainedBox(
-						constraints: BoxConstraints(maxWidth: responsive.maxContentWidth),
-						child: Obx(() {
+		return PopScope(
+			canPop: false,
+			onPopInvokedWithResult: (didPop, _) {
+				if (didPop) return;
+				if (controller.isPanelExpanded.value) {
+					controller.collapsePanel();
+				} else {
+					Get.back();
+				}
+			},
+			child: Scaffold(
+				backgroundColor: AppColors.surface,
+				body: SafeArea(
+					child: Center(
+						child: ConstrainedBox(
+							constraints: BoxConstraints(maxWidth: responsive.maxContentWidth),
+							child: Obx(() {
 							if (controller.isPanelExpanded.value) {
 								return _SearchPanel(responsive: responsive, controller: controller);
 							}
@@ -147,6 +157,7 @@ class SearchView extends StatelessWidget {
 					),
 				),
 			),
+		),
 		);
 	}
 }
@@ -220,142 +231,144 @@ class _SearchPanel extends StatelessWidget {
 	Widget _buildCollapsed(BuildContext context) {
 		final hp = responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32);
 		return Container(
-			padding: EdgeInsets.fromLTRB(hp, responsive.h(10), hp, responsive.h(10)),
 			decoration: const BoxDecoration(
 				color: AppColors.white,
 				border: Border(bottom: BorderSide(color: AppColors.border)),
 			),
-			child: Row(
-				children: [
-					// Barre de recherche principale (tappable → expand)
-					Expanded(
-						child: GestureDetector(
-							onTap: controller.expandPanel,
+			child: Padding(
+				padding: EdgeInsets.fromLTRB(hp, responsive.h(8), hp, responsive.h(8)),
+				child: Row(
+					children: [
+						// ── Bouton retour ─────────────────────────────────────
+						GestureDetector(
+							onTap: () => Get.back(),
 							child: Container(
-								padding: EdgeInsets.symmetric(
-									horizontal: responsive.w(14),
-									vertical: responsive.h(11),
-								),
+								width: responsive.w(40),
+								height: responsive.w(40),
 								decoration: BoxDecoration(
 									color: AppColors.surfaceMuted,
-									borderRadius: BorderRadius.circular(responsive.radius(14)),
+									shape: BoxShape.circle,
 								),
-								child: Row(
-									children: [
-										Container(
-											width: responsive.w(34),
-											height: responsive.w(34),
-											decoration: const BoxDecoration(
-												color: AppColors.primary,
-												shape: BoxShape.circle,
-											),
-											child: Icon(
-												Icons.search_rounded,
-												color: Colors.white,
-												size: responsive.text(15),
-											),
-										),
-										SizedBox(width: responsive.w(12)),
-										Expanded(
-											child: Column(
-												crossAxisAlignment: CrossAxisAlignment.start,
-												children: [
-													Obx(() {
-														final orig = controller.originCity.value;
-														final dest = controller.destinationCity.value;
-														final hasRoute = orig.isNotEmpty && dest.isNotEmpty;
-														return Text(
-															hasRoute ? '$orig  →  $dest' : 'Où voulez-vous aller ?',
-															style: AppTextStyles.subtitle(responsive).copyWith(
-																color: hasRoute
-																	? AppColors.textPrimary
-																	: AppColors.textHint,
-																fontWeight: hasRoute
-																	? FontWeight.w600
-																	: FontWeight.w400,
-															),
-															overflow: TextOverflow.ellipsis,
-														);
-													}),
-													SizedBox(height: responsive.h(3)),
-													Obx(() => Text(
-														'${controller.selectedDateLabel.value} · '
-														'${controller.selectedTimeLabel.value} · '
-														'${controller.passengerCount.value} pers.',
-														style: AppTextStyles.caption(responsive)
-															.copyWith(color: AppColors.textHint),
-														overflow: TextOverflow.ellipsis,
-													)),
-												],
-											),
-										),
-										SizedBox(width: responsive.w(8)),
-										Icon(
-											Icons.keyboard_arrow_down_rounded,
-											size: responsive.text(18),
-											color: AppColors.textSecondary,
-										),
-									],
+								child: Icon(
+									Icons.arrow_back_ios_new_rounded,
+									size: responsive.text(15),
+									color: AppColors.textPrimary,
 								),
 							),
 						),
-					),
-					SizedBox(width: responsive.w(8)),
-					// Bouton filtre standalone
-					Obx(() {
-						final count = controller.activeFilterCount;
-						return GestureDetector(
-							onTap: () => controller.openFilterSheet(context),
-							child: Stack(
-								clipBehavior: Clip.none,
-								children: [
-									Container(
-										width: responsive.w(44),
-										height: responsive.w(44),
-										decoration: BoxDecoration(
-											color: count > 0 ? AppColors.surfaceAccent : AppColors.surfaceMuted,
-											borderRadius: BorderRadius.circular(responsive.radius(12)),
-											border: Border.all(
-												color: count > 0
-													? AppColors.primary.withValues(alpha: 0.40)
-													: Colors.transparent,
+						SizedBox(width: responsive.w(10)),
+						// ── Résumé de recherche (tappable → expand) ───────────
+						Expanded(
+							child: GestureDetector(
+								onTap: controller.expandPanel,
+								child: Container(
+									padding: EdgeInsets.symmetric(
+										horizontal: responsive.w(14),
+										vertical: responsive.h(11),
+									),
+									decoration: BoxDecoration(
+										color: AppColors.surfaceMuted,
+										borderRadius: BorderRadius.circular(responsive.radius(14)),
+									),
+									child: Row(
+										children: [
+											Expanded(
+												child: Column(
+													crossAxisAlignment: CrossAxisAlignment.start,
+													children: [
+														Obx(() {
+															final orig = controller.originCity.value;
+															final dest = controller.destinationCity.value;
+															final hasRoute = orig.isNotEmpty && dest.isNotEmpty;
+															return Text(
+																hasRoute ? '$orig  →  $dest' : 'Où voulez-vous aller ?',
+																style: AppTextStyles.subtitle(responsive).copyWith(
+																	color: hasRoute ? AppColors.textPrimary : AppColors.textHint,
+																	fontWeight: hasRoute ? FontWeight.w700 : FontWeight.w400,
+																),
+																overflow: TextOverflow.ellipsis,
+															);
+														}),
+														SizedBox(height: responsive.h(2)),
+														Obx(() => Text(
+															'${controller.selectedDateLabel.value} · '
+															'${controller.selectedTimeLabel.value} · '
+															'${controller.passengerCount.value} pers.',
+															style: AppTextStyles.caption(responsive)
+																.copyWith(color: AppColors.textHint),
+															overflow: TextOverflow.ellipsis,
+														)),
+													],
+												),
+											),
+											SizedBox(width: responsive.w(6)),
+											Icon(
+												Icons.keyboard_arrow_down_rounded,
+												size: responsive.text(18),
+												color: AppColors.textSecondary,
+											),
+										],
+									),
+								),
+							),
+						),
+						SizedBox(width: responsive.w(8)),
+						// ── Bouton filtre ─────────────────────────────────────
+						Obx(() {
+							final count = controller.activeFilterCount;
+							return GestureDetector(
+								onTap: () => controller.openFilterSheet(context),
+								child: Stack(
+									clipBehavior: Clip.none,
+									children: [
+										Container(
+											width: responsive.w(44),
+											height: responsive.w(44),
+											decoration: BoxDecoration(
+												color: count > 0 ? AppColors.primaryLight : AppColors.surfaceMuted,
+												borderRadius: BorderRadius.circular(responsive.radius(12)),
+												border: Border.all(
+													color: count > 0
+														? AppColors.primary.withValues(alpha: 0.35)
+														: Colors.transparent,
+												),
+											),
+											child: Icon(
+												Icons.tune_rounded,
+												size: responsive.text(18),
+												color: count > 0 ? AppColors.primary : AppColors.textSecondary,
 											),
 										),
-										child: Icon(
-											Icons.tune_rounded,
-											size: responsive.text(18),
-											color: count > 0 ? AppColors.primary : AppColors.textSecondary,
-										),
-									),
-									if (count > 0)
-										Positioned(
-											top: -responsive.h(4),
-											right: -responsive.w(4),
-											child: Container(
-												width: responsive.w(17),
-												height: responsive.w(17),
-												decoration: const BoxDecoration(
-													color: AppColors.primary,
-													shape: BoxShape.circle,
-												),
-												child: Center(
-													child: Text(
-														'$count',
-														style: TextStyle(
-															color: Colors.white,
-															fontSize: responsive.text(9),
-															fontWeight: FontWeight.w700,
-															fontFamily: 'Inter',
+										if (count > 0)
+											Positioned(
+												top: -responsive.h(4),
+												right: -responsive.w(4),
+												child: Container(
+													width: responsive.w(17),
+													height: responsive.w(17),
+													decoration: const BoxDecoration(
+														color: AppColors.primary,
+														shape: BoxShape.circle,
+													),
+													child: Center(
+														child: Text(
+															'$count',
+															style: TextStyle(
+																color: Colors.white,
+																fontSize: responsive.text(9),
+																fontWeight: FontWeight.w700,
+																fontFamily: 'Inter',
+															),
 														),
 													),
 												),
 											),
-										),
-								],
-							),
-						);
-					}),
-				],
+									],
+								),
+							);
+						}),
+					],
+				),
 			),
 		);
 	}
@@ -378,23 +391,30 @@ class _SearchPanel extends StatelessWidget {
 					// Title row
 					Row(
 						children: [
-							InkWell(
+							GestureDetector(
 								onTap: controller.collapsePanel,
-								borderRadius: BorderRadius.circular(9999),
 								child: Container(
 									width: responsive.w(40),
 									height: responsive.w(40),
 									decoration: BoxDecoration(
 										shape: BoxShape.circle,
 										color: AppColors.surfaceMuted,
-										border: Border.all(color: Colors.transparent),
 									),
-									child: Icon(Icons.chevron_left_rounded, size: responsive.text(22), color: AppColors.textPrimary),
+									child: Icon(Icons.arrow_back_ios_new_rounded, size: responsive.text(15), color: AppColors.textPrimary),
 								),
 							),
 							SizedBox(width: responsive.w(12)),
 							Expanded(
-								child: Text('Rechercher un trajet', style: AppTextStyles.title(responsive)),
+								child: Column(
+									crossAxisAlignment: CrossAxisAlignment.start,
+									children: [
+										Text('Rechercher un trajet', style: AppTextStyles.title(responsive)),
+										Text(
+											'Renseignez votre itinéraire',
+											style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint),
+										),
+									],
+								),
 							),
 						],
 					),
@@ -1127,6 +1147,18 @@ class _RideCard extends StatelessWidget {
 													label: ride.vehicle,
 												),
 												_SeatsChip(responsive: responsive, seats: ride.seatsAvailable),
+												_InfoPill(
+													responsive: responsive,
+													icon: ride.bookingMode == 'instant'
+														? Icons.bolt_rounded
+														: Icons.pending_actions_rounded,
+													label: ride.bookingMode == 'instant'
+														? 'Instantané'
+														: 'Sur approbation',
+													color: ride.bookingMode == 'instant'
+														? AppColors.success
+														: AppColors.warning,
+												),
 											],
 										),
 										SizedBox(height: responsive.h(12)),

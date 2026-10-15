@@ -606,26 +606,6 @@ class ConfirmationReservationController extends GetxController {
       final d = ctx.userPhone.replaceAll(RegExp(r'[^0-9]'), '');
       paymentContactController.text = d.length >= 8 ? d.substring(d.length - 8) : d;
     }
-    if (ctx.paymentMethods.isNotEmpty) {
-      paymentMethods.assignAll(ctx.paymentMethods.map((m) =>
-          ReservationPaymentMethod(
-            title: m.title,
-            description: m.description,
-            icon: _resolveIcon(m.iconName),
-            backgroundColor: Color(m.color),
-          )));
-    }
-  }
-
-  IconData _resolveIcon(String name) {
-    switch (name) {
-      case 'phone_android':
-        return Icons.phone_android_rounded;
-      case 'credit_card':
-        return Icons.credit_card_rounded;
-      default:
-        return Icons.payment_rounded;
-    }
   }
 
   // ── Places ────────────────────────────────────────────────────────────────

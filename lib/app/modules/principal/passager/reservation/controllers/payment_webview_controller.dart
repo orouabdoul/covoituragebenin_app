@@ -4,10 +4,10 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/passenger_reservation_service.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/passager/reservation/controllers/reservation_controller.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
-import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import '../../search/controllers/search_controller.dart';
 
 class PaymentWebviewController extends GetxController {
@@ -277,13 +277,13 @@ class PaymentWebviewController extends GetxController {
     }
     // Rafraîchit les données passager maintenant que le paiement est confirmé
     AppSync.i.refreshPassenger();
-    Get.offNamed(AppRoutes.passengerPaymentSuccess, arguments: {
-      'ride': _ride,
-      'bookingUuid': _bookingUuid,
-      'seats': _seats,
-      'amount': amount ?? _amount,
-      if (transactionRef != null) 'ref': transactionRef,
-    });
+    UIHelper().showSnackBar(
+      'MINIZON',
+      'Paiement confirmé ! Retrouvez votre trajet dans vos réservations.',
+      4,
+    );
+    // Retourne au dashboard passager sur l'onglet "Trajets" (index 1)
+    BottonNavController.goToTab(1);
   }
 
   void reload() {

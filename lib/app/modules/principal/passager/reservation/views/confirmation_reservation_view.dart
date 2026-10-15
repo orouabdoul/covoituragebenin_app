@@ -2331,6 +2331,10 @@ class _CardFields extends StatelessWidget {
           keyboardType: TextInputType.number,
           style: AppTextStyles.body(responsive),
           maxLength: 19,
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            _CardNumberFormatter(),
+          ],
           buildCounter: (_, {required currentLength, required isFocused, maxLength}) =>
               null,
           decoration: _fieldDecoration(
@@ -2357,6 +2361,10 @@ class _CardFields extends StatelessWidget {
                     keyboardType: TextInputType.number,
                     style: AppTextStyles.body(responsive),
                     maxLength: 5,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      _ExpiryDateFormatter(),
+                    ],
                     buildCounter: (_, {required currentLength, required isFocused, maxLength}) =>
                         null,
                     decoration: _fieldDecoration(hint: 'MM/AA'),
@@ -2376,7 +2384,10 @@ class _CardFields extends StatelessWidget {
                     keyboardType: TextInputType.number,
                     obscureText: true,
                     style: AppTextStyles.body(responsive),
-                    maxLength: 4,
+                    maxLength: 3,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                    ],
                     buildCounter: (_, {required currentLength, required isFocused, maxLength}) =>
                         null,
                     decoration: _fieldDecoration(
@@ -2568,5 +2579,46 @@ IconData _paymentMethodIcon(int index, String title) {
         return Icons.phone_android_rounded;
       }
       return Icons.credit_card_rounded;
+  }
+}
+
+class _CardNumberFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    final digits = newValue.text.replaceAll(' ', '');
+    if (digits.length > 16) return oldValue;
+    final buf = StringBuffer();
+    for (int i = 0; i < digits.length; i++) {
+      if (i > 0 && i % 4 == 0) buf.write(' ');
+      buf.write(digits[i]);
+    }
+    final result = buf.toString();
+    return TextEditingValue(
+      text: result,
+      selection: TextSelection.collapsed(offset: result.length),
+    );
+  }
+}
+
+class _ExpiryDateFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    final digits = newValue.text.replaceAll('/', '');
+    if (digits.length > 4) return oldValue;
+    final String result;
+    if (digits.length < 2) {
+      result = digits;
+    } else if (digits.length == 2) {
+      final typing = newValue.text.length > oldValue.text.length;
+      result = typing ? '$digits/' : digits;
+    } else {
+      result = '${digits.substring(0, 2)}/${digits.substring(2)}';
+    }
+    return TextEditingValue(
+      text: result,
+      selection: TextSelection.collapsed(offset: result.length),
+    );
   }
 }
