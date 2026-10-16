@@ -86,18 +86,36 @@ class ReservationView extends StatelessWidget {
 												status: controller.statusTabs[controller.selectedStatusIndex.value].status,
 											);
 										}
-										return ListView.separated(
-											padding: EdgeInsets.symmetric(
-												horizontal: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
-												vertical: responsive.h(16),
-											),
-											itemCount: items.length,
-											separatorBuilder: (_, _) => SizedBox(height: responsive.h(12)),
-											itemBuilder: (_, i) => _ReservationCard(
-												responsive: responsive,
-												reservation: items[i],
-												controller: controller,
-											),
+										return Stack(
+											children: [
+												RefreshIndicator(
+													onRefresh: controller.refresh,
+													color: AppColors.primary,
+													child: ListView.separated(
+														physics: const AlwaysScrollableScrollPhysics(),
+														padding: EdgeInsets.symmetric(
+															horizontal: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 24, desktop: 32),
+															vertical: responsive.h(16),
+														),
+														itemCount: items.length,
+														separatorBuilder: (_, _) => SizedBox(height: responsive.h(12)),
+														itemBuilder: (_, i) => _ReservationCard(
+															responsive: responsive,
+															reservation: items[i],
+															controller: controller,
+														),
+													),
+												),
+												if (controller.isLoading.value)
+													Positioned(
+														top: 0, left: 0, right: 0,
+														child: LinearProgressIndicator(
+															color: AppColors.primary,
+															backgroundColor: AppColors.primarySurface,
+															minHeight: 2,
+														),
+													),
+											],
 										);
 									}),
 								),
@@ -781,14 +799,12 @@ class _RouteBlock extends StatelessWidget {
 							_PlaceLine(
 								title: reservation.displayPickupCity,
 								subtitle: reservation.displayPickupNote,
-								address: reservation.displayPickupAddress,
 								responsive: responsive,
 							),
 							SizedBox(height: responsive.h(14)),
 							_PlaceLine(
 								title: reservation.displayDropoffCity,
 								subtitle: reservation.displayDropoffNote,
-								address: reservation.displayDropoffAddress,
 								responsive: responsive,
 							),
 							if (reservation.tripOrigin.isNotEmpty &&

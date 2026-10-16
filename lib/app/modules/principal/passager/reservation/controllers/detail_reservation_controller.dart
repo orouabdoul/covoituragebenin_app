@@ -401,6 +401,29 @@ class DetailReservationController extends GetxController {
     }
   }
 
+  void trackLive() {
+    final r = _existingReservation.value;
+    if (r == null) return;
+    Get.toNamed(AppRoutes.passengerLiveTracking, arguments: {
+      'tripUuid':      r.tripUuid ?? '',
+      'bookingUuid':   r.id,
+      'driverName':    r.driverName,
+      'driverPhone':   r.driverPhone,
+      'departureCity': r.departureCity.isNotEmpty ? r.departureCity : r.tripOrigin,
+      'arrivalCity':   r.arrivalCity.isNotEmpty  ? r.arrivalCity  : r.tripDestination,
+      'pickupLat':     r.pickupLat,
+      'pickupLng':     r.pickupLng,
+      'dropoffLat':    r.dropoffLat,
+      'dropoffLng':    r.dropoffLng,
+      'pickupArrondissement':  r.departureArrondissement,
+      'pickupNeighborhood':    r.departureNeighborhood,
+      'pickupNote':            r.departureNote,
+      'dropoffArrondissement': r.arrivalArrondissement,
+      'dropoffNeighborhood':   r.arrivalNeighborhood,
+      'dropoffNote':           r.arrivalNote,
+    });
+  }
+
   final RxBool isContactingDriver = false.obs;
   final RxBool isConfirmingPickup = false.obs;
   final RxBool pickupConfirmed = false.obs;

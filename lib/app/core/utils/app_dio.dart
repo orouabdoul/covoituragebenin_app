@@ -9,8 +9,8 @@ class AppDio {
   static Dio create() {
     final dio = Dio(BaseOptions(
       baseUrl: AppApi.baseUrl,
-      connectTimeout: const Duration(seconds: 35),
-      receiveTimeout: const Duration(seconds: 65),
+      connectTimeout: const Duration(seconds: 20),
+      receiveTimeout: const Duration(seconds: 35),
       headers: {'Accept': 'application/json'},
     ));
     dio.transformer = BackgroundTransformer();
@@ -115,10 +115,13 @@ class _RetryOnTimeoutInterceptor extends Interceptor {
     final isGet = opts.method.toUpperCase() == 'GET';
 
     if (err.type == DioExceptionType.receiveTimeout && isGet && !alreadyRetried) {
-      // Attendre 3s — le serveur Render est maintenant chaud après le premier timeout
-      await Future.delayed(const Duration(seconds: 3));
+      // Attendre 1s — le serveur Render est maintenant chaud après le premier timeout
+      await Future.delayed(const Duration(seconds: 1));
       try {
-        final retryOpts = opts.copyWith(extra: {...opts.extra, _retriedKey: true});
+        final retryOpts = opts.copyWith(
+          extra: {...opts.extra, _retriedKey: true},
+          receiveTimeout: const Duration(seconds: 15), // serveur chaud → réponse rapide
+        );
         final response = await dio.fetch(retryOpts);
         handler.resolve(response);
         return;

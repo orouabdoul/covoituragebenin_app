@@ -194,7 +194,7 @@ class PaymentWebviewController extends GetxController {
   void _onFedapayFailed() {
     if (_navigationDone) return;
     _navigationDone = true;
-    UIHelper().showSnackBar('MINIZON', 'Paiement annulé ou refusé. Veuillez réessayer.', 3);
+    UIHelper().showSnackBar('MINIZON', 'Paiement annulé ou refusé. Veuillez réessayer.', 2);
     Get.back();
   }
 
@@ -242,7 +242,7 @@ class PaymentWebviewController extends GetxController {
           return;
         case 'failed':
           isPolling.value = false;
-          UIHelper().showSnackBar('MINIZON', 'Paiement refusé. Veuillez réessayer.', 3);
+          UIHelper().showSnackBar('MINIZON', 'Paiement refusé. Veuillez réessayer.', 2);
           _navigationDone = true;
           Get.back();
           return;
@@ -263,7 +263,7 @@ class PaymentWebviewController extends GetxController {
       UIHelper().showSnackBar(
         'MINIZON',
         'En attente de confirmation du paiement. Vérifiez vos réservations dans quelques instants.',
-        5,
+        1,
       );
     }
   }
@@ -280,7 +280,7 @@ class PaymentWebviewController extends GetxController {
     UIHelper().showSnackBar(
       'MINIZON',
       'Paiement confirmé ! Retrouvez votre trajet dans vos réservations.',
-      4,
+      0,
     );
     // Retourne au dashboard passager sur l'onglet "Trajets" (index 1)
     BottonNavController.goToTab(1);

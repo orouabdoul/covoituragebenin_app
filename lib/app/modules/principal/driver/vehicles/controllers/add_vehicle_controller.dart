@@ -121,8 +121,8 @@ class AddVehicleController extends GetxController {
     filesVersion.value++;
   }
 
-  static const int _maxPhotoBytes = 5 * 1024 * 1024;  // 5 Mo
-  static const int _maxDocBytes   = 5 * 1024 * 1024;  // 5 Mo
+  static const int _maxPhotoBytes = 1 * 1024 * 1024;  // 1 Mo
+  static const int _maxDocBytes   = 1 * 1024 * 1024;  // 1 Mo
 
   // ── File picking ──────────────────────────────────────────────────────────
 
@@ -131,7 +131,7 @@ class AddVehicleController extends GetxController {
     if (file == null) return;
     final size = await File(file.path).length();
     if (size > _maxPhotoBytes) {
-      UIHelper().showSnackBar('MINIZON', 'La photo ne doit pas dépasser 5 Mo.', 2);
+      UIHelper().showSnackBar('MINIZON', 'La photo ne doit pas dépasser 1 Mo.', 2);
       return;
     }
     _vehiclePhoto = file;
@@ -143,7 +143,7 @@ class AddVehicleController extends GetxController {
     if (file == null) return;
     final size = await File(file.path).length();
     if (size > _maxDocBytes) {
-      UIHelper().showSnackBar('MINIZON', 'Le document ne doit pas dépasser 5 Mo.', 2);
+      UIHelper().showSnackBar('MINIZON', 'Le document ne doit pas dépasser 1 Mo.', 2);
       return;
     }
     _docFiles[apiKey] = file;
@@ -158,7 +158,7 @@ class AddVehicleController extends GetxController {
     if (pFile == null || pFile.path == null) return;
     final size = await File(pFile.path!).length();
     if (size > _maxDocBytes) {
-      UIHelper().showSnackBar('MINIZON', 'Le document ne doit pas dépasser 5 Mo.', 2);
+      UIHelper().showSnackBar('MINIZON', 'Le document ne doit pas dépasser 1 Mo.', 2);
       return;
     }
     _docFiles[apiKey] = XFile(pFile.path!, name: pFile.name);

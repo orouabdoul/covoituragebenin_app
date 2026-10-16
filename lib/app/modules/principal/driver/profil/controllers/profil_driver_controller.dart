@@ -1383,7 +1383,7 @@ class _DocumentPickerSheetState extends State<_DocumentPickerSheet> {
   String? _pickedName;
   bool _isSaving = false;
 
-  static const int _maxBytes = 5 * 1024 * 1024;
+  static const int _maxBytes = 1 * 1024 * 1024;
 
   Future<void> _pickFromCamera() async {
     final xf = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 85);
@@ -1409,7 +1409,7 @@ class _DocumentPickerSheetState extends State<_DocumentPickerSheet> {
   Future<void> _setFile(File file, String name) async {
     final size = await file.length();
     if (size > _maxBytes) {
-      UIHelper().showSnackBar(AppStrings.appName, 'Le fichier ne doit pas depasser 5 Mo.', 2);
+      UIHelper().showSnackBar(AppStrings.appName, 'Le fichier ne doit pas depasser 1 Mo.', 2);
       return;
     }
     if (mounted) setState(() { _pickedFile = file; _pickedName = name; });

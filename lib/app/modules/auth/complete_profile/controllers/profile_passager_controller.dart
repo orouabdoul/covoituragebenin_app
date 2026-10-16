@@ -114,8 +114,8 @@ class ProfilePassagerController extends GetxController {
 
   final RxBool isSubmitting = false.obs;
 
-  static const int _maxSelfieBytes = 2 * 1024 * 1024;  // 2 Mo
-  static const int _maxIdCardBytes = 5 * 1024 * 1024;   // 5 Mo
+  static const int _maxSelfieBytes = 1 * 1024 * 1024;  // 1 Mo
+  static const int _maxIdCardBytes = 1 * 1024 * 1024;  // 1 Mo
 
   // register_token (nouveau compte) ou null (utilisateur existant avec auth token)
   String? _registerToken;
@@ -207,7 +207,7 @@ class ProfilePassagerController extends GetxController {
     selfieFront.value = await check(front);
     selfieLeft.value  = await check(left);
     selfieRight.value = await check(right);
-    if (rejected) UIHelper().showSnackBar('MINIZON', 'La photo ne doit pas dépasser 2 Mo.', 2);
+    if (rejected) UIHelper().showSnackBar('MINIZON', 'La photo ne doit pas dépasser 1 Mo.', 2);
     _resetVerification();
     update();
     _tryAutoVerify();
@@ -232,7 +232,7 @@ class ProfilePassagerController extends GetxController {
 
     final size = await File(file.path).length();
     if (size > _maxIdCardBytes) {
-      UIHelper().showSnackBar('MINIZON', 'La photo ne doit pas dépasser 5 Mo.', 2);
+      UIHelper().showSnackBar('MINIZON', 'La photo ne doit pas dépasser 1 Mo.', 2);
       return;
     }
 

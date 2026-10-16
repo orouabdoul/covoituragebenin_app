@@ -121,9 +121,9 @@ class ProfileDriverController extends GetxController {
   final RxString insuranceError     = ''.obs;
 
   // Taille max autorisée (aligné backend)
-  static const int _maxSelfieBytes = 2 * 1024 * 1024;  // 2 Mo
-  static const int _maxImageBytes  = 5 * 1024 * 1024;  // 5 Mo (id_card, vehicle_photo)
-  static const int _maxDocBytes    = 5 * 1024 * 1024;  // 5 Mo (documents)
+  static const int _maxSelfieBytes = 1 * 1024 * 1024;  // 1 Mo
+  static const int _maxImageBytes  = 1 * 1024 * 1024;  // 1 Mo
+  static const int _maxDocBytes    = 1 * 1024 * 1024;  // 1 Mo
 
   // register_token (nouveau compte) ou null (utilisateur existant avec auth token)
   String? _registerToken;
@@ -291,7 +291,7 @@ class ProfileDriverController extends GetxController {
     selfieLeft.value  = await check(left);
     selfieRight.value = await check(right);
     if (rejected) {
-      selfieError.value = 'La photo ne doit pas dépasser 2 Mo.';
+      selfieError.value = 'La photo ne doit pas dépasser 1 Mo.';
     } else {
       selfieError.value = '';
     }
@@ -319,7 +319,7 @@ class ProfileDriverController extends GetxController {
 
     final size = await File(file.path).length();
     if (size > _maxImageBytes) {
-      idCardError.value = 'La photo ne doit pas dépasser 5 Mo.';
+      idCardError.value = 'La photo ne doit pas dépasser 1 Mo.';
       update();
       return;
     }
@@ -730,7 +730,7 @@ class ProfileDriverController extends GetxController {
     if (file == null) return;
     final size = await File(file.path).length();
     if (size > _maxImageBytes) {
-      vehiclePhotoError.value = 'La photo ne doit pas dépasser 5 Mo (actuel : ${(size / 1048576).toStringAsFixed(1)} Mo)';
+      vehiclePhotoError.value = 'La photo ne doit pas dépasser 1 Mo (actuel : ${(size / 1048576).toStringAsFixed(1)} Mo)';
       update();
       return;
     }
@@ -759,7 +759,7 @@ class ProfileDriverController extends GetxController {
     if (file == null) return;
     final size = await File(file.path).length();
     if (size > _maxDocBytes) {
-      final msg = 'Le document ne doit pas dépasser 5 Mo (actuel : ${(size / 1048576).toStringAsFixed(1)} Mo)';
+      final msg = 'Le document ne doit pas dépasser 1 Mo (actuel : ${(size / 1048576).toStringAsFixed(1)} Mo)';
       if (isLicense) {
         licenseDocError.value = msg;
       } else {
@@ -793,7 +793,7 @@ class ProfileDriverController extends GetxController {
     if (file == null) return;
     final size = await File(file.path).length();
     if (size > _maxDocBytes) {
-      insuranceError.value = 'Le document ne doit pas dépasser 5 Mo (actuel : ${(size / 1048576).toStringAsFixed(1)} Mo)';
+      insuranceError.value = 'Le document ne doit pas dépasser 1 Mo (actuel : ${(size / 1048576).toStringAsFixed(1)} Mo)';
       update();
       return;
     }

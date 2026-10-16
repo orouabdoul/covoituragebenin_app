@@ -13,6 +13,8 @@ import 'package:covoiturage_benin_app/app/core/services/passenger/home/home_serv
 import 'package:covoiturage_benin_app/app/data/models/passenger/home_model.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/passager/search/controllers/search_controller.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
+import 'package:covoiturage_benin_app/app/data/models/passenger/reservations_model.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/passager/reservation/controllers/reservation_controller.dart';
 
 class HomeController extends GetxController {
   HomeController(this._homeService);
@@ -473,17 +475,27 @@ class HomeController extends GetxController {
               'departureTime': trip.departureTimeFormatted,
             });
       case UpcomingTripStatus.upcoming:
-        // Trip en attente → ouvrir l'écran de suivi en attente
-        Get.toNamed(AppRoutes.passengerTripPending,
-            arguments: {
-              'bookingUuid':   trip.bookingUuid,
-              'tripUuid':      trip.tripUuid,
-              'departureCity': trip.pickupCity.isNotEmpty  ? trip.pickupCity  : trip.origin,
-              'arrivalCity':   trip.dropoffCity.isNotEmpty ? trip.dropoffCity : trip.destination,
-              'driverName':    trip.driverName,
-              'driverPhone':   trip.driverPhone,
-              'departureTime': trip.departureTimeFormatted,
-            });
+        // Ouvrir le détail de réservation si la liste est chargée
+        ReservationItem? item;
+        if (Get.isRegistered<ReservationController>()) {
+          final list = Get.find<ReservationController>().allReservations;
+          final idx = list.indexWhere((r) => r.id == trip.bookingUuid);
+          if (idx >= 0) item = list[idx];
+        }
+        if (item != null) {
+          Get.toNamed(AppRoutes.passengerReservationDetail, arguments: item);
+        } else {
+          Get.toNamed(AppRoutes.passengerTripPending,
+              arguments: {
+                'bookingUuid':   trip.bookingUuid,
+                'tripUuid':      trip.tripUuid,
+                'departureCity': trip.pickupCity.isNotEmpty  ? trip.pickupCity  : trip.origin,
+                'arrivalCity':   trip.dropoffCity.isNotEmpty ? trip.dropoffCity : trip.destination,
+                'driverName':    trip.driverName,
+                'driverPhone':   trip.driverPhone,
+                'departureTime': trip.departureTimeFormatted,
+              });
+        }
     }
   }
 }

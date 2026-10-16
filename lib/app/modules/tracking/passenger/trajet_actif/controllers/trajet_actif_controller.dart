@@ -53,6 +53,14 @@ class TrajetActifController extends GetxController {
   // ── État ─────────────────────────────────────────────────────────────────
   final tripEnded = false.obs;
 
+  // ── Labels localisation hiérarchique passager ─────────────────────────────
+  final pickupCityLabel  = ''.obs;
+  final pickupDetail     = ''.obs;
+  final pickupNote       = ''.obs;
+  final dropoffCityLabel = ''.obs;
+  final dropoffDetail    = ''.obs;
+  final dropoffNote      = ''.obs;
+
   String _tripUuid    = '';
   String _bookingUuid = '';
 
@@ -143,6 +151,21 @@ class TrajetActifController extends GetxController {
     }
 
     vehicleLatLng.value = departurePt.value;
+
+    // Labels localisation hiérarchique montée/descente
+    pickupCityLabel.value  = departureCity.value;
+    pickupDetail.value     = _joinParts([
+      m['pickupArrondissement'] as String? ?? '',
+      m['pickupNeighborhood']   as String? ?? '',
+    ]);
+    pickupNote.value       = (m['pickupNote']   as String? ?? '').trim();
+    dropoffCityLabel.value = arrivalCity.value;
+    dropoffDetail.value    = _joinParts([
+      m['dropoffArrondissement'] as String? ?? '',
+      m['dropoffNeighborhood']   as String? ?? '',
+    ]);
+    dropoffNote.value      = (m['dropoffNote']  as String? ?? '').trim();
+
     _fitMap();
 
     // Refresh coords en arrière-plan si les coords initiales sont au niveau commune
@@ -166,6 +189,9 @@ class TrajetActifController extends GetxController {
     if (v is String) return double.tryParse(v);
     return null;
   }
+
+  static String _joinParts(List<String> parts) =>
+      parts.where((s) => s.isNotEmpty).join(', ');
 
   // Rafraîchit les coords pickup/dropoff depuis l'API pour obtenir la précision quartier
   Future<void> _refreshCoordsFromApi() async {

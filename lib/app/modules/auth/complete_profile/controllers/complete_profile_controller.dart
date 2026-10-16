@@ -171,9 +171,9 @@ class CompleteProfileController extends GetxController {
   final insuranceError     = ''.obs;
 
   // ── Size limits ────────────────────────────────────────────────────────────
-  static const int _maxSelfieBytes = 2 * 1024 * 1024;
-  static const int _maxImageBytes  = 5 * 1024 * 1024;
-  static const int _maxDocBytes    = 5 * 1024 * 1024;
+  static const int _maxSelfieBytes = 1 * 1024 * 1024;
+  static const int _maxImageBytes  = 1 * 1024 * 1024;
+  static const int _maxDocBytes    = 1 * 1024 * 1024;
 
   // ── Auth ───────────────────────────────────────────────────────────────────
   String? _registerToken;
@@ -294,7 +294,7 @@ class CompleteProfileController extends GetxController {
     selfieFront.value = await check(front);
     selfieLeft.value  = await check(left);
     selfieRight.value = await check(right);
-    selfieError.value = rejected ? 'La photo ne doit pas dépasser 2 Mo.' : '';
+    selfieError.value = rejected ? 'La photo ne doit pas dépasser 1 Mo.' : '';
     _resetVerification();
     update();
     _tryAutoVerify();
@@ -321,7 +321,7 @@ class CompleteProfileController extends GetxController {
 
     final size = await File(file.path).length();
     if (size > _maxImageBytes) {
-      idCardError.value = 'La photo ne doit pas dépasser 5 Mo.';
+      idCardError.value = 'La photo ne doit pas dépasser 1 Mo.';
       update();
       return;
     }
@@ -396,7 +396,7 @@ class CompleteProfileController extends GetxController {
     final size = await File(file.path).length();
     if (size > _maxImageBytes) {
       vehiclePhotoError.value =
-          'La photo ne doit pas dépasser 5 Mo (${(size / 1048576).toStringAsFixed(1)} Mo)';
+          'La photo ne doit pas dépasser 1 Mo (${(size / 1048576).toStringAsFixed(1)} Mo)';
       update();
       return;
     }
@@ -422,7 +422,7 @@ class CompleteProfileController extends GetxController {
     final size = await File(file.path).length();
     if (size > _maxDocBytes) {
       final msg =
-          'Le document ne doit pas dépasser 5 Mo (${(size / 1048576).toStringAsFixed(1)} Mo)';
+          'Le document ne doit pas dépasser 1 Mo (${(size / 1048576).toStringAsFixed(1)} Mo)';
       if (isLicense) { licenseDocError.value = msg; } else { registrationError.value = msg; }
       update();
       return;
@@ -451,7 +451,7 @@ class CompleteProfileController extends GetxController {
     final size = await File(file.path).length();
     if (size > _maxDocBytes) {
       insuranceError.value =
-          'Le document ne doit pas dépasser 5 Mo (${(size / 1048576).toStringAsFixed(1)} Mo)';
+          'Le document ne doit pas dépasser 1 Mo (${(size / 1048576).toStringAsFixed(1)} Mo)';
       update();
       return;
     }

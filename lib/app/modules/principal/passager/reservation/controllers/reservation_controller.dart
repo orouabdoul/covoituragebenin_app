@@ -348,8 +348,27 @@ class ReservationController extends GetxController {
 				bookingUuid: r.id,
 			);
 
-	void trackLive(ReservationItem r) =>
-			Get.toNamed(AppRoutes.passengerLiveTracking, arguments: r);
+	void trackLive(ReservationItem r) => Get.toNamed(
+		AppRoutes.passengerLiveTracking,
+		arguments: {
+			'tripUuid':      r.tripUuid ?? '',
+			'bookingUuid':   r.id,
+			'driverName':    r.driverName,
+			'driverPhone':   r.driverPhone,
+			'departureCity': r.departureCity.isNotEmpty ? r.departureCity : r.tripOrigin,
+			'arrivalCity':   r.arrivalCity.isNotEmpty  ? r.arrivalCity  : r.tripDestination,
+			'pickupLat':     r.pickupLat,
+			'pickupLng':     r.pickupLng,
+			'dropoffLat':    r.dropoffLat,
+			'dropoffLng':    r.dropoffLng,
+			'pickupArrondissement':  r.departureArrondissement,
+			'pickupNeighborhood':    r.departureNeighborhood,
+			'pickupNote':            r.departureNote,
+			'dropoffArrondissement': r.arrivalArrondissement,
+			'dropoffNeighborhood':   r.arrivalNeighborhood,
+			'dropoffNote':           r.arrivalNote,
+		},
+	);
 
 	void rateDriver(ReservationItem r) =>
 			Get.toNamed(AppRoutes.passengerTripConfirmation, arguments: r);
@@ -1027,8 +1046,17 @@ class ReservationItem {
 	// Getters d'affichage — titre de carte = ville uniquement (arrondissement/quartier en sous-titre)
 	String get displayPickupCity => departureCity.isNotEmpty ? departureCity : tripOrigin;
 	String get displayDropoffCity => arrivalCity.isNotEmpty ? arrivalCity : tripDestination;
-	String get displayPickupNote => departureNote;
-	String get displayDropoffNote => arrivalNote;
+	String get displayPickupNote {
+		final parts = [departureArrondissement, departureNeighborhood, departureNote]
+				.where((p) => p.isNotEmpty).toList();
+		return parts.join(', ');
+	}
+
+	String get displayDropoffNote {
+		final parts = [arrivalArrondissement, arrivalNeighborhood, arrivalNote]
+				.where((p) => p.isNotEmpty).toList();
+		return parts.join(', ');
+	}
 	String get displayPickupAddress => departureAddress;
 	String get displayDropoffAddress => arrivalAddress;
 
