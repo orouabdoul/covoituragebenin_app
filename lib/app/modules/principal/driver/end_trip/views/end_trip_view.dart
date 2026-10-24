@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -102,8 +104,9 @@ class _Content extends StatelessWidget {
                 label: controller.isConfirming.value
                     ? 'Confirmation…'
                     : 'Confirmer la fin du trajet',
-                onPressed:
-                    controller.isConfirming.value ? null : controller.onConfirmEnd,
+                onPressed: controller.isConfirming.value
+                    ? null
+                    : controller.showRateAndConfirmEnd,
                 icon: Icons.check_circle_rounded,
               )),
           SizedBox(height: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
@@ -135,40 +138,81 @@ class _SuccessHero extends StatelessWidget {
   final AppResponsive r;
   final EndTripSummaryModel data;
 
+  String get _motivationalMessage {
+    final net = data.netRevenue;
+    if (data.allConfirmed && net >= 10000) return 'Excellent travail aujourd\'hui ! 🏆';
+    if (net >= 5000) return 'Beau trajet ! Continuez comme ça 💪';
+    if (data.passengersCount >= 3) return 'Plein chargement, bien joué !';
+    return 'Trajet accompli avec succès !';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final netStr = '${data.netRevenue.toStringAsFixed(0)} FCFA';
     return Column(
       children: [
         Container(
-          width: r.adaptive(phone: 80, smallPhone: 72, tablet: 92, desktop: 104),
-          height: r.adaptive(phone: 80, smallPhone: 72, tablet: 92, desktop: 104),
+          width: r.adaptive(phone: 72, smallPhone: 64, tablet: 84, desktop: 96),
+          height: r.adaptive(phone: 72, smallPhone: 64, tablet: 84, desktop: 96),
           decoration: const BoxDecoration(
             color: AppColors.surfaceSuccess,
             shape: BoxShape.circle,
           ),
           child: Icon(
             Icons.flag_rounded,
-            size: r.adaptive(phone: 40, smallPhone: 36, tablet: 46, desktop: 52),
+            size: r.adaptive(phone: 36, smallPhone: 30, tablet: 42, desktop: 48),
             color: AppColors.success,
           ),
         ),
-        SizedBox(height: r.adaptive(phone: 16, smallPhone: 12, tablet: 18, desktop: 20)),
+        SizedBox(height: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
         Text(
           'Trajet terminé !',
-          style: AppTextStyles.h4(r).copyWith(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.w800,
+          style: AppTextStyles.bodyMedium(r).copyWith(
+            color: AppColors.textMuted,
+            fontWeight: FontWeight.w500,
           ),
         ),
         SizedBox(height: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8)),
         Text(
-          data.tripRoute,
-          style: AppTextStyles.bodyMedium(r).copyWith(color: AppColors.textMuted),
+          netStr,
+          style: TextStyle(
+            color: AppColors.primary,
+            fontSize: r.text(44),
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w900,
+            height: 1.0,
+            letterSpacing: -1.5,
+          ),
         ),
         SizedBox(height: r.adaptive(phone: 4, smallPhone: 3, tablet: 5, desktop: 6)),
         Text(
-          'Durée réelle : ${data.realDuration}',
+          'revenus nets',
+          style: AppTextStyles.bodySmall(r).copyWith(color: AppColors.textMuted),
+        ),
+        SizedBox(height: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
+        Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: r.w(14),
+            vertical: r.h(8),
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceSuccess,
+            borderRadius: BorderRadius.circular(9999),
+            border: Border.all(color: AppColors.success.withValues(alpha: 0.30)),
+          ),
+          child: Text(
+            _motivationalMessage,
+            style: AppTextStyles.bodySmall(r).copyWith(
+              color: AppColors.success,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        SizedBox(height: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8)),
+        Text(
+          '${data.tripRoute} · ${data.realDuration}',
           style: AppTextStyles.bodySmall(r).copyWith(color: AppColors.textHint),
+          textAlign: TextAlign.center,
         ),
       ],
     );
@@ -363,47 +407,109 @@ class _PassengerConfirmationCard extends StatelessWidget {
   }
 }
 
-class _PaymentTimerCard extends StatelessWidget {
+class _PaymentTimerCard extends StatefulWidget {
   const _PaymentTimerCard({required this.r, required this.availableDate});
   final AppResponsive r;
   final String availableDate;
 
   @override
+  State<_PaymentTimerCard> createState() => _PaymentTimerCardState();
+}
+
+class _PaymentTimerCardState extends State<_PaymentTimerCard> {
+  static const _windowSec = 30 * 60; // 30 minutes
+  Timer? _timer;
+  int _remainingSec = _windowSec;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(() {
+        if (_remainingSec > 0) _remainingSec--;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  bool get _isAvailable => _remainingSec <= 0;
+
+  String get _countdownLabel {
+    if (_isAvailable) return 'Fonds disponibles maintenant !';
+    final m = _remainingSec ~/ 60;
+    final s = _remainingSec % 60;
+    return m > 0 ? '${m}min ${s.toString().padLeft(2, '0')}s' : '${s}s';
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final r = widget.r;
+    final progress = _remainingSec / _windowSec;
+
     return Container(
       padding: EdgeInsets.all(r.adaptive(phone: 16, smallPhone: 14, tablet: 18, desktop: 20)),
       decoration: BoxDecoration(
-        color: AppColors.warningLight,
+        color: _isAvailable ? AppColors.surfaceSuccess : AppColors.warningLight,
         borderRadius: BorderRadius.circular(r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-        border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
+        border: Border.all(
+          color: (_isAvailable ? AppColors.success : AppColors.accent).withValues(alpha: 0.3),
+        ),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.schedule_rounded,
-            size: r.adaptive(phone: 32, smallPhone: 28, tablet: 36, desktop: 40),
-            color: AppColors.accent,
+          Row(
+            children: [
+              Icon(
+                _isAvailable ? Icons.check_circle_rounded : Icons.schedule_rounded,
+                size: r.adaptive(phone: 28, smallPhone: 24, tablet: 32, desktop: 36),
+                color: _isAvailable ? AppColors.success : AppColors.accent,
+              ),
+              SizedBox(width: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _isAvailable ? 'Fonds débloqués' : 'Fenêtre de sécurité — 30 min',
+                      style: AppTextStyles.bodySmall(r).copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    SizedBox(height: r.adaptive(phone: 2, smallPhone: 2, tablet: 3, desktop: 3)),
+                    Text(
+                      _isAvailable
+                          ? 'Vous pouvez retirer vos fonds.'
+                          : _countdownLabel,
+                      style: AppTextStyles.labelSmall(r).copyWith(
+                        color: _isAvailable ? AppColors.success : AppColors.accent,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          SizedBox(width: r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Délai de sécurité 24h',
-                  style: AppTextStyles.bodySmall(r).copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                SizedBox(height: r.adaptive(phone: 4, smallPhone: 3, tablet: 5, desktop: 6)),
-                Text(
-                  'Vos fonds seront disponibles $availableDate',
-                  style: AppTextStyles.labelSmall(r).copyWith(color: AppColors.textMuted),
-                ),
-              ],
+          if (!_isAvailable) ...[
+            SizedBox(height: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(9999),
+              child: LinearProgressIndicator(
+                value: 1 - progress,
+                minHeight: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8),
+                backgroundColor: AppColors.accent.withValues(alpha: 0.15),
+                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.accent),
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );

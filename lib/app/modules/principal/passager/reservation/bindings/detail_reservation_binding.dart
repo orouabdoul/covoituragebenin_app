@@ -4,6 +4,8 @@ import 'package:covoiturage_benin_app/app/core/services/passenger/messaging/pass
 import 'package:covoiturage_benin_app/app/core/services/passenger/messaging/passenger_messaging_service_impl.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/passenger_reservation_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/passenger_reservation_service_impl.dart';
+import 'package:covoiturage_benin_app/app/core/services/passenger/reviews/passenger_reviews_service.dart';
+import 'package:covoiturage_benin_app/app/core/services/passenger/reviews/passenger_reviews_service_impl.dart';
 import '../controllers/detail_reservation_controller.dart';
 
 class DetailReservationBinding extends Bindings {
@@ -16,6 +18,10 @@ class DetailReservationBinding extends Bindings {
     if (!Get.isRegistered<PassengerMessagingService>()) {
       Get.lazyPut<PassengerMessagingService>(
           () => PassengerMessagingServiceImpl(), fenix: true);
+    }
+    if (!Get.isRegistered<PassengerReviewsService>()) {
+      Get.lazyPut<PassengerReviewsService>(
+          () => PassengerReviewsServiceImpl(), fenix: true);
     }
     Get.put<DetailReservationController>(DetailReservationController());
   }

@@ -22,6 +22,10 @@ class TrajetActifView extends GetView<TrajetActifController> {
           _MapLayer(c: controller),
           _BottomSheet(c: controller),
           _TopBar(c: controller),
+          // Bannière démarrage conducteur
+          Obx(() => controller.driverJustStarted.value
+              ? _DriverStartedBanner(c: controller)
+              : const SizedBox.shrink()),
         ],
       ),
     );
@@ -37,22 +41,18 @@ class _MapLayer extends StatelessWidget {
   static const _benin = LatLng(9.3077, 2.3158);
 
   static bool _isBenin(LatLng p) =>
-      (p.latitude - _benin.latitude).abs() < 1e-4 &&
+      (p.latitude  - _benin.latitude).abs()  < 1e-4 &&
       (p.longitude - _benin.longitude).abs() < 1e-4;
 
-  // Index du point de la route le plus proche du véhicule
   static int _splitIdx(List<LatLng> pts, LatLng veh) {
     if (pts.length < 2) return 0;
     int best = 0;
     double bestD = double.infinity;
     for (int i = 0; i < pts.length; i++) {
-      final dlat = pts[i].latitude - veh.latitude;
+      final dlat = pts[i].latitude  - veh.latitude;
       final dlng = pts[i].longitude - veh.longitude;
       final d = dlat * dlat + dlng * dlng;
-      if (d < bestD) {
-        bestD = d;
-        best = i;
-      }
+      if (d < bestD) { bestD = d; best = i; }
     }
     return best;
   }
@@ -63,14 +63,16 @@ class _MapLayer extends StatelessWidget {
     return SizedBox(
       height: h * 0.62,
       child: Obx(() {
-        final route  = List<LatLng>.unmodifiable(c.routePoints);
-        final veh    = c.vehicleLatLng.value;
-        final hasVeh = !_isBenin(veh);
-        final split  = (route.length >= 2 && hasVeh)
+        final route   = List<LatLng>.unmodifiable(c.routePoints);   // itinéraire complet
+        final segment = List<LatLng>.unmodifiable(c.segmentPoints); // segment passager
+        final veh     = c.vehicleLatLng.value;
+        final hasVeh  = !_isBenin(veh);
+        final hasSeg  = segment.length >= 2;
+
+        final split = (route.length >= 2 && hasVeh)
             ? _splitIdx(route, veh)
             : 0;
-
-        final traveled  = (route.length >= 2 && split > 1)
+        final traveled = (route.length >= 2 && split > 1)
             ? route.sublist(0, split + 1)
             : <LatLng>[];
         final remaining = route.length >= 2
@@ -85,41 +87,85 @@ class _MapLayer extends StatelessWidget {
             interactionOptions: const InteractionOptions(
               flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
             ),
+            // Désactiver le suivi caméra si l'utilisateur touche la carte
+            onMapEvent: (event) {
+              if (event is MapEventMoveStart &&
+                  event.source != MapEventSource.mapController) {
+                c.cameraFollows.value = false;
+              }
+            },
           ),
           children: [
             TileLayer(
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               userAgentPackageName: 'com.minizon.app',
             ),
-            // Portion restante — pointillé léger
+
+            // ── Itinéraire complet du trajet ──────────────────────────────
+            // Portion restante
             if (remaining.length >= 2)
               PolylineLayer(polylines: [
                 Polyline(
                   points: remaining,
-                  color: AppColors.primary.withValues(alpha: 0.38),
-                  strokeWidth: 5,
+                  color: hasSeg
+                      ? const Color(0x30888888)
+                      : AppColors.primary.withValues(alpha: 0.38),
+                  strokeWidth: hasSeg ? 3.5 : 5,
                   pattern: StrokePattern.dashed(segments: [14, 7]),
                 ),
               ]),
-            // Portion parcourue — solide
+            // Portion parcourue
             if (traveled.length >= 2)
               PolylineLayer(polylines: [
                 Polyline(
                   points: traveled,
-                  color: AppColors.primary.withValues(alpha: 0.90),
-                  strokeWidth: 5.5,
+                  color: hasSeg
+                      ? const Color(0x55888888)
+                      : AppColors.primary.withValues(alpha: 0.90),
+                  strokeWidth: hasSeg ? 3.5 : 5.5,
                 ),
               ]),
-            // Tracé GPS réel (historique)
+
+            // ── Segment passager (montée → descente) — orange ─────────────
+            if (hasSeg)
+              PolylineLayer(polylines: [
+                Polyline(
+                  points: segment,
+                  color: AppColors.accent.withValues(alpha: 0.88),
+                  strokeWidth: 6,
+                ),
+              ]),
+
+            // ── Tracé GPS réel (historique) ───────────────────────────────
             if (c.gpsTrail.length >= 2)
               PolylineLayer(polylines: [
                 Polyline(
                   points: List.unmodifiable(c.gpsTrail),
                   color: AppColors.primary,
-                  strokeWidth: 4,
+                  strokeWidth: hasSeg ? 3 : 4,
                 ),
               ]),
+
+            // ── Marqueurs ─────────────────────────────────────────────────
             MarkerLayer(markers: [
+              // Petits ronds gris aux extrémités du trajet complet
+              if (hasSeg && !_isBenin(c.tripDeparturePt.value))
+                Marker(
+                  point: c.tripDeparturePt.value,
+                  width: 14,
+                  height: 14,
+                  alignment: Alignment.center,
+                  child: const _SmallDot(color: Color(0xFF888888)),
+                ),
+              if (hasSeg && !_isBenin(c.tripArrivalPt.value))
+                Marker(
+                  point: c.tripArrivalPt.value,
+                  width: 14,
+                  height: 14,
+                  alignment: Alignment.center,
+                  child: const _SmallDot(color: Color(0xFF888888)),
+                ),
+              // Marqueur montée passager (vert)
               Marker(
                 point: c.departurePt.value,
                 width: 172,
@@ -133,6 +179,7 @@ class _MapLayer extends StatelessWidget {
                   note: c.pickupNote.value,
                 ),
               ),
+              // Marqueur descente passager (rouge)
               Marker(
                 point: c.arrivalPt.value,
                 width: 172,
@@ -159,6 +206,22 @@ class _MapLayer extends StatelessWidget {
       }),
     );
   }
+}
+
+// ─── Small Dot ────────────────────────────────────────────────────────────────
+
+class _SmallDot extends StatelessWidget {
+  const _SmallDot({required this.color});
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 2),
+        ),
+      );
 }
 
 // ─── Labeled Map Pin ──────────────────────────────────────────────────────────
@@ -326,12 +389,11 @@ class _PulsingVehicleState extends State<_PulsingVehicle>
     final color = Color(widget.colorValue);
     return AnimatedBuilder(
       animation: _ctrl,
-      builder: (_, __) {
+      builder: (_, _) {
         final t = _ctrl.value;
         return Stack(
           alignment: Alignment.center,
           children: [
-            // Anneau pulsant extérieur
             Opacity(
               opacity: ((1 - t) * 0.55).clamp(0.0, 1.0),
               child: Transform.scale(
@@ -346,7 +408,6 @@ class _PulsingVehicleState extends State<_PulsingVehicle>
                 ),
               ),
             ),
-            // Icône voiture
             Container(
               width: 36,
               height: 36,
@@ -371,6 +432,116 @@ class _PulsingVehicleState extends State<_PulsingVehicle>
           ],
         );
       },
+    );
+  }
+}
+
+// ─── Driver Started Banner ────────────────────────────────────────────────────
+
+class _DriverStartedBanner extends StatefulWidget {
+  const _DriverStartedBanner({required this.c});
+  final TrajetActifController c;
+
+  @override
+  State<_DriverStartedBanner> createState() => _DriverStartedBannerState();
+}
+
+class _DriverStartedBannerState extends State<_DriverStartedBanner>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _anim = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _anim.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final r = AppResponsive(context);
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(r.w(16), r.h(64), r.w(16), 0),
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, -2.0),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(parent: _anim, curve: Curves.elasticOut)),
+          child: Container(
+            padding: EdgeInsets.symmetric(
+                horizontal: r.w(16), vertical: r.h(12)),
+            decoration: BoxDecoration(
+              color: AppColors.success,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.success.withValues(alpha: 0.40),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: r.w(40),
+                  height: r.w(40),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.20),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.directions_car_filled_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+                SizedBox(width: r.w(12)),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Le conducteur a démarré !',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: r.text(14),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        'Votre trajet est en cours',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.85),
+                          fontSize: r.text(12),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                GestureDetector(
+                  onTap: widget.c.dismissDriverBanner,
+                  child: Icon(
+                    Icons.close_rounded,
+                    color: Colors.white.withValues(alpha: 0.80),
+                    size: r.text(20),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -478,8 +649,7 @@ class _BottomSheet extends StatelessWidget {
           children: [
             _Handle(),
             Padding(
-              padding: EdgeInsets.fromLTRB(
-                  r.w(20), r.h(4), r.w(20), 0),
+              padding: EdgeInsets.fromLTRB(r.w(20), r.h(4), r.w(20), 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -551,7 +721,7 @@ class _Separator extends StatelessWidget {
   }
 }
 
-// ─── Route Header (villes + statut) ──────────────────────────────────────────
+// ─── Route Header ─────────────────────────────────────────────────────────────
 
 class _RouteHeader extends StatelessWidget {
   const _RouteHeader({required this.c, required this.r});
@@ -577,7 +747,6 @@ class _RouteHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Ligne villes
                 Row(
                   children: [
                     Expanded(
@@ -591,8 +760,7 @@ class _RouteHeader extends StatelessWidget {
                       ),
                     ),
                     Padding(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: r.w(6)),
+                      padding: EdgeInsets.symmetric(horizontal: r.w(6)),
                       child: Icon(
                         Icons.arrow_forward_rounded,
                         size: r.text(16),
@@ -613,15 +781,13 @@ class _RouteHeader extends StatelessWidget {
                   ],
                 ),
                 SizedBox(height: r.h(8)),
-                // Badge statut
                 Container(
                   padding: EdgeInsets.symmetric(
                       horizontal: r.w(10), vertical: r.h(4)),
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.10),
                     borderRadius: BorderRadius.circular(20),
-                    border:
-                        Border.all(color: color.withValues(alpha: 0.25)),
+                    border: Border.all(color: color.withValues(alpha: 0.25)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -652,7 +818,6 @@ class _RouteHeader extends StatelessWidget {
               ],
             ),
           ),
-          // Badge GPS perdu
           if (c.gpsStale.value) ...[
             SizedBox(width: r.w(8)),
             Container(
@@ -684,7 +849,7 @@ class _RouteHeader extends StatelessWidget {
   }
 }
 
-// ─── Live dot (clignotant) ────────────────────────────────────────────────────
+// ─── Live Dot ─────────────────────────────────────────────────────────────────
 
 class _LiveDot extends StatefulWidget {
   const _LiveDot({required this.color});
@@ -716,7 +881,7 @@ class _LiveDotState extends State<_LiveDot>
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
         animation: _ctrl,
-        builder: (_, __) => Opacity(
+        builder: (_, _) => Opacity(
           opacity: 0.3 + _ctrl.value * 0.7,
           child: Container(
             width: 8,
@@ -764,10 +929,8 @@ class _MilestoneProgress extends StatelessWidget {
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  // Fond piste
                   Positioned(
-                    left: dotDiam / 2,
-                    right: dotDiam / 2,
+                    left: dotDiam / 2, right: dotDiam / 2,
                     top: (36 - 6) / 2,
                     child: Container(
                       height: 6,
@@ -777,7 +940,6 @@ class _MilestoneProgress extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // Portion parcourue
                   Positioned(
                     left: dotDiam / 2,
                     top: (36 - 6) / 2,
@@ -790,13 +952,10 @@ class _MilestoneProgress extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // Point montée (vert)
                   Positioned(
-                    left: 0,
-                    top: (36 - dotDiam) / 2,
+                    left: 0, top: (36 - dotDiam) / 2,
                     child: Container(
-                      width: dotDiam,
-                      height: dotDiam,
+                      width: dotDiam, height: dotDiam,
                       decoration: BoxDecoration(
                         color: AppColors.success,
                         shape: BoxShape.circle,
@@ -810,13 +969,10 @@ class _MilestoneProgress extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // Point descente (rouge)
                   Positioned(
-                    right: 0,
-                    top: (36 - dotDiam) / 2,
+                    right: 0, top: (36 - dotDiam) / 2,
                     child: Container(
-                      width: dotDiam,
-                      height: dotDiam,
+                      width: dotDiam, height: dotDiam,
                       decoration: BoxDecoration(
                         color: AppColors.danger,
                         shape: BoxShape.circle,
@@ -830,13 +986,10 @@ class _MilestoneProgress extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // Icône voiture mobile
                   Positioned(
-                    left: carLeft,
-                    top: (36 - carDiam) / 2,
+                    left: carLeft, top: (36 - carDiam) / 2,
                     child: Container(
-                      width: carDiam,
-                      height: carDiam,
+                      width: carDiam, height: carDiam,
                       decoration: BoxDecoration(
                         color: AppColors.primary,
                         shape: BoxShape.circle,
@@ -860,7 +1013,6 @@ class _MilestoneProgress extends StatelessWidget {
             );
           }),
           SizedBox(height: r.h(8)),
-          // Labels montée / descente
           Row(
             children: [
               Row(
@@ -963,16 +1115,14 @@ class _MetricChip extends StatelessWidget {
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.07),
             borderRadius: BorderRadius.circular(14),
-            border:
-                Border.all(color: color.withValues(alpha: 0.16), width: 1),
+            border: Border.all(color: color.withValues(alpha: 0.16), width: 1),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(icon, color: color, size: r.text(18)),
               SizedBox(height: r.h(6)),
-              Text(value,
-                  style: AppTextStyles.h6(r).copyWith(color: color)),
+              Text(value, style: AppTextStyles.h6(r).copyWith(color: color)),
               Text(label, style: AppTextStyles.labelSmall(r)),
             ],
           ),
@@ -988,8 +1138,7 @@ class _DriverCard extends StatelessWidget {
   final AppResponsive r;
 
   static String _initials(String n) {
-    final parts =
-        n.trim().split(' ').where((p) => p.isNotEmpty).toList();
+    final parts = n.trim().split(' ').where((p) => p.isNotEmpty).toList();
     if (parts.isEmpty) return 'C';
     if (parts.length == 1) return parts[0][0].toUpperCase();
     return (parts[0][0] + parts.last[0]).toUpperCase();
@@ -1000,8 +1149,7 @@ class _DriverCard extends StatelessWidget {
     return Obx(() {
       final name = c.driverName.value;
       final s = c.tripStatus.value;
-      final isActive =
-          s == 'active' || s == 'in_progress' || s == 'running';
+      final isActive    = s == 'active' || s == 'in_progress' || s == 'running';
       final isCompleted = s == 'completed' || s == 'ended';
       final badgeColor = isCompleted
           ? AppColors.textSecondary
@@ -1016,7 +1164,6 @@ class _DriverCard extends StatelessWidget {
 
       return Row(
         children: [
-          // Avatar initiales
           Container(
             width: r.w(52),
             height: r.w(52),
@@ -1031,13 +1178,11 @@ class _DriverCard extends StatelessWidget {
             child: Center(
               child: Text(
                 _initials(name),
-                style: AppTextStyles.h5(r)
-                    .copyWith(color: AppColors.primary),
+                style: AppTextStyles.h5(r).copyWith(color: AppColors.primary),
               ),
             ),
           ),
           SizedBox(width: r.w(14)),
-          // Nom
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1046,20 +1191,17 @@ class _DriverCard extends StatelessWidget {
                   name.isNotEmpty ? name : 'Conducteur',
                   style: AppTextStyles.subtitle(r),
                 ),
-                Text('Conducteur',
-                    style: AppTextStyles.caption(r)),
+                Text('Conducteur', style: AppTextStyles.caption(r)),
               ],
             ),
           ),
-          // Badge statut dynamique
           Container(
             padding: EdgeInsets.symmetric(
                 horizontal: r.w(10), vertical: r.h(5)),
             decoration: BoxDecoration(
               color: badgeColor.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                  color: badgeColor.withValues(alpha: 0.22)),
+              border: Border.all(color: badgeColor.withValues(alpha: 0.22)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -1242,8 +1384,7 @@ class _StopColumn extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.push_pin_outlined,
-                    size: r.text(10), color: color),
+                Icon(Icons.push_pin_outlined, size: r.text(10), color: color),
                 SizedBox(width: r.w(3)),
                 Expanded(
                   child: Text(

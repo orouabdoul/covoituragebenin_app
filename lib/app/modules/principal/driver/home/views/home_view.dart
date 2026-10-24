@@ -1,11 +1,10 @@
-import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
-import 'package:covoiturage_benin_app/app/data/models/driver/notification_driver_model.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 import 'package:covoiturage_benin_app/app/modules/widgets/app_button.dart';
 
 import '../controllers/home_controller.dart';
@@ -21,6 +20,8 @@ class DriverHomeView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final responsive = AppResponsive(context);
+    final hPad = responsive.adaptive(label: 'pad', phone: 16, smallPhone: 14, tablet: 20, desktop: 24);
+    final gap = responsive.adaptive(label: 'gap', phone: 16, smallPhone: 14, tablet: 20, desktop: 24);
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -51,165 +52,92 @@ class DriverHomeView extends StatelessWidget {
                 color: AppColors.primary,
                 child: ListView(
                   padding: EdgeInsets.fromLTRB(
-                    responsive.adaptive(label: 'pad', phone: 16, smallPhone: 14, tablet: 20, desktop: 24),
+                    hPad,
                     responsive.adaptive(label: 'pad', phone: 12, smallPhone: 10, tablet: 16, desktop: 20),
-                    responsive.adaptive(label: 'pad', phone: 16, smallPhone: 14, tablet: 20, desktop: 24),
+                    hPad,
                     responsive.adaptive(label: 'pad', phone: 24, smallPhone: 20, tablet: 28, desktop: 32),
                   ),
                   children: [
-                    // ── Hero (revenus du jour) ────────────────────────────
-                    Obx(() => _HeroSection(
-                      responsive: responsive,
-                      summary: controller.summary.value,
-                    )),
-
-                    SizedBox(height: responsive.adaptive(label: 'gap', phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
-
-                    // ── Demandes urgentes avec countdown ──────────────────
-                    Obx(() {
-                      final requests = controller.quickRequests;
-                      if (requests.isEmpty) return const SizedBox.shrink();
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _SectionHeader(
-                            responsive: responsive,
-                            title: 'Demandes en attente',
-                            badge: '${requests.length} nouvelle${requests.length > 1 ? 's' : ''}',
-                            onAction: controller.onSeeAllRequests,
-                            actionLabel: 'Voir tout',
-                          ),
-                          SizedBox(height: responsive.h(10)),
-                          ...requests.map((r) => Padding(
-                            padding: EdgeInsets.only(bottom: responsive.h(10)),
-                            child: _QuickRequestCard(
-                              responsive: responsive,
-                              request: r,
-                              onAccept: () => controller.onQuickAccept(r),
-                              onReject: () => controller.onQuickReject(r),
-                            ),
-                          )),
-                          SizedBox(height: responsive.h(6)),
-                        ],
-                      );
-                    }),
-
-                    // ── Statistiques de performance ───────────────────────
-                    _SectionTitle(responsive: responsive, title: AppStrings.dashboardPerformance),
-                    SizedBox(height: responsive.adaptive(label: 'gap', phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                    Obx(() => Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.all(responsive.adaptive(label: 'pad', phone: 16, smallPhone: 14, tablet: 16, desktop: 16)),
-                      decoration: ShapeDecoration(
-                        color: AppColors.white,
-                        shape: RoundedRectangleBorder(
-                          side: const BorderSide(color: Colors.transparent),
-                          borderRadius: BorderRadius.circular(responsive.radius(22)),
-                        ),
-                        shadows: const [
-                          BoxShadow(color: AppColors.shadowSoft, blurRadius: 2, offset: Offset(0, 1)),
-                        ],
-                      ),
-                      child: _MetricGrid(
-                        responsive: responsive,
-                        metrics: controller.metrics.toList(),
-                      ),
-                    )),
-
-                    SizedBox(height: responsive.adaptive(label: 'gap', phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
-
-                    // ── Prochain trajet ───────────────────────────────────
-                    Obx(() {
-                      final trip = controller.nextTrip.value;
-                      if (trip == null || trip.uuid.isEmpty) return const SizedBox.shrink();
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _SectionTitle(responsive: responsive, title: AppStrings.dashboardNextTrip),
-                          SizedBox(height: responsive.adaptive(label: 'gap', phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                          _NextTripCard(
-                            responsive: responsive,
-                            trip: trip,
-                            onSeeDetails: controller.onSeeDetails,
-                            onContact: controller.onContact,
-                          ),
-                          SizedBox(height: responsive.adaptive(label: 'gap', phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
-                        ],
-                      );
-                    }),
-
-                    // ── Demandes récentes ─────────────────────────────────
-                    Obx(() {
-                      final requests = controller.recentRequests.toList();
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _SectionHeader(
-                            responsive: responsive,
-                            title: AppStrings.dashboardRecentRequests,
-                            badge: requests.isEmpty
-                                ? ''
-                                : '${requests.length} nouvelle${requests.length > 1 ? 's' : ''}',
-                          ),
-                          SizedBox(height: responsive.adaptive(label: 'gap', phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                          _RequestList(
-                            responsive: responsive,
-                            requests: requests,
-                            controller: controller,
-                          ),
-                        ],
-                      );
-                    }),
-
-                    SizedBox(height: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
-
-                    // ── Actions rapides ───────────────────────────────────
-                    _SectionTitle(responsive: responsive, title: AppStrings.dashboardQuickActions),
-                    SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                    Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.all(responsive.adaptive(label: 'pad', phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
-                      decoration: ShapeDecoration(
-                        color: AppColors.white,
-                        shape: RoundedRectangleBorder(
-                          side: const BorderSide(color: Colors.transparent),
-                          borderRadius: BorderRadius.circular(responsive.radius(16)),
-                        ),
-                      ),
-                      child: _ActionGrid(
-                        responsive: responsive,
-                        actions: controller.actions,
-                        onAction: controller.onQuickAction,
-                      ),
-                    ),
-
-                    SizedBox(height: responsive.adaptive(label: 'gap', phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
-
-                    // ── Portefeuille ──────────────────────────────────────
-                    _SectionTitle(responsive: responsive, title: AppStrings.dashboardWalletTitle),
-                    SizedBox(height: responsive.adaptive(label: 'gap', phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                    Obx(() => _WalletSection(
-                      responsive: responsive,
-                      wallet: controller.wallet.value,
-                      selectedMethod: controller.selectedWalletMethod.value,
-                      onSelectMethod: controller.selectWalletMethod,
-                    )),
-
-                    SizedBox(height: responsive.adaptive(label: 'gap', phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
-
-                    // ── Niveau du conducteur ──────────────────────────────
-                    Obx(() => _LevelSection(
+                    // ── Greeting ──────────────────────────────────────────────
+                    Obx(() => _GreetingRow(
                       responsive: responsive,
                       level: controller.level.value,
                     )),
-                    SizedBox(height: responsive.adaptive(label: 'gap', phone: 16, smallPhone: 14, tablet: 20, desktop: 24)),
 
-                    // ── Notifications ─────────────────────────────────────
-                    _SectionTitle(responsive: responsive, title: 'Notifications'),
-                    SizedBox(height: responsive.adaptive(label: 'gap', phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-                    Obx(() => _NotificationList(
+                    SizedBox(height: responsive.h(10)),
+
+                    // ── Zone 1 : Hero (disponibilité + revenus du jour) ──────
+                    Obx(() => _HeroCard(
                       responsive: responsive,
-                      items: controller.notifications.toList(),
+                      summary: controller.summary.value,
+                      isOnline: controller.isOnline.value,
+                      onToggle: controller.toggleAvailability,
+                      todayRaw: controller.todayEarningsRaw.value,
+                      dailyGoal: controller.dailyGoalFcfa.value,
+                      onEditGoal: controller.showEditGoalDialog,
+                    )),
+
+                    SizedBox(height: gap),
+
+                    // ── Zone 2 : Feed "À traiter" ─────────────────────────
+                    Obx(() {
+                      final requests = controller.quickRequests.toList();
+                      final trip = controller.nextTrip.value;
+                      final hasActivity =
+                          requests.isNotEmpty || (trip != null && trip.uuid.isNotEmpty);
+
+                      if (!hasActivity) {
+                        return _EmptyActivityCard(
+                          responsive: responsive,
+                          onCreateTrip: controller.onPublishTrip,
+                        );
+                      }
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (requests.isNotEmpty) ...[
+                            _SectionHeader(
+                              responsive: responsive,
+                              title: 'Demandes en attente',
+                              badge: '${requests.length}',
+                              onAction: controller.onSeeAllRequests,
+                              actionLabel: 'Voir tout',
+                            ),
+                            SizedBox(height: responsive.h(10)),
+                            ...requests.map((r) => Padding(
+                              padding: EdgeInsets.only(bottom: responsive.h(10)),
+                              child: _QuickRequestCard(
+                                responsive: responsive,
+                                request: r,
+                                onAccept: () => controller.onQuickAccept(r),
+                                onReject: () => controller.onQuickReject(r),
+                              ),
+                            )),
+                          ],
+                          if (trip != null && trip.uuid.isNotEmpty) ...[
+                            if (requests.isNotEmpty) SizedBox(height: responsive.h(6)),
+                            _SectionTitle(responsive: responsive, title: 'Prochain trajet'),
+                            SizedBox(height: responsive.h(10)),
+                            _NextTripCard(
+                              responsive: responsive,
+                              trip: trip,
+                              onSeeDetails: controller.onSeeDetails,
+                              onContact: controller.onContact,
+                            ),
+                          ],
+                        ],
+                      );
+                    }),
+
+                    SizedBox(height: gap),
+
+                    // ── Zone 3 : Stats rapides (tappables) ───────────────
+                    Obx(() => _QuickStatsStrip(
+                      responsive: responsive,
+                      summary: controller.summary.value,
+                      metrics: controller.metrics.toList(),
+                      walletBalance: controller.wallet.value.balance,
                     )),
                   ],
                 ),
@@ -222,13 +150,101 @@ class DriverHomeView extends StatelessWidget {
   }
 }
 
-// ── Hero Section ─────────────────────────────────────────────────────────────
+// ── Greeting row ─────────────────────────────────────────────────────────────
 
-class _HeroSection extends StatelessWidget {
-  const _HeroSection({required this.responsive, required this.summary});
+class _GreetingRow extends StatelessWidget {
+  const _GreetingRow({required this.responsive, required this.level});
+
+  final AppResponsive responsive;
+  final DriverLevel level;
+
+  String get _greeting {
+    final h = DateTime.now().hour;
+    if (h < 12) return 'Bonjour';
+    if (h < 18) return 'Bon après-midi';
+    return 'Bonsoir';
+  }
+
+  String get _emoji {
+    final h = DateTime.now().hour;
+    if (h < 12) return '☀️';
+    if (h < 18) return '👋';
+    return '🌙';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasLevel = level.currentLevel.isNotEmpty && level.currentLevel != '—';
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Text(
+            '$_greeting $_emoji',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: responsive.text(20),
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.5,
+            ),
+          ),
+        ),
+        if (hasLevel) ...[
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: responsive.w(10),
+              vertical: responsive.h(5),
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.warningLight,
+              borderRadius: BorderRadius.circular(9999),
+              border: Border.all(color: AppColors.warning.withValues(alpha: 0.30)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.workspace_premium_rounded,
+                    size: responsive.text(13), color: AppColors.warning),
+                SizedBox(width: responsive.w(4)),
+                Text(
+                  level.currentLevel,
+                  style: TextStyle(
+                    color: AppColors.warning,
+                    fontSize: responsive.text(12),
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ── Zone 1 : Hero Card ────────────────────────────────────────────────────────
+
+class _HeroCard extends StatelessWidget {
+  const _HeroCard({
+    required this.responsive,
+    required this.summary,
+    required this.isOnline,
+    required this.onToggle,
+    required this.todayRaw,
+    required this.dailyGoal,
+    required this.onEditGoal,
+  });
 
   final AppResponsive responsive;
   final DriverSummary summary;
+  final bool isOnline;
+  final VoidCallback onToggle;
+  final int todayRaw;
+  final int dailyGoal;
+  final VoidCallback onEditGoal;
 
   @override
   Widget build(BuildContext context) {
@@ -248,241 +264,312 @@ class _HeroSection extends StatelessWidget {
           borderRadius: BorderRadius.circular(responsive.radius(22)),
         ),
         shadows: const [
-          BoxShadow(
-            color: AppColors.shadowSoft,
-            blurRadius: 2,
-            offset: Offset(0, 1),
-          ),
+          BoxShadow(color: AppColors.shadowSoft, blurRadius: 4, offset: Offset(0, 2)),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: responsive.adaptive(
-                phone: 288,
-                smallPhone: 250,
-                tablet: 360,
-                desktop: 380,
-              ),
-            ),
-            child: Text(
-              summary.todayLabel,
-              style: TextStyle(
-                color: AppColors.white.withValues(alpha: 0.80),
-                fontSize: responsive.text(14),
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w500,
-                height: 1.43,
-                letterSpacing: -0.50,
-              ),
+          _OnlineToggle(
+            responsive: responsive,
+            isOnline: isOnline,
+            onToggle: onToggle,
+          ),
+
+          SizedBox(height: responsive.h(22)),
+
+          Text(
+            summary.todayLabel,
+            style: TextStyle(
+              color: AppColors.white.withValues(alpha: 0.80),
+              fontSize: responsive.text(13),
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w500,
+              letterSpacing: -0.50,
             ),
           ),
-          SizedBox(height: responsive.adaptive(phone: 8, smallPhone: 6, tablet: 8, desktop: 8)),
+          SizedBox(height: responsive.h(6)),
           Text(
             summary.todayValue,
             style: TextStyle(
               color: AppColors.white,
-              fontSize: responsive.text(36),
+              fontSize: responsive.text(38),
               fontFamily: 'Inter',
               fontWeight: FontWeight.w900,
-              height: 1.11,
-              letterSpacing: -0.50,
+              height: 1.05,
+              letterSpacing: -1.0,
             ),
           ),
-          SizedBox(height: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 18, desktop: 18)),
+
+          SizedBox(height: responsive.h(18)),
+
           Row(
             children: [
-              Expanded(
-                child: _TinyStatCard(
-                  responsive: responsive,
-                  label: summary.weekLabel,
-                  value: summary.weekValue,
-                ),
+              _HeroStatChip(
+                responsive: responsive,
+                label: summary.weekLabel,
+                value: summary.weekValue,
               ),
-              SizedBox(width: responsive.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 12)),
-              Expanded(
-                child: _TinyStatCard(
-                  responsive: responsive,
-                  label: summary.monthLabel,
-                  value: summary.monthValue,
-                ),
+              SizedBox(width: responsive.w(10)),
+              _HeroStatChip(
+                responsive: responsive,
+                label: summary.monthLabel,
+                value: summary.monthValue,
               ),
-              SizedBox(width: responsive.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 12)),
-              Expanded(
-                child: _TinyStatCard(
+              if (summary.pendingValue != '—' && summary.pendingValue != '0') ...[
+                SizedBox(width: responsive.w(10)),
+                _HeroStatChip(
                   responsive: responsive,
                   label: summary.pendingLabel,
                   value: summary.pendingValue,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 18, desktop: 18)),
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(
-              responsive.adaptive(phone: 16, smallPhone: 14, tablet: 16, desktop: 16),
-            ),
-            decoration: ShapeDecoration(
-              color: AppColors.white.withValues(alpha: 0.10),
-              shape: RoundedRectangleBorder(
-                side: const BorderSide(color: Colors.transparent),
-                borderRadius: BorderRadius.circular(responsive.radius(16)),
-              ),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        summary.commissionLabel,
-                        style: TextStyle(
-                          color: AppColors.white.withValues(alpha: 0.70),
-                          fontSize: responsive.text(12),
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w400,
-                          height: 1.33,
-                          letterSpacing: -0.50,
-                        ),
-                      ),
-                      SizedBox(height: responsive.h(4)),
-                      Text(
-                        summary.commissionValue,
-                        style: TextStyle(
-                          color: AppColors.white,
-                          fontSize: responsive.text(18),
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w700,
-                          height: 1.56,
-                          letterSpacing: -0.50,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  width: responsive.w(24),
-                  height: responsive.w(24),
-                  decoration: ShapeDecoration(
-                    color: AppColors.white.withValues(alpha: 0.10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(responsive.radius(12)),
-                    ),
-                  ),
-                  child: Icon(
-                    Icons.receipt_long_rounded,
-                    size: responsive.text(14),
-                    color: AppColors.white,
-                  ),
+                  highlight: true,
                 ),
               ],
-            ),
+            ],
           ),
+
+          if (dailyGoal > 0) ...[
+            SizedBox(height: responsive.h(16)),
+            _DailyGoalBar(
+              responsive: responsive,
+              todayRaw: todayRaw,
+              dailyGoal: dailyGoal,
+              onEdit: onEditGoal,
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-class _TinyStatCard extends StatelessWidget {
-  const _TinyStatCard({
+class _DailyGoalBar extends StatelessWidget {
+  const _DailyGoalBar({
     required this.responsive,
-    required this.label,
-    required this.value,
+    required this.todayRaw,
+    required this.dailyGoal,
+    required this.onEdit,
   });
 
   final AppResponsive responsive;
-  final String label;
-  final String value;
+  final int todayRaw;
+  final int dailyGoal;
+  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: responsive.adaptive(phone: 72, smallPhone: 70, tablet: 72, desktop: 74),
-      padding: EdgeInsets.all(
-        responsive.adaptive(phone: 10, smallPhone: 10, tablet: 10, desktop: 10),
-      ),
-      decoration: ShapeDecoration(
-        color: AppColors.white.withValues(alpha: 0.10),
-        shape: RoundedRectangleBorder(
-          side: const BorderSide(color: Colors.transparent),
-          borderRadius: BorderRadius.circular(responsive.radius(16)),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: AppColors.white.withValues(alpha: 0.70),
-              fontSize: responsive.text(12),
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w400,
-              height: 1.33,
-              letterSpacing: -0.50,
-            ),
-          ),
-          SizedBox(height: responsive.h(4)),
-          Text(
-            value,
-            style: TextStyle(
-              color: AppColors.white,
-              fontSize: responsive.text(16),
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w700,
-              height: 1.50,
-              letterSpacing: -0.50,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+    final progress = dailyGoal > 0 ? (todayRaw / dailyGoal).clamp(0.0, 1.0) : 0.0;
+    final pct = (progress * 100).toStringAsFixed(0);
+    final goalStr = dailyGoal >= 1000
+        ? '${(dailyGoal / 1000).toStringAsFixed(dailyGoal % 1000 == 0 ? 0 : 1)}k'
+        : '$dailyGoal';
+    final reached = progress >= 1.0;
 
-// ── Metric Grid ───────────────────────────────────────────────────────────────
-
-class _MetricGrid extends StatelessWidget {
-  const _MetricGrid({required this.responsive, required this.metrics});
-
-  final AppResponsive responsive;
-  final List<DriverMetric> metrics;
-
-  @override
-  Widget build(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: 2,
-      crossAxisSpacing: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12),
-      mainAxisSpacing: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12),
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 0.9,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final metric in metrics) _MetricCard(responsive: responsive, metric: metric),
+        Row(
+          children: [
+            GestureDetector(
+              onTap: onEdit,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    reached ? 'Objectif atteint !' : 'Objectif : $goalStr FCFA',
+                    style: TextStyle(
+                      color: AppColors.white.withValues(alpha: 0.80),
+                      fontSize: responsive.text(12),
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  SizedBox(width: responsive.w(4)),
+                  Icon(
+                    Icons.edit_rounded,
+                    size: responsive.text(11),
+                    color: AppColors.white.withValues(alpha: 0.60),
+                  ),
+                ],
+              ),
+            ),
+            const Spacer(),
+            Text(
+              '$pct%',
+              style: TextStyle(
+                color: AppColors.white,
+                fontSize: responsive.text(12),
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: responsive.h(6)),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(9999),
+          child: LinearProgressIndicator(
+            value: progress,
+            minHeight: responsive.h(6),
+            backgroundColor: AppColors.white.withValues(alpha: 0.20),
+            valueColor: AlwaysStoppedAnimation<Color>(
+              reached ? AppColors.accent : AppColors.white,
+            ),
+          ),
+        ),
       ],
     );
   }
 }
 
-class _MetricCard extends StatelessWidget {
-  const _MetricCard({required this.responsive, required this.metric});
+class _OnlineToggle extends StatelessWidget {
+  const _OnlineToggle({
+    required this.responsive,
+    required this.isOnline,
+    required this.onToggle,
+  });
 
   final AppResponsive responsive;
-  final DriverMetric metric;
+  final bool isOnline;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 400),
+          width: responsive.w(10),
+          height: responsive.w(10),
+          decoration: BoxDecoration(
+            color: isOnline
+                ? AppColors.accent
+                : AppColors.white.withValues(alpha: 0.40),
+            shape: BoxShape.circle,
+          ),
+        ),
+        SizedBox(width: responsive.w(8)),
+        Text(
+          isOnline ? 'En ligne' : 'Hors ligne',
+          style: TextStyle(
+            color: AppColors.white,
+            fontSize: responsive.text(15),
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.50,
+          ),
+        ),
+        const Spacer(),
+        GestureDetector(
+          onTap: onToggle,
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: responsive.w(14),
+              vertical: responsive.h(8),
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.white.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(responsive.radius(9999)),
+              border: Border.all(
+                color: AppColors.white.withValues(alpha: 0.30),
+              ),
+            ),
+            child: Text(
+              isOnline ? 'Hors ligne' : 'En ligne',
+              style: TextStyle(
+                color: AppColors.white,
+                fontSize: responsive.text(12),
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w600,
+                letterSpacing: -0.30,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HeroStatChip extends StatelessWidget {
+  const _HeroStatChip({
+    required this.responsive,
+    required this.label,
+    required this.value,
+    this.highlight = false,
+  });
+
+  final AppResponsive responsive;
+  final String label;
+  final String value;
+  final bool highlight;
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: responsive.w(12),
+        vertical: responsive.h(8),
+      ),
+      decoration: BoxDecoration(
+        color: highlight
+            ? AppColors.accent.withValues(alpha: 0.20)
+            : AppColors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(responsive.radius(12)),
+        border: Border.all(
+          color: highlight
+              ? AppColors.accent.withValues(alpha: 0.50)
+              : Colors.transparent,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: AppColors.white.withValues(alpha: 0.70),
+              fontSize: responsive.text(11),
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w400,
+              letterSpacing: -0.30,
+            ),
+          ),
+          SizedBox(height: responsive.h(2)),
+          Text(
+            value,
+            style: TextStyle(
+              color: AppColors.white,
+              fontSize: responsive.text(15),
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.50,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Zone 2 : Empty state ──────────────────────────────────────────────────────
+
+class _EmptyActivityCard extends StatelessWidget {
+  const _EmptyActivityCard({
+    required this.responsive,
+    required this.onCreateTrip,
+  });
+
+  final AppResponsive responsive;
+  final VoidCallback onCreateTrip;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
       padding: EdgeInsets.all(
-        responsive.adaptive(phone: 16, smallPhone: 14, tablet: 16, desktop: 16),
+        responsive.adaptive(phone: 28, smallPhone: 24, tablet: 32, desktop: 36),
       ),
       decoration: ShapeDecoration(
         color: AppColors.white,
@@ -491,49 +578,176 @@ class _MetricCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(responsive.radius(22)),
         ),
         shadows: const [
-          BoxShadow(
-            color: AppColors.shadowSoft,
-            blurRadius: 2,
-            offset: Offset(0, 1),
-          ),
+          BoxShadow(color: AppColors.shadowSoft, blurRadius: 2, offset: Offset(0, 1)),
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: responsive.w(48),
-            height: responsive.w(48),
-            decoration: ShapeDecoration(
-              color: metric.color,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(responsive.radius(16)),
-                side: const BorderSide(color: Colors.transparent),
-              ),
+            width: responsive.w(64),
+            height: responsive.w(64),
+            decoration: BoxDecoration(
+              color: AppColors.primaryLight,
+              borderRadius: BorderRadius.circular(responsive.radius(20)),
             ),
             child: Icon(
-              metric.icon,
-              color: metric.iconColor,
-              size: responsive.text(24),
+              Icons.add_road_rounded,
+              color: AppColors.primary,
+              size: responsive.text(28),
             ),
           ),
-          SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
-          Text(metric.value, style: AppTextStyles.rolesCardTitle(responsive)),
-          SizedBox(height: responsive.h(2)),
-          Text(metric.title, style: AppTextStyles.caption(responsive)),
-          if (metric.progress != null) ...[
-            SizedBox(height: responsive.adaptive(phone: 8, smallPhone: 6, tablet: 8, desktop: 8)),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(9999),
-              child: LinearProgressIndicator(
-                minHeight: responsive.h(8),
-                value: metric.progress,
-                backgroundColor: AppColors.surfaceSoft,
-                color: metric.iconColor,
-              ),
-            ),
-          ],
+          SizedBox(height: responsive.h(16)),
+          Text(
+            'Aucune activité aujourd\'hui',
+            style: AppTextStyles.homeCardTitle(responsive),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: responsive.h(6)),
+          Text(
+            'Publiez un trajet pour commencer à recevoir des réservations.',
+            style: AppTextStyles.caption(responsive),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: responsive.h(22)),
+          _InlineActionButton(
+            responsive: responsive,
+            label: 'Publier un trajet',
+            backgroundColor: AppColors.primary,
+            textColor: AppColors.white,
+            onTap: onCreateTrip,
+          ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Zone 3 : Stats rapides ────────────────────────────────────────────────────
+
+class _QuickStatsStrip extends StatelessWidget {
+  const _QuickStatsStrip({
+    required this.responsive,
+    required this.summary,
+    required this.metrics,
+    required this.walletBalance,
+  });
+
+  final AppResponsive responsive;
+  final DriverSummary summary;
+  final List<DriverMetric> metrics;
+  final String walletBalance;
+
+  @override
+  Widget build(BuildContext context) {
+    final ratingMetric =
+        metrics.where((m) => m.icon == Icons.star_rounded).firstOrNull;
+    final tripsMetric =
+        metrics.where((m) => m.icon == Icons.route_rounded).firstOrNull;
+
+    return Row(
+      children: [
+        Expanded(
+          child: _StatChip(
+            responsive: responsive,
+            icon: Icons.star_rounded,
+            iconColor: AppColors.warning,
+            label: 'Note',
+            value: ratingMetric?.value ?? '—',
+            onTap: () => BottonNavController.goToTab(4),
+          ),
+        ),
+        SizedBox(width: responsive.w(10)),
+        Expanded(
+          child: _StatChip(
+            responsive: responsive,
+            icon: Icons.route_rounded,
+            iconColor: AppColors.primary,
+            label: 'Trajets',
+            value: tripsMetric?.value ?? '—',
+            onTap: () => BottonNavController.goToTab(1),
+          ),
+        ),
+        SizedBox(width: responsive.w(10)),
+        Expanded(
+          child: _StatChip(
+            responsive: responsive,
+            icon: Icons.account_balance_wallet_rounded,
+            iconColor: AppColors.success,
+            label: 'Solde',
+            value: walletBalance,
+            onTap: () => BottonNavController.goToTab(3),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StatChip extends StatelessWidget {
+  const _StatChip({
+    required this.responsive,
+    required this.icon,
+    required this.iconColor,
+    required this.label,
+    required this.value,
+    required this.onTap,
+  });
+
+  final AppResponsive responsive;
+  final IconData icon;
+  final Color iconColor;
+  final String label;
+  final String value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(responsive.radius(16)),
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: responsive.w(12),
+            vertical: responsive.h(14),
+          ),
+          decoration: ShapeDecoration(
+            color: AppColors.white,
+            shape: RoundedRectangleBorder(
+              side: const BorderSide(color: Colors.transparent),
+              borderRadius: BorderRadius.circular(responsive.radius(16)),
+            ),
+            shadows: const [
+              BoxShadow(color: AppColors.shadowSoft, blurRadius: 2, offset: Offset(0, 1)),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: iconColor, size: responsive.text(18)),
+              SizedBox(height: responsive.h(8)),
+              Text(
+                value,
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: responsive.text(16),
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.50,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
+              SizedBox(height: responsive.h(2)),
+              Text(
+                label,
+                style: AppTextStyles.caption(responsive),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -550,7 +764,7 @@ class _NextTripCard extends StatelessWidget {
   });
 
   final AppResponsive responsive;
-  final DriverTrip trip;
+  final DriverTripCard trip;
   final VoidCallback onSeeDetails;
   final VoidCallback onContact;
 
@@ -642,15 +856,9 @@ class _NextTripCard extends StatelessWidget {
               _AvatarStack(avatarUrls: trip.avatarUrls, responsive: responsive),
               SizedBox(width: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
               Expanded(
-                child: Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: trip.passengersLabel,
-                        style: AppTextStyles.homeCardTitle(responsive),
-                      ),
-                    ],
-                  ),
+                child: Text(
+                  trip.passengersLabel,
+                  style: AppTextStyles.homeCardTitle(responsive),
                 ),
               ),
             ],
@@ -666,7 +874,6 @@ class _NextTripCard extends StatelessWidget {
                         : 'Trajet en cours',
                     style: AppTextStyles.caption(responsive).copyWith(
                       color: AppColors.textSecondary,
-                      fontSize: responsive.text(12),
                     ),
                   ),
                 ),
@@ -680,7 +887,7 @@ class _NextTripCard extends StatelessWidget {
                   ),
               ],
             ),
-            SizedBox(height: responsive.adaptive(phone: 6, smallPhone: 5, tablet: 6, desktop: 6)),
+            SizedBox(height: responsive.h(6)),
             ClipRRect(
               borderRadius: BorderRadius.circular(9999),
               child: LinearProgressIndicator(
@@ -910,9 +1117,11 @@ class _DashboardError extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.cloud_off_rounded,
-                size: responsive.adaptive(phone: 56, smallPhone: 48, tablet: 64, desktop: 64),
-                color: AppColors.textGhost),
+            Icon(
+              Icons.cloud_off_rounded,
+              size: responsive.adaptive(phone: 56, smallPhone: 48, tablet: 64, desktop: 64),
+              color: AppColors.textGhost,
+            ),
             SizedBox(height: responsive.h(16)),
             Text(
               'Impossible de charger le tableau de bord',
@@ -977,10 +1186,7 @@ class _SectionHeader extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: Text(
-            title,
-            style: AppTextStyles.profileSectionTitle(responsive),
-          ),
+          child: Text(title, style: AppTextStyles.profileSectionTitle(responsive)),
         ),
         if (onAction != null && actionLabel != null)
           GestureDetector(
@@ -1024,7 +1230,7 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-// ── Quick Request Card ────────────────────────────────────────────────────────
+// ── Quick Request Card (avec countdown) ──────────────────────────────────────
 
 class _QuickRequestCard extends StatelessWidget {
   const _QuickRequestCard({
@@ -1059,8 +1265,7 @@ class _QuickRequestCard extends StatelessWidget {
             side: BorderSide(color: borderColor, width: urgent ? 1.5 : 1),
           ),
           shadows: const [
-            BoxShadow(
-                color: AppColors.shadowSoft, blurRadius: 6, offset: Offset(0, 2)),
+            BoxShadow(color: AppColors.shadowSoft, blurRadius: 6, offset: Offset(0, 2)),
           ],
         ),
         child: Row(
@@ -1144,9 +1349,9 @@ class _QuickRequestCard extends StatelessWidget {
                       SizedBox(width: responsive.w(2)),
                       Text(
                         request.rating.toStringAsFixed(1),
-                        style: AppTextStyles.homeCardBody(responsive)
-                            .copyWith(color: AppColors.textPrimary,
-                                fontWeight: FontWeight.w600),
+                        style: AppTextStyles.homeCardBody(responsive).copyWith(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w600),
                       ),
                       SizedBox(width: responsive.w(6)),
                       Flexible(
@@ -1202,6 +1407,7 @@ class _MiniButton extends StatelessWidget {
     this.onTap,
     this.isLoading = false,
   });
+
   final AppResponsive responsive;
   final String label;
   final Color bgColor;
@@ -1249,693 +1455,6 @@ class _MiniButton extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-// ── Request List ──────────────────────────────────────────────────────────────
-
-class _RequestList extends StatelessWidget {
-  const _RequestList({
-    required this.responsive,
-    required this.requests,
-    required this.controller,
-  });
-
-  final AppResponsive responsive;
-  final List<DriverRequest> requests;
-  final DriverHomeController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    if (requests.isEmpty) return const SizedBox.shrink();
-    return Column(
-      children: [
-        for (var index = 0; index < requests.length; index++) ...[
-          _RequestCard(
-            responsive: responsive,
-            request: requests[index],
-            onAccept: () => controller.onRecentAccept(requests[index]),
-            onReject: () => controller.onRecentReject(requests[index]),
-          ),
-          if (index != requests.length - 1)
-            SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
-        ],
-      ],
-    );
-  }
-}
-
-class _RequestCard extends StatelessWidget {
-  const _RequestCard({
-    required this.responsive,
-    required this.request,
-    required this.onAccept,
-    required this.onReject,
-  });
-
-  final AppResponsive responsive;
-  final DriverRequest request;
-  final VoidCallback onAccept;
-  final VoidCallback onReject;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(
-        responsive.adaptive(phone: 16, smallPhone: 14, tablet: 16, desktop: 16),
-      ),
-      decoration: ShapeDecoration(
-        color: AppColors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(responsive.radius(22)),
-          side: const BorderSide(width: 2, color: AppColors.primaryMedium),
-        ),
-        shadows: const [
-          BoxShadow(color: AppColors.shadowSoft, blurRadius: 2, offset: Offset(0, 1)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(9999),
-                child: _LocalAvatar(size: responsive.w(48), label: request.name),
-              ),
-              SizedBox(width: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(request.name, style: AppTextStyles.homeCardTitle(responsive)),
-                    SizedBox(height: responsive.h(2)),
-                    Text(request.rating, style: AppTextStyles.homeCardBody(responsive)),
-                  ],
-                ),
-              ),
-              Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: responsive.w(8),
-                  vertical: responsive.h(4),
-                ),
-                decoration: ShapeDecoration(
-                  color: request.statusBackground,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(responsive.radius(8)),
-                  ),
-                ),
-                child: Text(
-                  request.status,
-                  style: TextStyle(
-                    color: request.statusColor,
-                    fontSize: responsive.text(12),
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w700,
-                    height: 1.33,
-                    letterSpacing: -0.50,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(
-              responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12),
-            ),
-            decoration: ShapeDecoration(
-              color: AppColors.surfaceSoft,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(responsive.radius(12)),
-                side: const BorderSide(color: Colors.transparent),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        request.route,
-                        style: AppTextStyles.homeCardBody(responsive),
-                      ),
-                    ),
-                    Text(
-                      request.timeAgo,
-                      style: AppTextStyles.homeCardBody(responsive).copyWith(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: responsive.h(6)),
-                Text(request.seats, style: AppTextStyles.homeCardTitle(responsive)),
-              ],
-            ),
-          ),
-          SizedBox(height: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
-          Row(
-            children: [
-              Expanded(
-                child: _InlineActionButton(
-                  responsive: responsive,
-                  label: AppStrings.accept,
-                  backgroundColor: AppColors.primary,
-                  textColor: AppColors.white,
-                  onTap: onAccept,
-                ),
-              ),
-              SizedBox(width: responsive.adaptive(phone: 8, smallPhone: 8, tablet: 8, desktop: 8)),
-              Expanded(
-                child: _InlineActionButton(
-                  responsive: responsive,
-                  label: AppStrings.reject,
-                  backgroundColor: AppColors.surfaceSoft,
-                  textColor: AppColors.textPrimary,
-                  onTap: onReject,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Action Grid ───────────────────────────────────────────────────────────────
-
-class _ActionGrid extends StatelessWidget {
-  const _ActionGrid({
-    required this.responsive,
-    required this.actions,
-    required this.onAction,
-  });
-
-  final AppResponsive responsive;
-  final List<DriverAction> actions;
-  final ValueChanged<String> onAction;
-
-  @override
-  Widget build(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: 2,
-      crossAxisSpacing: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12),
-      mainAxisSpacing: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12),
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 1.6,
-      children: [
-        for (final action in actions)
-          _ActionCard(
-            responsive: responsive,
-            action: action,
-            onTap: () => onAction(action.label),
-          ),
-      ],
-    );
-  }
-}
-
-class _ActionCard extends StatelessWidget {
-  const _ActionCard({
-    required this.responsive,
-    required this.action,
-    required this.onTap,
-  });
-
-  final AppResponsive responsive;
-  final DriverAction action;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(responsive.radius(16)),
-        child: Container(
-          height: responsive.adaptive(phone: 104, smallPhone: 100, tablet: 108, desktop: 112),
-          padding: EdgeInsets.all(
-            responsive.adaptive(phone: 16, smallPhone: 14, tablet: 16, desktop: 16),
-          ),
-          decoration: ShapeDecoration(
-            color: AppColors.white,
-            shape: RoundedRectangleBorder(
-              side: const BorderSide(color: Colors.transparent),
-              borderRadius: BorderRadius.circular(responsive.radius(16)),
-            ),
-            shadows: const [
-              BoxShadow(color: AppColors.shadowSoft, blurRadius: 2, offset: Offset(0, 1)),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: responsive.w(48),
-                height: responsive.w(48),
-                decoration: ShapeDecoration(
-                  color: action.backgroundColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(responsive.radius(12)),
-                  ),
-                ),
-                child: Icon(
-                  action.icon,
-                  color: action.iconColor,
-                  size: responsive.text(22),
-                ),
-              ),
-              SizedBox(width: responsive.adaptive(phone: 10, smallPhone: 8, tablet: 10, desktop: 10)),
-              Expanded(
-                child: Text(
-                  action.label,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: responsive.text(12),
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w600,
-                    height: 1.33,
-                    letterSpacing: -0.50,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Wallet Section ────────────────────────────────────────────────────────────
-
-class _WalletSection extends StatelessWidget {
-  const _WalletSection({
-    required this.responsive,
-    required this.wallet,
-    required this.selectedMethod,
-    required this.onSelectMethod,
-  });
-
-  final AppResponsive responsive;
-  final DriverWallet wallet;
-  final int selectedMethod;
-  final ValueChanged<int> onSelectMethod;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(
-        responsive.adaptive(phone: 20, smallPhone: 18, tablet: 20, desktop: 20),
-      ),
-      decoration: ShapeDecoration(
-        color: AppColors.primary,
-        shape: RoundedRectangleBorder(
-          side: const BorderSide(color: Colors.transparent),
-          borderRadius: BorderRadius.circular(responsive.radius(22)),
-        ),
-        shadows: const [
-          BoxShadow(color: AppColors.shadow, blurRadius: 15, offset: Offset(0, 10)),
-          BoxShadow(color: AppColors.shadow, blurRadius: 6, offset: Offset(0, 4)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      AppStrings.walletAvailable,
-                      style: AppTextStyles.caption(responsive)
-                          .copyWith(color: AppColors.white.withValues(alpha: 0.70)),
-                    ),
-                    SizedBox(height: responsive.h(4)),
-                    Text(
-                      wallet.balance,
-                      style: TextStyle(
-                        color: AppColors.white,
-                        fontSize: responsive.text(30),
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w900,
-                        height: 1.2,
-                        letterSpacing: -0.50,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                width: responsive.w(48),
-                height: responsive.w(48),
-                decoration: ShapeDecoration(
-                  color: AppColors.white.withValues(alpha: 0.10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(responsive.radius(16)),
-                  ),
-                ),
-                child: Icon(
-                  Icons.account_balance_wallet_rounded,
-                  color: AppColors.white,
-                  size: responsive.text(24),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 16, desktop: 16)),
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(
-              responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12),
-            ),
-            decoration: ShapeDecoration(
-              color: AppColors.white.withValues(alpha: 0.10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(responsive.radius(16)),
-                side: const BorderSide(color: Colors.transparent),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  AppStrings.blockedEarnings,
-                  style: AppTextStyles.caption(responsive)
-                      .copyWith(color: AppColors.white.withValues(alpha: 0.70)),
-                ),
-                SizedBox(height: responsive.h(4)),
-                Text(
-                  wallet.blockedAmount,
-                  style: TextStyle(
-                    color: AppColors.white,
-                    fontSize: responsive.text(18),
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w700,
-                    height: 1.56,
-                    letterSpacing: -0.50,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 16, desktop: 16)),
-          Row(
-            children: [
-              for (var index = 0; index < wallet.methods.length; index++) ...[
-                Expanded(
-                  child: AppChipButton(
-                    responsive: responsive,
-                    label: wallet.methods[index],
-                    onTap: () => onSelectMethod(index),
-                    height: responsive.adaptive(phone: 44, smallPhone: 40, tablet: 44, desktop: 44),
-                    backgroundColor: selectedMethod == index
-                        ? AppColors.accent
-                        : AppColors.white.withValues(alpha: 0.20),
-                    textColor: selectedMethod == index
-                        ? AppColors.textPrimary
-                        : AppColors.white,
-                    borderColor: Colors.transparent,
-                  ),
-                ),
-                if (index != wallet.methods.length - 1)
-                  SizedBox(width: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
-              ],
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Level Section ─────────────────────────────────────────────────────────────
-
-class _LevelSection extends StatelessWidget {
-  const _LevelSection({required this.responsive, required this.level});
-
-  final AppResponsive responsive;
-  final DriverLevel level;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(
-        responsive.adaptive(phone: 20, smallPhone: 18, tablet: 20, desktop: 20),
-      ),
-      decoration: ShapeDecoration(
-        color: AppColors.white,
-        shape: RoundedRectangleBorder(
-          side: const BorderSide(color: Colors.transparent),
-          borderRadius: BorderRadius.circular(responsive.radius(22)),
-        ),
-        shadows: const [
-          BoxShadow(color: AppColors.shadowSoft, blurRadius: 2, offset: Offset(0, 1)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Niveau actuel', style: AppTextStyles.caption(responsive)),
-                    SizedBox(height: responsive.h(4)),
-                    Text(
-                      level.currentLevel,
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontSize: responsive.text(24),
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w900,
-                        height: 1.33,
-                        letterSpacing: -0.50,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                width: responsive.w(59),
-                height: responsive.w(64),
-                decoration: ShapeDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [AppColors.accent, AppColors.primary],
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(responsive.radius(16)),
-                  ),
-                ),
-                child: Icon(
-                  Icons.workspace_premium_rounded,
-                  color: AppColors.white,
-                  size: responsive.text(28),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 16, desktop: 16)),
-          Row(
-            children: [
-              Expanded(
-                child: Text(level.progressLabel, style: AppTextStyles.homeCardBody(responsive)),
-              ),
-              Text(level.progressValue, style: AppTextStyles.homeCardTitle(responsive)),
-            ],
-          ),
-          SizedBox(height: responsive.adaptive(phone: 8, smallPhone: 6, tablet: 8, desktop: 8)),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(9999),
-            child: LinearProgressIndicator(
-              minHeight: responsive.h(12),
-              value: level.progressFraction,
-              backgroundColor: AppColors.surfaceSoft,
-              color: AppColors.primary,
-            ),
-          ),
-          SizedBox(height: responsive.adaptive(phone: 16, smallPhone: 14, tablet: 16, desktop: 16)),
-          Wrap(
-            spacing: responsive.adaptive(phone: 8, smallPhone: 8, tablet: 8, desktop: 8),
-            runSpacing: responsive.adaptive(phone: 8, smallPhone: 8, tablet: 8, desktop: 8),
-            children: [
-              for (final badge in level.badges)
-                _BadgeCard(responsive: responsive, badge: badge),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BadgeCard extends StatelessWidget {
-  const _BadgeCard({required this.responsive, required this.badge});
-
-  final AppResponsive responsive;
-  final DriverBadge badge;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: responsive.adaptive(phone: 93, smallPhone: 88, tablet: 100, desktop: 104),
-      child: Container(
-        padding: EdgeInsets.all(
-          responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12),
-        ),
-        decoration: ShapeDecoration(
-          color: AppColors.surfaceSoft,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(responsive.radius(12)),
-            side: const BorderSide(color: Colors.transparent),
-          ),
-        ),
-        child: Column(
-          children: [
-            Container(
-              width: responsive.w(40),
-              height: responsive.w(40),
-              decoration: ShapeDecoration(
-                color: badge.color,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(responsive.radius(12)),
-                ),
-              ),
-              child: Icon(badge.icon, color: badge.iconColor, size: responsive.text(20)),
-            ),
-            SizedBox(height: responsive.h(8)),
-            Text(
-              badge.label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: responsive.text(12),
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w600,
-                height: 1.33,
-                letterSpacing: -0.50,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Notification List ─────────────────────────────────────────────────────────
-
-class _NotificationList extends StatelessWidget {
-  const _NotificationList({required this.responsive, required this.items});
-
-  final AppResponsive responsive;
-  final List<DriverNotificationModel> items;
-
-  @override
-  Widget build(BuildContext context) {
-    if (items.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: responsive.h(24)),
-          child: Text(
-            'Aucune notification',
-            style: AppTextStyles.caption(responsive),
-          ),
-        ),
-      );
-    }
-    return Column(
-      children: [
-        for (var index = 0; index < items.length; index++) ...[
-          _NotificationCard(responsive: responsive, item: items[index]),
-          if (index != items.length - 1)
-            SizedBox(height: responsive.adaptive(phone: 8, smallPhone: 8, tablet: 8, desktop: 8)),
-        ],
-      ],
-    );
-  }
-}
-
-class _NotificationCard extends StatelessWidget {
-  const _NotificationCard({required this.responsive, required this.item});
-
-  final AppResponsive responsive;
-  final DriverNotificationModel item;
-
-  @override
-  Widget build(BuildContext context) {
-    final bg = item.isRead
-        ? AppColors.white
-        : item.iconBg.withValues(alpha: 0.07);
-    final border = item.isRead ? AppColors.border : item.iconBg;
-
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(
-        responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12),
-      ),
-      decoration: ShapeDecoration(
-        color: bg,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(responsive.radius(12)),
-          side: BorderSide(width: 1, color: border),
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: responsive.w(32),
-            height: responsive.w(32),
-            decoration: ShapeDecoration(
-              color: item.iconBg,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(9999),
-              ),
-            ),
-            child: Icon(
-              item.iconData,
-              color: AppColors.white,
-              size: responsive.text(18),
-            ),
-          ),
-          SizedBox(width: responsive.adaptive(phone: 12, smallPhone: 10, tablet: 12, desktop: 12)),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(item.title, style: AppTextStyles.homeCardTitle(responsive)),
-                SizedBox(height: responsive.h(4)),
-                Text(item.body, style: AppTextStyles.homeCardBody(responsive)),
-                SizedBox(height: responsive.h(4)),
-                Text(
-                  item.time,
-                  style: AppTextStyles.homeCardBody(responsive)
-                      .copyWith(color: AppColors.textGhost),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

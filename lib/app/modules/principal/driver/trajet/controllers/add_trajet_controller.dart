@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
@@ -14,6 +15,32 @@ import 'package:covoiturage_benin_app/app/data/benin_location_helpers.dart';
 import 'package:covoiturage_benin_app/app/data/benin_locations_data.dart';
 import 'package:covoiturage_benin_app/app/data/models/driver/vehicle_model.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
+
+class RecentRoute {
+  const RecentRoute({
+    required this.origin,
+    required this.originArrondissement,
+    required this.destination,
+    required this.destinationArrondissement,
+    required this.pricePerSeat,
+  });
+  final String origin;
+  final String originArrondissement;
+  final String destination;
+  final String destinationArrondissement;
+  final int pricePerSeat;
+
+  String get label => '$origin → $destination';
+  String get priceLabel {
+    final p = pricePerSeat.toString();
+    final buf = StringBuffer();
+    for (var i = 0; i < p.length; i++) {
+      if (i > 0 && (p.length - i) % 3 == 0) buf.write(' ');
+      buf.write(p[i]);
+    }
+    return '${buf.toString()} FCFA';
+  }
+}
 
 class AddTrajetController extends GetxController {
   TripsService get _tripsService => Get.find<TripsService>();
@@ -132,6 +159,20 @@ class AddTrajetController extends GetxController {
   double? _depPreciseLng;
   double? _destPreciseLat;
   double? _destPreciseLng;
+
+  // ── Price suggestion ─────────────────────────────────────────────────────
+  final RxnInt suggestedPrice = RxnInt();
+  final RxnInt minPrice = RxnInt();
+  final RxnInt maxPrice = RxnInt();
+
+  // ── Trajets récents ───────────────────────────────────────────────────────
+  final RxList<RecentRoute> recentRoutes = <RecentRoute>[].obs;
+
+  // ── Mode express ──────────────────────────────────────────────────────────
+  final RxBool isExpressMode = false.obs;
+
+  // ── Stops intermédiaires ─────────────────────────────────────────────────
+  final RxList<IntermediateStop> intermediateStops = <IntermediateStop>[].obs;
 
   // ── GPS ───────────────────────────────────────────────────────────────────
   double? _deviceLat;
@@ -279,6 +320,7 @@ class AddTrajetController extends GetxController {
           durationController.text = estimatedDurationMinutes.toString();
           _updatingDurationProgrammatically = false;
         }
+        _updatePriceSuggestion(km);
         return;
       }
       logger.w('OSRM unavailable for $dep→$dest, falling back to backend');
@@ -316,6 +358,15 @@ class AddTrajetController extends GetxController {
         _updatingDurationProgrammatically = true;
         durationController.text = estimatedDurationMinutes.toString();
         _updatingDurationProgrammatically = false;
+      }
+      // Prix suggéré : depuis l'API en priorité, sinon calcul local
+      final apiSuggested = (body['suggested_price'] as num?)?.toInt();
+      if (apiSuggested != null && apiSuggested > 0) {
+        suggestedPrice.value = apiSuggested;
+        minPrice.value = _roundTo500((apiSuggested * 0.70).round()).clamp(500, 50000);
+        maxPrice.value = _roundTo500((apiSuggested * 1.50).round()).clamp(500, 50000);
+      } else if (km != null && km > 0) {
+        _updatePriceSuggestion(km);
       }
     }
   }
@@ -357,6 +408,9 @@ class AddTrajetController extends GetxController {
     estimatedDistanceKm.value = null;
     estimatedDurationLabel.value = null;
     estimatedDurationMinutes = null;
+    suggestedPrice.value = null;
+    minPrice.value = null;
+    maxPrice.value = null;
     _depPreciseLat = null;
     _depPreciseLng = null;
     _destPreciseLat = null;
@@ -395,6 +449,44 @@ class AddTrajetController extends GetxController {
       _loadFormAndEdit();
     } else {
       _loadTripForm();
+      _loadRecentRoutes();
+    }
+  }
+
+  Future<void> _loadRecentRoutes() async {
+    final result = await _tripsService.fetchTrips(status: 'completed', page: 1);
+    if (!result.isSuccess) return;
+    final trips = result.data?.trips ?? [];
+    final seen = <String>{};
+    final routes = <RecentRoute>[];
+    for (final t in trips) {
+      final key = '${t.origin}→${t.destination}';
+      if (seen.contains(key)) continue;
+      seen.add(key);
+      routes.add(RecentRoute(
+        origin: t.origin,
+        originArrondissement: t.departureArrondissement ?? '',
+        destination: t.destination,
+        destinationArrondissement: t.arrivalArrondissement ?? '',
+        pricePerSeat: t.pricePerSeat,
+      ));
+      if (routes.length >= 3) break;
+    }
+    recentRoutes.assignAll(routes);
+  }
+
+  void applyRecentRoute(RecentRoute route) {
+    onDepartureCityChanged(route.origin);
+    if (route.originArrondissement.isNotEmpty) {
+      onDepartureArrondissementChanged(route.originArrondissement);
+    }
+    onDestinationCityChanged(route.destination);
+    if (route.destinationArrondissement.isNotEmpty) {
+      onDestinationArrondissementChanged(route.destinationArrondissement);
+    }
+    if (route.pricePerSeat > 0) {
+      pricePerSeat.value = route.pricePerSeat.toDouble();
+      priceController.text = route.pricePerSeat.toString();
     }
   }
 
@@ -706,6 +798,17 @@ class AddTrajetController extends GetxController {
       selectedOptions.clear();
       selectedOptions.addAll(rawPrefs.whereType<String>());
     }
+
+    final rawStops = j['stops'] as List<dynamic>?;
+    if (rawStops != null) {
+      intermediateStops.assignAll(rawStops.map((s) {
+        final sm = s as Map<String, dynamic>;
+        return IntermediateStop(
+          city: sm['city'] as String? ?? '',
+          price: (sm['price_per_seat'] as num?)?.toInt(),
+        );
+      }).toList());
+    }
   }
 
   // Display format DD/MM/YYYY ↔ API format YYYY-MM-DD
@@ -858,6 +961,13 @@ class AddTrajetController extends GetxController {
       'preferences': _buildPreferencesList(),
       if (_durationModifiedByUser && estimatedDurationMinutes != null)
         'estimated_duration_minutes': estimatedDurationMinutes,
+      if (intermediateStops.isNotEmpty)
+        'stops': intermediateStops
+            .map((s) => {
+                  'city': s.city,
+                  if (s.price != null) 'price_per_seat': s.price,
+                })
+            .toList(),
     };
 
     final ApiResult<void> result;
@@ -871,19 +981,166 @@ class AddTrajetController extends GetxController {
 
     if (result.isSuccess) {
       AppSync.i.refreshDriver();
-      UIHelper().showSnackBar(
-        AppStrings.appName,
-        isEditMode ? 'Trajet mis à jour avec succès !' : 'Trajet publié avec succès !',
-        0,
-      );
       if (isEditMode) {
+        UIHelper().showSnackBar(AppStrings.appName, 'Trajet mis à jour avec succès !', 0);
         Get.back();
       } else {
-        BottonNavController.goToTab(1);
+        _showPublishSuccessSheet(dep, dest);
       }
     } else {
       UIHelper().showSnackBar(AppStrings.appName, result.displayMessage, 2);
     }
+  }
+
+  // ── Price suggestion ─────────────────────────────────────────────────────
+
+  void _updatePriceSuggestion(double km) {
+    const ratePerKm = 180; // FCFA/km — tarif moyen Bénin
+    final raw = (km * ratePerKm).round();
+    final suggested = _roundTo500(raw).clamp(500, 50000);
+    suggestedPrice.value = suggested;
+    minPrice.value = _roundTo500((suggested * 0.70).round()).clamp(500, 50000);
+    maxPrice.value = _roundTo500((suggested * 1.50).round()).clamp(500, 50000);
+  }
+
+  int _roundTo500(int val) => ((val + 249) ~/ 500) * 500;
+
+  // ── Mode express ─────────────────────────────────────────────────────────
+
+  void toggleExpressMode() {
+    isExpressMode.value = !isExpressMode.value;
+    if (!isExpressMode.value) return;
+    final now = DateTime.now().add(const Duration(hours: 1));
+    dateController.text =
+        '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
+    timeController.text =
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    selectedBookingMode.value = 'instant';
+  }
+
+  // ── Stops intermédiaires ─────────────────────────────────────────────────
+
+  void addStop() => intermediateStops.add(IntermediateStop(city: ''));
+
+  void removeStop(int index) {
+    if (index >= 0 && index < intermediateStops.length) {
+      intermediateStops.removeAt(index);
+    }
+  }
+
+  void updateStopCity(int index, String city) {
+    if (index >= 0 && index < intermediateStops.length) {
+      intermediateStops[index] = intermediateStops[index].copyWith(city: city);
+    }
+  }
+
+  void updateStopPrice(int index, int? price) {
+    if (index >= 0 && index < intermediateStops.length) {
+      intermediateStops[index] = intermediateStops[index].copyWith(price: price);
+    }
+  }
+
+  // ── WhatsApp share ────────────────────────────────────────────────────────
+
+  Future<void> shareOnWhatsApp(String dep, String dest, String date, int price) async {
+    final msg = Uri.encodeComponent(
+      'Je propose un trajet $dep → $dest le $date à ${price.toString()} FCFA/place sur MINIZON. Réservez votre place !',
+    );
+    final uri = Uri.parse('https://wa.me/?text=$msg');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      UIHelper().showSnackBar('MINIZON', 'WhatsApp non disponible sur cet appareil.', 2);
+    }
+  }
+
+  void _showPublishSuccessSheet(String dep, String dest) {
+    final date = dateController.text;
+    final price = pricePerSeat.value.toInt();
+    Get.bottomSheet(
+      Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE5E7EB),
+                borderRadius: BorderRadius.circular(9999),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Container(
+              width: 72, height: 72,
+              decoration: const BoxDecoration(
+                color: Color(0xFFDCFCE7),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.check_circle_rounded,
+                  color: Color(0xFF16A34A), size: 40),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Trajet publié !',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '$dep → $dest · $date',
+              style: const TextStyle(color: Color(0xFF6B7280), fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => shareOnWhatsApp(dep, dest, date, price),
+                icon: const Icon(Icons.share_rounded, size: 18),
+                label: const Text('Partager sur WhatsApp'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF25D366),
+                  side: const BorderSide(color: Color(0xFF25D366)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Get.back();
+                  BottonNavController.goToTab(1);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2563EB),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                ),
+                child: const Text(
+                  'Voir mes trajets',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
@@ -958,4 +1215,12 @@ class CancellationPolicyOption {
   final String policy;
   final String title;
   final String description;
+}
+
+class IntermediateStop {
+  const IntermediateStop({required this.city, this.price});
+  final String city;
+  final int? price;
+  IntermediateStop copyWith({String? city, int? price}) =>
+      IntermediateStop(city: city ?? this.city, price: price ?? this.price);
 }

@@ -147,7 +147,7 @@ class TrajetController extends GetxController {
       if (trip.uuid.isEmpty || trip.status != 'pending') continue;
       final departure = DateTime.tryParse(trip.departureTime)?.toLocal();
       if (departure == null ||
-          DateTime.now().isBefore(departure.add(const Duration(hours: 3)))) {
+          DateTime.now().isBefore(departure.add(const Duration(hours: 6)))) {
         continue;
       }
 
@@ -763,6 +763,6 @@ class TrajetCardData {
     final dt = DateTime.tryParse(departureAt);
     if (dt == null) return false;
     final depUtc = dt.isUtc ? dt : dt.toUtc();
-    return DateTime.now().toUtc().isAfter(depUtc.subtract(const Duration(minutes: 5)));
+    return DateTime.now().toUtc().isAfter(depUtc.subtract(const Duration(minutes: 30)));
   }
 }

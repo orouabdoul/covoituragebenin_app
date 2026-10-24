@@ -72,6 +72,169 @@ class EndTripController extends GetxController {
     }
   }
 
+  void showRateAndConfirmEnd() {
+    final passengers = _data.value?.confirmations ?? [];
+    if (passengers.isEmpty) {
+      onConfirmEnd();
+      return;
+    }
+
+    final ratings = <String, int>{for (final p in passengers) p.bookingUuid: 5};
+
+    Get.bottomSheet(
+      StatefulBuilder(
+        builder: (context, setState) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40, height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.border,
+                      borderRadius: BorderRadius.circular(9999),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text('Évaluer les passagers',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                const Text('Votre avis aide la communauté MINIZON.',
+                    style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+                const SizedBox(height: 20),
+                ...passengers.map((p) => Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40, height: 40,
+                        decoration: const BoxDecoration(
+                          color: AppColors.surfaceAccent,
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(p.initial,
+                            style: const TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            )),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(p.name,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textPrimary,
+                                )),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: List.generate(5, (i) {
+                                final star = i + 1;
+                                return GestureDetector(
+                                  onTap: () => setState(() => ratings[p.bookingUuid] = star),
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(right: 2),
+                                    child: Icon(
+                                      star <= (ratings[p.bookingUuid] ?? 5)
+                                          ? Icons.star_rounded
+                                          : Icons.star_outline_rounded,
+                                      size: 24,
+                                      color: AppColors.accent,
+                                    ),
+                                  ),
+                                );
+                              }),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          Get.back();
+                          onConfirmEnd();
+                        },
+                        child: Container(
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Center(
+                            child: Text('Passer',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textMuted,
+                                )),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: GestureDetector(
+                        onTap: () async {
+                          Get.back();
+                          for (final p in passengers) {
+                            final rating = ratings[p.bookingUuid] ?? 5;
+                            await _service.ratePassenger(
+                              bookingUuid: p.bookingUuid,
+                              rating: rating,
+                            );
+                          }
+                          onConfirmEnd();
+                        },
+                        child: Container(
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Center(
+                            child: Text('Envoyer & terminer',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                )),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
+  }
+
   void onReportIssue() {
     String? selectedCategory;
     final descCtrl = TextEditingController();

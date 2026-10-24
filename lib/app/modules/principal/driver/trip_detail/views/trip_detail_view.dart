@@ -127,7 +127,24 @@ class _Header extends StatelessWidget {
               ),
             ),
           ),
-          if (controller.canEdit)
+          GestureDetector(
+            onTap: controller.shareTrip,
+            child: Container(
+              width: r.adaptive(phone: 36, smallPhone: 32, tablet: 40, desktop: 44),
+              height: r.adaptive(phone: 36, smallPhone: 32, tablet: 40, desktop: 44),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(r.adaptive(phone: 10, smallPhone: 9, tablet: 12, desktop: 14)),
+              ),
+              child: Icon(
+                Icons.share_rounded,
+                size: r.adaptive(phone: 18, smallPhone: 16, tablet: 20, desktop: 22),
+                color: AppColors.textMuted,
+              ),
+            ),
+          ),
+          if (controller.canEdit) ...[
+            SizedBox(width: r.adaptive(phone: 8, smallPhone: 6, tablet: 10, desktop: 12)),
             GestureDetector(
               onTap: controller.onEditTrip,
               child: Container(
@@ -159,6 +176,7 @@ class _Header extends StatelessWidget {
                 ),
               ),
             ),
+          ],
         ],
       ),
     );
@@ -172,43 +190,99 @@ class _StatusCard extends StatelessWidget {
   final AppResponsive r;
   final TripModel trip;
 
+  String? _countdownLabel() {
+    if (trip.status == TripStatus.completed || trip.status == TripStatus.canceled) {
+      return null;
+    }
+    final iso = trip.departureAt;
+    if (iso == null || iso.isEmpty) return null;
+    try {
+      final dt = DateTime.parse(iso).toLocal();
+      final diff = dt.difference(DateTime.now());
+      if (diff.isNegative) return null;
+      if (diff.inHours > 48) return null;
+      if (diff.inHours >= 1) return 'Départ dans ${diff.inHours}h ${diff.inMinutes.remainder(60)}min';
+      if (diff.inMinutes > 0) return 'Départ dans ${diff.inMinutes} min';
+      return 'Départ imminent';
+    } catch (_) {
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(r.adaptive(phone: 16, smallPhone: 14, tablet: 18, desktop: 20)),
-      decoration: BoxDecoration(
-        color: trip.statusBackground,
-        borderRadius: BorderRadius.circular(r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
-        border: Border.all(color: trip.statusColor.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        children: [
+    final countdown = _countdownLabel();
+    return Column(
+      children: [
+        Container(
+          padding: EdgeInsets.all(r.adaptive(phone: 16, smallPhone: 14, tablet: 18, desktop: 20)),
+          decoration: BoxDecoration(
+            color: trip.statusBackground,
+            borderRadius: BorderRadius.circular(r.adaptive(phone: 14, smallPhone: 12, tablet: 16, desktop: 18)),
+            border: Border.all(color: trip.statusColor.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14),
+                  vertical: r.adaptive(phone: 4, smallPhone: 3, tablet: 5, desktop: 6),
+                ),
+                decoration: BoxDecoration(
+                  color: trip.statusColor,
+                  borderRadius: BorderRadius.circular(r.adaptive(phone: 20, smallPhone: 18, tablet: 24, desktop: 28)),
+                ),
+                child: Text(
+                  trip.statusLabel,
+                  style: AppTextStyles.labelSmall(r).copyWith(
+                    color: trip.statusTextColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              SizedBox(width: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
+              Text(
+                trip.publishedAgo,
+                style: AppTextStyles.bodySmall(r).copyWith(
+                  color: trip.statusColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (countdown != null) ...[
+          SizedBox(height: r.adaptive(phone: 8, smallPhone: 6, tablet: 10, desktop: 12)),
           Container(
+            width: double.infinity,
             padding: EdgeInsets.symmetric(
-              horizontal: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14),
-              vertical: r.adaptive(phone: 4, smallPhone: 3, tablet: 5, desktop: 6),
+              horizontal: r.adaptive(phone: 16, smallPhone: 14, tablet: 18, desktop: 20),
+              vertical: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16),
             ),
             decoration: BoxDecoration(
-              color: trip.statusColor,
-              borderRadius: BorderRadius.circular(r.adaptive(phone: 20, smallPhone: 18, tablet: 24, desktop: 28)),
+              color: AppColors.primaryLight,
+              borderRadius: BorderRadius.circular(r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
+              border: Border.all(color: AppColors.primary.withValues(alpha: 0.20)),
             ),
-            child: Text(
-              trip.statusLabel,
-              style: AppTextStyles.labelSmall(r).copyWith(
-                color: trip.statusTextColor,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          SizedBox(width: r.adaptive(phone: 10, smallPhone: 8, tablet: 12, desktop: 14)),
-          Text(
-            trip.publishedAgo,
-            style: AppTextStyles.bodySmall(r).copyWith(
-              color: trip.statusColor,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.access_time_rounded,
+                  size: r.adaptive(phone: 16, smallPhone: 14, tablet: 18, desktop: 20),
+                  color: AppColors.primary,
+                ),
+                SizedBox(width: r.adaptive(phone: 8, smallPhone: 6, tablet: 10, desktop: 12)),
+                Text(
+                  countdown,
+                  style: AppTextStyles.bodySmall(r).copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
-      ),
+      ],
     );
   }
 }
@@ -583,6 +657,10 @@ class _FinancesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final netFormatted = '${trip.netRevenue.toStringAsFixed(0)} FCFA';
+    final commissionFormatted = '${trip.commission.toStringAsFixed(0)} FCFA';
+    final totalFormatted = '${trip.totalRevenue.toStringAsFixed(0)} FCFA';
+
     return Container(
       padding: EdgeInsets.all(r.adaptive(phone: 16, smallPhone: 14, tablet: 18, desktop: 20)),
       decoration: BoxDecoration(
@@ -594,73 +672,65 @@ class _FinancesCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Finances',
-            style: AppTextStyles.homeCardTitle(r).copyWith(
-              color: AppColors.textPrimary,
+            'Vos revenus',
+            style: AppTextStyles.labelSmall(r).copyWith(color: AppColors.textHint),
+          ),
+          SizedBox(height: r.adaptive(phone: 6, smallPhone: 4, tablet: 7, desktop: 8)),
+          Text(
+            netFormatted,
+            style: TextStyle(
+              color: AppColors.primary,
+              fontSize: r.adaptive(phone: 28, smallPhone: 26, tablet: 32, desktop: 34),
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.5,
             ),
           ),
           SizedBox(height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
-          _FinRow(r: r, label: 'Montant total', value: '${trip.totalRevenue.toStringAsFixed(0)} FCFA', isTotal: false),
-          SizedBox(height: r.adaptive(phone: 6, smallPhone: 5, tablet: 7, desktop: 8)),
-          _FinRow(
-            r: r,
-            label: 'Commission MINIZON (${trip.commissionRate}%)',
-            value: '-${trip.commission.toStringAsFixed(0)} FCFA',
-            isTotal: false,
-            valueColor: AppColors.danger,
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Total passagers',
+                      style: AppTextStyles.labelSmall(r).copyWith(color: AppColors.textHint),
+                    ),
+                    SizedBox(height: r.adaptive(phone: 2, smallPhone: 1, tablet: 3, desktop: 4)),
+                    Text(
+                      totalFormatted,
+                      style: AppTextStyles.bodySmall(r).copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Commission (${trip.commissionRate}%)',
+                      style: AppTextStyles.labelSmall(r).copyWith(color: AppColors.textHint),
+                    ),
+                    SizedBox(height: r.adaptive(phone: 2, smallPhone: 1, tablet: 3, desktop: 4)),
+                    Text(
+                      commissionFormatted,
+                      style: AppTextStyles.bodySmall(r).copyWith(
+                        color: AppColors.textMuted,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          Divider(height: r.adaptive(phone: 20, smallPhone: 16, tablet: 24, desktop: 28), color: AppColors.border),
-          _FinRow(r: r, label: 'Vos revenus nets', value: '${trip.netRevenue.toStringAsFixed(0)} FCFA', isTotal: true),
         ],
       ),
-    );
-  }
-}
-
-class _FinRow extends StatelessWidget {
-  const _FinRow({
-    required this.r,
-    required this.label,
-    required this.value,
-    required this.isTotal,
-    this.valueColor,
-  });
-  final AppResponsive r;
-  final String label;
-  final String value;
-  final bool isTotal;
-  final Color? valueColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            label,
-            style: isTotal
-                ? AppTextStyles.bodyMedium(r).copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                  )
-                : AppTextStyles.bodySmall(r).copyWith(
-                    color: AppColors.textMuted,
-                  ),
-          ),
-        ),
-        Text(
-          value,
-          style: isTotal
-              ? AppTextStyles.bodyMedium(r).copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w800,
-                )
-              : AppTextStyles.bodySmall(r).copyWith(
-                  color: valueColor ?? AppColors.textPrimary,
-                  fontWeight: FontWeight.w600,
-                ),
-        ),
-      ],
     );
   }
 }

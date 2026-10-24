@@ -300,6 +300,26 @@ class TripDetailController extends GetxController {
     );
   }
 
+  Future<void> shareTrip() async {
+    final t = trip;
+    final route = '${t.origin} → ${t.destination}';
+    final price = t.pricePerSeat.toStringAsFixed(0);
+    final seats = t.totalSeats - t.passengers.length;
+    final msg = Uri.encodeComponent(
+      '🚗 Trajet disponible sur MINIZON !\n'
+      '$route\n'
+      '📅 ${t.departureTime}\n'
+      '💰 $price FCFA/siège · $seats place${seats > 1 ? 's' : ''} restante${seats > 1 ? 's' : ''}\n'
+      'Téléchargez MINIZON pour réserver.',
+    );
+    final uri = Uri.parse('https://wa.me/?text=$msg');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      UIHelper().showSnackBar('MINIZON', 'WhatsApp non disponible sur cet appareil.', 1);
+    }
+  }
+
   Future<void> onContactPassenger(TripPassengerModel passenger) async {
     final phone = passenger.phone;
     if (phone == null || phone.isEmpty) {

@@ -13,7 +13,6 @@ import 'package:covoiturage_benin_app/app/core/services/passenger/home/home_serv
 import 'package:covoiturage_benin_app/app/data/models/passenger/home_model.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/passager/search/controllers/search_controller.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
-import 'package:covoiturage_benin_app/app/data/models/passenger/reservations_model.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/passager/reservation/controllers/reservation_controller.dart';
 
 class HomeController extends GetxController {

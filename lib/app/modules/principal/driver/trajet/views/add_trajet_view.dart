@@ -70,8 +70,24 @@ class AddTrajetView extends GetView<AddTrajetController> {
               children: [
                 _TopBar(responsive: responsive, isEditMode: controller.isEditMode),
                 SizedBox(height: responsive.h(16)),
+                Obx(() {
+                  if (controller.recentRoutes.isEmpty) return const SizedBox.shrink();
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _RecentRoutesSection(
+                        responsive: responsive,
+                        routes: controller.recentRoutes.toList(),
+                        onTap: controller.applyRecentRoute,
+                      ),
+                      SizedBox(height: responsive.h(16)),
+                    ],
+                  );
+                }),
                 _HeroSection(responsive: responsive, controller: controller),
-                SizedBox(height: responsive.h(20)),
+                SizedBox(height: responsive.h(16)),
+                _ExpressModeToggle(responsive: responsive, controller: controller),
+                SizedBox(height: responsive.h(16)),
                 _SectionCard(
                   responsive: responsive,
                   title: 'Départ',
@@ -97,6 +113,8 @@ class AddTrajetView extends GetView<AddTrajetController> {
                     hintPoint: 'Ex: Gare routière',
                   ),
                 ),
+                SizedBox(height: responsive.h(20)),
+                _StopsSection(responsive: responsive, controller: controller),
                 SizedBox(height: responsive.h(12)),
                 _EstimateBanner(responsive: responsive, controller: controller),
                 SizedBox(height: responsive.h(20)),
@@ -1248,6 +1266,48 @@ class _PricingCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Obx(() {
+          final suggested = controller.suggestedPrice.value;
+          if (suggested == null) return const SizedBox.shrink();
+          final min = controller.minPrice.value ?? suggested;
+          final max = controller.maxPrice.value ?? suggested;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Prix suggéré (180 FCFA/km)',
+                style: AppTextStyles.caption(responsive)
+                    .copyWith(color: AppColors.textMuted),
+              ),
+              SizedBox(height: responsive.h(8)),
+              Wrap(
+                spacing: responsive.w(8),
+                runSpacing: responsive.h(6),
+                children: [
+                  _PriceChip(
+                    label: '${_formatAmount(min)} min',
+                    color: AppColors.success,
+                    responsive: responsive,
+                    onTap: () => controller.updatePrice(min.toDouble()),
+                  ),
+                  _PriceChip(
+                    label: '${_formatAmount(suggested)} suggéré',
+                    color: AppColors.primary,
+                    responsive: responsive,
+                    onTap: () => controller.updatePrice(suggested.toDouble()),
+                  ),
+                  _PriceChip(
+                    label: '${_formatAmount(max)} max',
+                    color: AppColors.warning,
+                    responsive: responsive,
+                    onTap: () => controller.updatePrice(max.toDouble()),
+                  ),
+                ],
+              ),
+              SizedBox(height: responsive.h(12)),
+            ],
+          );
+        }),
         AppField(
           responsive: responsive,
           label: 'Montant par place',
@@ -1735,6 +1795,336 @@ class _EstimateBanner extends StatelessWidget {
   }
 }
 
+// ── Express mode toggle ────────────────────────────────────────────────────────
+
+class _ExpressModeToggle extends StatelessWidget {
+  const _ExpressModeToggle({required this.responsive, required this.controller});
+  final AppResponsive responsive;
+  final AddTrajetController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final isExpress = controller.isExpressMode.value;
+      return GestureDetector(
+        onTap: controller.toggleExpressMode,
+        child: Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(
+            horizontal: responsive.w(16),
+            vertical: responsive.h(14),
+          ),
+          decoration: ShapeDecoration(
+            color: isExpress
+                ? AppColors.warning.withValues(alpha: 0.08)
+                : AppColors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(responsive.radius(20)),
+              side: BorderSide(
+                color: isExpress
+                    ? AppColors.warning
+                    : const Color(0xFFE5E7EB),
+                width: isExpress ? 2 : 1,
+              ),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: responsive.w(44),
+                height: responsive.w(44),
+                decoration: BoxDecoration(
+                  color: isExpress
+                      ? AppColors.warning.withValues(alpha: 0.15)
+                      : AppColors.surfaceSoft,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.bolt_rounded,
+                  color: isExpress ? AppColors.warning : AppColors.textGhost,
+                  size: responsive.text(22),
+                ),
+              ),
+              SizedBox(width: responsive.w(12)),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Mode express — départ dans ~2h',
+                      style: AppTextStyles.profileSectionLabel(responsive).copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: isExpress
+                            ? AppColors.warning
+                            : AppColors.textPrimary,
+                      ),
+                    ),
+                    SizedBox(height: responsive.h(2)),
+                    Text(
+                      isExpress
+                          ? 'Date et heure pré-remplies · réservation instantanée'
+                          : 'Pré-remplit la date et heure automatiquement',
+                      style: AppTextStyles.caption(responsive),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(width: responsive.w(8)),
+              Switch.adaptive(
+                value: isExpress,
+                // ignore: deprecated_member_use
+                activeColor: AppColors.warning,
+                onChanged: (_) => controller.toggleExpressMode(),
+              ),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+}
+
+// ── Price chip ─────────────────────────────────────────────────────────────────
+
+class _PriceChip extends StatelessWidget {
+  const _PriceChip({
+    required this.label,
+    required this.color,
+    required this.responsive,
+    required this.onTap,
+  });
+  final String label;
+  final Color color;
+  final AppResponsive responsive;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: responsive.w(12),
+          vertical: responsive.h(6),
+        ),
+        decoration: ShapeDecoration(
+          color: color.withValues(alpha: 0.10),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(9999),
+            side: BorderSide(color: color.withValues(alpha: 0.4)),
+          ),
+        ),
+        child: Text(
+          label,
+          style: AppTextStyles.caption(responsive).copyWith(
+            color: color,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Stops section ─────────────────────────────────────────────────────────────
+
+class _StopsSection extends StatelessWidget {
+  const _StopsSection({required this.responsive, required this.controller});
+  final AppResponsive responsive;
+  final AddTrajetController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final stops = controller.intermediateStops;
+      return Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(responsive.w(20)),
+        decoration: ShapeDecoration(
+          color: AppColors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(responsive.radius(24)),
+            side: const BorderSide(color: AppColors.surfaceSoft),
+          ),
+          shadows: const [
+            BoxShadow(
+                color: AppColors.shadowSoft,
+                blurRadius: 2,
+                offset: Offset(0, 1)),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: responsive.w(48),
+                  height: responsive.w(48),
+                  decoration: const ShapeDecoration(
+                    color: AppColors.surfaceAccentStrong,
+                    shape: OvalBorder(),
+                  ),
+                  child: Icon(Icons.add_location_alt_rounded,
+                      color: AppColors.primary, size: responsive.text(20)),
+                ),
+                SizedBox(width: responsive.w(12)),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Étapes intermédiaires',
+                          style: AppTextStyles.h6(responsive)),
+                      Text('Villes d\'arrêt optionnelles',
+                          style: AppTextStyles.caption(responsive)),
+                    ],
+                  ),
+                ),
+                GestureDetector(
+                  onTap: controller.addStop,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: responsive.w(12),
+                      vertical: responsive.h(6),
+                    ),
+                    decoration: ShapeDecoration(
+                      color: AppColors.surfaceAccentStrong,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(9999),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.add_rounded,
+                            color: AppColors.primary,
+                            size: responsive.text(16)),
+                        SizedBox(width: responsive.w(4)),
+                        Text(
+                          'Ajouter',
+                          style: AppTextStyles.caption(responsive)
+                              .copyWith(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w700),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (stops.isEmpty) ...[
+              SizedBox(height: responsive.h(12)),
+              Center(
+                child: Text(
+                  'Aucune étape · trajet direct',
+                  style: AppTextStyles.caption(responsive)
+                      .copyWith(color: AppColors.textGhost),
+                ),
+              ),
+            ] else ...[
+              SizedBox(height: responsive.h(12)),
+              ...stops.asMap().entries.map((e) {
+                final idx = e.key;
+                final stop = e.value;
+                return Padding(
+                  padding: EdgeInsets.only(bottom: responsive.h(8)),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: responsive.w(12),
+                            vertical: responsive.h(10),
+                          ),
+                          decoration: ShapeDecoration(
+                            color: AppColors.surface,
+                            shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(responsive.radius(12)),
+                            ),
+                          ),
+                          child: TextField(
+                            onChanged: (v) =>
+                                controller.updateStopCity(idx, v),
+                            controller: TextEditingController(text: stop.city)
+                              ..selection = TextSelection.fromPosition(
+                                  TextPosition(offset: stop.city.length)),
+                            style: AppTextStyles.profileFieldValue(responsive),
+                            decoration: InputDecoration(
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
+                              hintText: 'Ville étape',
+                              hintStyle: AppTextStyles.muted(responsive),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: responsive.w(8)),
+                      Expanded(
+                        flex: 2,
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: responsive.w(12),
+                            vertical: responsive.h(10),
+                          ),
+                          decoration: ShapeDecoration(
+                            color: AppColors.surface,
+                            shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(responsive.radius(12)),
+                            ),
+                          ),
+                          child: TextField(
+                            keyboardType: TextInputType.number,
+                            onChanged: (v) => controller.updateStopPrice(
+                                idx, int.tryParse(v)),
+                            controller: TextEditingController(
+                                text: stop.price?.toString() ?? ''),
+                            style: AppTextStyles.profileFieldValue(responsive),
+                            decoration: InputDecoration(
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
+                              hintText: 'Prix',
+                              hintStyle: AppTextStyles.muted(responsive),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: responsive.w(8)),
+                      GestureDetector(
+                        onTap: () => controller.removeStop(idx),
+                        child: Container(
+                          width: responsive.w(36),
+                          height: responsive.w(36),
+                          decoration: BoxDecoration(
+                            color: AppColors.dangerLight,
+                            borderRadius: BorderRadius.circular(9999),
+                          ),
+                          child: Icon(Icons.close_rounded,
+                              color: AppColors.danger,
+                              size: responsive.text(16)),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ],
+        ),
+      );
+    });
+  }
+}
+
 // ── Cancellation policy selector ──────────────────────────────────────────────
 
 class _CancellationPolicySelector extends StatelessWidget {
@@ -1813,5 +2203,95 @@ class _CancellationPolicySelector extends StatelessWidget {
         }).toList(growable: false),
       );
     });
+  }
+}
+
+// ── Trajets récents ───────────────────────────────────────────────────────────
+
+class _RecentRoutesSection extends StatelessWidget {
+  const _RecentRoutesSection({
+    required this.responsive,
+    required this.routes,
+    required this.onTap,
+  });
+
+  final AppResponsive responsive;
+  final List<RecentRoute> routes;
+  final ValueChanged<RecentRoute> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Trajets récents',
+          style: AppTextStyles.profileSectionTitle(responsive).copyWith(
+            fontSize: responsive.text(13),
+            color: AppColors.textMuted,
+          ),
+        ),
+        SizedBox(height: responsive.h(8)),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: routes.map((route) {
+              return Padding(
+                padding: EdgeInsets.only(right: responsive.w(10)),
+                child: GestureDetector(
+                  onTap: () => onTap(route),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: responsive.w(14),
+                      vertical: responsive.h(10),
+                    ),
+                    decoration: ShapeDecoration(
+                      color: AppColors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(responsive.radius(14)),
+                        side: const BorderSide(color: AppColors.border),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.history_rounded,
+                          size: responsive.text(14),
+                          color: AppColors.primary,
+                        ),
+                        SizedBox(width: responsive.w(6)),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              route.label,
+                              style: AppTextStyles.caption(responsive).copyWith(
+                                fontSize: responsive.text(13),
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            if (route.pricePerSeat > 0)
+                              Text(
+                                route.priceLabel,
+                                style: AppTextStyles.caption(responsive).copyWith(
+                                  fontSize: responsive.text(11),
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
   }
 }

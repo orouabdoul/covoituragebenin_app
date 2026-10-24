@@ -8,7 +8,6 @@ import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controlle
 import 'package:covoiturage_benin_app/app/modules/principal/passager/reservation/controllers/reservation_controller.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
-import '../../search/controllers/search_controller.dart';
 
 class PaymentWebviewController extends GetxController {
   PassengerReservationService get _service =>
@@ -24,9 +23,6 @@ class PaymentWebviewController extends GetxController {
   String _paymentUrl = '';
   String _paymentUuid = '';
   String _bookingUuid = '';
-  SearchRide? _ride;
-  int _amount = 0;
-  int _seats = 0;
 
   // Verrous : un seul polling possible, une seule navigation possible
   bool _pollingStarted = false;
@@ -85,12 +81,6 @@ class PaymentWebviewController extends GetxController {
       _paymentUrl  = (args['paymentUrl']  as String?) ?? '';
       _paymentUuid = (args['paymentUuid'] as String?) ?? '';
       _bookingUuid = (args['bookingUuid'] as String?) ?? '';
-      final r = args['ride'];
-      if (r is SearchRide) _ride = r;
-      final amount = args['amount'];
-      if (amount is int) _amount = amount;
-      final seats = args['seats'];
-      if (seats is int) _seats = seats;
     }
     _initWebView();
   }

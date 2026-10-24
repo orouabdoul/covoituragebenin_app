@@ -129,12 +129,17 @@ class DriverNotificationsController extends GetxController {
       case 'trip_completed':
       case 'trip_ended':
       case 'trip_reminder':
-        BottonNavController.goToTab(1);
+        final tripUuid = data['trip_uuid'] as String?;
+        if (tripUuid != null && tripUuid.isNotEmpty) {
+          Get.toNamed(AppRoutes.driverTripDetail, arguments: {'uuid': tripUuid});
+        } else {
+          BottonNavController.goToTab(1);
+        }
         return;
 
       // ── Paiements ─────────────────────────────────────────────────────────
       case 'payment_success':
-        BottonNavController.goToTab(2);
+        Get.toNamed(AppRoutes.driverPaymentHistory);
         return;
 
       case 'withdrawal_requested':
@@ -197,7 +202,12 @@ class DriverNotificationsController extends GetxController {
       return;
     }
     if (data.containsKey('trip_uuid')) {
-      BottonNavController.goToTab(1);
+      final uuid = data['trip_uuid'] as String?;
+      if (uuid != null && uuid.isNotEmpty) {
+        Get.toNamed(AppRoutes.driverTripDetail, arguments: {'uuid': uuid});
+      } else {
+        BottonNavController.goToTab(1);
+      }
       return;
     }
 

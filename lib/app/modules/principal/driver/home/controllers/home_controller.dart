@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
@@ -259,6 +259,10 @@ class DriverHomeController extends GetxController {
   final RxInt dashboardVersion = 0.obs;
   final RxString availabilityMode = 'normal'.obs;
 
+  // ── Objectif journalier ──────────────────────────────────────────────────
+  final RxInt todayEarningsRaw = 0.obs;
+  final RxInt dailyGoalFcfa = 15000.obs;
+
   // ── Demandes rapides avec compte à rebours ───────────────────────────────
   final RxList<QuickRequest> quickRequests = <QuickRequest>[].obs;
 
@@ -385,12 +389,83 @@ class DriverHomeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _loadDailyGoal();
     _loadDashboard();
     _loadNotifications();
     ever(AppSync.i.driverDashboard, (_) {
       _loadDashboard();
       _loadNotifications();
     });
+  }
+
+  Future<void> _loadDailyGoal() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getInt('driver_daily_goal_fcfa');
+    if (saved != null && saved > 0) dailyGoalFcfa.value = saved;
+  }
+
+  Future<void> setDailyGoal(int goal) async {
+    if (goal <= 0) return;
+    dailyGoalFcfa.value = goal;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('driver_daily_goal_fcfa', goal);
+  }
+
+  void showEditGoalDialog() {
+    final ctrl = TextEditingController(text: dailyGoalFcfa.value.toString());
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Objectif journalier',
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Définissez vos revenus cibles pour aujourd\'hui.',
+              style: TextStyle(fontSize: 14, color: AppColors.textMuted),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: ctrl,
+              keyboardType: TextInputType.number,
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: 'Ex: 15000',
+                suffixText: 'FCFA',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: Get.back,
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () {
+              final v = int.tryParse(ctrl.text.trim().replaceAll(' ', ''));
+              if (v != null && v > 0) {
+                setDailyGoal(v);
+                Get.back();
+              }
+            },
+            child: const Text('Enregistrer',
+                style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _loadDashboard() async {
@@ -429,6 +504,8 @@ class DriverHomeController extends GetxController {
 
     isOnline.value = data.isOnline;
     availabilityMode.value = data.availabilityMode;
+
+    todayEarningsRaw.value = data.summary.todayEarnings;
 
     summary.value = DriverSummary(
       todayLabel: 'Revenus d\'aujourd\'hui',
@@ -854,62 +931,13 @@ class DriverHomeController extends GetxController {
   }
 
   void onContact() {
-    const phone = '+229 97 XX XX XX';
-    Get.dialog(
-      AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Icon(Icons.call_rounded, color: AppColors.primary, size: 22),
-            SizedBox(width: 10),
-            Text('Appeler le passager', style: TextStyle(fontSize: 16)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              decoration: BoxDecoration(
-                color: AppColors.successSurface,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Text(
-                phone,
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.primary,
-                  letterSpacing: 1,
-                ),
-              ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Numéro masqué pour votre sécurité',
-              style: TextStyle(fontSize: 11, color: AppColors.textGhost),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: Get.back, child: const Text('Fermer')),
-          TextButton(
-            onPressed: () {
-              Clipboard.setData(const ClipboardData(text: phone));
-              Get.back();
-              UIHelper().showSnackBar('MINIZON', 'Numéro copié.', 0);
-            },
-            child: const Text(
-              'Copier',
-              style: TextStyle(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+    final uuid = nextTrip.value?.uuid ?? '';
+    if (uuid.isEmpty) {
+      UIHelper().showSnackBar('MINIZON', 'Aucun trajet actif sélectionné.', 1);
+      return;
+    }
+    // Navigate to trip detail where all passenger phones are accessible.
+    Get.toNamed(AppRoutes.driverTripDetail, arguments: {'uuid': uuid});
   }
 
   Future<void> onRecentAccept(DriverRequest request) async {

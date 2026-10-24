@@ -30,30 +30,38 @@ class TrajetActifController extends GetxController {
   final tripStatus    = 'active'.obs;
 
   // ── GPS conducteur ────────────────────────────────────────────────────────
-  final vehicleLatLng   = Rx<LatLng>(_benin);
-  final vehicleSpeed    = 0.0.obs;    // km/h
-  final hasVehicleGps   = false.obs;
-  final gpsStale        = false.obs;  // pas de mise à jour > 2 min
+  final vehicleLatLng = Rx<LatLng>(_benin);
+  final vehicleSpeed  = 0.0.obs;
+  final hasVehicleGps = false.obs;
+  final gpsStale      = false.obs;
 
   // ── Distances ─────────────────────────────────────────────────────────────
   final distanceRemainKm = 0.0.obs;
   final etaMinutes       = '—'.obs;
 
-  // ── Barre de progression ──────────────────────────────────────────────────
-  final progressPct = 0.0.obs;        // 0.0 → 1.0
+  // ── Progression ───────────────────────────────────────────────────────────
+  final progressPct = 0.0.obs;
 
-  // ── Carte ─────────────────────────────────────────────────────────────────
+  // ── Carte — points passager (montée/descente) ────────────────────────────
   late final Rx<LatLng> departurePt;
   late final Rx<LatLng> arrivalPt;
-  final routePoints     = <LatLng>[].obs;
-  final gpsTrail        = <LatLng>[].obs; // historique positions (tracé bleu)
-  final MapController mapCtrl = MapController();
+
+  // ── Carte — itinéraire complet du trajet ─────────────────────────────────
+  late final Rx<LatLng> tripDeparturePt;
+  late final Rx<LatLng> tripArrivalPt;
+
+  final routePoints   = <LatLng>[].obs; // itinéraire complet (trip dep → arr)
+  final segmentPoints = <LatLng>[].obs; // segment passager (pickup → dropoff), si distinct
+  final gpsTrail      = <LatLng>[].obs;
+
+  final MapController mapCtrl     = MapController();
   final cameraFollows = true.obs;
 
   // ── État ─────────────────────────────────────────────────────────────────
-  final tripEnded = false.obs;
+  final tripEnded         = false.obs;
+  final driverJustStarted = false.obs; // bannière in-app démarrage conducteur
 
-  // ── Labels localisation hiérarchique passager ─────────────────────────────
+  // ── Labels localisation hiérarchique ─────────────────────────────────────
   final pickupCityLabel  = ''.obs;
   final pickupDetail     = ''.obs;
   final pickupNote       = ''.obs;
@@ -67,14 +75,17 @@ class TrajetActifController extends GetxController {
   Timer? _pollTimer;
   Timer? _animTimer;
 
-  // Flags notifications — une seule fois chacun
+  bool _firstPollReceived = false;
+
   final _notifSent = <int>{};
 
   @override
   void onInit() {
     super.onInit();
-    departurePt = Rx<LatLng>(_benin);
-    arrivalPt   = Rx<LatLng>(_benin);
+    departurePt     = Rx<LatLng>(_benin);
+    arrivalPt       = Rx<LatLng>(_benin);
+    tripDeparturePt = Rx<LatLng>(_benin);
+    tripArrivalPt   = Rx<LatLng>(_benin);
     _parseArgs(Get.arguments);
     SchedulerBinding.instance.addPostFrameCallback((_) {
       _loadRoute();
@@ -122,25 +133,47 @@ class TrajetActifController extends GetxController {
     final m = Map<String, dynamic>.from(args);
     _tripUuid    = m['tripUuid']    as String? ?? '';
     _bookingUuid = m['bookingUuid'] as String? ?? '';
-    driverName.value    = m['driverName']    as String? ?? '';
-    driverPhone.value   = m['driverPhone']   as String? ?? '';
-    // Accepte departureCity ou pickupCity (old nav paths)
+    driverName.value  = m['driverName']  as String? ?? '';
+    driverPhone.value = m['driverPhone'] as String? ?? '';
     departureCity.value = _str(m, ['departureCity', 'pickupCity']);
-    arrivalCity.value   = _str(m, ['arrivalCity', 'dropoffCity']);
+    arrivalCity.value   = _str(m, ['arrivalCity',   'dropoffCity']);
 
-    // Priorité : coords pickup/dropoff du passager, sinon départ/arrivée du trajet
-    final pickupLat  = _numArg(m, 'pickupLat');
-    final pickupLng  = _numArg(m, 'pickupLng');
-    final dropoffLat = _numArg(m, 'dropoffLat');
-    final dropoffLng = _numArg(m, 'dropoffLng');
-    final dLat = pickupLat  ?? _numArg(m, 'departureLat');
-    final dLng = pickupLng  ?? _numArg(m, 'departureLng');
-    final aLat = dropoffLat ?? _numArg(m, 'arrivalLat');
-    final aLng = dropoffLng ?? _numArg(m, 'arrivalLng');
+    // Coords niveau trajet complet (départ/arrivée du conducteur)
+    final tDepLat = _numArg(m, 'departureLat');
+    final tDepLng = _numArg(m, 'departureLng');
+    final tArrLat = _numArg(m, 'arrivalLat');
+    final tArrLng = _numArg(m, 'arrivalLng');
+
+    // Coords niveau réservation (montée/descente passager)
+    final pPickLat = _numArg(m, 'pickupLat');
+    final pPickLng = _numArg(m, 'pickupLng');
+    final pDropLat = _numArg(m, 'dropoffLat');
+    final pDropLng = _numArg(m, 'dropoffLng');
+
+    // departurePt = montée passager (précision quartier), sinon départ trajet
+    final dLat = pPickLat ?? tDepLat;
+    final dLng = pPickLng ?? tDepLng;
+    final aLat = pDropLat ?? tArrLat;
+    final aLng = pDropLng ?? tArrLng;
     if (dLat != null && dLng != null) departurePt.value = LatLng(dLat, dLng);
     if (aLat != null && aLng != null) arrivalPt.value   = LatLng(aLat, aLng);
 
-    // Résolution villes si coords absentes
+    // tripDeparturePt = départ réel du trajet
+    if (tDepLat != null && tDepLng != null) {
+      tripDeparturePt.value = LatLng(tDepLat, tDepLng);
+    } else {
+      final c = _cityCoord(departureCity.value);
+      tripDeparturePt.value = c ?? departurePt.value;
+    }
+    // tripArrivalPt = arrivée réelle du trajet
+    if (tArrLat != null && tArrLng != null) {
+      tripArrivalPt.value = LatLng(tArrLat, tArrLng);
+    } else {
+      final c = _cityCoord(arrivalCity.value);
+      tripArrivalPt.value = c ?? arrivalPt.value;
+    }
+
+    // Résolution villes si coords manquantes
     if (_same(departurePt.value, _benin) && departureCity.value.isNotEmpty) {
       final c = _cityCoord(departureCity.value);
       if (c != null) departurePt.value = c;
@@ -152,23 +185,21 @@ class TrajetActifController extends GetxController {
 
     vehicleLatLng.value = departurePt.value;
 
-    // Labels localisation hiérarchique montée/descente
     pickupCityLabel.value  = departureCity.value;
     pickupDetail.value     = _joinParts([
       m['pickupArrondissement'] as String? ?? '',
       m['pickupNeighborhood']   as String? ?? '',
     ]);
-    pickupNote.value       = (m['pickupNote']   as String? ?? '').trim();
+    pickupNote.value       = (m['pickupNote']  as String? ?? '').trim();
     dropoffCityLabel.value = arrivalCity.value;
     dropoffDetail.value    = _joinParts([
       m['dropoffArrondissement'] as String? ?? '',
       m['dropoffNeighborhood']   as String? ?? '',
     ]);
-    dropoffNote.value      = (m['dropoffNote']  as String? ?? '').trim();
+    dropoffNote.value      = (m['dropoffNote'] as String? ?? '').trim();
 
     _fitMap();
 
-    // Refresh coords en arrière-plan si les coords initiales sont au niveau commune
     if (_same(departurePt.value, _benin) || _same(arrivalPt.value, _benin)) {
       Future.microtask(_refreshCoordsFromApi);
     }
@@ -193,20 +224,20 @@ class TrajetActifController extends GetxController {
   static String _joinParts(List<String> parts) =>
       parts.where((s) => s.isNotEmpty).join(', ');
 
-  // Rafraîchit les coords pickup/dropoff depuis l'API pour obtenir la précision quartier
   Future<void> _refreshCoordsFromApi() async {
     final result = await _svc.fetchPassengerActiveBooking();
     if (!result.isSuccess || result.data == null) return;
     final b = result.data!;
     bool changed = false;
 
+    // Coords précises montée/descente passager
     final fromLat = b.mapFromLat;
     final fromLng = b.mapFromLng;
     if (fromLat != null && fromLng != null) {
       final precise = LatLng(fromLat, fromLng);
       if (!_same(departurePt.value, precise)) {
-        departurePt.value = precise;
-        vehicleLatLng.value = precise;
+        departurePt.value       = precise;
+        vehicleLatLng.value     = precise;
         changed = true;
       }
     }
@@ -219,6 +250,23 @@ class TrajetActifController extends GetxController {
         changed = true;
       }
     }
+
+    // Coords réelles du trajet complet
+    if (b.departureLat != null && b.departureLng != null) {
+      final tp = LatLng(b.departureLat!, b.departureLng!);
+      if (!_same(tripDeparturePt.value, tp)) {
+        tripDeparturePt.value = tp;
+        changed = true;
+      }
+    }
+    if (b.arrivalLat != null && b.arrivalLng != null) {
+      final tp = LatLng(b.arrivalLat!, b.arrivalLng!);
+      if (!_same(tripArrivalPt.value, tp)) {
+        tripArrivalPt.value = tp;
+        changed = true;
+      }
+    }
+
     if (changed) {
       _fitMap();
       _loadRoute();
@@ -235,41 +283,67 @@ class TrajetActifController extends GetxController {
     return null;
   }
 
-  // ── Route OSRM (cache 24h) ─────────────────────────────────────────────
+  // ── Routes OSRM ────────────────────────────────────────────────────────────
 
   Future<void> _loadRoute() async {
-    final dep = departurePt.value;
-    final arr = arrivalPt.value;
-    if (_same(dep, _benin) || _same(arr, _benin) || _same(dep, arr)) return;
+    // Itinéraire complet du trajet (départ → arrivée conducteur)
+    await _loadSingleRoute(
+      from:   tripDeparturePt.value,
+      to:     tripArrivalPt.value,
+      target: routePoints,
+      prefix: 'mz_full_',
+    );
 
-    // Clé incluant les coords pour invalider le cache quand les points changent
-    final cacheKey = 'mz_route_'
-        '${dep.latitude.toStringAsFixed(4)}_${dep.longitude.toStringAsFixed(4)}'
-        '_${arr.latitude.toStringAsFixed(4)}_${arr.longitude.toStringAsFixed(4)}';
-    final prefs = await SharedPreferences.getInstance();
-    final cached = prefs.getString(cacheKey);
-    final ts = prefs.getInt('${cacheKey}_ts') ?? 0;
-    final age = DateTime.now().millisecondsSinceEpoch - ts;
-    if (cached != null && age < 86400000) {
-      routePoints.value = _decodeCache(cached);
-      return;
-    }
-    try {
-      final pts = await _routing.fetchPolyline([dep, arr]);
-      if (pts.length >= 2) {
-        routePoints.value = pts;
-        prefs.setString(cacheKey, _encodeCache(pts));
-        prefs.setInt('${cacheKey}_ts', DateTime.now().millisecondsSinceEpoch);
-      } else {
-        routePoints.value = [dep, arr];
-      }
-    } catch (e) {
-      logger.w('TrajetActif OSRM: $e');
-      routePoints.value = [dep, arr];
+    // Segment passager distinct (montée → descente ≠ départ → arrivée trajet)
+    final sameStart = _same(tripDeparturePt.value, departurePt.value);
+    final sameEnd   = _same(tripArrivalPt.value,   arrivalPt.value);
+    if (!sameStart || !sameEnd) {
+      await _loadSingleRoute(
+        from:   departurePt.value,
+        to:     arrivalPt.value,
+        target: segmentPoints,
+        prefix: 'mz_seg_',
+      );
+    } else {
+      segmentPoints.clear();
     }
   }
 
-  // ── Polling 5s ────────────────────────────────────────────────────────────
+  Future<void> _loadSingleRoute({
+    required LatLng from,
+    required LatLng to,
+    required RxList<LatLng> target,
+    required String prefix,
+  }) async {
+    if (_same(from, _benin) || _same(to, _benin) || _same(from, to)) return;
+
+    final cacheKey = '$prefix'
+        '${from.latitude.toStringAsFixed(4)}_${from.longitude.toStringAsFixed(4)}'
+        '_${to.latitude.toStringAsFixed(4)}_${to.longitude.toStringAsFixed(4)}';
+    final prefs = await SharedPreferences.getInstance();
+    final cached = prefs.getString(cacheKey);
+    final ts  = prefs.getInt('${cacheKey}_ts') ?? 0;
+    final age = DateTime.now().millisecondsSinceEpoch - ts;
+    if (cached != null && age < 86400000) {
+      target.value = _decodeCache(cached);
+      return;
+    }
+    try {
+      final pts = await _routing.fetchPolyline([from, to]);
+      if (pts.length >= 2) {
+        target.value = pts;
+        prefs.setString(cacheKey, _encodeCache(pts));
+        prefs.setInt('${cacheKey}_ts', DateTime.now().millisecondsSinceEpoch);
+      } else {
+        target.value = [from, to];
+      }
+    } catch (e) {
+      logger.w('TrajetActif OSRM ($prefix): $e');
+      target.value = [from, to];
+    }
+  }
+
+  // ── Polling 5s ─────────────────────────────────────────────────────────────
 
   void _startPolling() {
     if (_tripUuid.isEmpty) return;
@@ -283,14 +357,13 @@ class TrajetActifController extends GetxController {
     if (!result.isSuccess) return;
     final data = result.data!;
 
-    tripStatus.value  = data.status;
-    gpsStale.value    = data.gpsStale;
+    final prevStatus = tripStatus.value;
+    tripStatus.value = data.status;
+    gpsStale.value   = data.gpsStale;
 
-    // Mise à jour nom/tel conducteur si enrichi
-    if (data.driverName.isNotEmpty) driverName.value = data.driverName;
+    if (data.driverName.isNotEmpty)  driverName.value  = data.driverName;
     if (data.driverPhone.isNotEmpty) driverPhone.value = data.driverPhone;
 
-    // Position véhicule avec priorité
     final lat = data.effectiveLat;
     final lng = data.effectiveLng;
     if (lat != null && lng != null) {
@@ -305,7 +378,20 @@ class TrajetActifController extends GetxController {
     _updateDistanceAndEta();
     _checkNotifications(data);
 
-    // Trajet terminé ?
+    // Détection démarrage conducteur (seulement après le 1er poll pour éviter faux positif)
+    if (_firstPollReceived) {
+      final nowActive = data.status == 'active' ||
+          data.status == 'in_progress' ||
+          data.status == 'running';
+      if (prevStatus == 'pending' && nowActive) {
+        driverJustStarted.value = true;
+        Future.delayed(const Duration(seconds: 5), () {
+          if (driverJustStarted.value) driverJustStarted.value = false;
+        });
+      }
+    }
+    _firstPollReceived = true;
+
     if (data.status == 'completed' || data.status == 'ended') {
       _pollTimer?.cancel();
       tripEnded.value = true;
@@ -313,7 +399,7 @@ class TrajetActifController extends GetxController {
     }
   }
 
-  // ── Animation fluide (50ms × 20 frames ≈ 1s) ──────────────────────────
+  // ── Animation fluide ───────────────────────────────────────────────────────
 
   void _animateVehicleTo(LatLng target) {
     final start = vehicleLatLng.value;
@@ -334,7 +420,6 @@ class TrajetActifController extends GetxController {
         start.longitude + (target.longitude - start.longitude) * p,
       );
     });
-    // Suivre le véhicule si cameraFollows
     if (cameraFollows.value) {
       try {
         mapCtrl.move(target, math.max(mapCtrl.camera.zoom, 13.5));
@@ -342,38 +427,33 @@ class TrajetActifController extends GetxController {
     }
   }
 
-  // ── Distance Haversine + ETA ──────────────────────────────────────────────
+  // ── Distance + ETA ─────────────────────────────────────────────────────────
 
   void _updateDistanceAndEta() {
     final arr = arrivalPt.value;
     if (_same(arr, _benin)) return;
-    final veh = vehicleLatLng.value;
-    final dist = _haversine(
-        veh.latitude, veh.longitude, arr.latitude, arr.longitude);
+    final veh  = vehicleLatLng.value;
+    final dist = _haversine(veh.latitude, veh.longitude, arr.latitude, arr.longitude);
     distanceRemainKm.value = dist;
-    // Progression
-    final dep = departurePt.value;
-    final totalDist = _haversine(
-        dep.latitude, dep.longitude, arr.latitude, arr.longitude);
+
+    final dep       = departurePt.value;
+    final totalDist = _haversine(dep.latitude, dep.longitude, arr.latitude, arr.longitude);
     if (totalDist > 0) progressPct.value = 1.0 - (dist / totalDist);
 
-    // ETA
     final speed = vehicleSpeed.value;
     if (speed > 5) {
-      final minutes = (dist / speed * 60).round();
-      etaMinutes.value = '$minutes min';
+      etaMinutes.value = '${(dist / speed * 60).round()} min';
     } else {
       etaMinutes.value = '—';
     }
   }
 
-  // ── Notifications locales (une seule fois chacune) ──────────────────────
+  // ── Notifications locales ─────────────────────────────────────────────────
 
   Future<void> _checkNotifications(TripTrackingModel data) async {
     final veh = vehicleLatLng.value;
     final arr = arrivalPt.value;
 
-    // Conducteur a démarré
     if (!_notifSent.contains(TrackingNotifId.started) &&
         (data.status == 'active' || data.status == 'in_progress')) {
       _notifSent.add(TrackingNotifId.started);
@@ -384,13 +464,9 @@ class TrajetActifController extends GetxController {
       );
     }
 
-    // Conducteur approche passager (< 2 km)
-    if (!_notifSent.contains(TrackingNotifId.approaching) &&
-        data.hasGps) {
+    if (!_notifSent.contains(TrackingNotifId.approaching) && data.hasGps) {
       final dep = departurePt.value;
-      final distToPickup = _haversine(
-          veh.latitude, veh.longitude, dep.latitude, dep.longitude);
-      if (distToPickup < 2.0) {
+      if (_haversine(veh.latitude, veh.longitude, dep.latitude, dep.longitude) < 2.0) {
         _notifSent.add(TrackingNotifId.approaching);
         final eta = etaMinutes.value;
         await LocalNotifHelper.i.show(
@@ -403,12 +479,10 @@ class TrajetActifController extends GetxController {
       }
     }
 
-    // Approche de la destination (< 3 km)
     if (!_notifSent.contains(TrackingNotifId.nearDest) &&
         !_same(arr, _benin) &&
         data.hasGps) {
-      final distToArr = _haversine(
-          veh.latitude, veh.longitude, arr.latitude, arr.longitude);
+      final distToArr = _haversine(veh.latitude, veh.longitude, arr.latitude, arr.longitude);
       if (distToArr < 3.0) {
         _notifSent.add(TrackingNotifId.nearDest);
         await LocalNotifHelper.i.show(
@@ -419,7 +493,6 @@ class TrajetActifController extends GetxController {
       }
     }
 
-    // Trajet terminé
     if (!_notifSent.contains(TrackingNotifId.completed) &&
         (data.status == 'completed' || data.status == 'ended')) {
       _notifSent.add(TrackingNotifId.completed);
@@ -430,8 +503,6 @@ class TrajetActifController extends GetxController {
       );
     }
   }
-
-  // ── Navigation fin de trajet ──────────────────────────────────────────────
 
   void _onTripCompleted() {
     Future.delayed(const Duration(seconds: 3), () {
@@ -444,9 +515,11 @@ class TrajetActifController extends GetxController {
     });
   }
 
-  // ── Actions ───────────────────────────────────────────────────────────────
+  // ── Actions ────────────────────────────────────────────────────────────────
 
   void callDriver() => PhoneUtils.call(driverPhone.value);
+
+  void dismissDriverBanner() => driverJustStarted.value = false;
 
   void toggleCamera() {
     cameraFollows.value = !cameraFollows.value;
@@ -459,9 +532,17 @@ class TrajetActifController extends GetxController {
 
   void fitAll() {
     try {
-      final pts = [departurePt.value, arrivalPt.value, vehicleLatLng.value]
-          .where((p) => !_same(p, _benin))
-          .toList();
+      final candidates = [
+        tripDeparturePt.value,
+        tripArrivalPt.value,
+        departurePt.value,
+        arrivalPt.value,
+        vehicleLatLng.value,
+      ];
+      final pts = <LatLng>[];
+      for (final p in candidates) {
+        if (!_same(p, _benin) && !pts.any((x) => _same(x, p))) pts.add(p);
+      }
       if (pts.isEmpty) return;
       mapCtrl.fitCamera(CameraFit.bounds(
         bounds: LatLngBounds.fromPoints(pts),
@@ -471,45 +552,42 @@ class TrajetActifController extends GetxController {
     } catch (_) {}
   }
 
-  // ── Couleur marqueur véhicule selon statut ────────────────────────────────
+  // ── Getters computed ───────────────────────────────────────────────────────
 
   int get vehicleMarkerColor {
-    final s = tripStatus.value;
-    if (!hasVehicleGps.value) return 0xFF6B7280; // gris — pas de GPS
-    switch (s) {
+    if (!hasVehicleGps.value) return 0xFF6B7280;
+    switch (tripStatus.value) {
       case 'active':
       case 'in_progress':
-      case 'running':
-        return 0xFF1A5FB4; // bleu
-      case 'pending':
-        return 0xFFF59E0B; // orange
-      case 'completed':
-        return 0xFF6B7280; // gris
-      default:
-        return 0xFF1A5FB4;
+      case 'running':   return 0xFF1A5FB4;
+      case 'pending':   return 0xFFF59E0B;
+      case 'completed': return 0xFF6B7280;
+      default:          return 0xFF1A5FB4;
     }
   }
 
   String get statusLabel {
     switch (tripStatus.value) {
-      case 'pending':    return 'En attente de démarrage';
+      case 'pending':                return 'En attente de démarrage';
       case 'active':
       case 'in_progress':
-      case 'running':    return 'En route';
-      case 'completed':  return 'Arrivé à destination';
-      case 'cancelled':  return 'Trajet annulé';
-      default:           return 'En cours…';
+      case 'running':                return 'En route';
+      case 'completed':              return 'Arrivé à destination';
+      case 'cancelled':              return 'Trajet annulé';
+      default:                       return 'En cours…';
     }
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
+  // true = le segment passager est différent de l'itinéraire complet
+  bool get hasDistinctSegment => segmentPoints.length >= 2;
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
 
   static bool _same(LatLng a, LatLng b) =>
-      (a.latitude - b.latitude).abs() < 1e-5 &&
+      (a.latitude  - b.latitude).abs()  < 1e-5 &&
       (a.longitude - b.longitude).abs() < 1e-5;
 
-  static double _haversine(
-      double lat1, double lng1, double lat2, double lng2) {
+  static double _haversine(double lat1, double lng1, double lat2, double lng2) {
     const r = 6371.0;
     final dLat = (lat2 - lat1) * math.pi / 180;
     final dLng = (lng2 - lng1) * math.pi / 180;
@@ -539,12 +617,20 @@ class TrajetActifController extends GetxController {
 
   void _fitMap() {
     SchedulerBinding.instance.addPostFrameCallback((_) {
-      final dep = departurePt.value;
-      final arr = arrivalPt.value;
-      if (_same(dep, arr) || _same(dep, _benin)) return;
+      final candidates = [
+        tripDeparturePt.value,
+        tripArrivalPt.value,
+        departurePt.value,
+        arrivalPt.value,
+      ];
+      final pts = <LatLng>[];
+      for (final p in candidates) {
+        if (!_same(p, _benin) && !pts.any((x) => _same(x, p))) pts.add(p);
+      }
+      if (pts.length < 2) return;
       try {
         mapCtrl.fitCamera(CameraFit.bounds(
-          bounds: LatLngBounds.fromPoints([dep, arr]),
+          bounds: LatLngBounds.fromPoints(pts),
           padding: const EdgeInsets.fromLTRB(56, 96, 56, 300),
         ));
       } catch (_) {}

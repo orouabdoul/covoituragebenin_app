@@ -8,7 +8,6 @@ import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/messaging/passenger_messaging_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/reservations/passenger_reservation_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/passenger/reviews/passenger_reviews_service.dart';
-import 'package:covoiturage_benin_app/app/core/services/passenger/reviews/passenger_reviews_service_impl.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
@@ -257,9 +256,7 @@ class DetailReservationController extends GetxController {
   Future<void> _loadPassengerReviewsForDriver(String driverName) async {
     if (driverName.isEmpty) return;
     try {
-      final PassengerReviewsService svc = Get.isRegistered<PassengerReviewsService>()
-          ? Get.find<PassengerReviewsService>()
-          : PassengerReviewsServiceImpl();
+      final svc = Get.find<PassengerReviewsService>();
       final result = await svc.fetchReviews();
       if (!result.isSuccess) return;
       final matched = result.data!.reviews

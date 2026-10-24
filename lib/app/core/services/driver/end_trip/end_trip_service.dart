@@ -4,4 +4,5 @@ import 'package:covoiturage_benin_app/app/data/models/driver/end_trip_summary_mo
 abstract class EndTripService {
   Future<ApiResult<EndTripSummaryModel>> fetchEndSummary(String uuid);
   Future<ApiResult<void>> endTrip(String uuid);
+  Future<ApiResult<void>> ratePassenger({required String bookingUuid, required int rating});
 }

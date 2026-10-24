@@ -124,6 +124,7 @@ class AppApi {
   static String passengerBookingTripConfirmationCtx(String uuid) => '/passenger/bookings/$uuid/trip-confirmation-context';
   static String passengerBookingConfirm(String uuid) => '/passenger/bookings/$uuid/confirm';
   static String passengerBookingReview(String uuid) => '/passenger/bookings/$uuid/review';
+  static String driverBookingReview(String uuid) => '/driver/bookings/$uuid/review';
   static const String passengerReservationsList = '/passenger/reservations';
   static String passengerReservationInvoice(String uuid) => '/passenger/reservations/$uuid/invoice';
   static String createBooking(String tripUuid) => '/trips/$tripUuid/bookings';

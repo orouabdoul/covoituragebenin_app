@@ -61,4 +61,31 @@ class EndTripServiceImpl implements EndTripService {
     }
   }
 
+  @override
+  Future<ApiResult<void>> ratePassenger({
+    required String bookingUuid,
+    required int rating,
+  }) async {
+    try {
+      final opts = await _authOptions();
+      final res = await _dio.post(
+        AppApi.driverBookingReview(bookingUuid),
+        data: {'rating': rating},
+        options: opts,
+      );
+      logger.d('ratePassenger[$bookingUuid] [$rating★] [${res.statusCode}]');
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        return ApiResult.success(null);
+      }
+      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      return ApiResult.failure(AppError.unexpected);
+    } on DioException catch (e) {
+      logger.w('ratePassenger: ${e.type}');
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
+      logger.w('ratePassenger: $e');
+      return ApiResult.failure(AppError.unexpected);
+    }
+  }
+
 }

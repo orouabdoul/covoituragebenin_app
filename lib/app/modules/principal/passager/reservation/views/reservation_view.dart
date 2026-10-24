@@ -859,11 +859,9 @@ class _PlaceLine extends StatelessWidget {
 		required this.title,
 		required this.subtitle,
 		required this.responsive,
-		this.address = '',
 	});
 	final String title;
 	final String subtitle;
-	final String address;
 	final AppResponsive responsive;
 
 	@override
@@ -875,16 +873,6 @@ class _PlaceLine extends StatelessWidget {
 				if (subtitle.isNotEmpty) ...[
 					SizedBox(height: responsive.h(2)),
 					Text(subtitle, style: AppTextStyles.caption(responsive).copyWith(color: AppColors.textHint)),
-				],
-				if (address.isNotEmpty) ...[
-					SizedBox(height: responsive.h(1)),
-					Text(
-						address,
-						style: AppTextStyles.caption(responsive).copyWith(
-							color: AppColors.textHint,
-							fontSize: 11,
-						),
-					),
 				],
 			],
 		);
