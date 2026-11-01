@@ -1251,7 +1251,12 @@ class _ActionButtons extends StatelessWidget {
           status == 'pending' || status == 'scheduled';
       final isActive = status == 'active' ||
           status == 'in_progress' ||
-          status == 'started';
+          status == 'started' ||
+          status == 'picking_up' ||
+          status == 'picked_up' ||
+          status == 'ongoing' ||
+          status == 'running' ||
+          status == 'in_route';
       final isCompleted = status == 'completed';
 
       if (isCompleted) {
@@ -1277,15 +1282,13 @@ class _ActionButtons extends StatelessWidget {
         );
       }
 
-      // Le trajet démarre automatiquement au premier embarquement passager.
-      // Seul le bouton "Terminer le trajet" reste explicite.
       if (!isActive && !isPending) return const SizedBox.shrink();
       return _Btn(
         onTap: c.isCompleting.value ? null : c.completeTrip,
         icon: Icons.flag_rounded,
         label: c.isCompleting.value
             ? 'Finalisation…'
-            : 'Terminer le trajet',
+            : 'Terminer ma course',
         color: AppColors.danger,
         r: r,
       );

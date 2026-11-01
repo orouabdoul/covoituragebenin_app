@@ -352,7 +352,14 @@ class MonTrajetController extends GetxController {
   // ── Terminer le trajet ────────────────────────────────────────────────────
 
   Future<void> completeTrip() async {
-    if (isCompleting.value || _tripUuid.isEmpty) return;
+    if (isCompleting.value) return;
+    if (_tripUuid.isEmpty) {
+      Get.snackbar('Erreur', 'Impossible d\'identifier le trajet. Relancez l\'application.',
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: const Color(0xFFEF4444),
+          colorText: Colors.white);
+      return;
+    }
     final confirm = await Get.dialog<bool>(
       AlertDialog(
         title: const Text('Terminer le trajet'),
