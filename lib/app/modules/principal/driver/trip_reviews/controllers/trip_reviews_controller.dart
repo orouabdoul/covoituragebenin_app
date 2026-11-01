@@ -149,19 +149,22 @@ class _ReplySheetState extends State<_ReplySheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+    final mq = MediaQuery.of(context);
+    final keyboardH = mq.viewInsets.bottom;
+    final maxHeight = mq.size.height - mq.padding.top - keyboardH;
+
+    return Container(
+      constraints: BoxConstraints(maxHeight: maxHeight * 0.95),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(20, 16, 20, keyboardH > 0 ? keyboardH + 16 : 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Center(
               child: Container(
                 width: 40,
