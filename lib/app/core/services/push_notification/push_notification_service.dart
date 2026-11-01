@@ -873,7 +873,13 @@ class PushNotificationService {
         if (isDriver) {
           _navigateToTab(2, isDriverRole: true);
         } else {
-          Get.toNamed(AppRoutes.passengerTripHistory);
+          Get.toNamed(
+            AppRoutes.passengerTripConfirmation,
+            arguments: {
+              'tripUuid': tripUuid,
+              if (bookingUuid != null) 'bookingUuid': bookingUuid,
+            },
+          );
         }
 
       // ── Rappel trajet ─────────────────────────────────────────────────────
