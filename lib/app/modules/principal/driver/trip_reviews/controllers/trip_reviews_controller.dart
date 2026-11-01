@@ -156,11 +156,12 @@ class _ReplySheetState extends State<_ReplySheet> {
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             Center(
               child: Container(
                 width: 40,
@@ -222,7 +223,7 @@ class _ReplySheetState extends State<_ReplySheet> {
               ),
               child: TextField(
                 controller: _ctrl,
-                maxLines: 4,
+                maxLines: 3,
                 autofocus: true,
                 decoration: const InputDecoration(
                   hintText: 'Écrivez votre réponse…',
