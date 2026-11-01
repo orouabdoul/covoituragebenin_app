@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'package:covoiturage_benin_app/app/core/services/driver/trip_detail/trip_detail_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/trips/trips_service.dart';
+import 'package:covoiturage_benin_app/app/core/services/tracking/tracking_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
@@ -16,13 +17,13 @@ import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 class TripDetailController extends GetxController {
   TripDetailService get _service => Get.find<TripDetailService>();
   TripsService get _tripsService => Get.find<TripsService>();
+  TrackingService get _tracking => Get.find<TrackingService>();
 
   final RxBool isLoading = false.obs;
+  final RxBool isStarting = false.obs;
   final RxInt tripVersion = 0.obs;
   final RxBool canStartNow = false.obs;
 
-  Timer? _startTimer;
-  Timer? _activationTimer; // one-shot : se déclenche précisément à departureAt-5min
   String _departureIso = '';
 
   late final String _tripUuid;
@@ -115,28 +116,6 @@ class TripDetailController extends GetxController {
     _departureIso = data.route.departureAt;
     tripVersion.value++;
     _updateCanStartNow();
-    _startTimer?.cancel();
-    _activationTimer?.cancel();
-    // Timers actifs pour tout trajet pending : canStart peut démarrer à false
-    // (backend calcule la fenêtre de 5 min) mais on vérifie localement toutes les 10 s.
-    if (trip.status == TripStatus.pending) {
-      _startTimer = Timer.periodic(const Duration(seconds: 10), (_) => _updateCanStartNow());
-      _scheduleActivation();
-    }
-  }
-
-  /// Timer one-shot qui se déclenche exactement à departureAt-5min pour
-  /// activer le bouton sans attendre le tick de 30s.
-  void _scheduleActivation() {
-    _activationTimer?.cancel();
-    final raw = _departureIso.isNotEmpty ? _departureIso : (trip.departureAt ?? '');
-    if (raw.isEmpty) return;
-    final dt = DateTime.tryParse(raw);
-    if (dt == null) return;
-    final window = dt.toUtc().subtract(const Duration(minutes: 5));
-    final delay = window.difference(DateTime.now().toUtc());
-    if (delay.isNegative) return; // fenêtre déjà ouverte
-    _activationTimer = Timer(delay, _updateCanStartNow);
   }
 
   TripPassengerModel _passengerToModel(TripDetailPassengerData p) {
@@ -186,45 +165,68 @@ class TripDetailController extends GetxController {
   }
 
   void _updateCanStartNow() {
-    final raw = _departureIso.isNotEmpty ? _departureIso : (trip.departureAt ?? '');
-    if (raw.isEmpty) {
-      canStartNow.value = false;
-      return;
-    }
-    final dt = DateTime.tryParse(raw);
-    if (dt == null) {
-      canStartNow.value = false;
-      return;
-    }
-    final depUtc = dt.isUtc ? dt : dt.toUtc();
-    final nowUtc = DateTime.now().toUtc();
-    final inWindow = nowUtc.isAfter(depUtc.subtract(const Duration(minutes: 5)));
-    if (!canStart) {
-      canStartNow.value = trip.status == TripStatus.pending && inWindow;
-      return;
-    }
-    canStartNow.value = inWindow;
+    canStartNow.value = trip.status == TripStatus.pending && canStart;
   }
 
-  @override
-  void onClose() {
-    _startTimer?.cancel();
-    _activationTimer?.cancel();
-    super.onClose();
-  }
-
-  void onStartTrip() {
+  Future<void> onStartTrip() async {
     if (!canStartNow.value) {
       UIHelper().showSnackBar(
         'MINIZON',
-        canStart
-            ? 'Le départ est prévu dans plus de 5 minutes.'
-            : 'Attendez que tous les passagers aient payé.',
-        canStart ? 1 : 2,
+        'Attendez que tous les passagers aient payé.',
+        2,
       );
       return;
     }
-    Get.toNamed(AppRoutes.driverActiveTrip, arguments: {'trip': trip});
+
+    // Avertissement si démarrage anticipé de plus de 30 minutes
+    final raw = _departureIso.isNotEmpty ? _departureIso : (trip.departureAt ?? '');
+    if (raw.isNotEmpty) {
+      final dt = DateTime.tryParse(raw);
+      if (dt != null) {
+        final depLocal = dt.isUtc ? dt.toLocal() : dt;
+        final diff = depLocal.difference(DateTime.now());
+        if (diff > const Duration(minutes: 30)) {
+          final h = depLocal.hour.toString().padLeft(2, '0');
+          final m = depLocal.minute.toString().padLeft(2, '0');
+          final confirm = await Get.dialog<bool>(
+            AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Text('Démarrer maintenant ?'),
+              content: Text(
+                'Votre trajet est prévu à ${h}h$m.\n\nDémarrer maintenant avertira immédiatement vos passagers.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Get.back(result: false),
+                  child: const Text('Pas encore'),
+                ),
+                TextButton(
+                  onPressed: () => Get.back(result: true),
+                  child: Text(
+                    'Oui, démarrer',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+          if (confirm != true) return;
+        }
+      }
+    }
+
+    isStarting.value = true;
+    final result = await _tracking.startTrip(_tripUuid);
+    isStarting.value = false;
+
+    if (result.isSuccess) {
+      Get.toNamed(AppRoutes.driverActiveTrip, arguments: {'trip': trip});
+    } else {
+      UIHelper().showSnackBar('MINIZON', 'Impossible de démarrer le trajet. Réessayez.', 2);
+    }
   }
 
   void onViewMap() {

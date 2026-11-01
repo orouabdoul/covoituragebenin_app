@@ -178,6 +178,7 @@ class ProfileDocumentData {
     required this.subtitle,
     required this.hasFile,
     required this.url,
+    this.expiryDate,
   });
 
   final String key;
@@ -185,15 +186,21 @@ class ProfileDocumentData {
   final String subtitle;
   final bool hasFile;
   final String url;
+  final DateTime? expiryDate;
 
-  factory ProfileDocumentData.fromJson(Map<String, dynamic> json) =>
-      ProfileDocumentData(
-        key: (json['key'] as String?) ?? '',
-        title: (json['title'] as String?) ?? '',
-        subtitle: (json['subtitle'] as String?) ?? '',
-        hasFile: (json['has_file'] as bool?) ?? false,
-        url: (json['url'] as String?) ?? '',
-      );
+  factory ProfileDocumentData.fromJson(Map<String, dynamic> json) {
+    DateTime? expiry;
+    final raw = json['expiry_date'] as String?;
+    if (raw != null) expiry = DateTime.tryParse(raw);
+    return ProfileDocumentData(
+      key: (json['key'] as String?) ?? '',
+      title: (json['title'] as String?) ?? '',
+      subtitle: (json['subtitle'] as String?) ?? '',
+      hasFile: (json['has_file'] as bool?) ?? false,
+      url: (json['url'] as String?) ?? '',
+      expiryDate: expiry,
+    );
+  }
 }
 
 class ProfilePerformanceData {

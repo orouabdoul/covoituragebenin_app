@@ -236,6 +236,18 @@ class WithdrawController extends GetxController {
     WithdrawMethodModel method,
   ) {
     final reference = data['reference'] as String? ?? '';
+    final status    = data['status']    as String? ?? 'pending';
+
+    final String delayText;
+    if (status == 'approved') {
+      delayText = 'Virement effectué — fonds reçus dans quelques minutes.';
+    } else if (status == 'failed') {
+      delayText = 'Virement automatique échoué — notre équipe traite votre demande manuellement sous 24h.';
+    } else if (!isBank) {
+      delayText = 'Virement en cours — fonds reçus dans quelques minutes.';
+    } else {
+      delayText = 'Traitement sous 24–48h ouvrées.';
+    }
 
     Get.bottomSheet(
       Container(
@@ -270,9 +282,10 @@ class WithdrawController extends GetxController {
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 6),
-            const Text(
-              'Traitement sous 24h ouvrées.',
-              style: TextStyle(color: AppColors.textMuted, fontSize: 14),
+            Text(
+              delayText,
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
             if (reference.isNotEmpty) ...[

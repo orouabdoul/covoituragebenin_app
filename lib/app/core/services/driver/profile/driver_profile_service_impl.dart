@@ -95,9 +95,9 @@ class DriverProfileServiceImpl implements DriverProfileService {
         data: {
           'auto_availability': autoAvailability,
           'notifications_enabled': notificationsEnabled,
-          'language': ?language,
-          'share_location': ?shareLocation,
-          'share_activity': ?shareActivity,
+          if (language != null) 'language': language,
+          if (shareLocation != null) 'share_location': shareLocation,
+          if (shareActivity != null) 'share_activity': shareActivity,
         },
         options: opts,
       );
@@ -122,12 +122,17 @@ class DriverProfileServiceImpl implements DriverProfileService {
   Future<ApiResult<void>> uploadDocument({
     required String documentType,
     required File file,
+    DateTime? expiryDate,
   }) async {
     try {
       final opts = await _authOptions();
       final formData = FormData.fromMap({
         'document_type': documentType,
         'file': await MultipartFile.fromFile(file.path),
+        if (expiryDate != null)
+          'license_expiry_date': '${expiryDate.year.toString().padLeft(4, '0')}-'
+              '${expiryDate.month.toString().padLeft(2, '0')}-'
+              '${expiryDate.day.toString().padLeft(2, '0')}',
       });
       final response = await _dio.patch(
         AppApi.driverProfileDocument,

@@ -236,6 +236,34 @@ class DashboardLevelData {
       );
 }
 
+class DashboardSanctionData {
+  const DashboardSanctionData({
+    required this.warningCount,
+    required this.visibilityScore,
+    required this.isSuspended,
+    this.suspendedUntil,
+  });
+
+  final int warningCount;
+  final int visibilityScore;
+  final bool isSuspended;
+  final DateTime? suspendedUntil;
+
+  bool get hasWarning => warningCount > 0 && !isSuspended;
+
+  factory DashboardSanctionData.fromJson(Map<String, dynamic> json) {
+    DateTime? until;
+    final raw = json['suspended_until'] as String?;
+    if (raw != null) until = DateTime.tryParse(raw);
+    return DashboardSanctionData(
+      warningCount: (json['warning_count'] as num?)?.toInt() ?? 0,
+      visibilityScore: (json['visibility_score'] as num?)?.toInt() ?? 100,
+      isSuspended: (json['is_suspended'] as bool?) ?? false,
+      suspendedUntil: until,
+    );
+  }
+}
+
 class DashboardModel {
   const DashboardModel({
     required this.summary,
@@ -247,6 +275,7 @@ class DashboardModel {
     required this.level,
     required this.isOnline,
     required this.availabilityMode,
+    required this.sanction,
   });
 
   final DashboardSummaryData summary;
@@ -258,6 +287,7 @@ class DashboardModel {
   final DashboardLevelData level;
   final bool isOnline;
   final String availabilityMode;
+  final DashboardSanctionData sanction;
 
   factory DashboardModel.fromJson(Map<String, dynamic> json) => DashboardModel(
         summary: DashboardSummaryData.fromJson(
@@ -287,5 +317,7 @@ class DashboardModel {
             (json['level'] as Map<String, dynamic>?) ?? {}),
         isOnline: (json['is_online'] as bool?) ?? false,
         availabilityMode: (json['availability_mode'] as String?) ?? 'normal',
+        sanction: DashboardSanctionData.fromJson(
+            (json['sanction'] as Map<String, dynamic>?) ?? {}),
       );
 }

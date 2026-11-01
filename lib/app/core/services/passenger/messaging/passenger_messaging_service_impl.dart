@@ -126,7 +126,7 @@ class PassengerMessagingServiceImpl implements PassengerMessagingService {
       final bearer = await _bearerToken();
       final formData = FormData.fromMap({
         if (caption != null && caption.isNotEmpty) 'body': caption,
-        'message_type': ?messageType,
+        if (messageType != null) 'message_type': messageType,
         'attachment': await MultipartFile.fromFile(filePath),
       });
       final res = await _dio.post(

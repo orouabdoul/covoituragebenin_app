@@ -23,5 +23,6 @@ abstract class DriverProfileService {
   Future<ApiResult<void>> uploadDocument({
     required String documentType,
     required File file,
+    DateTime? expiryDate,
   });
 }

@@ -9,6 +9,6 @@ abstract class VehiclesService {
   Future<ApiResult<List<VehicleData>>> listVehicles();
   Future<ApiResult<void>> createVehicle(FormData formData);
   Future<ApiResult<void>> updateVehicle(String uuid, FormData formData);
-  Future<ApiResult<void>> uploadVehicleDocument(String uuid, String apiField, File file);
+  Future<ApiResult<void>> uploadVehicleDocument(String uuid, String apiField, File file, {DateTime? expiryDate});
   Future<ApiResult<void>> deleteVehicle(String uuid);
 }

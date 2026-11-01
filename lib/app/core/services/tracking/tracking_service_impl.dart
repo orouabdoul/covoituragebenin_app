@@ -88,7 +88,7 @@ class TrackingServiceImpl implements TrackingService {
   @override
   Future<ApiResult<void>> startTrip(String tripUuid) async {
     try {
-      final res = await _dio.patch(
+      final res = await _dio.post(
         AppApi.tripStart(tripUuid),
         options: await _authOpts(),
       );
@@ -108,15 +108,18 @@ class TrackingServiceImpl implements TrackingService {
   // ── Terminer trajet ──────────────────────────────────────────────────────
 
   @override
-  Future<ApiResult<void>> completeTrip(String tripUuid) async {
+  Future<ApiResult<Map<String, dynamic>>> completeTrip(String tripUuid) async {
     try {
-      final res = await _dio.patch(
-        AppApi.tripComplete(tripUuid),
+      final res = await _dio.post(
+        AppApi.tripEnd(tripUuid),
         options: await _authOpts(),
       );
       logger.d('completeTrip[$tripUuid] [${res.statusCode}]');
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
-      if (res.statusCode == 200 || res.statusCode == 201) return ApiResult.success(null);
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        final body = (res.data is Map ? res.data['body'] : null) as Map<String, dynamic>? ?? {};
+        return ApiResult.success(body);
+      }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.w('completeTrip: ${e.type}');
@@ -181,6 +184,236 @@ class TrackingServiceImpl implements TrackingService {
       return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
       logger.w('driverActiveTrips: $e');
+      return ApiResult.failure(AppError.unexpected);
+    }
+  }
+
+  // ── Demande d'embarquement ───────────────────────────────────────────────
+
+  @override
+  Future<ApiResult<String>> requestBoarding(
+    String tripUuid,
+    String bookingUuid, {
+    double? driverLat,
+    double? driverLng,
+  }) async {
+    try {
+      final res = await _dio.post(
+        AppApi.driverTripBoardingRequest(tripUuid, bookingUuid),
+        data: {
+          if (driverLat != null) 'driver_lat': driverLat,
+          if (driverLng != null) 'driver_lng': driverLng,
+        },
+        options: await _authOpts(),
+      );
+      logger.d('requestBoarding[$tripUuid/$bookingUuid] [${res.statusCode}]');
+      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        final expiresAt = res.data['body']?['expires_at'] as String? ?? '';
+        return ApiResult.success(expiresAt);
+      }
+      return ApiResult.failure(AppError.unexpected);
+    } on DioException catch (e) {
+      logger.w('requestBoarding: ${e.type}');
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
+      logger.w('requestBoarding: $e');
+      return ApiResult.failure(AppError.unexpected);
+    }
+  }
+
+  // ── Vérification code embarquement ──────────────────────────────────────
+
+  @override
+  Future<ApiResult<void>> verifyBoardingCode(
+    String tripUuid,
+    String bookingUuid,
+    String code, {
+    double? driverLat,
+    double? driverLng,
+  }) async {
+    try {
+      final res = await _dio.post(
+        AppApi.driverTripVerifyCode(tripUuid, bookingUuid),
+        data: {
+          'code': code,
+          if (driverLat != null) 'driver_lat': driverLat,
+          if (driverLng != null) 'driver_lng': driverLng,
+        },
+        options: await _authOpts(),
+      );
+      logger.d('verifyBoardingCode[$tripUuid/$bookingUuid] [${res.statusCode}]');
+      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 422) return ApiResult.failure(AppError.unexpected);
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        return ApiResult.success(null);
+      }
+      return ApiResult.failure(AppError.unexpected);
+    } on DioException catch (e) {
+      logger.w('verifyBoardingCode: ${e.type}');
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
+      logger.w('verifyBoardingCode: $e');
+      return ApiResult.failure(AppError.unexpected);
+    }
+  }
+
+  // ── Confirmation embarquement (passager) ────────────────────────────────
+
+  @override
+  Future<ApiResult<void>> confirmPickupBoarding(
+    String bookingUuid, {
+    double? passengerLat,
+    double? passengerLng,
+  }) async {
+    try {
+      final res = await _dio.post(
+        AppApi.confirmPickup(bookingUuid),
+        data: {
+          if (passengerLat != null) 'passenger_lat': passengerLat,
+          if (passengerLng != null) 'passenger_lng': passengerLng,
+        },
+        options: await _authOpts(),
+      );
+      logger.d('confirmPickupBoarding[$bookingUuid] [${res.statusCode}]');
+      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 200) return ApiResult.success(null);
+      return ApiResult.failure(AppError.unexpected);
+    } on DioException catch (e) {
+      logger.w('confirmPickupBoarding: ${e.type}');
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
+      logger.w('confirmPickupBoarding: $e');
+      return ApiResult.failure(AppError.unexpected);
+    }
+  }
+
+  // ── Dépôt passager (conducteur) ─────────────────────────────────────────
+
+  @override
+  Future<ApiResult<void>> dropoffPassenger(
+    String tripUuid,
+    String bookingUuid,
+  ) async {
+    try {
+      final res = await _dio.post(
+        AppApi.driverTripDropoff(tripUuid, bookingUuid),
+        options: await _authOpts(),
+      );
+      logger.d('dropoffPassenger[$tripUuid/$bookingUuid] [${res.statusCode}]');
+      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 200 && res.data['success'] == true) return ApiResult.success(null);
+      return ApiResult.failure(AppError.unexpected);
+    } on DioException catch (e) {
+      logger.w('dropoffPassenger: ${e.type}');
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
+      logger.w('dropoffPassenger: $e');
+      return ApiResult.failure(AppError.unexpected);
+    }
+  }
+
+  // ── No-show passager (conducteur) ───────────────────────────────────────
+
+  @override
+  Future<ApiResult<void>> reportPassengerNoShow(
+    String tripUuid,
+    String bookingUuid,
+  ) async {
+    try {
+      final res = await _dio.post(
+        AppApi.driverTripNoShow(tripUuid, bookingUuid),
+        options: await _authOpts(),
+      );
+      logger.d('reportPassengerNoShow[$tripUuid/$bookingUuid] [${res.statusCode}]');
+      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 200 && res.data['success'] == true) return ApiResult.success(null);
+      return ApiResult.failure(AppError.unexpected);
+    } on DioException catch (e) {
+      logger.w('reportPassengerNoShow: ${e.type}');
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
+      logger.w('reportPassengerNoShow: $e');
+      return ApiResult.failure(AppError.unexpected);
+    }
+  }
+
+  // ── Conducteur absent (passager) ─────────────────────────────────────────
+
+  @override
+  Future<ApiResult<Map<String, dynamic>>> reportDriverAbsent(String bookingUuid) async {
+    try {
+      final res = await _dio.post(
+        AppApi.passengerReportDriverAbsent(bookingUuid),
+        options: await _authOpts(),
+      );
+      logger.d('reportDriverAbsent[$bookingUuid] [${res.statusCode}]');
+      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        final body = (res.data['body'] as Map<String, dynamic>?) ?? {};
+        return ApiResult.success(body);
+      }
+      return ApiResult.failure(AppError.unexpected);
+    } on DioException catch (e) {
+      logger.w('reportDriverAbsent: ${e.type}');
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
+      logger.w('reportDriverAbsent: $e');
+      return ApiResult.failure(AppError.unexpected);
+    }
+  }
+
+  // ── Confirmation manuelle embarquement (téléphone mort) ─────────────────
+
+  @override
+  Future<ApiResult<void>> confirmBoardingManual(
+    String tripUuid,
+    String bookingUuid,
+  ) async {
+    try {
+      final res = await _dio.post(
+        AppApi.driverTripBoardingManual(tripUuid, bookingUuid),
+        options: await _authOpts(),
+      );
+      logger.d('confirmBoardingManual[$tripUuid/$bookingUuid] [${res.statusCode}]');
+      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 200 && res.data['success'] == true) return ApiResult.success(null);
+      return ApiResult.failure(AppError.unexpected);
+    } on DioException catch (e) {
+      logger.w('confirmBoardingManual: ${e.type}');
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
+      logger.w('confirmBoardingManual: $e');
+      return ApiResult.failure(AppError.unexpected);
+    }
+  }
+
+  // ── Refus d'embarquement (passager) ─────────────────────────────────────
+
+  @override
+  Future<ApiResult<void>> refuseBoarding(
+    String bookingUuid, {
+    double? passengerLat,
+    double? passengerLng,
+  }) async {
+    try {
+      final res = await _dio.post(
+        AppApi.passengerBoardingRefuse(bookingUuid),
+        data: {
+          if (passengerLat != null) 'passenger_lat': passengerLat,
+          if (passengerLng != null) 'passenger_lng': passengerLng,
+        },
+        options: await _authOpts(),
+      );
+      logger.d('refuseBoarding[$bookingUuid] [${res.statusCode}]');
+      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 200) return ApiResult.success(null);
+      return ApiResult.failure(AppError.unexpected);
+    } on DioException catch (e) {
+      logger.w('refuseBoarding: ${e.type}');
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
+      logger.w('refuseBoarding: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }

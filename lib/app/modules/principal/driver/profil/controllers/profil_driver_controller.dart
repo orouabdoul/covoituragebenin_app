@@ -357,6 +357,7 @@ class DriverProfileController extends GetxController {
                 title: d.title,
                 subtitle: d.subtitle,
                 icon: _documentIcon(d.key),
+                expiryDate: d.expiryDate,
               ))
           .toList();
     }
@@ -949,12 +950,25 @@ class DriverDocumentItem {
     required this.title,
     required this.subtitle,
     required this.icon,
+    this.expiryDate,
   });
 
   final String key;
   final String title;
   final String subtitle;
   final IconData icon;
+  final DateTime? expiryDate;
+
+  bool get isExpired =>
+      expiryDate != null && expiryDate!.isBefore(DateTime.now());
+
+  bool get isExpiringSoon {
+    if (expiryDate == null || isExpired) return false;
+    return expiryDate!.difference(DateTime.now()).inDays <= 30;
+  }
+
+  int? get daysUntilExpiry =>
+      expiryDate?.difference(DateTime.now()).inDays;
 
   /// Retourne la clé API véhicule correspondante (null = document conducteur).
   String? get vehicleApiKey => switch (key) {
@@ -965,6 +979,9 @@ class DriverDocumentItem {
         'vehicle_photo'     => 'vehicle_photo',
         _ => null, // driving_license → endpoint profil
       };
+
+  bool get hasExpiryTracking =>
+      key == 'driving_license' || key == 'insurance' || key == 'technical_control';
 }
 
 class DriverSettingItem {
@@ -1381,6 +1398,7 @@ class _DocumentPickerSheet extends StatefulWidget {
 class _DocumentPickerSheetState extends State<_DocumentPickerSheet> {
   File? _pickedFile;
   String? _pickedName;
+  DateTime? _expiryDate;
   bool _isSaving = false;
 
   static const int _maxBytes = 1 * 1024 * 1024;
@@ -1415,6 +1433,21 @@ class _DocumentPickerSheetState extends State<_DocumentPickerSheet> {
     if (mounted) setState(() { _pickedFile = file; _pickedName = name; });
   }
 
+  Future<void> _pickExpiryDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _expiryDate ?? now.add(const Duration(days: 365)),
+      firstDate: now.add(const Duration(days: 1)),
+      lastDate: now.add(const Duration(days: 365 * 10)),
+      locale: const Locale('fr'),
+      helpText: 'Date d\'expiration',
+      confirmText: 'Confirmer',
+      cancelText: 'Annuler',
+    );
+    if (picked != null && mounted) setState(() => _expiryDate = picked);
+  }
+
   Future<void> _submit() async {
     if (_pickedFile == null || _isSaving) return;
     setState(() => _isSaving = true);
@@ -1426,6 +1459,7 @@ class _DocumentPickerSheetState extends State<_DocumentPickerSheet> {
       final result = await widget.profileService.uploadDocument(
         documentType: widget.item.key,
         file: _pickedFile!,
+        expiryDate: _expiryDate,
       );
       success = result.isSuccess;
     } else {
@@ -1433,6 +1467,7 @@ class _DocumentPickerSheetState extends State<_DocumentPickerSheet> {
         widget.vehicleUuid!,
         apiKey,
         _pickedFile!,
+        expiryDate: _expiryDate,
       );
       success = result.isSuccess;
     }
@@ -1537,6 +1572,52 @@ class _DocumentPickerSheetState extends State<_DocumentPickerSheet> {
                 ],
               ),
             ),
+          if (widget.item.hasExpiryTracking) ...[
+            GestureDetector(
+              onTap: _isSaving ? null : _pickExpiryDate,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.event_rounded,
+                        color: _expiryDate != null
+                            ? AppColors.primary
+                            : AppColors.textMuted,
+                        size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _expiryDate != null
+                            ? 'Expire le ${_expiryDate!.day.toString().padLeft(2, '0')}/'
+                                '${_expiryDate!.month.toString().padLeft(2, '0')}/'
+                                '${_expiryDate!.year}'
+                            : 'Date d\'expiration (optionnel)',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: _expiryDate != null
+                              ? AppColors.textPrimary
+                              : AppColors.textMuted,
+                        ),
+                      ),
+                    ),
+                    if (_expiryDate != null)
+                      GestureDetector(
+                        onTap: () => setState(() => _expiryDate = null),
+                        child: const Icon(Icons.close_rounded,
+                            size: 16, color: AppColors.textMuted),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
           Row(
             children: [
               Expanded(

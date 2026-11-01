@@ -6,6 +6,7 @@ import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_strings.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/wallet/wallet_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
+import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 class RevenusController extends GetxController {
   WalletService get _service => Get.find<WalletService>();
@@ -97,18 +98,7 @@ class RevenusController extends GetxController {
   // ── Actions ───────────────────────────────────────────────────────────────
 
   void onWithdraw() {
-    Get.dialog(AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Row(children: [
-        Icon(Icons.payments_rounded, color: AppColors.primary, size: 22),
-        SizedBox(width: 10),
-        Text('Retirer des fonds', style: TextStyle(fontSize: 16)),
-      ]),
-      content: const Text(
-        'Rendez-vous dans la section Portefeuille pour effectuer un retrait vers MTN Money, Moov Money ou votre compte bancaire.',
-      ),
-      actions: [TextButton(onPressed: Get.back, child: const Text('Fermer'))],
-    ));
+    Get.toNamed(AppRoutes.driverWithdraw)?.then((_) => _loadWallet());
   }
 
   void onHistory() {

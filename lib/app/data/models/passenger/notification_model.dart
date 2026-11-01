@@ -50,14 +50,16 @@ class PassengerNotificationModel {
     final int? iconBgValue;
 
     if (isNewFormat) {
-      type        = topType;
-      category    = _categoryFromType(topType);
+      type        = (nested['type'] as String? ?? '').isNotEmpty
+          ? nested['type'] as String
+          : topType;
+      category    = _categoryFromType(type);
       title       = (nested['title'] as String? ?? '').isNotEmpty
           ? nested['title'] as String
-          : _titleFromType(topType, nested);
+          : _titleFromType(type, nested);
       body        = (nested['body'] as String? ?? '').isNotEmpty
           ? nested['body'] as String
-          : _bodyFromType(topType, nested);
+          : _bodyFromType(type, nested);
       isRead      = j['read_at'] != null;
       actionData  = Map<String, dynamic>.from(nested);
       iconName    = '';

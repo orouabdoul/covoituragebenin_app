@@ -9,6 +9,7 @@ import 'package:get/get.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/services/tracking/tracking_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/routing/routing_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/phone_utils.dart';
@@ -32,9 +33,22 @@ class MonTrajetController extends GetxController {
   final passengerCount = 0.obs;
   final passengers     = <ActivePassengerModel>[].obs;
 
+  // ── Embarquement par passager ─────────────────────────────────────────────
+  // Set des bookingUuids en attente de confirmation (FCM envoyé, timer actif)
+  final boardingPending = <String>{}.obs;
+  final _boardingTimers = <String, Timer>{};
+  // Callback appelé quand on veut ouvrir le dialog de code (injecté par la vue)
+  void Function(String bookingUuid)? onBoardingTimeout;
+  // Callback appelé à la fin du trajet avec montant en attente (injecté par la vue)
+  void Function(double pendingAmount, String? releaseAt)? onTripCompleted;
+
   // ── Boutons d'action ──────────────────────────────────────────────────────
   final isStarting    = false.obs;
   final isCompleting  = false.obs;
+  // Set des bookingUuids en cours de dépôt (appel API en flight)
+  final droppingOff   = <String>{}.obs;
+  // Set des bookingUuids en cours de signalement absent
+  final noShowPending = <String>{}.obs;
 
   // ── Position GPS propre ───────────────────────────────────────────────────
   final myLatLng    = Rx<LatLng>(_benin);
@@ -63,6 +77,10 @@ class MonTrajetController extends GetxController {
 
   @override
   void onClose() {
+    for (final t in _boardingTimers.values) {
+      t.cancel();
+    }
+    _boardingTimers.clear();
     _gpsSub?.cancel();
     _gpsPushTimer?.cancel();
     super.onClose();
@@ -107,9 +125,10 @@ class MonTrajetController extends GetxController {
           passengers.value = paxList.map<ActivePassengerModel>((p) {
             final pm = p as dynamic;
             return ActivePassengerModel(
-              name:  pm.name?.toString()  ?? 'Passager',
-              phone: pm.phone?.toString() ?? '',
-              seats: (pm.seatsBooked as int?) ?? 1,
+              name:        pm.fullName?.toString() ?? pm.name?.toString() ?? 'Passager',
+              phone:       pm.phone?.toString() ?? '',
+              seats:       (pm.seatsBooked as int?) ?? 1,
+              bookingUuid: pm.bookingUuid?.toString() ?? '',
             );
           }).toList();
           passengerCount.value = passengers.length;
@@ -355,20 +374,187 @@ class MonTrajetController extends GetxController {
       if (result.isSuccess) {
         tripStatus.value = 'completed';
         _gpsSub?.cancel();
-        Get.snackbar('Trajet terminé',
-            'Merci ! Le trajet a été enregistré.',
-            snackPosition: SnackPosition.TOP,
-            duration: const Duration(seconds: 3));
-        Future.delayed(const Duration(seconds: 2), () {
-          Get.until((r) =>
-              r.settings.name == AppRoutes.dashboardDriver || r.isFirst);
-        });
+        final body = result.data ?? {};
+        final pendingAmount = (body['pending_amount'] as num?)?.toDouble() ?? 0;
+        final releaseAt = body['release_at'] as String?;
+        if (pendingAmount > 0 && onTripCompleted != null) {
+          onTripCompleted!(pendingAmount, releaseAt);
+        } else {
+          Get.snackbar('Trajet terminé', 'Merci ! Le trajet a été enregistré.',
+              snackPosition: SnackPosition.TOP,
+              duration: const Duration(seconds: 3));
+          Future.delayed(const Duration(seconds: 2), () {
+            Get.until((r) =>
+                r.settings.name == AppRoutes.dashboardDriver || r.isFirst);
+          });
+        }
       } else {
         Get.snackbar('Erreur', 'Impossible de terminer le trajet.',
             snackPosition: SnackPosition.TOP);
       }
     } finally {
       isCompleting.value = false;
+    }
+  }
+
+  // ── Embarquement ─────────────────────────────────────────────────────────
+
+  Future<void> initiateBoarding(int index) async {
+    if (index >= passengers.length) return;
+    final p = passengers[index];
+    if (p.bookingUuid.isEmpty || p.isBoarded) return;
+    if (boardingPending.contains(p.bookingUuid)) return;
+
+    final pos = gpsReady.value ? myLatLng.value : null;
+    final result = await _svc.requestBoarding(
+      _tripUuid,
+      p.bookingUuid,
+      driverLat: pos?.latitude,
+      driverLng: pos?.longitude,
+    );
+
+    if (!result.isSuccess) {
+      Get.snackbar('Erreur', 'Impossible d\'envoyer la demande d\'embarquement.',
+          snackPosition: SnackPosition.TOP);
+      return;
+    }
+
+    boardingPending.add(p.bookingUuid);
+
+    // Timer 2 min → fallback saisie code
+    _boardingTimers[p.bookingUuid] = Timer(
+      const Duration(minutes: 2),
+      () => _onBoardingTimeout(p.bookingUuid),
+    );
+  }
+
+  void _onBoardingTimeout(String bookingUuid) {
+    _boardingTimers.remove(bookingUuid);
+    boardingPending.remove(bookingUuid);
+    onBoardingTimeout?.call(bookingUuid);
+  }
+
+  void handlePassengerBoarded(String bookingUuid) {
+    _boardingTimers[bookingUuid]?.cancel();
+    _boardingTimers.remove(bookingUuid);
+    boardingPending.remove(bookingUuid);
+    final idx = passengers.indexWhere((p) => p.bookingUuid == bookingUuid);
+    if (idx >= 0) {
+      final updated = List<ActivePassengerModel>.from(passengers);
+      updated[idx] = updated[idx].copyWith(pickedUpAt: DateTime.now());
+      passengers.value = updated;
+    }
+  }
+
+  Future<void> confirmBoardingByCode(String bookingUuid, String code) async {
+    final pos = gpsReady.value ? myLatLng.value : null;
+    final result = await _svc.verifyBoardingCode(
+      _tripUuid,
+      bookingUuid,
+      code,
+      driverLat: pos?.latitude,
+      driverLng: pos?.longitude,
+    );
+    if (result.isSuccess) {
+      handlePassengerBoarded(bookingUuid);
+      Get.back(); // ferme le dialog de code
+    } else {
+      Get.snackbar('Code incorrect', 'Vérifiez le code à 4 chiffres du passager.',
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: const Color(0xFFEF4444),
+          colorText: Colors.white);
+    }
+  }
+
+  // ── Embarquement manuel (téléphone mort) ─────────────────────────────────
+
+  Future<void> confirmBoardingManual(String bookingUuid) async {
+    final result = await _svc.confirmBoardingManual(_tripUuid, bookingUuid);
+    if (result.isSuccess) {
+      handlePassengerBoarded(bookingUuid);
+      Get.back(); // ferme le dialog
+    } else {
+      Get.snackbar('Erreur', 'Confirmation manuelle impossible. Réessayez.',
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: const Color(0xFFEF4444),
+          colorText: Colors.white);
+    }
+  }
+
+  // ── No-show passager ─────────────────────────────────────────────────────
+
+  /// Retourne true si le bouton "Absent" peut être affiché pour ce passager.
+  /// Condition : 15min après l'heure de départ prévue.
+  bool canReportNoShow(int index) {
+    if (index >= passengers.length) return false;
+    final p = passengers[index];
+    if (p.isBoarded || p.isNoShow) return false;
+    if (departureTime.value.isEmpty) return _isActive; // fallback si pas d'heure
+    final dep = DateTime.tryParse(departureTime.value) ??
+        DateTime.tryParse(departureTime.value.replaceFirst(' ', 'T'));
+    if (dep == null) return _isActive;
+    return DateTime.now().isAfter(dep.add(const Duration(minutes: 15)));
+  }
+
+  Future<void> reportNoShow(int index) async {
+    if (index >= passengers.length) return;
+    final p = passengers[index];
+    if (p.bookingUuid.isEmpty || p.isBoarded || p.isNoShow) return;
+    if (noShowPending.contains(p.bookingUuid)) return;
+
+    noShowPending.add(p.bookingUuid);
+    try {
+      final result = await _svc.reportPassengerNoShow(_tripUuid, p.bookingUuid);
+      if (result.isSuccess) {
+        final updated = List<ActivePassengerModel>.from(passengers);
+        updated[index] = updated[index].copyWith(noShowAt: DateTime.now());
+        passengers.value = updated;
+        Get.snackbar(
+          'Passager absent',
+          '${p.name} a été marqué absent. Les fonds vous seront libérés.',
+          snackPosition: SnackPosition.TOP,
+          duration: const Duration(seconds: 4),
+          backgroundColor: AppColors.accent,
+          colorText: Colors.white,
+        );
+      } else {
+        final msg = result.error?.message ?? 'Impossible de signaler l\'absence.';
+        Get.snackbar('Erreur', msg, snackPosition: SnackPosition.TOP);
+      }
+    } finally {
+      noShowPending.remove(p.bookingUuid);
+    }
+  }
+
+  // ── Dépôt passager ───────────────────────────────────────────────────────
+
+  Future<void> dropoffPassenger(int index) async {
+    if (index >= passengers.length) return;
+    final p = passengers[index];
+    if (p.bookingUuid.isEmpty || !p.isBoarded || p.isDroppedOff) return;
+    if (droppingOff.contains(p.bookingUuid)) return;
+
+    droppingOff.add(p.bookingUuid);
+    try {
+      final result = await _svc.dropoffPassenger(_tripUuid, p.bookingUuid);
+      if (result.isSuccess) {
+        final updated = List<ActivePassengerModel>.from(passengers);
+        updated[index] = updated[index].copyWith(droppedOffAt: DateTime.now());
+        passengers.value = updated;
+        Get.snackbar(
+          'Passager déposé',
+          '${p.name} a été déposé. Les fonds seront libérés dans 1h.',
+          snackPosition: SnackPosition.TOP,
+          duration: const Duration(seconds: 4),
+          backgroundColor: AppColors.success,
+          colorText: Colors.white,
+        );
+      } else {
+        Get.snackbar('Erreur', 'Impossible de confirmer le dépôt. Réessayez.',
+            snackPosition: SnackPosition.TOP);
+      }
+    } finally {
+      droppingOff.remove(p.bookingUuid);
     }
   }
 
@@ -427,15 +613,17 @@ class MonTrajetController extends GetxController {
             (ap) => ap.name.toLowerCase() == p.name.toLowerCase(),
             orElse: () => p,
           );
-          return ActivePassengerModel(
-            name:       p.name,
-            phone:      match.phone.isNotEmpty ? match.phone : p.phone,
-            seats:      p.seats,
-            pickupLat:  p.pickupLat  ?? match.pickupLat,
-            pickupLng:  p.pickupLng  ?? match.pickupLng,
-            dropoffLat: p.dropoffLat ?? match.dropoffLat,
-            dropoffLng: p.dropoffLng ?? match.dropoffLng,
-            avatar:     p.avatar     ?? match.avatar,
+          return p.copyWith(
+            bookingUuid:  p.bookingUuid.isNotEmpty ? null : match.bookingUuid,
+            phone:        p.phone.isNotEmpty ? null : match.phone,
+            pickupLat:    p.pickupLat    ?? match.pickupLat,
+            pickupLng:    p.pickupLng    ?? match.pickupLng,
+            dropoffLat:   p.dropoffLat   ?? match.dropoffLat,
+            dropoffLng:   p.dropoffLng   ?? match.dropoffLng,
+            avatar:       p.avatar       ?? match.avatar,
+            pickedUpAt:   p.pickedUpAt   ?? match.pickedUpAt,
+            droppedOffAt: p.droppedOffAt ?? match.droppedOffAt,
+            noShowAt:     p.noShowAt     ?? match.noShowAt,
           );
         } catch (_) {
           return p;

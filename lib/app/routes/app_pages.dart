@@ -152,12 +152,12 @@ class AppPages {
     _page(
       name: AppRoutes.completeProfileDriver,
       page: () => const CompleteProfileView(),
-      binding: CompleteProfileBinding(),
+      binding: CompleteProfileBinding(isDriver: true),
     ),
     _page(
       name: AppRoutes.completeProfilePassenger,
       page: () => const CompleteProfileView(),
-      binding: CompleteProfileBinding(),
+      binding: CompleteProfileBinding(isDriver: false),
     ),
     _page(
       name: AppRoutes.passengerHome,

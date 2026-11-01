@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
@@ -28,6 +29,10 @@ class TrajetAttenteView extends GetView<TrajetAttenteController> {
                 : const SizedBox.shrink()),
             _BottomSheet(c: controller),
             _TopBar(c: controller),
+            // Overlay embarquement (plein écran, priorité max)
+            Obx(() => controller.showBoardingOverlay.value
+                ? _BoardingConfirmationOverlay(c: controller)
+                : const SizedBox.shrink()),
           ],
         );
       }),
@@ -268,6 +273,7 @@ class _BottomSheet extends StatelessWidget {
                   SizedBox(height: r.h(16)),
                   _CallBtn(c: c, r: r),
                   SizedBox(height: r.h(10)),
+                  _DriverAbsentBtn(c: c, r: r),
                   _AutoRefreshHint(r: r),
                   SizedBox(
                       height: MediaQuery.paddingOf(context).bottom + 12),
@@ -600,6 +606,101 @@ class _CallBtn extends StatelessWidget {
       );
 }
 
+class _DriverAbsentBtn extends StatelessWidget {
+  const _DriverAbsentBtn({required this.c, required this.r});
+  final TrajetAttenteController c;
+  final AppResponsive r;
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final canReport  = c.canReportDriverAbsent;
+      final hasReported = c.hasReportedDriverAbsent.value;
+      final isLoading  = c.isReportingDriverAbsent.value;
+
+      if (hasReported) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: r.h(8)),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.info_outline_rounded,
+                  size: 14, color: AppColors.textHint),
+              const SizedBox(width: 6),
+              Text('Absence signalée',
+                  style: AppTextStyles.caption(r)
+                      .copyWith(color: AppColors.textHint)),
+            ],
+          ),
+        );
+      }
+
+      if (!canReport) return const SizedBox.shrink();
+
+      return Padding(
+        padding: EdgeInsets.only(bottom: r.h(8)),
+        child: SizedBox(
+          width: double.infinity,
+          height: r.h(48),
+          child: OutlinedButton.icon(
+            onPressed: isLoading ? null : () => _confirm(context),
+            icon: isLoading
+                ? SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: AppColors.danger),
+                  )
+                : Icon(Icons.person_off_rounded,
+                    size: r.text(18), color: AppColors.danger),
+            label: Text(
+              isLoading ? 'Signalement…' : 'Signaler conducteur absent',
+              style: AppTextStyles.button(r).copyWith(color: AppColors.danger),
+            ),
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: AppColors.danger.withValues(alpha: 0.50)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
+            ),
+          ),
+        ),
+      );
+    });
+  }
+
+  Future<void> _confirm(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Conducteur absent ?'),
+        content: const Text(
+          'Confirmez-vous que le conducteur ne s\'est pas présenté 15 minutes après l\'heure prévue ?\n\n'
+          'Si tous les passagers confirment, le trajet sera annulé et vous serez remboursé(e).',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.danger,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Signaler'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) c.reportDriverAbsent();
+  }
+}
+
 class _AutoRefreshHint extends StatelessWidget {
   const _AutoRefreshHint({required this.r});
   final AppResponsive r;
@@ -657,6 +758,246 @@ class _ErrorState extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Overlay plein-écran : confirmation d'embarquement ────────────────────────
+
+class _BoardingConfirmationOverlay extends StatefulWidget {
+  const _BoardingConfirmationOverlay({required this.c});
+  final TrajetAttenteController c;
+
+  @override
+  State<_BoardingConfirmationOverlay> createState() =>
+      _BoardingConfirmationOverlayState();
+}
+
+class _BoardingConfirmationOverlayState
+    extends State<_BoardingConfirmationOverlay> {
+  bool _isConfirming = false;
+  bool _isRefusing   = false;
+  String? _gpsWarning;
+
+  Future<void> _onConfirm() async {
+    setState(() => _isConfirming = true);
+
+    double? lat;
+    double? lng;
+    String? warning;
+
+    // Récupérer la position GPS du passager (best-effort, non bloquant)
+    try {
+      final perm = await Geolocator.checkPermission();
+      if (perm != LocationPermission.denied &&
+          perm != LocationPermission.deniedForever) {
+        final pos = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            timeLimit: Duration(seconds: 5),
+          ),
+        );
+        lat = pos.latitude;
+        lng = pos.longitude;
+
+        // Vérifier la distance avec le conducteur si on a ses coordonnées
+        final dLat = widget.c.boardingDriverLat.value;
+        final dLng = widget.c.boardingDriverLng.value;
+        if (dLat != null && dLng != null) {
+          final dist = TrajetAttenteController.haversine(
+              lat, lng, dLat, dLng) * 1000; // en mètres
+          if (dist > 100) {
+            warning = 'Vous semblez à ${dist.round()} m du véhicule. Confirmer quand même ?';
+          }
+        }
+      }
+    } catch (_) {
+      // GPS indisponible — on confirme quand même
+    }
+
+    // Si avertissement GPS → demander confirmation supplémentaire
+    if (warning != null && mounted) {
+      setState(() { _isConfirming = false; _gpsWarning = warning; });
+      return;
+    }
+
+    await widget.c.confirmBoarding(lat: lat, lng: lng);
+    if (mounted) setState(() => _isConfirming = false);
+  }
+
+  Future<void> _onConfirmAnyway() async {
+    setState(() { _isConfirming = true; _gpsWarning = null; });
+    await widget.c.confirmBoarding();
+    if (mounted) setState(() => _isConfirming = false);
+  }
+
+  Future<void> _onRefuse() async {
+    final r = AppResponsive(context);
+    final confirmed = await Get.dialog<bool>(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Confirmer le refus', style: AppTextStyles.h5(r)),
+        content: Text(
+          'Cela signalera un incident à notre équipe support. Êtes-vous sûr ?',
+          style: AppTextStyles.bodyMedium(r),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: Text('Annuler',
+                style: AppTextStyles.bodyMedium(r)
+                    .copyWith(color: AppColors.textHint)),
+          ),
+          ElevatedButton(
+            onPressed: () => Get.back(result: true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.danger,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Signaler'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _isRefusing = true);
+    await widget.c.refuseBoarding();
+    if (mounted) setState(() => _isRefusing = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final r = AppResponsive(context);
+    return Container(
+      color: Colors.black.withValues(alpha: 0.85),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.directions_car_rounded,
+                    color: AppColors.primary, size: 48),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Confirmation d\'embarquement',
+                style: AppTextStyles.h4(r).copyWith(color: Colors.white),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Votre conducteur indique que vous êtes à bord.\nConfirmez-vous ?',
+                style: AppTextStyles.bodyMedium(r)
+                    .copyWith(color: Colors.white70),
+                textAlign: TextAlign.center,
+              ),
+              if (_gpsWarning != null) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withValues(alpha: 0.20),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: AppColors.warning.withValues(alpha: 0.50)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded,
+                          color: AppColors.warning, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _gpsWarning!,
+                          style: AppTextStyles.caption(r)
+                              .copyWith(color: AppColors.warning),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 32),
+              if (_gpsWarning != null)
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: _isConfirming ? null : _onConfirmAnyway,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.warning,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: _isConfirming
+                        ? const CircularProgressIndicator(
+                            color: Colors.white, strokeWidth: 2)
+                        : Text('Confirmer quand même',
+                            style: AppTextStyles.button(r)),
+                  ),
+                )
+              else
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton.icon(
+                    onPressed: _isConfirming ? null : _onConfirm,
+                    icon: _isConfirming
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Icon(Icons.check_circle_rounded, size: 20),
+                    label: Text('Oui, je suis à bord',
+                        style: AppTextStyles.button(r)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.success,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: OutlinedButton.icon(
+                  onPressed: (_isRefusing || _isConfirming) ? null : _onRefuse,
+                  icon: _isRefusing
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white60),
+                        )
+                      : const Icon(Icons.close_rounded, size: 20),
+                  label: Text('Non', style: AppTextStyles.button(r)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: BorderSide(color: Colors.white38),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -222,21 +222,33 @@ class ActivePassengerModel {
     required this.name,
     required this.phone,
     required this.seats,
+    this.bookingUuid = '',
     this.pickupLat,
     this.pickupLng,
     this.dropoffLat,
     this.dropoffLng,
     this.avatar,
+    this.pickedUpAt,
+    this.droppedOffAt,
+    this.noShowAt,
   });
 
   final String name;
   final String phone;
   final int seats;
+  final String bookingUuid;
   final double? pickupLat;
   final double? pickupLng;
   final double? dropoffLat;
   final double? dropoffLng;
   final String? avatar;
+  final DateTime? pickedUpAt;
+  final DateTime? droppedOffAt;
+  final DateTime? noShowAt;
+
+  bool get isBoarded     => pickedUpAt   != null;
+  bool get isDroppedOff  => droppedOffAt != null;
+  bool get isNoShow      => noShowAt     != null;
 
   factory ActivePassengerModel.fromJson(Map<String, dynamic> j) {
     final p = j['passenger'] as Map<String, dynamic>? ?? {};
@@ -244,15 +256,52 @@ class ActivePassengerModel {
     final firstName = profile['first_name']?.toString() ?? '';
     final lastName  = profile['last_name']?.toString() ?? '';
     final fullName  = [firstName, lastName].where((s) => s.isNotEmpty).join(' ');
+    final pickedUpRaw   = j['picked_up_at']?.toString();
+    final droppedOffRaw = j['dropped_off_at']?.toString();
+    final noShowRaw     = j['no_show_at']?.toString();
     return ActivePassengerModel(
-      name:        fullName.isNotEmpty ? fullName : 'Passager',
-      phone:       p['phone']?.toString() ?? '',
-      seats:       (j['seats'] as num?)?.toInt() ?? 1,
-      pickupLat:   (j['pickup_latitude']  as num?)?.toDouble(),
-      pickupLng:   (j['pickup_longitude'] as num?)?.toDouble(),
-      dropoffLat:  (j['dropoff_latitude']  as num?)?.toDouble(),
-      dropoffLng:  (j['dropoff_longitude'] as num?)?.toDouble(),
-      avatar:      profile['avatar']?.toString(),
+      name:         fullName.isNotEmpty ? fullName : 'Passager',
+      phone:        p['phone']?.toString() ?? '',
+      seats:        (j['seats'] ?? j['seats_booked'] as num?)?.toInt() ?? 1,
+      bookingUuid:  j['uuid']?.toString() ?? '',
+      pickupLat:    (j['pickup_latitude']  as num?)?.toDouble(),
+      pickupLng:    (j['pickup_longitude'] as num?)?.toDouble(),
+      dropoffLat:   (j['dropoff_latitude']  as num?)?.toDouble(),
+      dropoffLng:   (j['dropoff_longitude'] as num?)?.toDouble(),
+      avatar:       profile['avatar']?.toString(),
+      pickedUpAt:   pickedUpRaw   != null ? DateTime.tryParse(pickedUpRaw)   : null,
+      droppedOffAt: droppedOffRaw != null ? DateTime.tryParse(droppedOffRaw) : null,
+      noShowAt:     noShowRaw     != null ? DateTime.tryParse(noShowRaw)     : null,
+    );
+  }
+
+  ActivePassengerModel copyWith({
+    String? bookingUuid,
+    String? name,
+    String? phone,
+    int? seats,
+    double? pickupLat,
+    double? pickupLng,
+    double? dropoffLat,
+    double? dropoffLng,
+    String? avatar,
+    DateTime? pickedUpAt,
+    DateTime? droppedOffAt,
+    DateTime? noShowAt,
+  }) {
+    return ActivePassengerModel(
+      bookingUuid:  bookingUuid  ?? this.bookingUuid,
+      name:         name         ?? this.name,
+      phone:        phone        ?? this.phone,
+      seats:        seats        ?? this.seats,
+      pickupLat:    pickupLat    ?? this.pickupLat,
+      pickupLng:    pickupLng    ?? this.pickupLng,
+      dropoffLat:   dropoffLat   ?? this.dropoffLat,
+      dropoffLng:   dropoffLng   ?? this.dropoffLng,
+      avatar:       avatar       ?? this.avatar,
+      pickedUpAt:   pickedUpAt   ?? this.pickedUpAt,
+      droppedOffAt: droppedOffAt ?? this.droppedOffAt,
+      noShowAt:     noShowAt     ?? this.noShowAt,
     );
   }
 }

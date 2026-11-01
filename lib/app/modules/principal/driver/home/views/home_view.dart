@@ -64,6 +64,36 @@ class DriverHomeView extends StatelessWidget {
                       level: controller.level.value,
                     )),
 
+                    // ── Bannière de sanction ──────────────────────────────────
+                    Obx(() {
+                      if (controller.isSuspended.value) {
+                        final until = controller.suspendedUntil.value;
+                        final label = until != null
+                            ? 'Compte suspendu jusqu\'au '
+                                '${until.day.toString().padLeft(2, '0')}/'
+                                '${until.month.toString().padLeft(2, '0')}/'
+                                '${until.year}'
+                            : 'Compte suspendu';
+                        return _SanctionBanner(
+                          message: label,
+                          subtitle: 'Vous ne pouvez pas publier de trajets.',
+                          color: AppColors.danger,
+                          icon: Icons.block_rounded,
+                        );
+                      }
+                      if (controller.warningCount.value > 0) {
+                        final n = controller.warningCount.value;
+                        final score = controller.visibilityScore.value;
+                        return _SanctionBanner(
+                          message: 'Avertissement $n/3 — visibilité $score%',
+                          subtitle: 'Un 3ème avertissement entraîne une suspension de 7 jours.',
+                          color: AppColors.warning,
+                          icon: Icons.warning_amber_rounded,
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    }),
+
                     SizedBox(height: responsive.h(10)),
 
                     // ── Zone 1 : Hero (disponibilité + revenus du jour) ──────
@@ -1455,6 +1485,66 @@ class _MiniButton extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ── Sanction Banner ───────────────────────────────────────────────────────────
+
+class _SanctionBanner extends StatelessWidget {
+  const _SanctionBanner({
+    required this.message,
+    required this.subtitle,
+    required this.color,
+    required this.icon,
+  });
+
+  final String message;
+  final String subtitle;
+  final Color color;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.35), width: 1.5),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  message,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: color.withValues(alpha: 0.80),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

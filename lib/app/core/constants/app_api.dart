@@ -102,7 +102,21 @@ class AppApi {
   static String driverTripMap(String uuid) => '/driver/trips/$uuid/map';
   static String driverTripStopDone(String tripUuid, String bookingUuid) =>
       '/driver/trips/$tripUuid/stops/$bookingUuid/done';
+  static String driverTripBoardingRequest(String tripUuid, String bookingUuid) =>
+      '/driver/trips/$tripUuid/stops/$bookingUuid/boarding-request';
+  static String driverTripVerifyCode(String tripUuid, String bookingUuid) =>
+      '/driver/trips/$tripUuid/stops/$bookingUuid/verify-code';
+  static String driverTripDropoff(String tripUuid, String bookingUuid) =>
+      '/driver/trips/$tripUuid/stops/$bookingUuid/dropoff';
+  static String driverTripNoShow(String tripUuid, String bookingUuid) =>
+      '/driver/trips/$tripUuid/stops/$bookingUuid/no-show';
+  static String driverTripBoardingManual(String tripUuid, String bookingUuid) =>
+      '/driver/trips/$tripUuid/stops/$bookingUuid/confirm-boarding-manual';
+  static String passengerReportDriverAbsent(String bookingUuid) =>
+      '/passenger/bookings/$bookingUuid/report-driver-absent';
   static String driverTripRecalculate(String uuid) => '/driver/trips/$uuid/recalculate';
+  static String passengerBoardingRefuse(String bookingUuid) =>
+      '/passenger/bookings/$bookingUuid/boarding-refuse';
   static String tripLocation(String uuid)  => '/trips/$uuid/location';
   static String tripTracking(String uuid)  => '/trips/$uuid/tracking';
   static String tripComplete(String uuid)  => '/trips/$uuid/complete';

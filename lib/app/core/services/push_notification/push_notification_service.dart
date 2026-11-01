@@ -21,6 +21,10 @@ import '../../../modules/principal/driver/messager/controllers/detail_messager_c
     show DriverDetailMessagerController;
 import '../../../modules/principal/passager/messager/controllers/detail_messager_controller.dart'
     show PassengerDetailMessagerController;
+import '../../../modules/tracking/driver/mon_trajet/controllers/mon_trajet_controller.dart'
+    show MonTrajetController;
+import '../../../modules/tracking/passenger/trajet_attente/controllers/trajet_attente_controller.dart'
+    show TrajetAttenteController;
 
 // ── Canaux Android ─────────────────────────────────────────────────────────────
 // Suffixe _v2 : force la recréation des canaux sur les appareils qui
@@ -122,6 +126,14 @@ String _channelForType(String type) {
     case 'admin_alert':
     case 'trip_delay':
     case 'trip_emergency':
+    case 'boarding_request':
+    case 'passenger_boarded':
+    case 'passenger_picked_up':
+    case 'boarding_refused':
+    case 'passenger_no_show':
+    case 'passenger_dropped_off':
+    case 'trip_cancelled_driver_absent':
+    case 'driver_en_route':
       return _chTrip;
     // Paiements
     case 'payment_success':
@@ -155,6 +167,9 @@ String _channelForType(String type) {
     case 'kyc_status_changed':
     case 'kyc_status':               // backend v2
     case 'sos_triggered':
+    case 'document_expiring_soon':
+    case 'driver_warning_issued':
+    case 'driver_auto_suspended':
       return _chAccount;
     // Support tickets
     case 'ticket_resolved':
@@ -197,6 +212,7 @@ Color _colorForType(String type) {
     case 'booking_status_changed':
     case 'booking_status':
     case 'passenger_payment':
+    case 'passenger_picked_up':
       return AppColors.success;
     case 'trip_ended':
       return AppColors.blueDark;
@@ -238,7 +254,17 @@ Color _colorForType(String type) {
     case 'welcome':
       return AppColors.success;
     case 'sos_triggered':
+    case 'driver_auto_suspended':
+    case 'trip_cancelled_driver_absent':
       return AppColors.dangerDark;
+    case 'document_expiring_soon':
+    case 'driver_warning_issued':
+      return AppColors.warning;
+    case 'passenger_dropped_off':
+    case 'driver_en_route':
+      return AppColors.success;
+    case 'passenger_no_show':
+      return AppColors.accent;
     case 'promo_code_published':
     case 'promotion_published':
     case 'new_promotion':
@@ -270,6 +296,7 @@ bool _isCriticalType(String type) {
     case 'driver_approaching':
     case 'dispute_against_driver':
     case 'sos_triggered':
+    case 'boarding_request':
       return true;
     default:
       return false;
@@ -539,6 +566,54 @@ class PushNotificationService {
         // déjà la conversation.
         if (convUuid.isNotEmpty) _refreshActiveChat(convUuid);
         return false;
+
+      case 'boarding_request':
+        // Passager : afficher l'overlay plein-écran directement si le contrôleur
+        // est actif — la notification locale reste envoyée comme alerte sonore.
+        final bUuid = data['booking_uuid'] as String? ?? '';
+        final dLat  = double.tryParse(data['driver_lat']?.toString() ?? '');
+        final dLng  = double.tryParse(data['driver_lng']?.toString() ?? '');
+        if (Get.isRegistered<TrajetAttenteController>()) {
+          Get.find<TrajetAttenteController>().onBoardingRequest(
+            bookingUuid: bUuid,
+            driverLat:   dLat,
+            driverLng:   dLng,
+          );
+        }
+        return false; // garde la notification visible pour l'alerte sonore
+
+      case 'passenger_boarded':
+        // Conducteur : mettre à jour le statut du passager en temps réel.
+        final bookedUuid = data['booking_uuid'] as String? ?? '';
+        if (bookedUuid.isNotEmpty && Get.isRegistered<MonTrajetController>()) {
+          Get.find<MonTrajetController>().handlePassengerBoarded(bookedUuid);
+        }
+        return true; // silencieux — le contrôleur met à jour l'UI
+
+      case 'passenger_picked_up':
+        // Passager : conducteur a vérifié le code → transiter vers live tracking.
+        if (Get.isRegistered<TrajetAttenteController>()) {
+          Get.find<TrajetAttenteController>().refreshNow();
+        }
+        return false; // garde la notification visible comme confirmation sonore
+
+      case 'boarding_refused':
+        // Conducteur : le passager a refusé de monter.
+        if (Get.isRegistered<MonTrajetController>()) {
+          Get.snackbar(
+            'Embarquement refusé',
+            'Un passager a indiqué ne pas être à bord. Un signalement a été envoyé au support.',
+            backgroundColor: AppColors.dangerDark,
+            colorText: AppColors.white,
+            snackPosition: SnackPosition.TOP,
+            duration: const Duration(seconds: 6),
+            margin: const EdgeInsets.all(16),
+            borderRadius: 12,
+            icon: const Icon(Icons.warning_amber_rounded, color: AppColors.white),
+          );
+        }
+        return true; // silencieux — snackbar suffit
+
       default:
         return false;
     }
@@ -975,6 +1050,94 @@ class PushNotificationService {
           } else {
             _navigateToTab(1, isDriverRole: false);
           }
+        }
+
+      // ── Embarquement ─────────────────────────────────────────────────────
+      case 'boarding_request':
+        // Passager : ouvrir l'écran d'attente (l'overlay se déclenche via FCM)
+        if (!isDriver) {
+          Get.toNamed(
+            AppRoutes.passengerTripPending,
+            arguments: {
+              if (tripUuid    != null) 'tripUuid':    tripUuid,
+              if (bookingUuid != null) 'bookingUuid': bookingUuid,
+            },
+          );
+        }
+
+      case 'passenger_boarded':
+        // Conducteur : retour sur le suivi du trajet en cours
+        if (isDriver && tripUuid != null) {
+          Get.toNamed(AppRoutes.driverActiveTrip, arguments: {'tripUuid': tripUuid});
+        }
+
+      case 'passenger_picked_up':
+        // Passager : tap depuis notif → aller sur le live tracking
+        if (!isDriver) {
+          Get.toNamed(
+            AppRoutes.passengerLiveTracking,
+            arguments: {
+              if (tripUuid    != null) 'tripUuid':    tripUuid,
+              if (bookingUuid != null) 'bookingUuid': bookingUuid,
+            },
+          );
+        }
+
+      case 'boarding_refused':
+        // Conducteur : retour sur le suivi du trajet
+        if (isDriver && tripUuid != null) {
+          Get.toNamed(AppRoutes.driverActiveTrip, arguments: {'tripUuid': tripUuid});
+        }
+
+      // ── Documents expirés / sanctions conducteur ─────────────────────────
+      case 'document_expiring_soon':
+        if (isDriver) Get.toNamed(AppRoutes.driverProfile);
+
+      case 'driver_warning_issued':
+        if (isDriver) {
+          AppSync.i.refreshDriverDashboard();
+          _navigateToTab(0, isDriverRole: true);
+        }
+
+      case 'driver_auto_suspended':
+        if (isDriver) {
+          AppSync.i.refreshDriverDashboard();
+          _showAccountSuspendedDialog();
+        }
+
+      // ── Événements embarquement/dépose ────────────────────────────────────
+      case 'passenger_no_show':
+        // Conducteur : le passager n'est pas à bord — rester sur le trajet
+        if (isDriver && tripUuid != null) {
+          Get.toNamed(AppRoutes.driverActiveTrip, arguments: {'tripUuid': tripUuid});
+        }
+
+      case 'passenger_dropped_off':
+        // Passager : confirmé déposé → aller noter le conducteur
+        if (!isDriver) {
+          Get.toNamed(
+            AppRoutes.passengerTripConfirmation,
+            arguments: {
+              if (tripUuid    != null) 'tripUuid':    tripUuid,
+              if (bookingUuid != null) 'bookingUuid': bookingUuid,
+            },
+          );
+        }
+
+      case 'trip_cancelled_driver_absent':
+        // Passager : trajet annulé car conducteur absent → retour à la recherche
+        if (!isDriver) _navigateToTab(0, isDriverRole: false);
+
+      case 'driver_en_route':
+        // Passager : conducteur en route → aller sur l'écran d'attente
+        if (!isDriver) {
+          Get.toNamed(
+            AppRoutes.passengerTripPending,
+            arguments: {
+              if (tripUuid    != null) 'tripUuid':    tripUuid,
+              if (bookingUuid != null) 'bookingUuid': bookingUuid,
+            },
+          );
         }
 
       // ── Broadcast admin (pas de navigation forcée) ────────────────────────

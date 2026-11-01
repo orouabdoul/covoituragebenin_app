@@ -259,6 +259,12 @@ class DriverHomeController extends GetxController {
   final RxInt dashboardVersion = 0.obs;
   final RxString availabilityMode = 'normal'.obs;
 
+  // ── Sanctions ────────────────────────────────────────────────────────────
+  final RxInt warningCount = 0.obs;
+  final RxInt visibilityScore = 100.obs;
+  final RxBool isSuspended = false.obs;
+  final Rxn<DateTime> suspendedUntil = Rxn<DateTime>();
+
   // ── Objectif journalier ──────────────────────────────────────────────────
   final RxInt todayEarningsRaw = 0.obs;
   final RxInt dailyGoalFcfa = 15000.obs;
@@ -634,6 +640,11 @@ class DriverHomeController extends GetxController {
       progressFraction: data.level.progress.clamp(0.0, 1.0),
       badges: data.level.badges.map(_badgeFromApi).toList(),
     );
+
+    warningCount.value    = data.sanction.warningCount;
+    visibilityScore.value = data.sanction.visibilityScore;
+    isSuspended.value     = data.sanction.isSuspended;
+    suspendedUntil.value  = data.sanction.suspendedUntil;
 
     dashboardVersion.value++;
 

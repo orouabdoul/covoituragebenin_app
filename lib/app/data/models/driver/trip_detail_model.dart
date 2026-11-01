@@ -126,6 +126,11 @@ class TripDetailPassengerData {
     required this.phone,
     required this.seatsBooked,
     required this.amount,
+    required this.calculatedPrice,
+    required this.totalPrice,
+    required this.distanceKm,
+    required this.pickupCity,
+    required this.dropoffCity,
     required this.paymentStatus,
     required this.bookingStatus,
     required this.rating,
@@ -139,21 +144,37 @@ class TripDetailPassengerData {
   final String phone;
   final int seatsBooked;
   final int amount;
+  /// Prix proraté réellement payé par ce passager (selon sa distance)
+  final int calculatedPrice;
+  /// Prix total payé (calculatedPrice × seats + frais service)
+  final int totalPrice;
+  final double? distanceKm;
+  final String pickupCity;
+  final String dropoffCity;
   final String paymentStatus;
   final String bookingStatus;
   final double rating;
   final int tripsCount;
   final bool isVerified;
 
+  /// Prix à afficher : préfère totalPrice, sinon calculatedPrice × seats
+  int get displayTotal => totalPrice > 0
+      ? totalPrice
+      : calculatedPrice * seatsBooked;
+
   factory TripDetailPassengerData.fromJson(Map<String, dynamic> json) =>
       TripDetailPassengerData(
         bookingUuid: (json['booking_uuid'] as String?) ?? '',
-        // API returns "name" and "avatar_initial"
         fullName: (json['full_name'] ?? json['name'] as String?) ?? '',
         initials: (json['initials'] ?? json['avatar_initial'] as String?) ?? '',
         phone: (json['phone'] as String?) ?? '',
         seatsBooked: (json['seats_booked'] as num?)?.toInt() ?? 1,
         amount: (json['amount'] as num?)?.toInt() ?? 0,
+        calculatedPrice: (json['calculated_price'] as num?)?.toInt() ?? 0,
+        totalPrice: (json['total_price'] as num?)?.toInt() ?? 0,
+        distanceKm: (json['passenger_distance_km'] as num?)?.toDouble(),
+        pickupCity: (json['pickup_city'] as String?) ?? '',
+        dropoffCity: (json['dropoff_city'] as String?) ?? '',
         paymentStatus: (json['payment_status'] as String?) ?? 'pending',
         bookingStatus: (json['booking_status'] as String?) ?? '',
         rating: (json['rating'] as num?)?.toDouble() ?? 0.0,

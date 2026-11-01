@@ -63,14 +63,16 @@ class DriverNotificationModel {
     int? iconBgValue;
 
     if (isNewFormat) {
-      resolvedType = topType;
-      category     = _categoryFromType(topType);
+      resolvedType = (nested['type'] as String? ?? '').isNotEmpty
+          ? nested['type'] as String
+          : topType;
+      category     = _categoryFromType(resolvedType);
       title        = (nested['title'] as String? ?? '').isNotEmpty
           ? nested['title'] as String
-          : _titleFromType(topType, nested);
+          : _titleFromType(resolvedType, nested);
       body         = (nested['body'] as String? ?? '').isNotEmpty
           ? nested['body'] as String
-          : _bodyFromType(topType, nested);
+          : _bodyFromType(resolvedType, nested);
       isRead       = j['read_at'] != null;
       actionData   = Map<String, dynamic>.from(nested);
       iconName     = '';

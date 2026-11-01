@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:get/get.dart';
 import 'package:latlong2/latlong.dart';
@@ -6,6 +9,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_responsive.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_text_styles.dart';
+import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import '../controllers/mon_trajet_controller.dart';
 
 class MonTrajetView extends GetView<MonTrajetController> {
@@ -13,6 +17,14 @@ class MonTrajetView extends GetView<MonTrajetController> {
 
   @override
   Widget build(BuildContext context) {
+    // Injecter les callbacks depuis la vue
+    controller.onBoardingTimeout = (bookingUuid) {
+      _showBoardingCodeDialog(context, bookingUuid);
+    };
+    controller.onTripCompleted = (pendingAmount, releaseAt) {
+      _showCompletionSheet(context, pendingAmount, releaseAt);
+    };
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Obx(() {
@@ -30,6 +42,176 @@ class MonTrajetView extends GetView<MonTrajetController> {
           ],
         );
       }),
+    );
+  }
+
+  void _showBoardingCodeDialog(BuildContext context, String bookingUuid) {
+    final r = AppResponsive(context);
+    final codeCtrl = TextEditingController();
+    final isLoading = false.obs;
+    final isManualLoading = false.obs;
+
+    Get.dialog(
+      PopScope(
+        canPop: false,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20)),
+          title: Column(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF7C3AED).withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.pin_rounded,
+                    color: Color(0xFF7C3AED), size: 24),
+              ),
+              const SizedBox(height: 12),
+              Text('Code passager', style: AppTextStyles.h5(r)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Le passager n\'a pas répondu en 2 minutes.\nSaisissez son code ou confirmez manuellement.',
+                style: AppTextStyles.muted(r),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: codeCtrl,
+                keyboardType: TextInputType.number,
+                maxLength: 4,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 12,
+                ),
+                decoration: InputDecoration(
+                  counterText: '',
+                  hintText: '----',
+                  hintStyle: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 12,
+                    color: AppColors.textHint,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.primary),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                        color: AppColors.primary, width: 2),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 14),
+                ),
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                ],
+                autofocus: true,
+              ),
+              const SizedBox(height: 12),
+              Divider(color: AppColors.border),
+              const SizedBox(height: 4),
+              Obx(() => TextButton.icon(
+                onPressed: isManualLoading.value
+                    ? null
+                    : () async {
+                        isManualLoading.value = true;
+                        await controller.confirmBoardingManual(bookingUuid);
+                        isManualLoading.value = false;
+                      },
+                icon: isManualLoading.value
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Color(0xFFF59E0B)),
+                      )
+                    : const Icon(Icons.phonelink_off_rounded,
+                        size: 16, color: Color(0xFFF59E0B)),
+                label: Text(
+                  'Téléphone mort / Sans réseau',
+                  style: AppTextStyles.bodySmall(r).copyWith(
+                    color: const Color(0xFFF59E0B),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              )),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Get.back(),
+              child: Text('Annuler',
+                  style: AppTextStyles.bodyMedium(r)
+                      .copyWith(color: AppColors.textHint)),
+            ),
+            Obx(() => ElevatedButton(
+              onPressed: isLoading.value
+                  ? null
+                  : () async {
+                      final code = codeCtrl.text.trim();
+                      if (code.length != 4) return;
+                      isLoading.value = true;
+                      await controller.confirmBoardingByCode(
+                          bookingUuid, code);
+                      isLoading.value = false;
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF7C3AED),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
+              child: isLoading.value
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Text('Valider'),
+            )),
+          ],
+        ),
+      ),
+      barrierDismissible: false,
+    );
+  }
+
+  void _showCompletionSheet(
+      BuildContext context, double pendingAmount, String? releaseAt) {
+    DateTime? releaseTime;
+    if (releaseAt != null) {
+      final parsed = DateTime.tryParse(releaseAt);
+      if (parsed != null) releaseTime = parsed.isUtc ? parsed.toLocal() : parsed;
+    }
+    showModalBottomSheet(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _CompletionSheet(
+        pendingAmount: pendingAmount,
+        releaseAt: releaseTime,
+        onClose: () {
+          Get.back(); // ferme le sheet
+          Future.delayed(const Duration(milliseconds: 300), () {
+            Get.until((r) =>
+                r.settings.name == AppRoutes.dashboardDriver || r.isFirst);
+          });
+        },
+      ),
     );
   }
 }
@@ -529,11 +711,33 @@ class _ItinerarySection extends StatelessWidget {
           ...pax.asMap().entries.map((e) {
             final i = e.key;
             final p = e.value;
-            return _StopRow(
-              connector: true,
-              dot: _DotCircle(
-                color: const Color(0xFF7C3AED),
-                child: Center(
+            return Obx(() {
+              final cur       = c.passengers[i];
+              final isPending = c.boardingPending.contains(p.bookingUuid);
+              final isBoarded = cur.isBoarded;
+              final isNoShow  = cur.isNoShow;
+              final isNoShowPending = c.noShowPending.contains(p.bookingUuid);
+              final isActive  = c.tripStatus.value == 'active' ||
+                  c.tripStatus.value == 'in_progress' ||
+                  c.tripStatus.value == 'started';
+              final canNoShow = isActive && !isBoarded && !isNoShow && c.canReportNoShow(i);
+
+              Color dotColor;
+              Widget dotChild;
+              String sublabel;
+              if (isNoShow) {
+                dotColor = AppColors.danger;
+                dotChild = const Icon(Icons.person_off_rounded,
+                    color: Colors.white, size: 14);
+                sublabel = '${p.seats} place${p.seats > 1 ? 's' : ''} · Absent';
+              } else if (isBoarded) {
+                dotColor = AppColors.success;
+                dotChild = const Icon(Icons.check_rounded,
+                    color: Colors.white, size: 15);
+                sublabel = '${p.seats} place${p.seats > 1 ? 's' : ''} · Embarqué';
+              } else {
+                dotColor = const Color(0xFF7C3AED);
+                dotChild = Center(
                   child: Text(
                     '${i + 1}',
                     style: const TextStyle(
@@ -542,44 +746,85 @@ class _ItinerarySection extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                ),
-              ),
-              label: p.name,
-              sublabel:
-                  '${p.seats} place${p.seats > 1 ? 's' : ''} · Prise en charge',
-              trailingPhone: p.phone.isNotEmpty
-                  ? () => c.callPassenger(i)
-                  : null,
-              r: r,
-            );
+                );
+                sublabel = '${p.seats} place${p.seats > 1 ? 's' : ''} · Prise en charge';
+              }
+
+              return _StopRow(
+                connector: true,
+                dot: _DotCircle(color: dotColor, child: dotChild),
+                label: p.name,
+                sublabel: sublabel,
+                trailingPhone: p.phone.isNotEmpty && !isNoShow
+                    ? () => c.callPassenger(i)
+                    : null,
+                trailingBoarding: isNoShow
+                    ? null
+                    : isActive && !isBoarded
+                        ? canNoShow
+                            ? _NoShowButton(
+                                isPending: isNoShowPending,
+                                onTap: isNoShowPending
+                                    ? null
+                                    : () => _confirmNoShow(context, c, i),
+                              )
+                            : _BoardingButton(
+                                isPending: isPending,
+                                bookingUuid: p.bookingUuid,
+                                onTap: isPending ? null : () => c.initiateBoarding(i),
+                              )
+                        : null,
+                r: r,
+              );
+            });
           }),
-          // Arrêts dépôt (amber) — uniquement si coords disponibles
+          // Arrêts dépôt (amber) — uniquement si passager embarqué
           ...pax.asMap().entries
-              .where((e) =>
-                  e.value.dropoffLat != null && e.value.dropoffLng != null)
+              .where((e) => e.value.isBoarded)
               .map((e) {
             final i = e.key;
             final p = e.value;
-            return _StopRow(
-              connector: true,
-              dot: _DotCircle(
-                color: const Color(0xFFF59E0B),
-                child: Center(
-                  child: Text(
-                    '${i + 1}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+            return Obx(() {
+              final isDropped   = c.passengers[i].isDroppedOff;
+              final isDropping  = c.droppingOff.contains(p.bookingUuid);
+              final isActive    = c.tripStatus.value == 'active' ||
+                  c.tripStatus.value == 'in_progress' ||
+                  c.tripStatus.value == 'started';
+              return _StopRow(
+                connector: true,
+                dot: _DotCircle(
+                  color: isDropped
+                      ? AppColors.textHint
+                      : const Color(0xFFF59E0B),
+                  child: isDropped
+                      ? const Icon(Icons.check_rounded,
+                          color: Colors.white, size: 15)
+                      : Center(
+                          child: Text(
+                            '${i + 1}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
                 ),
-              ),
-              label: p.name,
-              sublabel:
-                  '${p.seats} place${p.seats > 1 ? 's' : ''} · Dépôt',
-              r: r,
-            );
+                label: p.name,
+                sublabel: isDropped
+                    ? '${p.seats} place${p.seats > 1 ? 's' : ''} · Déposé'
+                    : '${p.seats} place${p.seats > 1 ? 's' : ''} · À déposer',
+                trailingBoarding: isActive && !isDropped
+                    ? _DropoffButton(
+                        isPending: isDropping,
+                        onTap: isDropping
+                            ? null
+                            : () => c.dropoffPassenger(i),
+                      )
+                    : null,
+                r: r,
+              );
+            });
           }),
           // Ligne d'arrivée
           _StopRow(
@@ -624,6 +869,7 @@ class _StopRow extends StatelessWidget {
     required this.r,
     this.connector = false,
     this.trailingPhone,
+    this.trailingBoarding,
   });
   final Widget dot;
   final String label;
@@ -631,6 +877,7 @@ class _StopRow extends StatelessWidget {
   final AppResponsive r;
   final bool connector;
   final VoidCallback? trailingPhone;
+  final Widget? trailingBoarding;
 
   @override
   Widget build(BuildContext context) {
@@ -664,6 +911,13 @@ class _StopRow extends StatelessWidget {
               ),
             ),
           ),
+          if (trailingBoarding != null) ...[
+            Padding(
+              padding: EdgeInsets.only(top: connector ? 10 : 0),
+              child: trailingBoarding!,
+            ),
+            const SizedBox(width: 4),
+          ],
           if (trailingPhone != null) ...[
             Padding(
               padding: EdgeInsets.only(top: connector ? 14 : 0),
@@ -684,6 +938,274 @@ class _StopRow extends StatelessWidget {
             const SizedBox(width: 4),
           ],
         ],
+      ),
+    );
+  }
+}
+
+// ── Bouton embarquement par passager ──────────────────────────────────────────
+
+class _BoardingButton extends StatefulWidget {
+  const _BoardingButton({
+    required this.isPending,
+    required this.bookingUuid,
+    required this.onTap,
+  });
+  final bool isPending;
+  final String bookingUuid;
+  final VoidCallback? onTap;
+
+  @override
+  State<_BoardingButton> createState() => _BoardingButtonState();
+}
+
+class _BoardingButtonState extends State<_BoardingButton> {
+  Timer? _countdownTimer;
+  int _secondsLeft = 120;
+
+  @override
+  void didUpdateWidget(_BoardingButton old) {
+    super.didUpdateWidget(old);
+    if (widget.isPending && !old.isPending) {
+      _secondsLeft = 120;
+      _countdownTimer?.cancel();
+      _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (!mounted) return;
+        setState(() {
+          if (_secondsLeft > 0) _secondsLeft--;
+        });
+      });
+    } else if (!widget.isPending && old.isPending) {
+      _countdownTimer?.cancel();
+    }
+  }
+
+  @override
+  void dispose() {
+    _countdownTimer?.cancel();
+    super.dispose();
+  }
+
+  String get _countdownLabel {
+    final m = _secondsLeft ~/ 60;
+    final s = (_secondsLeft % 60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.isPending) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppColors.accent.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+              width: 12,
+              height: 12,
+              child: CircularProgressIndicator(
+                strokeWidth: 1.5,
+                color: Color(0xFFF59E0B),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              _countdownLabel,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFFF59E0B),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFF7C3AED).withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: const Color(0xFF7C3AED).withValues(alpha: 0.30),
+          ),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.how_to_reg_rounded,
+                size: 14, color: Color(0xFF7C3AED)),
+            SizedBox(width: 4),
+            Text(
+              'Embarquer',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF7C3AED),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Confirmation no-show (dialog) ────────────────────────────────────────────
+
+Future<void> _confirmNoShow(
+    BuildContext context, MonTrajetController c, int index) async {
+  final name = index < c.passengers.length ? c.passengers[index].name : '?';
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (_) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Text('Signaler une absence'),
+      content: Text(
+        '$name ne s\'est pas présenté(e) ?\n\n'
+        'En confirmant, son paiement vous sera libéré en guise d\'indemnisation.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Annuler'),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.pop(context, true),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.danger,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8)),
+          ),
+          child: const Text('Confirmer l\'absence'),
+        ),
+      ],
+    ),
+  );
+  if (confirmed == true) c.reportNoShow(index);
+}
+
+// ── Bouton dépôt par passager ─────────────────────────────────────────────────
+
+class _DropoffButton extends StatelessWidget {
+  const _DropoffButton({required this.isPending, required this.onTap});
+  final bool isPending;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isPending) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const SizedBox(
+          width: 14,
+          height: 14,
+          child: CircularProgressIndicator(
+            strokeWidth: 1.5,
+            color: Color(0xFFF59E0B),
+          ),
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: const Color(0xFFF59E0B).withValues(alpha: 0.40),
+          ),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.person_pin_circle_rounded,
+                size: 14, color: Color(0xFFF59E0B)),
+            SizedBox(width: 4),
+            Text(
+              'Déposer',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFFF59E0B),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Bouton no-show par passager ───────────────────────────────────────────────
+
+class _NoShowButton extends StatelessWidget {
+  const _NoShowButton({required this.isPending, required this.onTap});
+  final bool isPending;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isPending) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppColors.danger.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: SizedBox(
+          width: 14,
+          height: 14,
+          child: CircularProgressIndicator(
+            strokeWidth: 1.5,
+            color: AppColors.danger,
+          ),
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppColors.danger.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: AppColors.danger.withValues(alpha: 0.35),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.person_off_rounded, size: 14, color: AppColors.danger),
+            const SizedBox(width: 4),
+            Text(
+              'Absent',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.danger,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -755,30 +1277,17 @@ class _ActionButtons extends StatelessWidget {
         );
       }
 
-      return Column(
-        children: [
-          if (isPending)
-            _Btn(
-              onTap: c.isStarting.value ? null : c.startTrip,
-              icon: Icons.play_arrow_rounded,
-              label: c.isStarting.value
-                  ? 'Démarrage…'
-                  : 'Démarrer le trajet',
-              color: AppColors.primary,
-              r: r,
-            ),
-          if (isActive) ...[
-            _Btn(
-              onTap: c.isCompleting.value ? null : c.completeTrip,
-              icon: Icons.flag_rounded,
-              label: c.isCompleting.value
-                  ? 'Finalisation…'
-                  : 'Terminer le trajet',
-              color: AppColors.danger,
-              r: r,
-            ),
-          ],
-        ],
+      // Le trajet démarre automatiquement au premier embarquement passager.
+      // Seul le bouton "Terminer le trajet" reste explicite.
+      if (!isActive && !isPending) return const SizedBox.shrink();
+      return _Btn(
+        onTap: c.isCompleting.value ? null : c.completeTrip,
+        icon: Icons.flag_rounded,
+        label: c.isCompleting.value
+            ? 'Finalisation…'
+            : 'Terminer le trajet',
+        color: AppColors.danger,
+        r: r,
       );
     });
   }
@@ -863,6 +1372,186 @@ class _ErrorState extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ─── Feuillet de fin de trajet — fenêtre 2h ───────────────────────────────────
+
+class _CompletionSheet extends StatefulWidget {
+  const _CompletionSheet({
+    required this.pendingAmount,
+    required this.releaseAt,
+    required this.onClose,
+  });
+  final double pendingAmount;
+  final DateTime? releaseAt;
+  final VoidCallback onClose;
+
+  @override
+  State<_CompletionSheet> createState() => _CompletionSheetState();
+}
+
+class _CompletionSheetState extends State<_CompletionSheet> {
+  Timer? _timer;
+  Duration _remaining = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _updateRemaining();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(_updateRemaining);
+    });
+  }
+
+  void _updateRemaining() {
+    if (widget.releaseAt == null) return;
+    final diff = widget.releaseAt!.difference(DateTime.now());
+    _remaining = diff.isNegative ? Duration.zero : diff;
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  String get _countdownLabel {
+    final h = _remaining.inHours.toString().padLeft(2, '0');
+    final m = (_remaining.inMinutes % 60).toString().padLeft(2, '0');
+    final s = (_remaining.inSeconds % 60).toString().padLeft(2, '0');
+    return '${h}h ${m}m ${s}s';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final r = AppResponsive(context);
+    final amountLabel =
+        '${widget.pendingAmount.toStringAsFixed(0)} FCFA';
+    final hasCountdown = widget.releaseAt != null && _remaining > Duration.zero;
+
+    return Container(
+      margin: EdgeInsets.only(
+        bottom: MediaQuery.paddingOf(context).bottom,
+      ),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: AppColors.success.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.check_circle_rounded,
+                color: AppColors.success, size: 30),
+          ),
+          const SizedBox(height: 16),
+          Text('Trajet terminé !', style: AppTextStyles.h4(r)),
+          const SizedBox(height: 6),
+          Text(
+            'Bon travail. Vos passagers ont été déposés.',
+            style: AppTextStyles.muted(r),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.primaryLight,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.20)),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  'Paiement en attente',
+                  style: AppTextStyles.labelSmall(r)
+                      .copyWith(color: AppColors.primary),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  amountLabel,
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 32,
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                if (hasCountdown) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.hourglass_top_rounded,
+                          size: 16, color: AppColors.accent),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Disponible dans $_countdownLabel',
+                        style: AppTextStyles.bodySmall(r).copyWith(
+                          color: AppColors.accent,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.accentLight,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline_rounded,
+                    size: 18, color: AppColors.accent),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Si votre passager confirme son avis maintenant, les fonds sont libérés immédiatement.',
+                    style: AppTextStyles.bodySmall(r)
+                        .copyWith(color: AppColors.accent),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: widget.onClose,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+              ),
+              child: Text('OK, j\'ai compris',
+                  style: AppTextStyles.button(r)),
+            ),
+          ),
+        ],
       ),
     );
   }

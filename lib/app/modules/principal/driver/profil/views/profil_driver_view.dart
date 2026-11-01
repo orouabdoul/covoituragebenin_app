@@ -1072,15 +1072,52 @@ class _DocumentRow extends StatelessWidget {
             responsive,
           ).copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
         ),
-        subtitle: Text(
-          item.subtitle,
-          style: AppTextStyles.caption(
-            responsive,
-          ).copyWith(color: AppColors.primary),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              item.subtitle,
+              style: AppTextStyles.caption(responsive)
+                  .copyWith(color: AppColors.primary),
+            ),
+            if (item.isExpired)
+              Padding(
+                padding: const EdgeInsets.only(top: 3),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.danger.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    'Expiré',
+                    style: TextStyle(
+                        fontSize: 10, color: AppColors.danger, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              )
+            else if (item.isExpiringSoon)
+              Padding(
+                padding: const EdgeInsets.only(top: 3),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    'Expire dans ${item.daysUntilExpiry} j',
+                    style: const TextStyle(
+                        fontSize: 10, color: AppColors.warning, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+          ],
         ),
         trailing: Icon(
           Icons.chevron_right_rounded,
-          color: AppColors.textHint,
+          color: item.isExpired ? AppColors.danger : AppColors.textHint,
           size: responsive.text(18),
         ),
       ),

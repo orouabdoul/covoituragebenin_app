@@ -42,6 +42,12 @@ class TrajetAttenteController extends GetxController {
   final countdownExpired = false.obs;
   DateTime? _departureAt;
 
+  // ── Embarquement (overlay plein écran) ───────────────────────────────────
+  final showBoardingOverlay    = false.obs;
+  final boardingDriverLat      = Rxn<double>();
+  final boardingDriverLng      = Rxn<double>();
+  String _pendingBoardingUuid  = '';
+
   // ── Transition ────────────────────────────────────────────────────────────
   final isTransitioning = false.obs;
 
@@ -371,6 +377,101 @@ class TrajetAttenteController extends GetxController {
         'arrivalCity':   data.arrivalCity.isNotEmpty   ? data.arrivalCity   : arrivalCity.value,
       },
     );
+  }
+
+  // ── Embarquement — reçu par FCM ──────────────────────────────────────────
+
+  void onBoardingRequest({
+    required String bookingUuid,
+    double? driverLat,
+    double? driverLng,
+  }) {
+    _pendingBoardingUuid      = bookingUuid;
+    boardingDriverLat.value   = driverLat;
+    boardingDriverLng.value   = driverLng;
+    showBoardingOverlay.value = true;
+  }
+
+  Future<void> confirmBoarding({double? lat, double? lng}) async {
+    if (_pendingBoardingUuid.isEmpty) return;
+    await _service.confirmPickupBoarding(
+      _pendingBoardingUuid,
+      passengerLat: lat,
+      passengerLng: lng,
+    );
+    showBoardingOverlay.value = false;
+    _pendingBoardingUuid = '';
+    // Poll immédiatement — si le trajet est actif on transite vers live tracking
+    _pollOnce();
+  }
+
+  Future<void> refuseBoarding() async {
+    if (_pendingBoardingUuid.isEmpty) return;
+    await _service.refuseBoarding(
+      _pendingBoardingUuid,
+    );
+    showBoardingOverlay.value = false;
+    _pendingBoardingUuid = '';
+  }
+
+  // ── Conducteur absent ────────────────────────────────────────────────────
+
+  final hasReportedDriverAbsent  = false.obs;
+  final isReportingDriverAbsent  = false.obs;
+
+  /// Retourne true si le bouton "Signaler absent" peut être affiché.
+  /// Condition : 15min après l'heure de départ prévue.
+  bool get canReportDriverAbsent {
+    if (hasReportedDriverAbsent.value) return false;
+    if (_departureAt == null) return countdownExpired.value;
+    return DateTime.now().isAfter(_departureAt!.add(const Duration(minutes: 15)));
+  }
+
+  Future<void> reportDriverAbsent() async {
+    if (_bookingUuid.isEmpty || isReportingDriverAbsent.value) return;
+    isReportingDriverAbsent.value = true;
+    try {
+      final result = await _service.reportDriverAbsent(_bookingUuid);
+      if (!result.isSuccess) {
+        Get.snackbar(
+          'Impossible',
+          result.error?.message ?? 'Impossible de signaler l\'absence.',
+          snackPosition: SnackPosition.TOP,
+        );
+        return;
+      }
+      hasReportedDriverAbsent.value = true;
+      final body = result.data ?? {};
+      final driverEnRoute = body['driver_en_route'] as bool? ?? false;
+      final autoCancel    = body['auto_cancel']     as bool? ?? false;
+
+      if (driverEnRoute) {
+        Get.snackbar(
+          '🚗 Conducteur en route',
+          'Votre conducteur est en route. Veuillez patienter encore quelques minutes.',
+          snackPosition: SnackPosition.TOP,
+          duration: const Duration(seconds: 6),
+        );
+      } else if (autoCancel) {
+        Get.snackbar(
+          'Trajet annulé',
+          'Le trajet a été annulé. Votre remboursement est en cours de traitement.',
+          snackPosition: SnackPosition.TOP,
+          duration: const Duration(seconds: 6),
+        );
+        // Arrêter le polling
+        _pollTimer?.cancel();
+      } else {
+        Get.snackbar(
+          'Signalement enregistré',
+          'En attente des autres passagers. Si tous signalent l\'absence, le trajet sera annulé.',
+          snackPosition: SnackPosition.TOP,
+          duration: const Duration(seconds: 5),
+        );
+      }
+    } finally {
+      isReportingDriverAbsent.value = false;
+    }
   }
 
   // ── Actions ───────────────────────────────────────────────────────────────

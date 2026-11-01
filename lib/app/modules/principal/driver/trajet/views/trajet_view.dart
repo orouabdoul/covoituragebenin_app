@@ -295,7 +295,7 @@ class _TripList extends StatelessWidget {
 			return ListView.separated(
 				padding: _padding,
 				itemCount: trips.length,
-				separatorBuilder: (_, __) => SizedBox(height: r.h(12)),
+				separatorBuilder: (_, _) => SizedBox(height: r.h(12)),
 				itemBuilder: (_, i) {
 					final trip = trips[i];
 					return _TripCard(

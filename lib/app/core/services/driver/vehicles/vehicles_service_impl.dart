@@ -111,13 +111,22 @@ class VehiclesServiceImpl implements VehiclesService {
   }
 
   @override
-  Future<ApiResult<void>> uploadVehicleDocument(String uuid, String apiField, File file) async {
+  Future<ApiResult<void>> uploadVehicleDocument(String uuid, String apiField, File file, {DateTime? expiryDate}) async {
     try {
       final opts = await _authOptions();
       // PHP n'alimente pas $_FILES pour les requêtes PUT; on utilise POST + _method spoofing.
+      String? expiryFieldName;
+      if (expiryDate != null) {
+        if (apiField == 'insurance_doc') expiryFieldName = 'insurance_expiry_date';
+        if (apiField == 'technical_control_doc') expiryFieldName = 'technical_inspection_expiry_date';
+      }
       final formData = FormData.fromMap({
         '_method': 'PUT',
         apiField: await MultipartFile.fromFile(file.path),
+        if (expiryFieldName != null)
+          expiryFieldName: '${expiryDate!.year.toString().padLeft(4, '0')}-'
+              '${expiryDate.month.toString().padLeft(2, '0')}-'
+              '${expiryDate.day.toString().padLeft(2, '0')}',
       });
       final res = await _dio.post(
         AppApi.driverVehicle(uuid),
