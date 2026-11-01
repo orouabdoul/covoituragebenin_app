@@ -64,7 +64,7 @@ class TripDetailView extends StatelessWidget {
                           _MapButton(r: r, controller: controller),
                           SizedBox(height: r.adaptive(phone: 12, smallPhone: 10, tablet: 14, desktop: 16)),
                         ],
-                        if (controller.canStart || trip.status == TripStatus.pending) ...[
+                        if (controller.canStartNow.value) ...[
                           _StartButton(r: r, controller: controller),
                           SizedBox(height: r.adaptive(phone: 8, smallPhone: 6, tablet: 10, desktop: 12)),
                         ],

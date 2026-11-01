@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/trip_detail/trip_detail_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/driver/trips/trips_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/tracking/tracking_service.dart';
@@ -317,6 +318,8 @@ class TripDetailController extends GetxController {
     isStarting.value = false;
 
     if (result.isSuccess) {
+      canStartNow.value = false;
+      AppSync.i.refreshDriverTrips();
       Get.toNamed(AppRoutes.driverActiveTrip, arguments: {'tripUuid': _tripUuid});
     } else {
       UIHelper().showSnackBar(
