@@ -218,7 +218,9 @@ class TrajetController extends GetxController {
     final actionLabel = t.status == 'pending'
         ? 'Voir le détail'
         : (t.primaryAction?.label ?? _defaultActionLabel(t.status));
-    final actionEnabled = t.primaryAction?.enabled ?? t.passengers.isNotEmpty;
+    final actionEnabled = t.status == 'pending'
+        ? true
+        : (t.primaryAction?.enabled ?? t.passengers.isNotEmpty);
     final card = TrajetCardData(
       uuid: t.uuid,
       status: t.status,
