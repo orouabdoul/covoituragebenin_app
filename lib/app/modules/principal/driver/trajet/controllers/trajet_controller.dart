@@ -307,14 +307,6 @@ class TrajetController extends GetxController {
   void onPrimaryAction(TrajetCardData trip) {
     // Bouton "Démarrer" activé → TripDetail avec autoStart pour déclencher
     // le dialog de confirmation dès le chargement (flux complet avec paiements)
-    if (trip.status == 'pending' && trip.isStartEnabled) {
-      Get.toNamed(AppRoutes.driverTripDetail, arguments: {
-        'uuid': trip.uuid,
-        'autoStart': true,
-      });
-      return;
-    }
-    // Trajet pending non prêt → TripDetail simple (consultation)
     if (trip.status == 'pending') {
       Get.toNamed(AppRoutes.driverTripDetail, arguments: {'uuid': trip.uuid});
       return;
