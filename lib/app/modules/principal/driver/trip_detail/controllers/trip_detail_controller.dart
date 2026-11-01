@@ -25,6 +25,7 @@ class TripDetailController extends GetxController {
   final RxBool canStartNow = false.obs;
 
   String _departureIso = '';
+  bool _autoStart = false;
 
   late final String _tripUuid;
 
@@ -53,6 +54,7 @@ class TripDetailController extends GetxController {
     super.onInit();
     final args = Get.arguments as Map<String, dynamic>?;
     _tripUuid = (args?['uuid'] as String?) ?? '';
+    _autoStart = (args?['autoStart'] as bool?) ?? false;
     if (_tripUuid.isNotEmpty) {
       _loadTripDetail();
     } else {
@@ -116,6 +118,10 @@ class TripDetailController extends GetxController {
     _departureIso = data.route.departureAt;
     tripVersion.value++;
     _updateCanStartNow();
+    if (_autoStart && canStartNow.value) {
+      _autoStart = false;
+      Future.microtask(onStartTrip);
+    }
   }
 
   TripPassengerModel _passengerToModel(TripDetailPassengerData p) {
