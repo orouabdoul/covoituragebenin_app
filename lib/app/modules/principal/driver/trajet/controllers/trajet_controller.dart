@@ -305,36 +305,18 @@ class TrajetController extends GetxController {
   void onCreateTrip() => Get.toNamed(AppRoutes.driverAddTrip);
 
   void onPrimaryAction(TrajetCardData trip) {
-    // Les trajets pending dont isStartEnabled=true → toujours démarrer,
-    // peu importe ce que l'API a mis dans primaryActionCode.
-    if (trip.status == 'pending' && trip.isStartEnabled) {
-      Get.toNamed(AppRoutes.driverActiveTrip,
-          arguments: {'trip': _toTripModel(trip)});
+    // Trajet pending → toujours TripDetail pour démarrer proprement via l'API
+    if (trip.status == 'pending') {
+      Get.toNamed(AppRoutes.driverTripDetail, arguments: {'uuid': trip.uuid});
       return;
     }
-    switch (trip.primaryActionCode) {
-      case 'start':
-        // Sécurité : si le bouton est cliqué mais fenêtre pas encore ouverte
-        UIHelper().showSnackBar(
-            'MINIZON', 'Le départ est prévu dans plus de 5 minutes.', 1);
-      case 'navigate':
-        Get.toNamed(AppRoutes.driverRunningTrip,
-            arguments: {'uuid': trip.uuid});
-      case 'view':
-        Get.toNamed(AppRoutes.driverTripDetail,
-            arguments: {'uuid': trip.uuid});
-      case 'none':
-        break;
-      default:
-        switch (trip.status) {
-          case 'active' || 'in_progress':
-            Get.toNamed(AppRoutes.driverRunningTrip,
-                arguments: {'uuid': trip.uuid});
-          default:
-            Get.toNamed(AppRoutes.driverTripDetail,
-                arguments: {'uuid': trip.uuid});
-        }
+    // Trajet actif → reprendre la carte en cours
+    if (trip.status == 'active' || trip.status == 'in_progress') {
+      Get.toNamed(AppRoutes.driverActiveTrip, arguments: {'tripUuid': trip.uuid});
+      return;
     }
+    // Tous les autres statuts → TripDetail
+    Get.toNamed(AppRoutes.driverTripDetail, arguments: {'uuid': trip.uuid});
   }
 
   /// Tap sur le corps de la card
@@ -751,18 +733,6 @@ class TrajetCardData {
 
   String get routeLabel => '$origin → $destination';
 
-  /// Bouton "Démarrer" actif si le trajet est pending ET qu'on est dans la
-  /// fenêtre de 5 min avant le départ (calculé localement depuis departureAt)
-  /// OU si le backend a déjà confirmé enabled=true (passengerActionEnabled).
-  bool get isStartEnabled {
-    if (status != 'pending') return passengerActionEnabled;
-    // Signal backend : si l'API a déjà calculé enabled=true, respecter ce choix.
-    if (passengerActionEnabled) return true;
-    // Signal local : calcul temps-réel (actif dès le tick de 5 s suivant).
-    if (departureAt.isEmpty) return false;
-    final dt = DateTime.tryParse(departureAt);
-    if (dt == null) return false;
-    final depUtc = dt.isUtc ? dt : dt.toUtc();
-    return DateTime.now().toUtc().isAfter(depUtc.subtract(const Duration(minutes: 30)));
-  }
+  /// Bouton principal actif si le backend l'autorise.
+  bool get isStartEnabled => passengerActionEnabled;
 }

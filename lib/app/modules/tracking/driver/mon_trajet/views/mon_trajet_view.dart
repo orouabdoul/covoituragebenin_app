@@ -275,29 +275,24 @@ class _MapLayer extends StatelessWidget {
                     icon: Icons.location_on_rounded,
                   ),
                 ),
-                // Passenger pickup markers (purple)
-                ...c.passengers.asMap().entries
-                    .where((e) =>
-                        e.value.pickupLat != null &&
-                        e.value.pickupLng != null)
-                    .map((e) => Marker(
-                          point: LatLng(
-                              e.value.pickupLat!, e.value.pickupLng!),
-                          width: 32,
-                          height: 32,
-                          child: _PassengerPin(number: e.key + 1),
+                // Points de prise passager (personne = en attente, check = embarqué)
+                ...c.passengers
+                    .where((p) => p.pickupLat != null && p.pickupLng != null)
+                    .map((p) => Marker(
+                          point: LatLng(p.pickupLat!, p.pickupLng!),
+                          width: 36,
+                          height: 36,
+                          child: _PassengerPin(isBoarded: p.isBoarded),
                         )),
-                // Passenger dropoff markers (amber)
-                ...c.passengers.asMap().entries
-                    .where((e) =>
-                        e.value.dropoffLat != null &&
-                        e.value.dropoffLng != null)
-                    .map((e) => Marker(
-                          point: LatLng(
-                              e.value.dropoffLat!, e.value.dropoffLng!),
-                          width: 32,
-                          height: 32,
-                          child: _PassengerDropoffPin(number: e.key + 1),
+                // Points de dépôt passager (drapeau)
+                ...c.passengers
+                    .where((p) =>
+                        p.dropoffLat != null && p.dropoffLng != null)
+                    .map((p) => Marker(
+                          point: LatLng(p.dropoffLat!, p.dropoffLng!),
+                          width: 36,
+                          height: 36,
+                          child: const _PassengerDropoffPin(),
                         )),
                 // My position (driver)
                 if (!_isBenin(c.myLatLng.value))
@@ -337,38 +332,32 @@ class _CityPin extends StatelessWidget {
 }
 
 class _PassengerPin extends StatelessWidget {
-  const _PassengerPin({required this.number});
-  final int number;
+  const _PassengerPin({required this.isBoarded});
+  final bool isBoarded;
 
   @override
-  Widget build(BuildContext context) => Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF7C3AED),
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF7C3AED).withValues(alpha: 0.40),
-              blurRadius: 6,
-            ),
-          ],
-        ),
-        child: Center(
-          child: Text(
-            '$number',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-      );
+  Widget build(BuildContext context) {
+    final color = isBoarded ? AppColors.success : const Color(0xFF7C3AED);
+    return Container(
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 2),
+        boxShadow: [
+          BoxShadow(color: color.withValues(alpha: 0.40), blurRadius: 6),
+        ],
+      ),
+      child: Icon(
+        isBoarded ? Icons.check_rounded : Icons.person_rounded,
+        color: Colors.white,
+        size: 16,
+      ),
+    );
+  }
 }
 
 class _PassengerDropoffPin extends StatelessWidget {
-  const _PassengerDropoffPin({required this.number});
-  final int number;
+  const _PassengerDropoffPin();
 
   @override
   Widget build(BuildContext context) => Container(
@@ -383,16 +372,7 @@ class _PassengerDropoffPin extends StatelessWidget {
             ),
           ],
         ),
-        child: Center(
-          child: Text(
-            '$number',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
+        child: const Icon(Icons.flag_rounded, color: Colors.white, size: 16),
       );
 }
 

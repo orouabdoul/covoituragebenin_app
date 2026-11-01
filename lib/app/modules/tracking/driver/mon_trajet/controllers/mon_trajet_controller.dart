@@ -89,90 +89,34 @@ class MonTrajetController extends GetxController {
   // ── Arguments ─────────────────────────────────────────────────────────────
 
   void _parseArgs(dynamic args) {
-    if (args is! Map) {
-      _fetchActiveTrip();
-      return;
-    }
-
-    // Accept 'tripUuid' (passenger nav), 'uuid' (driver nav), or TripModel in 'trip'
-    _tripUuid = args['tripUuid'] as String? ?? args['uuid'] as String? ?? '';
-    final tripObj = args['trip'];
-    if (_tripUuid.isEmpty && tripObj != null) {
-      try { _tripUuid = (tripObj as dynamic).id?.toString() ?? ''; } catch (_) {}
-    }
-    if (_tripUuid.isEmpty) {
-      _fetchActiveTrip();
-      return;
-    }
-
-    if (tripObj != null) {
-      // Extract data from TripModel object passed by driver navigation
+    if (args is Map) {
+      // Extraire l'UUID depuis n'importe quel format de navigation
+      _tripUuid = (args['tripUuid'] as String?)
+          ?? (args['uuid'] as String?)
+          ?? '';
+      if (_tripUuid.isEmpty) {
+        try {
+          _tripUuid = (args['trip'] as dynamic)?.id?.toString() ?? '';
+        } catch (_) {}
+      }
+      // Afficher les noms de villes pendant le chargement API
       try {
-        final t = tripObj as dynamic;
-        tripStatus.value    = t.status.toString().split('.').last;
-        departureCity.value = t.origin?.toString()       ?? '';
-        arrivalCity.value   = t.destination?.toString()  ?? '';
-        departureTime.value = (t.departureAt ?? t.departureTime)?.toString() ?? '';
-
-        // Approximate coords from city names
-        final dc = _cityCoord(departureCity.value);
-        final ac = _cityCoord(arrivalCity.value);
-        if (dc != null) departurePt.value = dc;
-        if (ac != null) arrivalPt.value   = ac;
-
-        final paxList = t.passengers as List?;
-        if (paxList != null) {
-          passengers.value = paxList.map<ActivePassengerModel>((p) {
-            final pm = p as dynamic;
-            return ActivePassengerModel(
-              name:        pm.fullName?.toString() ?? pm.name?.toString() ?? 'Passager',
-              phone:       pm.phone?.toString() ?? '',
-              seats:       (pm.seatsBooked as int?) ?? 1,
-              bookingUuid: pm.bookingUuid?.toString() ?? '',
-            );
-          }).toList();
-          passengerCount.value = passengers.length;
+        final t = args['trip'] as dynamic;
+        if (t != null) {
+          departureCity.value = t.origin?.toString() ?? '';
+          arrivalCity.value   = t.destination?.toString() ?? '';
+          departureTime.value =
+              (t.departureAt ?? t.departureTime)?.toString() ?? '';
+          final dc = _cityCoord(departureCity.value);
+          final ac = _cityCoord(arrivalCity.value);
+          if (dc != null) departurePt.value = dc;
+          if (ac != null) arrivalPt.value   = ac;
         }
       } catch (_) {}
-      // Background refresh for exact coords + passenger phones/pickups
-      Future.microtask(_refreshFromApi);
-    } else {
-      // Flat map args (API-style navigation)
-      tripStatus.value    = args['status']        as String? ?? 'pending';
-      departureCity.value = args['departureCity'] as String? ?? '';
-      arrivalCity.value   = args['arrivalCity']   as String? ?? '';
-      departureTime.value = args['departureTime'] as String? ?? '';
-
-      final dLat = _dbl(args, 'departureLat');
-      final dLng = _dbl(args, 'departureLng');
-      final aLat = _dbl(args, 'arrivalLat');
-      final aLng = _dbl(args, 'arrivalLng');
-      if (dLat != null && dLng != null) departurePt.value = LatLng(dLat, dLng);
-      if (aLat != null && aLng != null) arrivalPt.value   = LatLng(aLat, aLng);
-
-      final rawPax = args['passengers'] as List?;
-      if (rawPax != null) {
-        passengers.value = rawPax
-            .whereType<Map<String, dynamic>>()
-            .map(ActivePassengerModel.fromJson)
-            .toList();
-        passengerCount.value = passengers.length;
-      }
     }
-
-    isLoading.value = false;
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      _fitMap();
-      _loadRoute();
-    });
-  }
-
-  static double? _dbl(dynamic m, String key) {
-    final v = m[key];
-    if (v is double) return v;
-    if (v is int)    return v.toDouble();
-    if (v is String) return double.tryParse(v);
-    return null;
+    // Toujours charger les données fraîches depuis l'API
+    // (bookingUuid, pickupLat/Lng, dropoffLat/Lng sont uniquement dans l'API)
+    _fetchActiveTrip();
   }
 
   Future<void> _fetchActiveTrip() async {
@@ -595,54 +539,6 @@ class MonTrajetController extends GetxController {
         ));
       } catch (_) {}
     });
-  }
-
-  // ── Rafraîchissement API en arrière-plan ──────────────────────────────────
-
-  Future<void> _refreshFromApi() async {
-    final result = await _svc.fetchDriverActiveTrip();
-    if (!result.isSuccess || result.data == null) return;
-    final trip = result.data!;
-
-    bool changed = false;
-    if (trip.departureLat != null && trip.departureLng != null) {
-      final exact = LatLng(trip.departureLat!, trip.departureLng!);
-      if (!_same(departurePt.value, exact)) { departurePt.value = exact; changed = true; }
-    }
-    if (trip.arrivalLat != null && trip.arrivalLng != null) {
-      final exact = LatLng(trip.arrivalLat!, trip.arrivalLng!);
-      if (!_same(arrivalPt.value, exact)) { arrivalPt.value = exact; changed = true; }
-    }
-    if (trip.passengers.isNotEmpty) {
-      final updated = passengers.map((p) {
-        try {
-          final match = trip.passengers.firstWhere(
-            (ap) => ap.name.toLowerCase() == p.name.toLowerCase(),
-            orElse: () => p,
-          );
-          return p.copyWith(
-            bookingUuid:  p.bookingUuid.isNotEmpty ? null : match.bookingUuid,
-            phone:        p.phone.isNotEmpty ? null : match.phone,
-            pickupLat:    p.pickupLat    ?? match.pickupLat,
-            pickupLng:    p.pickupLng    ?? match.pickupLng,
-            dropoffLat:   p.dropoffLat   ?? match.dropoffLat,
-            dropoffLng:   p.dropoffLng   ?? match.dropoffLng,
-            avatar:       p.avatar       ?? match.avatar,
-            pickedUpAt:   p.pickedUpAt   ?? match.pickedUpAt,
-            droppedOffAt: p.droppedOffAt ?? match.droppedOffAt,
-            noShowAt:     p.noShowAt     ?? match.noShowAt,
-          );
-        } catch (_) {
-          return p;
-        }
-      }).toList();
-      passengers.value = updated;
-      if (updated.any((p) => p.pickupLat != null)) changed = true;
-    }
-    if (changed) {
-      _fitMap();
-      _loadRoute();
-    }
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────

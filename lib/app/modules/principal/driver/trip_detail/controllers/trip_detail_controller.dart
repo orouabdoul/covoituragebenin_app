@@ -165,67 +165,156 @@ class TripDetailController extends GetxController {
   }
 
   void _updateCanStartNow() {
-    canStartNow.value = trip.status == TripStatus.pending && canStart;
+    canStartNow.value = trip.status == TripStatus.pending;
+  }
+
+  bool get _isEarlyStart {
+    final raw = _departureIso.isNotEmpty ? _departureIso : (trip.departureAt ?? '');
+    if (raw.isEmpty) return false;
+    final dt = DateTime.tryParse(raw);
+    if (dt == null) return false;
+    final dep = dt.isUtc ? dt.toLocal() : dt;
+    return dep.difference(DateTime.now()) > const Duration(minutes: 30);
   }
 
   Future<void> onStartTrip() async {
-    if (!canStartNow.value) {
-      UIHelper().showSnackBar(
-        'MINIZON',
-        'Attendez que tous les passagers aient payé.',
-        2,
-      );
-      return;
-    }
+    if (!canStartNow.value) return;
 
-    // Avertissement si démarrage anticipé de plus de 30 minutes
-    final raw = _departureIso.isNotEmpty ? _departureIso : (trip.departureAt ?? '');
-    if (raw.isNotEmpty) {
-      final dt = DateTime.tryParse(raw);
-      if (dt != null) {
-        final depLocal = dt.isUtc ? dt.toLocal() : dt;
-        final diff = depLocal.difference(DateTime.now());
-        if (diff > const Duration(minutes: 30)) {
-          final h = depLocal.hour.toString().padLeft(2, '0');
-          final m = depLocal.minute.toString().padLeft(2, '0');
-          final confirm = await Get.dialog<bool>(
-            AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: const Text('Démarrer maintenant ?'),
-              content: Text(
-                'Votre trajet est prévu à ${h}h$m.\n\nDémarrer maintenant avertira immédiatement vos passagers.',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Get.back(result: false),
-                  child: const Text('Pas encore'),
+    final unpaidCount = trip.passengers
+        .where((p) => p.paymentStatus != PassengerPaymentStatus.paid)
+        .length;
+
+    final confirm = await Get.dialog<bool>(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Prêt à démarrer ?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_isEarlyStart) ...[
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.accentLight,
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                TextButton(
-                  onPressed: () => Get.back(result: true),
-                  child: Text(
-                    'Oui, démarrer',
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w700,
+                child: const Row(
+                  children: [
+                    Icon(Icons.access_time_rounded,
+                        color: AppColors.accent, size: 15),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Départ prévu dans plus de 30 min.',
+                        style: TextStyle(
+                            color: AppColors.accent, fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+            Text(
+              '${trip.origin} → ${trip.destination}',
+              style: const TextStyle(
+                  fontWeight: FontWeight.w700, fontSize: 14),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${trip.passengers.length} passager(s) · ${trip.departureTime}',
+              style: const TextStyle(
+                  color: AppColors.textMuted, fontSize: 13),
+            ),
+            if (trip.passengers.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              ...trip.passengers.map((p) {
+                final paid =
+                    p.paymentStatus == PassengerPaymentStatus.paid;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    children: [
+                      Icon(
+                        paid
+                            ? Icons.check_circle_rounded
+                            : Icons.schedule_rounded,
+                        color: paid
+                            ? AppColors.success
+                            : AppColors.accent,
+                        size: 15,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          p.name,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                      ),
+                      Text(
+                        paid ? 'Payé' : 'En attente',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: paid
+                              ? AppColors.success
+                              : AppColors.accent,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+            if (unpaidCount > 0) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.warning_amber_rounded,
+                      color: AppColors.accent, size: 15),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      '$unpaidCount passager${unpaidCount > 1 ? 's' : ''} '
+                      'n\'${unpaidCount > 1 ? 'ont' : 'a'} pas encore payé.',
+                      style: const TextStyle(
+                          color: AppColors.accent, fontSize: 12),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: const Text('Pas encore'),
+          ),
+          TextButton(
+            onPressed: () => Get.back(result: true),
+            child: Text(
+              'Démarrer ma course',
+              style: TextStyle(
+                  color: AppColors.primary, fontWeight: FontWeight.w700),
             ),
-          );
-          if (confirm != true) return;
-        }
-      }
-    }
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
 
     isStarting.value = true;
     final result = await _tracking.startTrip(_tripUuid);
     isStarting.value = false;
 
     if (result.isSuccess) {
-      Get.toNamed(AppRoutes.driverActiveTrip, arguments: {'trip': trip});
+      Get.toNamed(AppRoutes.driverActiveTrip, arguments: {'tripUuid': _tripUuid});
     } else {
-      UIHelper().showSnackBar('MINIZON', 'Impossible de démarrer le trajet. Réessayez.', 2);
+      UIHelper().showSnackBar(
+          'MINIZON', 'Impossible de démarrer le trajet. Réessayez.', 2);
     }
   }
 
