@@ -12,7 +12,6 @@ import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controlle
 import 'package:covoiturage_benin_app/app/core/services/passenger/home/home_service.dart';
 import 'package:covoiturage_benin_app/app/data/models/passenger/home_model.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/passager/search/controllers/search_controller.dart';
-import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/passager/reservation/controllers/reservation_controller.dart';
 
 class HomeController extends GetxController {
@@ -45,8 +44,7 @@ class HomeController extends GetxController {
     return 'Bonsoir 👋';
   }
 
-  bool get showHeroMetrics =>
-      heroMetrics.isNotEmpty && UserController.instance.profileComplete.value;
+  bool get showHeroMetrics => heroMetrics.isNotEmpty;
 
   Timer? _refreshTimer;
   Worker? _syncWorker;
