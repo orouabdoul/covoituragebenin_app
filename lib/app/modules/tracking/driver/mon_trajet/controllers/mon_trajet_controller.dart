@@ -10,6 +10,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
+import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import 'package:covoiturage_benin_app/app/core/services/tracking/tracking_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/routing/routing_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/phone_utils.dart';
@@ -325,6 +326,8 @@ class MonTrajetController extends GetxController {
       if (result.isSuccess) {
         tripStatus.value = 'completed';
         _gpsSub?.cancel();
+        AppSync.i.refreshDriverDashboard();
+        AppSync.i.refreshDriverTrips();
         final body = result.data ?? {};
         final pendingAmount = (body['pending_amount'] as num?)?.toDouble() ?? 0;
         final releaseAt = body['release_at'] as String?;
