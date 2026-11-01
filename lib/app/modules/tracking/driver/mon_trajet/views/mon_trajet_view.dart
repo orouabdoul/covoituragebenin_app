@@ -73,9 +73,10 @@ class MonTrajetView extends GetView<MonTrajetController> {
               Text('Code passager', style: AppTextStyles.h5(r)),
             ],
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
               Text(
                 'Le passager n\'a pas répondu en 2 minutes.\nSaisissez son code ou confirmez manuellement.',
                 style: AppTextStyles.muted(r),
@@ -147,6 +148,7 @@ class MonTrajetView extends GetView<MonTrajetController> {
                 ),
               )),
             ],
+          ),
           ),
           actions: [
             TextButton(
