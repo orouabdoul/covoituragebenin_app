@@ -882,6 +882,12 @@ class PushNotificationService {
           );
         }
 
+      // ── Fonds libérés (escrow → portefeuille conducteur) ─────────────────
+      case 'escrow_released':
+        if (isDriver) {
+          AppSync.i.refreshDriverDashboard();
+        }
+
       // ── Rappel trajet ─────────────────────────────────────────────────────
       case 'trip_reminder':
       case 'departure_reminder':       // backend v2
