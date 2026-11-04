@@ -243,10 +243,9 @@ class _PassengerPin extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isPickup ? AppColors.success : AppColors.danger;
-    final icon  = isPickup
-        ? Icons.person_pin_circle_rounded
-        : Icons.flag_rounded;
+    // Même style que la carte conducteur : violet+personne pour prise, orange+drapeau pour dépôt
+    final color = isPickup ? const Color(0xFF7C3AED) : const Color(0xFFF59E0B);
+    final icon  = isPickup ? Icons.person_rounded : Icons.flag_rounded;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -957,12 +956,12 @@ class _MilestoneProgress extends StatelessWidget {
                     child: Container(
                       width: dotDiam, height: dotDiam,
                       decoration: BoxDecoration(
-                        color: AppColors.success,
+                        color: const Color(0xFF7C3AED),
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 2),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.success.withValues(alpha: 0.40),
+                            color: const Color(0xFF7C3AED).withValues(alpha: 0.40),
                             blurRadius: 5,
                           ),
                         ],
@@ -974,12 +973,12 @@ class _MilestoneProgress extends StatelessWidget {
                     child: Container(
                       width: dotDiam, height: dotDiam,
                       decoration: BoxDecoration(
-                        color: AppColors.danger,
+                        color: const Color(0xFFF59E0B),
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 2),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.danger.withValues(alpha: 0.40),
+                            color: const Color(0xFFF59E0B).withValues(alpha: 0.40),
                             blurRadius: 5,
                           ),
                         ],
@@ -1019,7 +1018,7 @@ class _MilestoneProgress extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.arrow_circle_up_rounded,
-                      size: r.text(12), color: AppColors.success),
+                      size: r.text(12), color: const Color(0xFF7C3AED)),
                   SizedBox(width: r.w(4)),
                   Text(
                     pickupLabel,
@@ -1043,7 +1042,7 @@ class _MilestoneProgress extends StatelessWidget {
                   ),
                   SizedBox(width: r.w(4)),
                   Icon(Icons.arrow_circle_down_rounded,
-                      size: r.text(12), color: AppColors.danger),
+                      size: r.text(12), color: const Color(0xFFF59E0B)),
                 ],
               ),
             ],
@@ -1320,12 +1319,12 @@ class _TripTimeline extends StatelessWidget {
                   width: r.w(32),
                   height: r.w(32),
                   decoration: BoxDecoration(
-                    color: AppColors.success.withValues(alpha: 0.10),
+                    color: const Color(0xFF7C3AED).withValues(alpha: 0.10),
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.success, width: 2),
+                    border: Border.all(color: const Color(0xFF7C3AED), width: 2),
                   ),
                   child: Icon(Icons.person_rounded,
-                      color: AppColors.success, size: r.text(15)),
+                      color: const Color(0xFF7C3AED), size: r.text(15)),
                 ),
                 // Ligne pointillée
                 SizedBox(
@@ -1352,12 +1351,12 @@ class _TripTimeline extends StatelessWidget {
                   width: r.w(32),
                   height: r.w(32),
                   decoration: BoxDecoration(
-                    color: AppColors.danger.withValues(alpha: 0.10),
+                    color: const Color(0xFFF59E0B).withValues(alpha: 0.10),
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.danger, width: 2),
+                    border: Border.all(color: const Color(0xFFF59E0B), width: 2),
                   ),
                   child: Icon(Icons.flag_rounded,
-                      color: AppColors.danger, size: r.text(15)),
+                      color: const Color(0xFFF59E0B), size: r.text(15)),
                 ),
               ],
             ),
@@ -1374,7 +1373,7 @@ class _TripTimeline extends StatelessWidget {
                   city: c.pickupCityLabel.value,
                   detail: c.pickupDetail.value,
                   note: c.pickupNote.value,
-                  color: AppColors.success,
+                  color: const Color(0xFF7C3AED),
                   r: r,
                 ),
                 SizedBox(height: r.h(28)),
@@ -1383,7 +1382,7 @@ class _TripTimeline extends StatelessWidget {
                   city: c.dropoffCityLabel.value,
                   detail: c.dropoffDetail.value,
                   note: c.dropoffNote.value,
-                  color: AppColors.danger,
+                  color: const Color(0xFFF59E0B),
                   r: r,
                 ),
                 SizedBox(height: r.h(4)),

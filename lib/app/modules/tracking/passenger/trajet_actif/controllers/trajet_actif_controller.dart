@@ -89,7 +89,7 @@ class TrajetActifController extends GetxController {
     tripArrivalPt   = Rx<LatLng>(_benin);
     _parseArgs(Get.arguments);
     SchedulerBinding.instance.addPostFrameCallback((_) {
-      _loadRoute();
+      _fetchMapData();
       _startPolling();
     });
   }
@@ -252,7 +252,69 @@ class TrajetActifController extends GetxController {
 
   static LatLng? _cityCoord(String name) => BeninLocations.cityCoord(name);
 
-  // ── Routes OSRM ────────────────────────────────────────────────────────────
+  // ── Données carte (GeoHelper + polyline backend) ──────────────────────────
+
+  Future<void> _fetchMapData() async {
+    if (_tripUuid.isEmpty) {
+      _loadRoute();
+      return;
+    }
+    final result = await _svc.fetchPassengerMapData(_tripUuid);
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (!result.isSuccess || result.data == null) {
+        _loadRoute();
+        return;
+      }
+      final map = result.data!;
+      bool changed = false;
+
+      // Coordonnées prise/dépôt de ce passager
+      if (map.pickupLat != null && map.pickupLng != null) {
+        final p = LatLng(map.pickupLat!, map.pickupLng!);
+        if (!_same(departurePt.value, p)) { departurePt.value = p; changed = true; }
+      }
+      if (map.dropoffLat != null && map.dropoffLng != null) {
+        final p = LatLng(map.dropoffLat!, map.dropoffLng!);
+        if (!_same(arrivalPt.value, p)) { arrivalPt.value = p; changed = true; }
+      }
+
+      // Extrémités réelles du trajet complet
+      if (map.departureLat != null && map.departureLng != null) {
+        final p = LatLng(map.departureLat!, map.departureLng!);
+        if (!_same(tripDeparturePt.value, p)) { tripDeparturePt.value = p; changed = true; }
+      }
+      if (map.arrivalLat != null && map.arrivalLng != null) {
+        final p = LatLng(map.arrivalLat!, map.arrivalLng!);
+        if (!_same(tripArrivalPt.value, p)) { tripArrivalPt.value = p; changed = true; }
+      }
+
+      // Polyline complète du trajet
+      if (map.routePolyline.length >= 2) {
+        routePoints.value = map.routePolyline
+            .map((p) => LatLng(p.lat, p.lng))
+            .toList();
+        // Segment passager distinct si pickup/dropoff ≠ départ/arrivée trajet
+        final sameStart = _same(tripDeparturePt.value, departurePt.value);
+        final sameEnd   = _same(tripArrivalPt.value,   arrivalPt.value);
+        if (!sameStart || !sameEnd) {
+          _loadSingleRoute(
+            from:   departurePt.value,
+            to:     arrivalPt.value,
+            target: segmentPoints,
+            prefix: 'mz_seg_',
+          );
+        } else {
+          segmentPoints.clear();
+        }
+      } else {
+        _loadRoute();
+      }
+
+      if (changed) _fitMap();
+    });
+  }
+
+  // ── Routes OSRM (fallback si backend indisponible) ─────────────────────────
 
   Future<void> _loadRoute() async {
     // Itinéraire complet du trajet (départ → arrivée conducteur)

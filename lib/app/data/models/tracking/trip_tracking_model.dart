@@ -339,6 +339,52 @@ class DriverMapStop {
   }
 }
 
+class PassengerMapData {
+  const PassengerMapData({
+    this.pickupLat,
+    this.pickupLng,
+    this.dropoffLat,
+    this.dropoffLng,
+    this.departureLat,
+    this.departureLng,
+    this.arrivalLat,
+    this.arrivalLng,
+    required this.routePolyline,
+  });
+
+  final double? pickupLat;
+  final double? pickupLng;
+  final double? dropoffLat;
+  final double? dropoffLng;
+  final double? departureLat;
+  final double? departureLng;
+  final double? arrivalLat;
+  final double? arrivalLng;
+  final List<({double lat, double lng})> routePolyline;
+
+  factory PassengerMapData.fromJson(Map<String, dynamic> j) {
+    final pickLatLng = j['pickup_latlng']    as Map<String, dynamic>?;
+    final dropLatLng = j['dropoff_latlng']   as Map<String, dynamic>?;
+    final depLatLng  = j['departure_latlng'] as Map<String, dynamic>?;
+    final arrLatLng  = j['arrival_latlng']   as Map<String, dynamic>?;
+    final rawPoly    = j['route_polyline']   as List? ?? [];
+    return PassengerMapData(
+      pickupLat:   (pickLatLng?['lat'] as num?)?.toDouble(),
+      pickupLng:   (pickLatLng?['lng'] as num?)?.toDouble(),
+      dropoffLat:  (dropLatLng?['lat'] as num?)?.toDouble(),
+      dropoffLng:  (dropLatLng?['lng'] as num?)?.toDouble(),
+      departureLat: (depLatLng?['lat'] as num?)?.toDouble(),
+      departureLng: (depLatLng?['lng'] as num?)?.toDouble(),
+      arrivalLat:   (arrLatLng?['lat'] as num?)?.toDouble(),
+      arrivalLng:   (arrLatLng?['lng'] as num?)?.toDouble(),
+      routePolyline: rawPoly.map((p) {
+        final m = p as Map<String, dynamic>;
+        return (lat: (m['lat'] as num).toDouble(), lng: (m['lng'] as num).toDouble());
+      }).toList(),
+    );
+  }
+}
+
 class DriverMapData {
   const DriverMapData({
     required this.stops,

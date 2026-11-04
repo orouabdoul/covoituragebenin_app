@@ -98,6 +98,9 @@ class AppApi {
   static const String passengerNotificationsReadAll = '/passenger/notifications/read-all';
   static String passengerNotificationDelete(String id) => '/passenger/notifications/$id';
 
+  // Carte suivi — passager
+  static String passengerTripMap(String uuid) => '/passenger/trips/$uuid/map';
+
   // Carte interactive — conducteur
   static String driverTripMap(String uuid) => '/driver/trips/$uuid/map';
   static String driverTripStopDone(String tripUuid, String bookingUuid) =>
