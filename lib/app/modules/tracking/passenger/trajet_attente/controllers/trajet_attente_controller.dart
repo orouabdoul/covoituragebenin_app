@@ -49,6 +49,11 @@ class TrajetAttenteController extends GetxController {
   final boardingDriverLng      = Rxn<double>();
   String _pendingBoardingUuid  = '';
 
+  // Trigger depuis notification tap (background/terminated)
+  bool    _openBoardingOnLoad         = false;
+  double? _pendingBoardingDriverLat;
+  double? _pendingBoardingDriverLng;
+
   // ── Transition ────────────────────────────────────────────────────────────
   final isTransitioning = false.obs;
 
@@ -93,6 +98,13 @@ class TrajetAttenteController extends GetxController {
     final m = Map<String, dynamic>.from(args);
     _tripUuid    = m['tripUuid']    as String? ?? '';
     _bookingUuid = m['bookingUuid'] as String? ?? '';
+
+    if (m['openBoarding'] == true) {
+      _openBoardingOnLoad         = true;
+      _pendingBoardingDriverLat   = _numArg(m, 'driverLat');
+      _pendingBoardingDriverLng   = _numArg(m, 'driverLng');
+    }
+
     driverName.value    = m['driverName']    as String? ?? '';
     driverPhone.value   = m['driverPhone']   as String? ?? '';
     // Accepte departureCity ou pickupCity (old nav paths)
@@ -134,6 +146,7 @@ class TrajetAttenteController extends GetxController {
       SchedulerBinding.instance.addPostFrameCallback((_) {
         _loadRoute();
         _startPolling();
+        _triggerPendingBoarding();
       });
       // Refresh coords en arrière-plan pour obtenir la précision quartier
       Future.microtask(_refreshCoordsFromApi);
@@ -186,6 +199,7 @@ class TrajetAttenteController extends GetxController {
     SchedulerBinding.instance.addPostFrameCallback((_) {
       _loadRoute();
       _startPolling();
+      _triggerPendingBoarding();
     });
   }
 
@@ -392,6 +406,16 @@ class TrajetAttenteController extends GetxController {
     boardingDriverLat.value   = driverLat;
     boardingDriverLng.value   = driverLng;
     showBoardingOverlay.value = true;
+  }
+
+  void _triggerPendingBoarding() {
+    if (!_openBoardingOnLoad || _bookingUuid.isEmpty) return;
+    _openBoardingOnLoad = false;
+    onBoardingRequest(
+      bookingUuid: _bookingUuid,
+      driverLat:   _pendingBoardingDriverLat,
+      driverLng:   _pendingBoardingDriverLng,
+    );
   }
 
   Future<void> confirmBoarding({double? lat, double? lng}) async {

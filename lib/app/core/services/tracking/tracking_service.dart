@@ -79,4 +79,8 @@ abstract class TrackingService {
   // Passager signale conducteur absent — POST /passenger/bookings/{uuid}/report-driver-absent
   // Retourne driverEnRoute:bool, autoCancel:bool
   Future<ApiResult<Map<String, dynamic>>> reportDriverAbsent(String bookingUuid);
+
+  // Carte conducteur — GET /driver/trips/{uuid}/map
+  // Retourne coordonnées GeoHelper-résolues + polyline route réelle
+  Future<ApiResult<DriverMapData>> fetchDriverMapData(String tripUuid);
 }

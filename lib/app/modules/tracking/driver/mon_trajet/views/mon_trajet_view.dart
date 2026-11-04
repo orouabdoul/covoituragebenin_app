@@ -78,10 +78,44 @@ class MonTrajetView extends GetView<MonTrajetController> {
               mainAxisSize: MainAxisSize.min,
               children: [
               Text(
-                'Le passager n\'a pas répondu en 2 minutes.\nSaisissez son code ou confirmez manuellement.',
+                'Le passager n\'a pas répondu en 60 s.\nSaisissez son code ou confirmez manuellement.',
                 style: AppTextStyles.muted(r),
                 textAlign: TextAlign.center,
               ),
+              if (boardingCode.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF7C3AED).withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFF7C3AED).withValues(alpha: 0.25),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        'Code du passager',
+                        style: AppTextStyles.caption(r).copyWith(
+                          color: const Color(0xFF7C3AED).withValues(alpha: 0.70),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        boardingCode,
+                        style: const TextStyle(
+                          fontSize: 40,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 14,
+                          color: Color(0xFF7C3AED),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 20),
               TextField(
                 controller: codeCtrl,
@@ -753,7 +787,9 @@ class _ItinerarySection extends StatelessWidget {
                             : _BoardingButton(
                                 isPending: isPending,
                                 bookingUuid: p.bookingUuid,
-                                onTap: isPending ? null : () => c.initiateBoarding(i),
+                                onTap: isPending
+                                    ? () => c.showBoardingDialog(p.bookingUuid)
+                                    : () => c.initiateBoarding(i),
                               )
                         : null,
                 r: r,
@@ -943,7 +979,7 @@ class _BoardingButton extends StatefulWidget {
 
 class _BoardingButtonState extends State<_BoardingButton> {
   Timer? _countdownTimer;
-  int _secondsLeft = 120;
+  int _secondsLeft = 60;
 
   @override
   void didUpdateWidget(_BoardingButton old) {
@@ -977,33 +1013,38 @@ class _BoardingButtonState extends State<_BoardingButton> {
   @override
   Widget build(BuildContext context) {
     if (widget.isPending) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        decoration: BoxDecoration(
-          color: AppColors.accent.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(
-              width: 12,
-              height: 12,
-              child: CircularProgressIndicator(
-                strokeWidth: 1.5,
-                color: Color(0xFFF59E0B),
+      return GestureDetector(
+        onTap: widget.onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppColors.accent.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(
+                  strokeWidth: 1.5,
+                  color: Color(0xFFF59E0B),
+                ),
               ),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              _countdownLabel,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFFF59E0B),
+              const SizedBox(width: 6),
+              Text(
+                _countdownLabel,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFFF59E0B),
+                ),
               ),
-            ),
-          ],
+              const SizedBox(width: 6),
+              const Icon(Icons.pin_rounded, size: 11, color: Color(0xFFF59E0B)),
+            ],
+          ),
         ),
       );
     }

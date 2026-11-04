@@ -1068,13 +1068,17 @@ class PushNotificationService {
 
       // ── Embarquement ─────────────────────────────────────────────────────
       case 'boarding_request':
-        // Passager : ouvrir l'écran d'attente (l'overlay se déclenche via FCM)
         if (!isDriver) {
           Get.toNamed(
             AppRoutes.passengerTripPending,
             arguments: {
               if (tripUuid    != null) 'tripUuid':    tripUuid,
               if (bookingUuid != null) 'bookingUuid': bookingUuid,
+              'openBoarding': true,
+              if ((data['driver_lat'] ?? '').toString().isNotEmpty)
+                'driverLat': data['driver_lat'],
+              if ((data['driver_lng'] ?? '').toString().isNotEmpty)
+                'driverLng': data['driver_lng'],
             },
           );
         }

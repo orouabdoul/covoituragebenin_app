@@ -210,7 +210,10 @@ class ActiveDriverTripModel {
       arrivalLat:    (j['arrival_latitude'] as num?)?.toDouble(),
       arrivalLng:    (j['arrival_longitude'] as num?)?.toDouble(),
       passengers: bookings
-          .where((b) => (b as Map)['status']?.toString() == 'confirmed')
+          .where((b) {
+            final s = (b as Map)['status']?.toString();
+            return s == 'confirmed' || s == 'accepted';
+          })
           .map((b) => ActivePassengerModel.fromJson(b as Map<String, dynamic>))
           .toList(),
     );
@@ -302,6 +305,78 @@ class ActivePassengerModel {
       pickedUpAt:   pickedUpAt   ?? this.pickedUpAt,
       droppedOffAt: droppedOffAt ?? this.droppedOffAt,
       noShowAt:     noShowAt     ?? this.noShowAt,
+    );
+  }
+}
+
+// ── Données carte conducteur (GET /api/driver/trips/{uuid}/map) ─────────────
+
+class DriverMapStop {
+  const DriverMapStop({
+    required this.bookingUuid,
+    required this.type,
+    this.lat,
+    this.lng,
+  });
+
+  final String  bookingUuid; // UUID réservation (sans suffixe _dropoff)
+  final String  type;        // 'pickup' ou 'dropoff'
+  final double? lat;
+  final double? lng;
+
+  bool get hasCoords => lat != null && lng != null;
+
+  factory DriverMapStop.fromJson(Map<String, dynamic> j) {
+    final id  = j['id']?.toString() ?? '';
+    final uuid = id.endsWith('_dropoff') ? id.replaceAll('_dropoff', '') : id;
+    final latlng = j['latlng'] as Map<String, dynamic>?;
+    return DriverMapStop(
+      bookingUuid: uuid,
+      type:        j['type']?.toString() ?? 'pickup',
+      lat:         (latlng?['lat'] as num?)?.toDouble(),
+      lng:         (latlng?['lng'] as num?)?.toDouble(),
+    );
+  }
+}
+
+class DriverMapData {
+  const DriverMapData({
+    required this.stops,
+    required this.routePolyline,
+    this.departureLat,
+    this.departureLng,
+    this.arrivalLat,
+    this.arrivalLng,
+  });
+
+  final List<DriverMapStop> stops;
+  /// Polyline résolue (ORS/OSRM) — liste de coordonnées ordonnées du trajet.
+  final List<({double lat, double lng})> routePolyline;
+  final double? departureLat;
+  final double? departureLng;
+  final double? arrivalLat;
+  final double? arrivalLng;
+
+  factory DriverMapData.fromJson(Map<String, dynamic> j) {
+    final rawStops   = j['stops'] as List? ?? [];
+    final rawPoly    = j['route_polyline'] as List? ?? [];
+    final depLatLng  = j['departure_latlng'] as Map<String, dynamic>?;
+    final arrLatLng  = j['arrival_latlng']   as Map<String, dynamic>?;
+
+    return DriverMapData(
+      stops: rawStops
+          .map((s) => DriverMapStop.fromJson(s as Map<String, dynamic>))
+          .toList(),
+      routePolyline: rawPoly
+          .map((p) {
+            final m = p as Map<String, dynamic>;
+            return (lat: (m['lat'] as num).toDouble(), lng: (m['lng'] as num).toDouble());
+          })
+          .toList(),
+      departureLat: (depLatLng?['lat'] as num?)?.toDouble(),
+      departureLng: (depLatLng?['lng'] as num?)?.toDouble(),
+      arrivalLat:   (arrLatLng?['lat'] as num?)?.toDouble(),
+      arrivalLng:   (arrLatLng?['lng'] as num?)?.toDouble(),
     );
   }
 }

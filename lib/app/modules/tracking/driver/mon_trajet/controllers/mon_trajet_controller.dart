@@ -137,13 +137,14 @@ class MonTrajetController extends GetxController {
     departureCity.value = trip.departureCity;
     arrivalCity.value   = trip.arrivalCity;
     departureTime.value = trip.departureTime;
+    // Coords brutes depuis l'endpoint de liste (précision ville uniquement)
     if (trip.departureLat != null && trip.departureLng != null) {
       departurePt.value = LatLng(trip.departureLat!, trip.departureLng!);
     }
     if (trip.arrivalLat != null && trip.arrivalLng != null) {
       arrivalPt.value = LatLng(trip.arrivalLat!, trip.arrivalLng!);
     }
-    // Fallback ville si API n'a pas renvoyé de coords
+    // Fallback ville si l'endpoint liste n'a pas de coords
     if (_same(departurePt.value, _benin) && departureCity.value.isNotEmpty) {
       final c = _cityCoord(departureCity.value);
       if (c != null) departurePt.value = c;
@@ -152,13 +153,66 @@ class MonTrajetController extends GetxController {
       final c = _cityCoord(arrivalCity.value);
       if (c != null) arrivalPt.value = c;
     }
-    passengers.value  = trip.passengers;
+    passengers.value     = trip.passengers;
     passengerCount.value = trip.passengers.length;
-    isLoading.value   = false;
+    isLoading.value      = false;
+    // Enrichir avec les coords GeoHelper-résolues + route réelle depuis /map
+    await _fetchMapData();
     SchedulerBinding.instance.addPostFrameCallback((_) {
       _fitMap();
-      _loadRoute();
     });
+  }
+
+  Future<void> _fetchMapData() async {
+    if (_tripUuid.isEmpty) return;
+    final result = await _svc.fetchDriverMapData(_tripUuid);
+    if (!result.isSuccess || result.data == null) {
+      // /map a échoué — trace la route avec les coords déjà disponibles
+      SchedulerBinding.instance.addPostFrameCallback((_) => _loadRoute());
+      return;
+    }
+    final map = result.data!;
+
+    // Écraser départ/arrivée avec coords GeoHelper-résolues (arrondissement/quartier)
+    if (map.departureLat != null && map.departureLng != null) {
+      departurePt.value = LatLng(map.departureLat!, map.departureLng!);
+    }
+    if (map.arrivalLat != null && map.arrivalLng != null) {
+      arrivalPt.value = LatLng(map.arrivalLat!, map.arrivalLng!);
+    }
+
+    // Écraser les coords pickup/dropoff des passagers avec les coords résolues des stops
+    if (passengers.isNotEmpty && map.stops.isNotEmpty) {
+      final updated = List<ActivePassengerModel>.from(passengers);
+      for (int i = 0; i < updated.length; i++) {
+        final p = updated[i];
+        final pickup = map.stops.where(
+          (s) => s.bookingUuid == p.bookingUuid && s.type == 'pickup',
+        ).firstOrNull;
+        final dropoff = map.stops.where(
+          (s) => s.bookingUuid == p.bookingUuid && s.type == 'dropoff',
+        ).firstOrNull;
+        if ((pickup?.hasCoords ?? false) || (dropoff?.hasCoords ?? false)) {
+          updated[i] = p.copyWith(
+            pickupLat:  pickup?.lat  ?? p.pickupLat,
+            pickupLng:  pickup?.lng  ?? p.pickupLng,
+            dropoffLat: dropoff?.lat ?? p.dropoffLat,
+            dropoffLng: dropoff?.lng ?? p.dropoffLng,
+          );
+        }
+      }
+      passengers.value = updated;
+    }
+
+    // Utiliser la polyline backend (ORS/OSRM) directement si disponible
+    if (map.routePolyline.length >= 2) {
+      routePoints.value = map.routePolyline
+          .map((p) => LatLng(p.lat, p.lng))
+          .toList();
+    } else {
+      // Fallback : calcul Valhalla avec les coords maintenant résolues
+      SchedulerBinding.instance.addPostFrameCallback((_) => _loadRoute());
+    }
   }
 
   // ── Route OSRM (cache 24h) ─────────────────────────────────────────────
@@ -388,11 +442,18 @@ class MonTrajetController extends GetxController {
 
     boardingPending.add(p.bookingUuid);
 
-    // Timer 2 min → fallback saisie code
+    // Timer 60s → fallback saisie code
     _boardingTimers[p.bookingUuid] = Timer(
-      const Duration(minutes: 2),
+      const Duration(seconds: 60),
       () => _onBoardingTimeout(p.bookingUuid),
     );
+  }
+
+  String getBoardingCode(String bookingUuid) => _boardingCodes[bookingUuid] ?? '';
+
+  void showBoardingDialog(String bookingUuid) {
+    final code = _boardingCodes[bookingUuid] ?? '';
+    onBoardingTimeout?.call(bookingUuid, code);
   }
 
   void _onBoardingTimeout(String bookingUuid) {

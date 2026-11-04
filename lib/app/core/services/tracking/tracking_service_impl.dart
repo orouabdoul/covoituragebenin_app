@@ -417,4 +417,33 @@ class TrackingServiceImpl implements TrackingService {
       return ApiResult.failure(AppError.unexpected);
     }
   }
+
+  // ── Carte conducteur ─────────────────────────────────────────────────────
+
+  @override
+  Future<ApiResult<DriverMapData>> fetchDriverMapData(String tripUuid) async {
+    try {
+      final res = await _dio.get(
+        AppApi.driverTripMap(tripUuid),
+        options: await _authOpts(),
+      );
+      logger.d('driverMapData[$tripUuid] [${res.statusCode}]');
+      if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
+      if (res.statusCode == 200 &&
+          res.data is Map &&
+          res.data['success'] == true) {
+        final body = res.data['body'] as Map<String, dynamic>?;
+        if (body != null) {
+          return ApiResult.success(DriverMapData.fromJson(body));
+        }
+      }
+      return ApiResult.failure(AppError.unexpected);
+    } on DioException catch (e) {
+      logger.w('driverMapData: ${e.type}');
+      return ApiResult.failure(AppDio.classifyDioError(e));
+    } catch (e) {
+      logger.w('driverMapData: $e');
+      return ApiResult.failure(AppError.unexpected);
+    }
+  }
 }
