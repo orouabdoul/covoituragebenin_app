@@ -156,63 +156,69 @@ class MonTrajetController extends GetxController {
     passengers.value     = trip.passengers;
     passengerCount.value = trip.passengers.length;
     isLoading.value      = false;
-    // Enrichir avec les coords GeoHelper-résolues + route réelle depuis /map
-    await _fetchMapData();
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      _fitMap();
-    });
+    // Lance /map en arrière-plan — gère _fitMap() en interne après mise à jour
+    _fetchMapData().ignore();
   }
 
   Future<void> _fetchMapData() async {
-    if (_tripUuid.isEmpty) return;
-    final result = await _svc.fetchDriverMapData(_tripUuid);
-    if (!result.isSuccess || result.data == null) {
-      // /map a échoué — trace la route avec les coords déjà disponibles
-      SchedulerBinding.instance.addPostFrameCallback((_) => _loadRoute());
+    if (_tripUuid.isEmpty) {
+      SchedulerBinding.instance.addPostFrameCallback((_) { _fitMap(); _loadRoute(); });
       return;
     }
-    final map = result.data!;
+    final result = await _svc.fetchDriverMapData(_tripUuid);
 
-    // Écraser départ/arrivée avec coords GeoHelper-résolues (arrondissement/quartier)
-    if (map.departureLat != null && map.departureLng != null) {
-      departurePt.value = LatLng(map.departureLat!, map.departureLng!);
-    }
-    if (map.arrivalLat != null && map.arrivalLng != null) {
-      arrivalPt.value = LatLng(map.arrivalLat!, map.arrivalLng!);
-    }
-
-    // Écraser les coords pickup/dropoff des passagers avec les coords résolues des stops
-    if (passengers.isNotEmpty && map.stops.isNotEmpty) {
-      final updated = List<ActivePassengerModel>.from(passengers);
-      for (int i = 0; i < updated.length; i++) {
-        final p = updated[i];
-        final pickup = map.stops.where(
-          (s) => s.bookingUuid == p.bookingUuid && s.type == 'pickup',
-        ).firstOrNull;
-        final dropoff = map.stops.where(
-          (s) => s.bookingUuid == p.bookingUuid && s.type == 'dropoff',
-        ).firstOrNull;
-        if ((pickup?.hasCoords ?? false) || (dropoff?.hasCoords ?? false)) {
-          updated[i] = p.copyWith(
-            pickupLat:  pickup?.lat  ?? p.pickupLat,
-            pickupLng:  pickup?.lng  ?? p.pickupLng,
-            dropoffLat: dropoff?.lat ?? p.dropoffLat,
-            dropoffLng: dropoff?.lng ?? p.dropoffLng,
-          );
-        }
+    // Toutes les mises à jour d'observables dans addPostFrameCallback
+    // pour éviter markNeedsBuild() pendant un build en cours.
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (!result.isSuccess || result.data == null) {
+        _fitMap();
+        _loadRoute();
+        return;
       }
-      passengers.value = updated;
-    }
+      final map = result.data!;
 
-    // Utiliser la polyline backend (ORS/OSRM) directement si disponible
-    if (map.routePolyline.length >= 2) {
-      routePoints.value = map.routePolyline
-          .map((p) => LatLng(p.lat, p.lng))
-          .toList();
-    } else {
-      // Fallback : calcul Valhalla avec les coords maintenant résolues
-      SchedulerBinding.instance.addPostFrameCallback((_) => _loadRoute());
-    }
+      // Écraser départ/arrivée avec coords GeoHelper-résolues (arrondissement/quartier)
+      if (map.departureLat != null && map.departureLng != null) {
+        departurePt.value = LatLng(map.departureLat!, map.departureLng!);
+      }
+      if (map.arrivalLat != null && map.arrivalLng != null) {
+        arrivalPt.value = LatLng(map.arrivalLat!, map.arrivalLng!);
+      }
+
+      // Écraser les coords pickup/dropoff des passagers avec les coords résolues des stops
+      if (passengers.isNotEmpty && map.stops.isNotEmpty) {
+        final updated = List<ActivePassengerModel>.from(passengers);
+        for (int i = 0; i < updated.length; i++) {
+          final p = updated[i];
+          final pickup = map.stops.where(
+            (s) => s.bookingUuid == p.bookingUuid && s.type == 'pickup',
+          ).firstOrNull;
+          final dropoff = map.stops.where(
+            (s) => s.bookingUuid == p.bookingUuid && s.type == 'dropoff',
+          ).firstOrNull;
+          if ((pickup?.hasCoords ?? false) || (dropoff?.hasCoords ?? false)) {
+            updated[i] = p.copyWith(
+              pickupLat:  pickup?.lat  ?? p.pickupLat,
+              pickupLng:  pickup?.lng  ?? p.pickupLng,
+              dropoffLat: dropoff?.lat ?? p.dropoffLat,
+              dropoffLng: dropoff?.lng ?? p.dropoffLng,
+            );
+          }
+        }
+        passengers.value = updated;
+      }
+
+      // Utiliser la polyline backend (ORS/OSRM) directement si disponible
+      if (map.routePolyline.length >= 2) {
+        routePoints.value = map.routePolyline
+            .map((p) => LatLng(p.lat, p.lng))
+            .toList();
+      } else {
+        _loadRoute();
+      }
+
+      _fitMap();
+    });
   }
 
   // ── Route OSRM (cache 24h) ─────────────────────────────────────────────
