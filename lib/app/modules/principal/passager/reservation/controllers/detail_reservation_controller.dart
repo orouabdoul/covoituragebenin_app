@@ -63,7 +63,9 @@ class DetailReservationController extends GetxController {
       // (le statut en cache peut être 'confirmed' alors que le trajet a démarré)
       if (arg.status == ReservationStatus.confirmed ||
           arg.status == ReservationStatus.inProgress) {
-        AppSync.i.refreshPassenger();
+        SchedulerBinding.instance.addPostFrameCallback((_) {
+          AppSync.i.refreshPassenger();
+        });
       }
       // Pré-remplir le ride depuis la réservation immédiatement
       ride.value = SearchRide(
