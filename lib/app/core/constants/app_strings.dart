@@ -363,8 +363,8 @@ class AppStrings {
   static const String revenuesWithdraw = 'Retirer';
   static const String revenuesHistory = 'Historique';
   static const String revenuesPendingIncome = 'Gains en attente';
-  static const String revenuesAvailableIn48h =
-      'Disponible dans 48h après validation';
+  static const String revenuesAvailableIn2h =
+      'Disponible dans 2h après validation';
   static const String revenuesRecentTransactions = 'Transactions récentes';
   static const String revenuesViewAll = 'Tout voir';
   static const String revenuesWeeklyIncome = 'Revenus des 7 derniers jours';

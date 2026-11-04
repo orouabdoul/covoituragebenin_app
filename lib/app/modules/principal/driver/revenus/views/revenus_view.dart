@@ -471,7 +471,7 @@ class _PendingIncomeCard extends StatelessWidget {
 							SizedBox(width: responsive.w(8)),
 							Expanded(
 								child: Text(
-									AppStrings.revenuesAvailableIn48h,
+									AppStrings.revenuesAvailableIn2h,
 									style: AppTextStyles.caption(responsive).copyWith(
 										color: AppColors.textPrimary,
 										fontWeight: FontWeight.w500,
