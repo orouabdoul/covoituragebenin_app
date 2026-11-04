@@ -10,6 +10,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
+import 'package:covoiturage_benin_app/app/core/constants/benin_locations.dart';
 import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import 'package:covoiturage_benin_app/app/core/services/tracking/tracking_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/routing/routing_service.dart';
@@ -38,8 +39,9 @@ class MonTrajetController extends GetxController {
   // Set des bookingUuids en attente de confirmation (FCM envoyé, timer actif)
   final boardingPending = <String>{}.obs;
   final _boardingTimers = <String, Timer>{};
+  final _boardingCodes  = <String, String>{}; // bookingUuid → code 4 chiffres
   // Callback appelé quand on veut ouvrir le dialog de code (injecté par la vue)
-  void Function(String bookingUuid)? onBoardingTimeout;
+  void Function(String bookingUuid, String boardingCode)? onBoardingTimeout;
   // Callback appelé à la fin du trajet avec montant en attente (injecté par la vue)
   void Function(double pendingAmount, String? releaseAt)? onTripCompleted;
 
@@ -82,8 +84,10 @@ class MonTrajetController extends GetxController {
       t.cancel();
     }
     _boardingTimers.clear();
+    _boardingCodes.clear();
     _gpsSub?.cancel();
     _gpsPushTimer?.cancel();
+    _routing.close();
     super.onClose();
   }
 
@@ -164,10 +168,15 @@ class MonTrajetController extends GetxController {
     final arr = arrivalPt.value;
     if (_same(dep, _benin) || _same(arr, _benin) || _same(dep, arr)) return;
 
-    // Clé incluant les coords pour invalider le cache quand les points changent
+    // Clé incluant tous les waypoints pour invalider le cache si les passagers changent
+    final waypointHash = passengers
+        .where((p) => p.pickupLat != null && p.pickupLng != null)
+        .map((p) => '${p.pickupLat!.toStringAsFixed(3)}_${p.pickupLng!.toStringAsFixed(3)}')
+        .join('-');
     final cacheKey = 'mz_route_'
         '${dep.latitude.toStringAsFixed(4)}_${dep.longitude.toStringAsFixed(4)}'
-        '_${arr.latitude.toStringAsFixed(4)}_${arr.longitude.toStringAsFixed(4)}';
+        '_${arr.latitude.toStringAsFixed(4)}_${arr.longitude.toStringAsFixed(4)}'
+        '${waypointHash.isNotEmpty ? '_$waypointHash' : ''}';
     final prefs = await SharedPreferences.getInstance();
     final cached = prefs.getString(cacheKey);
     final ts  = prefs.getInt('${cacheKey}_ts') ?? 0;
@@ -373,6 +382,10 @@ class MonTrajetController extends GetxController {
       return;
     }
 
+    if ((result.data ?? '').isNotEmpty) {
+      _boardingCodes[p.bookingUuid] = result.data!;
+    }
+
     boardingPending.add(p.bookingUuid);
 
     // Timer 2 min → fallback saisie code
@@ -385,12 +398,14 @@ class MonTrajetController extends GetxController {
   void _onBoardingTimeout(String bookingUuid) {
     _boardingTimers.remove(bookingUuid);
     boardingPending.remove(bookingUuid);
-    onBoardingTimeout?.call(bookingUuid);
+    final code = _boardingCodes[bookingUuid] ?? '';
+    onBoardingTimeout?.call(bookingUuid, code);
   }
 
   void handlePassengerBoarded(String bookingUuid) {
     _boardingTimers[bookingUuid]?.cancel();
     _boardingTimers.remove(bookingUuid);
+    _boardingCodes.remove(bookingUuid);
     boardingPending.remove(bookingUuid);
     final idx = passengers.indexWhere((p) => p.bookingUuid == bookingUuid);
     if (idx >= 0) {
@@ -559,46 +574,7 @@ class MonTrajetController extends GetxController {
     return r * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
   }
 
-  static const _cities = <String, LatLng>{
-    'cotonou':        LatLng(6.3654,  2.4183),
-    'porto-novo':     LatLng(6.4969,  2.6289),
-    'porto novo':     LatLng(6.4969,  2.6289),
-    'parakou':        LatLng(9.3394,  2.6280),
-    'bohicon':        LatLng(7.1839,  2.0670),
-    'abomey':         LatLng(7.1827,  1.9876),
-    'abomey-calavi':  LatLng(6.4499,  2.3554),
-    'abomey calavi':  LatLng(6.4499,  2.3554),
-    'lokossa':        LatLng(6.6419,  1.7175),
-    'natitingou':     LatLng(10.3164, 1.3789),
-    'kandi':          LatLng(11.1322, 2.9401),
-    'djougou':        LatLng(9.7086,  1.6623),
-    'ouidah':         LatLng(6.3609,  2.0860),
-    'savalou':        LatLng(7.9237,  1.9755),
-    'dassa':          LatLng(7.7571,  2.1896),
-    'dassa-zoumè':    LatLng(7.7571,  2.1896),
-    'save':           LatLng(8.0297,  2.4801),
-    'glazoué':        LatLng(7.9753,  2.2501),
-    'glazoue':        LatLng(7.9753,  2.2501),
-    'malanville':     LatLng(11.8695, 3.3853),
-    'allada':         LatLng(6.6641,  2.1517),
-    'nikki':          LatLng(9.9380,  3.2099),
-    'tchaourou':      LatLng(8.8778,  2.5983),
-    'banikoara':      LatLng(11.3009, 2.4396),
-    'ketou':          LatLng(7.3594,  2.6037),
-    'covè':           LatLng(7.2303,  2.3806),
-    'sèmè-kpodji':    LatLng(6.3822,  2.6378),
-    'seme':           LatLng(6.3822,  2.6378),
-  };
-
-  static LatLng? _cityCoord(String name) {
-    if (name.isEmpty) return null;
-    final key = name.toLowerCase().trim();
-    if (_cities.containsKey(key)) return _cities[key];
-    for (final e in _cities.entries) {
-      if (key.contains(e.key) || e.key.contains(key)) return e.value;
-    }
-    return null;
-  }
+  static LatLng? _cityCoord(String name) => BeninLocations.cityCoord(name);
 
   static bool _same(LatLng a, LatLng b) =>
       (a.latitude - b.latitude).abs() < 1e-5 &&

@@ -1,17 +1,13 @@
 import 'package:covoiturage_benin_app/app/core/constants/app_api.dart';
 import 'package:covoiturage_benin_app/app/core/controller/user_controller.dart';
 import 'package:covoiturage_benin_app/app/core/utils/api_result.dart';
+import 'package:covoiturage_benin_app/app/core/utils/app_dio.dart';
 import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:dio/dio.dart';
 
 class BookingProvider {
-  final Dio _dio = Dio(BaseOptions(
-    baseUrl: AppApi.baseUrl,
-    connectTimeout: const Duration(seconds: 30),
-    receiveTimeout: const Duration(seconds: 30),
-    headers: {'Accept': 'application/json'},
-  ));
+  final Dio _dio = AppDio.create();
 
   Future<Options> _authOptions() async {
     final token = await UserController.instance.getSessionToken();
@@ -35,7 +31,7 @@ class BookingProvider {
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('driverBookings: $e');
-      return ApiResult.failure(_mapDioError(e));
+      return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
       logger.e('driverBookings: $e');
       return ApiResult.failure(AppError.unexpected);
@@ -53,7 +49,7 @@ class BookingProvider {
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('acceptBooking: $e');
-      return ApiResult.failure(_mapDioError(e));
+      return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
       logger.e('acceptBooking: $e');
       return ApiResult.failure(AppError.unexpected);
@@ -71,20 +67,11 @@ class BookingProvider {
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {
       logger.e('rejectBooking: $e');
-      return ApiResult.failure(_mapDioError(e));
+      return ApiResult.failure(AppDio.classifyDioError(e));
     } catch (e) {
       logger.e('rejectBooking: $e');
       return ApiResult.failure(AppError.unexpected);
     }
   }
 
-  AppError _mapDioError(DioException e) {
-    if (e.type == DioExceptionType.connectionTimeout ||
-        e.type == DioExceptionType.sendTimeout ||
-        e.type == DioExceptionType.receiveTimeout ||
-        e.type == DioExceptionType.connectionError) {
-      return AppError.socket;
-    }
-    return AppError.unexpected;
-  }
 }

@@ -903,12 +903,14 @@ class PushNotificationService {
       case 'new_message':
         if (isDriver) {
           if (Get.isRegistered<BottonNavController>()) {
-            BottonNavController.goToTab(3);
+            BottonNavController.goToTab(0);
           } else {
-            Get.offAllNamed(AppRoutes.dashboardDriver, arguments: 3);
+            Get.offAllNamed(AppRoutes.dashboardDriver);
           }
           if (convUuid != null) {
             Get.toNamed(AppRoutes.driverMessageDetail, arguments: {'uuid': convUuid});
+          } else {
+            Get.toNamed(AppRoutes.driverMessages);
           }
         } else {
           if (Get.isRegistered<BottonNavController>()) {
@@ -1267,11 +1269,9 @@ class PushNotificationService {
 
   void _logToken() {
     _fcm.getToken()
-        .then((t) => logger.d('FCM Token: $t'))
-        .catchError((Object e) => logger.w('FCM _logToken: $e'));
+        .then((_) {}, onError: (Object e) => logger.w('FCM _logToken: $e'));
     _fcm.onTokenRefresh.listen(
       (t) {
-        logger.d('FCM Token refreshed: $t');
         registerFcmToken();
       },
       onError: (Object e) => logger.w('FCM onTokenRefresh: $e'),

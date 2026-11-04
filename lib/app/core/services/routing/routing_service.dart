@@ -166,20 +166,24 @@ class RoutingService {
     final legs = trip['legs'] as List?;
     if (legs == null || legs.isEmpty) return const [];
 
-    // Avec shape_format=geojson, shape est un objet GeoJSON LineString
-    final shape = (legs[0] as Map)['shape'];
-    if (shape is Map) {
-      final coords = shape['coordinates'] as List?;
-      if (coords == null || coords.isEmpty) return const [];
-      return coords
-          .map<LatLng>((c) => LatLng(
-                (c[1] as num).toDouble(),
-                (c[0] as num).toDouble(),
-              ))
-          .toList();
+    // Concaténer TOUS les legs pour avoir le tracé complet
+    // (un leg par segment : départ→pickup1, pickup1→pickup2, …, lastPickup→arrivée)
+    final allPoints = <LatLng>[];
+    for (final leg in legs) {
+      final shape = (leg as Map)['shape'];
+      if (shape is Map) {
+        final coords = shape['coordinates'] as List?;
+        if (coords != null) {
+          for (final c in coords) {
+            allPoints.add(LatLng(
+              (c[1] as num).toDouble(),
+              (c[0] as num).toDouble(),
+            ));
+          }
+        }
+      }
     }
-
-    return const [];
+    return allPoints;
   }
 
   // ── OSRM ──────────────────────────────────────────────────────────────────

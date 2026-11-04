@@ -18,8 +18,8 @@ class MonTrajetView extends GetView<MonTrajetController> {
   @override
   Widget build(BuildContext context) {
     // Injecter les callbacks depuis la vue
-    controller.onBoardingTimeout = (bookingUuid) {
-      _showBoardingCodeDialog(context, bookingUuid);
+    controller.onBoardingTimeout = (bookingUuid, boardingCode) {
+      _showBoardingCodeDialog(context, bookingUuid, boardingCode);
     };
     controller.onTripCompleted = (pendingAmount, releaseAt) {
       _showCompletionSheet(context, pendingAmount, releaseAt);
@@ -45,9 +45,9 @@ class MonTrajetView extends GetView<MonTrajetController> {
     );
   }
 
-  void _showBoardingCodeDialog(BuildContext context, String bookingUuid) {
+  void _showBoardingCodeDialog(BuildContext context, String bookingUuid, String boardingCode) {
     final r = AppResponsive(context);
-    final codeCtrl = TextEditingController();
+    final codeCtrl = TextEditingController(text: boardingCode);
     final isLoading = false.obs;
     final isManualLoading = false.obs;
 

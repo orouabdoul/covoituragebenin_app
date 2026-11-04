@@ -51,14 +51,18 @@ class PaymentSuccessController extends GetxController {
       final uuid = savedArgs['bookingUuid'];
       if (uuid is String && uuid.isNotEmpty) {
         _bookingUuid = uuid;
-        _fetchSuccess();
+        _fetchSuccess().then((_) {
+          _autoRedirectTimer = Timer(const Duration(seconds: 4), goHome);
+        });
       }
     }
     if (transactionRef.value.isEmpty) {
       transactionRef.value =
           '#TXN-${(DateTime.now().millisecondsSinceEpoch % 100000).toString().padLeft(5, '0')}';
     }
-    _autoRedirectTimer = Timer(const Duration(seconds: 4), goHome);
+    if (_bookingUuid.isEmpty) {
+      _autoRedirectTimer = Timer(const Duration(seconds: 4), goHome);
+    }
   }
 
   Future<void> _fetchSuccess() async {

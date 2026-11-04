@@ -26,6 +26,7 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
   bool _initialized = false;
   bool _capturing = false;
   bool _noFaceDetected = false;
+  bool _wrongAngle = false;
 
   // Oval border pulse animation
   late AnimationController _pulseCtrl;
@@ -99,25 +100,48 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
     super.dispose();
   }
 
-  Future<bool> _detectFace(String imagePath) async {
+  /// Vérifie présence du visage ET angle de la tête.
+  /// Retourne null = OK, 'no_face' = aucun visage, 'wrong_angle' = mauvais côté.
+  Future<String?> _checkFaceAndAngle(String imagePath) async {
     final detector = FaceDetector(
-      options: FaceDetectorOptions(performanceMode: FaceDetectorMode.fast),
+      options: FaceDetectorOptions(performanceMode: FaceDetectorMode.accurate),
     );
     try {
       final faces = await detector.processImage(InputImage.fromFilePath(imagePath));
-      return faces.isNotEmpty;
+      if (faces.isEmpty) return 'no_face';
+      final face = faces.reduce((a, b) =>
+          a.boundingBox.width * a.boundingBox.height >
+                  b.boundingBox.width * b.boundingBox.height
+              ? a
+              : b);
+      final eulerY = (face.headEulerAngleY ?? 0.0).abs();
+      switch (widget.step) {
+        case SelfieStep.front:
+          if (eulerY > 22) return 'wrong_angle';
+        case SelfieStep.left:
+        case SelfieStep.right:
+          if (eulerY < 18) return 'wrong_angle';
+      }
+      return null;
     } catch (_) {
-      return true; // ne pas bloquer si la détection échoue
+      return null; // ne pas bloquer si la détection échoue
     } finally {
       detector.close();
     }
   }
+
+  String get _wrongAngleMessage => switch (widget.step) {
+        SelfieStep.front => 'Regardez droit devant la caméra',
+        SelfieStep.left  => 'Tournez davantage la tête vers la gauche',
+        SelfieStep.right => 'Tournez davantage la tête vers la droite',
+      };
 
   Future<void> _capture() async {
     if (!_initialized || _capturing || _controller == null) return;
     setState(() {
       _capturing = true;
       _noFaceDetected = false;
+      _wrongAngle = false;
     });
     final screenSize = MediaQuery.of(context).size;
     try {
@@ -131,10 +155,16 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
           '$kycPath/selfie_raw_${DateTime.now().millisecondsSinceEpoch}.jpg';
       await File(rawPhoto.path).copy(stablePath);
 
-      final hasFace = await _detectFace(stablePath);
-      if (!hasFace) {
+      final rejection = await _checkFaceAndAngle(stablePath);
+      if (rejection != null) {
         File(stablePath).delete().ignore();
-        if (mounted) setState(() { _capturing = false; _noFaceDetected = true; });
+        if (mounted) {
+          setState(() {
+            _capturing = false;
+            _noFaceDetected = rejection == 'no_face';
+            _wrongAngle     = rejection == 'wrong_angle';
+          });
+        }
         return;
       }
       final cropped = await _cropToHead(stablePath, screenSize);
@@ -243,7 +273,7 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
                   borderOpacity: _pulseAnim.value,
                   arrowOffset:
                       widget.step == SelfieStep.front ? 0 : _arrowAnim.value,
-                  noFace: _noFaceDetected,
+                  noFace: _noFaceDetected || _wrongAngle,
                 ),
               ),
             ),
@@ -263,9 +293,9 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
                       children: [
                         _CircleIconButton(
                           icon: Icons.arrow_back_ios_new_rounded,
-                          // false = rejeté (visage non détecté) ; null = simple annulation
+                          // false = rejeté (visage ou angle) ; null = simple annulation
                           onTap: () => Navigator.of(context).pop(
-                            _noFaceDetected ? false : null,
+                            (_noFaceDetected || _wrongAngle) ? false : null,
                           ),
                         ),
                         const SizedBox(width: 14),
@@ -308,14 +338,14 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
             ),
           ),
 
-          // ── No-face error banner ────────────────────────────────────────
-          if (_noFaceDetected)
+          // ── Error banner (no face OR wrong angle) ──────────────────────
+          if (_noFaceDetected || _wrongAngle)
             Positioned(
               bottom: 160,
               left: 24,
               right: 24,
               child: AnimatedOpacity(
-                opacity: _noFaceDetected ? 1.0 : 0.0,
+                opacity: 1.0,
                 duration: const Duration(milliseconds: 250),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
@@ -332,26 +362,33 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.face_retouching_off_rounded,
-                          color: Colors.white, size: 24),
+                      Icon(
+                        _wrongAngle
+                            ? Icons.rotate_90_degrees_ccw_rounded
+                            : Icons.face_retouching_off_rounded,
+                        color: Colors.white,
+                        size: 24,
+                      ),
                       const SizedBox(width: 12),
-                      const Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              'Aucun visage détecté',
-                              style: TextStyle(
+                              _wrongAngle ? 'Mauvais angle' : 'Aucun visage détecté',
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w700,
                                 fontSize: 13.5,
                               ),
                             ),
-                            SizedBox(height: 3),
+                            const SizedBox(height: 3),
                             Text(
-                              'Centrez bien votre visage dans l\'ovale et réessayez',
-                              style: TextStyle(
+                              _wrongAngle
+                                  ? _wrongAngleMessage
+                                  : 'Centrez bien votre visage dans l\'ovale et réessayez',
+                              style: const TextStyle(
                                 color: Colors.white70,
                                 fontSize: 11.5,
                                 height: 1.4,

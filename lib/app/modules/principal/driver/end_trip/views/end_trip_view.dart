@@ -417,13 +417,22 @@ class _PaymentTimerCard extends StatefulWidget {
 }
 
 class _PaymentTimerCardState extends State<_PaymentTimerCard> {
-  static const _windowSec = 30 * 60; // 30 minutes
+  static const _windowSec = 2 * 60 * 60; // fallback 2h
   Timer? _timer;
-  int _remainingSec = _windowSec;
+  late int _remainingSec;
 
   @override
   void initState() {
     super.initState();
+    final parsed = DateTime.tryParse(widget.availableDate);
+    if (parsed != null) {
+      final diff = parsed.isUtc
+          ? parsed.toLocal().difference(DateTime.now())
+          : parsed.difference(DateTime.now());
+      _remainingSec = diff.isNegative ? 0 : diff.inSeconds;
+    } else {
+      _remainingSec = _windowSec;
+    }
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
       setState(() {
@@ -477,7 +486,7 @@ class _PaymentTimerCardState extends State<_PaymentTimerCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _isAvailable ? 'Fonds débloqués' : 'Fenêtre de sécurité — 30 min',
+                      _isAvailable ? 'Fonds débloqués' : 'Fenêtre de sécurité',
                       style: AppTextStyles.bodySmall(r).copyWith(
                         color: AppColors.textPrimary,
                         fontWeight: FontWeight.w700,

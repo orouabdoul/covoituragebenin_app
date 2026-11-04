@@ -19,6 +19,7 @@ import 'package:covoiturage_benin_app/app/modules/widgets/id_card_camera_screen.
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 class ProfilePassagerController extends GetxController {
+  final ScrollController scrollController = ScrollController();
   final TextEditingController lastNameController = TextEditingController();
   final TextEditingController firstNameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
@@ -471,6 +472,7 @@ class ProfilePassagerController extends GetxController {
 
   @override
   void onClose() {
+    scrollController.dispose();
     lastNameController.dispose();
     firstNameController.dispose();
     emailController.dispose();

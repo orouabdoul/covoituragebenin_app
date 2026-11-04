@@ -22,6 +22,7 @@ import 'profile_passager_controller.dart' show EmergencyContactEntry;
 enum DriverType { car, moto }
 
 class ProfileDriverController extends GetxController {
+  final ScrollController scrollController = ScrollController();
   final TextEditingController lastNameController = TextEditingController();
   final TextEditingController firstNameController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
@@ -805,6 +806,7 @@ class ProfileDriverController extends GetxController {
 
   @override
   void onClose() {
+    scrollController.dispose();
     lastNameController.dispose();
     firstNameController.dispose();
     phoneController.dispose();

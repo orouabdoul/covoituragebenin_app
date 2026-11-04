@@ -336,7 +336,7 @@ class _SelfieCaptureWidgetState extends State<SelfieCaptureWidget>
                 SizedBox(width: r.w(10)),
                 Expanded(
                   child: Text(
-                    'Aucun visage détecté pour « ${_labelFor(_currentStep)} ».\nReprenez cette photo en centrant votre visage.',
+                    'Photo refusée pour « ${_labelFor(_currentStep)} ».\nReprenez en suivant les instructions affichées à l\'écran.',
                     style: TextStyle(
                       fontSize: r.text(11.5),
                       color: AppColors.dangerDark,

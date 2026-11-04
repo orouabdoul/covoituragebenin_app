@@ -27,6 +27,7 @@ class ProfileDriverView extends GetView<ProfileDriverController> {
       backgroundColor: AppColors.white,
       body: SafeArea(
         child: SingleChildScrollView(
+          controller: controller.scrollController,
           child: Center(
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: responsive.maxContentWidth),

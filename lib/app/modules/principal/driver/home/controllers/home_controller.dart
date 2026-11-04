@@ -406,8 +406,14 @@ class DriverHomeController extends GetxController {
 
   Future<void> _loadDailyGoal() async {
     final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getInt('driver_daily_goal_fcfa');
-    if (saved != null && saved > 0) dailyGoalFcfa.value = saved;
+    final savedDate = prefs.getString('driver_daily_goal_date');
+    final todayStr = _todayString();
+    if (savedDate == todayStr) {
+      final saved = prefs.getInt('driver_daily_goal_fcfa');
+      if (saved != null && saved > 0) dailyGoalFcfa.value = saved;
+    } else {
+      dailyGoalFcfa.value = 0;
+    }
   }
 
   Future<void> setDailyGoal(int goal) async {
@@ -415,10 +421,18 @@ class DriverHomeController extends GetxController {
     dailyGoalFcfa.value = goal;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('driver_daily_goal_fcfa', goal);
+    await prefs.setString('driver_daily_goal_date', _todayString());
+  }
+
+  String _todayString() {
+    final d = DateTime.now();
+    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
   }
 
   void showEditGoalDialog() {
-    final ctrl = TextEditingController(text: dailyGoalFcfa.value.toString());
+    final ctrl = TextEditingController(
+      text: dailyGoalFcfa.value > 0 ? dailyGoalFcfa.value.toString() : '',
+    );
     Get.dialog(
       AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -436,7 +450,6 @@ class DriverHomeController extends GetxController {
             TextField(
               controller: ctrl,
               keyboardType: TextInputType.number,
-              autofocus: true,
               decoration: InputDecoration(
                 hintText: 'Ex: 15000',
                 suffixText: 'FCFA',
@@ -460,7 +473,12 @@ class DriverHomeController extends GetxController {
           ),
           TextButton(
             onPressed: () {
-              final v = int.tryParse(ctrl.text.trim().replaceAll(' ', ''));
+              final raw = ctrl.text
+                  .trim()
+                  .replaceAll(' ', '')
+                  .replaceAll('.', '')
+                  .replaceAll(',', '');
+              final v = int.tryParse(raw);
               if (v != null && v > 0) {
                 setDailyGoal(v);
                 Get.back();

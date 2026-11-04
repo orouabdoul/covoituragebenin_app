@@ -25,6 +25,7 @@ class ProfilePassagerView extends GetView<ProfilePassagerController> {
       backgroundColor: AppColors.surface,
       body: SafeArea(
         child: SingleChildScrollView(
+          controller: controller.scrollController,
           child: Center(
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: responsive.maxContentWidth),

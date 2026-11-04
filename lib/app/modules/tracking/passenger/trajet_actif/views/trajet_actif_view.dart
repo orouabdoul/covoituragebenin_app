@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -126,15 +127,23 @@ class _MapLayer extends StatelessWidget {
                 ),
               ]),
 
-            // ── Segment passager (montée → descente) — orange ─────────────
-            if (hasSeg)
+            // ── Segment passager (montée → descente) — halo blanc + orange ─
+            if (hasSeg) ...[
               PolylineLayer(polylines: [
                 Polyline(
                   points: segment,
-                  color: AppColors.accent.withValues(alpha: 0.88),
-                  strokeWidth: 6,
+                  color: Colors.white.withValues(alpha: 0.85),
+                  strokeWidth: 11,
                 ),
               ]),
+              PolylineLayer(polylines: [
+                Polyline(
+                  points: segment,
+                  color: AppColors.accent.withValues(alpha: 0.92),
+                  strokeWidth: 5.5,
+                ),
+              ]),
+            ],
 
             // ── Tracé GPS réel (historique) ───────────────────────────────
             if (c.gpsTrail.length >= 2)
@@ -165,32 +174,28 @@ class _MapLayer extends StatelessWidget {
                   alignment: Alignment.center,
                   child: const _SmallDot(color: Color(0xFF888888)),
                 ),
-              // Marqueur montée passager (vert)
+              // Marqueur montée passager (icône personne, vert)
               Marker(
                 point: c.departurePt.value,
-                width: 172,
-                height: 90,
+                width: 144,
+                height: 108,
                 alignment: Alignment.bottomCenter,
-                child: _LabeledMapPin(
-                  color: AppColors.success,
-                  typeLabel: 'MONTÉE',
+                child: _PassengerPin(
+                  isPickup: true,
                   city: c.pickupCityLabel.value,
                   detail: c.pickupDetail.value,
-                  note: c.pickupNote.value,
                 ),
               ),
-              // Marqueur descente passager (rouge)
+              // Marqueur descente passager (icône drapeau, rouge)
               Marker(
                 point: c.arrivalPt.value,
-                width: 172,
-                height: 90,
+                width: 144,
+                height: 108,
                 alignment: Alignment.bottomCenter,
-                child: _LabeledMapPin(
-                  color: AppColors.danger,
-                  typeLabel: 'DESCENTE',
+                child: _PassengerPin(
+                  isPickup: false,
                   city: c.dropoffCityLabel.value,
                   detail: c.dropoffDetail.value,
-                  note: c.dropoffNote.value,
                 ),
               ),
               if (hasVeh)
@@ -224,117 +229,112 @@ class _SmallDot extends StatelessWidget {
       );
 }
 
-// ─── Labeled Map Pin ──────────────────────────────────────────────────────────
+// ─── Passenger Pin (icône personne / drapeau) ─────────────────────────────────
 
-class _LabeledMapPin extends StatelessWidget {
-  const _LabeledMapPin({
-    required this.color,
-    required this.typeLabel,
+class _PassengerPin extends StatelessWidget {
+  const _PassengerPin({
+    required this.isPickup,
     required this.city,
     required this.detail,
-    required this.note,
   });
-  final Color color;
-  final String typeLabel;
+  final bool isPickup;
   final String city;
   final String detail;
-  final String note;
 
   @override
   Widget build(BuildContext context) {
+    final color = isPickup ? AppColors.success : AppColors.danger;
+    final icon  = isPickup
+        ? Icons.person_pin_circle_rounded
+        : Icons.flag_rounded;
+
     return Column(
-      mainAxisSize: MainAxisSize.max,
+      mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.end,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Container(
-          constraints: const BoxConstraints(maxWidth: 160),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: [
-              BoxShadow(
-                color: color.withValues(alpha: 0.45),
-                blurRadius: 8,
-                spreadRadius: 0.5,
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                typeLabel,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 8,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.8,
+        // Label pill blanc flottant
+        if (city.isNotEmpty)
+          Container(
+            constraints: const BoxConstraints(maxWidth: 130),
+            margin: const EdgeInsets.only(bottom: 5),
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.22),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
                 ),
-              ),
-              if (city.isNotEmpty)
+              ],
+              border: Border.all(color: color.withValues(alpha: 0.28), width: 1),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
                 Text(
                   city,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    height: 1.3,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                ),
-              if (detail.isNotEmpty)
-                Text(
-                  detail,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.90),
-                    fontSize: 9,
-                    height: 1.3,
+                    color: color,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    height: 1.2,
                   ),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
+                  textAlign: TextAlign.center,
                 ),
-              if (note.isNotEmpty)
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.push_pin_rounded,
-                        color: Colors.white70, size: 8),
-                    const SizedBox(width: 2),
-                    Flexible(
-                      child: Text(
-                        note,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.80),
-                          fontSize: 8,
-                          fontStyle: FontStyle.italic,
-                          height: 1.3,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                      ),
+                if (detail.isNotEmpty)
+                  Text(
+                    detail,
+                    style: const TextStyle(
+                      color: Color(0xFF6B7280),
+                      fontSize: 9,
+                      height: 1.2,
                     ),
-                  ],
-                ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    textAlign: TextAlign.center,
+                  ),
+              ],
+            ),
+          ),
+        // Cercle icône
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 2.5),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.55),
+                blurRadius: 12,
+                spreadRadius: 1,
+              ),
             ],
           ),
+          child: Icon(icon, color: Colors.white, size: 21),
         ),
+        // Flèche
         ClipPath(
           clipper: _TriangleClipper(),
           child: Container(width: 12, height: 7, color: color),
         ),
+        // Point au sol
         Container(
-          width: 10,
-          height: 10,
+          width: 8,
+          height: 8,
           decoration: BoxDecoration(
             color: color,
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white, width: 1.5),
             boxShadow: [
-              BoxShadow(color: color.withValues(alpha: 0.50), blurRadius: 4),
+              BoxShadow(color: color.withValues(alpha: 0.45), blurRadius: 4),
             ],
           ),
         ),
@@ -659,7 +659,7 @@ class _BottomSheet extends StatelessWidget {
                   SizedBox(height: r.h(16)),
                   _MetricsRow(c: c, r: r),
                   const _Separator(),
-                  _RouteStopsCard(c: c, r: r),
+                  _TripTimeline(c: c, r: r),
                   const _Separator(),
                   _DriverCard(c: c, r: r),
                   SizedBox(height: r.h(16)),
@@ -1162,72 +1162,94 @@ class _DriverCard extends StatelessWidget {
               ? 'Arrivé'
               : 'En attente';
 
-      return Row(
+      final isPending = s == 'pending';
+      final distToPickup = isPending && c.hasVehicleGps.value
+          ? _distKm(c.vehicleLatLng.value, c.departurePt.value)
+          : null;
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: r.w(52),
-            height: r.w(52),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.10),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.20),
-                width: 1.5,
+          Row(
+            children: [
+              Container(
+                width: r.w(52),
+                height: r.w(52),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.10),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.20),
+                    width: 1.5,
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    _initials(name),
+                    style: AppTextStyles.h5(r).copyWith(color: AppColors.primary),
+                  ),
+                ),
               ),
-            ),
-            child: Center(
-              child: Text(
-                _initials(name),
-                style: AppTextStyles.h5(r).copyWith(color: AppColors.primary),
+              SizedBox(width: r.w(14)),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name.isNotEmpty ? name : 'Conducteur',
+                      style: AppTextStyles.subtitle(r),
+                    ),
+                    Text('Conducteur', style: AppTextStyles.caption(r)),
+                  ],
+                ),
               ),
-            ),
-          ),
-          SizedBox(width: r.w(14)),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name.isNotEmpty ? name : 'Conducteur',
-                  style: AppTextStyles.subtitle(r),
+              Container(
+                padding: EdgeInsets.symmetric(
+                    horizontal: r.w(10), vertical: r.h(5)),
+                decoration: BoxDecoration(
+                  color: badgeColor.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: badgeColor.withValues(alpha: 0.22)),
                 ),
-                Text('Conducteur', style: AppTextStyles.caption(r)),
-              ],
-            ),
-          ),
-          Container(
-            padding: EdgeInsets.symmetric(
-                horizontal: r.w(10), vertical: r.h(5)),
-            decoration: BoxDecoration(
-              color: badgeColor.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: badgeColor.withValues(alpha: 0.22)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (isActive) ...[
-                  _LiveDot(color: badgeColor),
-                  SizedBox(width: r.w(5)),
-                ],
-                Icon(
-                  isActive
-                      ? Icons.directions_car_filled_rounded
-                      : isCompleted
-                          ? Icons.check_circle_rounded
-                          : Icons.hourglass_empty_rounded,
-                  size: r.text(13),
-                  color: badgeColor,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (isActive) ...[
+                      _LiveDot(color: badgeColor),
+                      SizedBox(width: r.w(5)),
+                    ],
+                    Icon(
+                      isActive
+                          ? Icons.directions_car_filled_rounded
+                          : isCompleted
+                              ? Icons.check_circle_rounded
+                              : Icons.hourglass_empty_rounded,
+                      size: r.text(13),
+                      color: badgeColor,
+                    ),
+                    SizedBox(width: r.w(4)),
+                    Text(
+                      badgeLabel,
+                      style: AppTextStyles.labelSmall(r)
+                          .copyWith(color: badgeColor),
+                    ),
+                  ],
                 ),
-                SizedBox(width: r.w(4)),
-                Text(
-                  badgeLabel,
-                  style: AppTextStyles.labelSmall(r)
-                      .copyWith(color: badgeColor),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
+          // Barre de position conducteur — visible quand en attente ou actif
+          if (isPending || isActive) ...[
+            SizedBox(height: r.h(10)),
+            _DriverPositionBar(
+              isPending: isPending,
+              isActive: isActive,
+              distToPickupKm: distToPickup,
+              speed: c.vehicleSpeed.value,
+              hasGps: c.hasVehicleGps.value,
+              r: r,
+            ),
+          ],
         ],
       );
     });
@@ -1269,45 +1291,103 @@ class _PrimaryBtn extends StatelessWidget {
       );
 }
 
-// ─── Route Stops Card ─────────────────────────────────────────────────────────
+// ─── Trip Timeline (remplace RouteStopsCard) ──────────────────────────────────
 
-class _RouteStopsCard extends StatelessWidget {
-  const _RouteStopsCard({required this.c, required this.r});
+class _TripTimeline extends StatelessWidget {
+  const _TripTimeline({required this.c, required this.r});
   final TrajetActifController c;
   final AppResponsive r;
 
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final hasPickup = c.pickupCityLabel.value.isNotEmpty ||
-          c.pickupDetail.value.isNotEmpty ||
-          c.pickupNote.value.isNotEmpty;
+      final hasPickup  = c.pickupCityLabel.value.isNotEmpty ||
+          c.pickupDetail.value.isNotEmpty;
       final hasDropoff = c.dropoffCityLabel.value.isNotEmpty ||
-          c.dropoffDetail.value.isNotEmpty ||
-          c.dropoffNote.value.isNotEmpty;
+          c.dropoffDetail.value.isNotEmpty;
       if (!hasPickup && !hasDropoff) return const SizedBox.shrink();
+
       return Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: _StopColumn(
-              typeLabel: 'MONTÉE',
-              color: AppColors.success,
-              city: c.pickupCityLabel.value,
-              detail: c.pickupDetail.value,
-              note: c.pickupNote.value,
-              r: r,
+          // ── Fil de la timeline ──────────────────────────────────
+          SizedBox(
+            width: r.w(32),
+            child: Column(
+              children: [
+                // Dot montée
+                Container(
+                  width: r.w(32),
+                  height: r.w(32),
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withValues(alpha: 0.10),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.success, width: 2),
+                  ),
+                  child: Icon(Icons.person_rounded,
+                      color: AppColors.success, size: r.text(15)),
+                ),
+                // Ligne pointillée
+                SizedBox(
+                  height: r.h(48),
+                  child: LayoutBuilder(builder: (_, box) {
+                    const dashH = 5.0;
+                    const gap   = 4.0;
+                    final count = (box.maxHeight / (dashH + gap)).floor();
+                    return Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(count, (_) => Padding(
+                        padding: const EdgeInsets.only(bottom: gap),
+                        child: Container(
+                          width: 2,
+                          height: dashH,
+                          color: AppColors.border,
+                        ),
+                      )),
+                    );
+                  }),
+                ),
+                // Dot descente
+                Container(
+                  width: r.w(32),
+                  height: r.w(32),
+                  decoration: BoxDecoration(
+                    color: AppColors.danger.withValues(alpha: 0.10),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.danger, width: 2),
+                  ),
+                  child: Icon(Icons.flag_rounded,
+                      color: AppColors.danger, size: r.text(15)),
+                ),
+              ],
             ),
           ),
-          SizedBox(width: r.w(10)),
+          SizedBox(width: r.w(14)),
+          // ── Texte des arrêts ────────────────────────────────────
           Expanded(
-            child: _StopColumn(
-              typeLabel: 'DESCENTE',
-              color: AppColors.danger,
-              city: c.dropoffCityLabel.value,
-              detail: c.dropoffDetail.value,
-              note: c.dropoffNote.value,
-              r: r,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: r.h(6)),
+                _StopInfo(
+                  label: 'MONTÉE',
+                  city: c.pickupCityLabel.value,
+                  detail: c.pickupDetail.value,
+                  note: c.pickupNote.value,
+                  color: AppColors.success,
+                  r: r,
+                ),
+                SizedBox(height: r.h(28)),
+                _StopInfo(
+                  label: 'DESCENTE',
+                  city: c.dropoffCityLabel.value,
+                  detail: c.dropoffDetail.value,
+                  note: c.dropoffNote.value,
+                  color: AppColors.danger,
+                  r: r,
+                ),
+                SizedBox(height: r.h(4)),
+              ],
             ),
           ),
         ],
@@ -1316,90 +1396,175 @@ class _RouteStopsCard extends StatelessWidget {
   }
 }
 
-class _StopColumn extends StatelessWidget {
-  const _StopColumn({
-    required this.typeLabel,
-    required this.color,
+class _StopInfo extends StatelessWidget {
+  const _StopInfo({
+    required this.label,
     required this.city,
     required this.detail,
     required this.note,
+    required this.color,
     required this.r,
   });
-  final String typeLabel;
+  final String label, city, detail, note;
   final Color color;
-  final String city;
-  final String detail;
-  final String note;
   final AppResponsive r;
 
   @override
   Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: AppTextStyles.labelSmall(r).copyWith(
+            color: color,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.5,
+          ),
+        ),
+        if (city.isNotEmpty) ...[
+          SizedBox(height: r.h(2)),
+          Text(
+            city,
+            style: AppTextStyles.bodySmall(r)
+                .copyWith(fontWeight: FontWeight.w600),
+          ),
+        ],
+        if (detail.isNotEmpty) ...[
+          SizedBox(height: r.h(1)),
+          Text(
+            detail,
+            style: AppTextStyles.caption(r)
+                .copyWith(color: AppColors.textSecondary),
+          ),
+        ],
+        if (note.isNotEmpty) ...[
+          SizedBox(height: r.h(3)),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.push_pin_outlined, size: r.text(10), color: color),
+              SizedBox(width: r.w(3)),
+              Expanded(
+                child: Text(
+                  note,
+                  style: AppTextStyles.caption(r).copyWith(
+                    color: color,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ─── Driver Position Bar ──────────────────────────────────────────────────────
+
+class _DriverPositionBar extends StatelessWidget {
+  const _DriverPositionBar({
+    required this.isPending,
+    required this.isActive,
+    required this.distToPickupKm,
+    required this.speed,
+    required this.hasGps,
+    required this.r,
+  });
+  final bool isPending;
+  final bool isActive;
+  final double? distToPickupKm;
+  final double speed;
+  final bool hasGps;
+  final AppResponsive r;
+
+  @override
+  Widget build(BuildContext context) {
+    final color  = isPending ? AppColors.warning : AppColors.primary;
+    final String line1;
+    final String line2;
+    final IconData ico;
+
+    if (isPending) {
+      ico   = Icons.my_location_rounded;
+      if (!hasGps) {
+        line1 = 'Localisation GPS en attente…';
+        line2 = 'Le conducteur n\'a pas encore partagé sa position';
+      } else if (distToPickupKm != null && distToPickupKm! < 100) {
+        final d = distToPickupKm!;
+        line1 = d < 1.0
+            ? '${(d * 1000).round()} m de votre point de montée'
+            : '${d.toStringAsFixed(1)} km de votre point de montée';
+        line2 = 'Le conducteur se dirige vers vous';
+      } else {
+        line1 = 'Conducteur en route vers votre arrêt';
+        line2 = 'Mise à jour toutes les 5 secondes';
+      }
+    } else {
+      ico   = Icons.speed_rounded;
+      line1 = speed > 5
+          ? '${speed.toStringAsFixed(0)} km/h · En circulation'
+          : 'Conducteur en mouvement';
+      line2 = 'Position mise à jour en temps réel';
+    }
+
     return Container(
-      padding: EdgeInsets.symmetric(
-          horizontal: r.w(12), vertical: r.h(10)),
+      padding: EdgeInsets.symmetric(horizontal: r.w(12), vertical: r.h(9)),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(r.radius(12)),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withValues(alpha: 0.18)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(children: [
-            Icon(
-              typeLabel == 'MONTÉE'
-                  ? Icons.arrow_circle_up_rounded
-                  : Icons.arrow_circle_down_rounded,
-              size: r.text(13),
-              color: color,
+          Container(
+            width: r.w(34),
+            height: r.w(34),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
             ),
-            SizedBox(width: r.w(4)),
-            Text(
-              typeLabel,
-              style: AppTextStyles.labelSmall(r).copyWith(
-                color: color,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ]),
-          if (city.isNotEmpty) ...[
-            SizedBox(height: r.h(4)),
-            Text(
-              city,
-              style: AppTextStyles.bodySmall(r)
-                  .copyWith(fontWeight: FontWeight.w600),
-            ),
-          ],
-          if (detail.isNotEmpty) ...[
-            SizedBox(height: r.h(2)),
-            Text(
-              detail,
-              style: AppTextStyles.caption(r)
-                  .copyWith(color: AppColors.textSecondary),
-            ),
-          ],
-          if (note.isNotEmpty) ...[
-            SizedBox(height: r.h(3)),
-            Row(
+            child: Icon(ico, color: color, size: r.text(16)),
+          ),
+          SizedBox(width: r.w(10)),
+          Expanded(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.push_pin_outlined, size: r.text(10), color: color),
-                SizedBox(width: r.w(3)),
-                Expanded(
-                  child: Text(
-                    note,
-                    style: AppTextStyles.caption(r).copyWith(
-                      color: color,
-                      fontStyle: FontStyle.italic,
-                    ),
+                Text(
+                  line1,
+                  style: AppTextStyles.bodySmall(r).copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: color,
                   ),
+                ),
+                Text(
+                  line2,
+                  style: AppTextStyles.caption(r)
+                      .copyWith(color: AppColors.textSecondary),
                 ),
               ],
             ),
-          ],
+          ),
+          if (isActive && hasGps)
+            _LiveDot(color: color),
         ],
       ),
     );
   }
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+double _distKm(LatLng a, LatLng b) {
+  const r = 6371.0;
+  final dLat = (b.latitude  - a.latitude)  * math.pi / 180;
+  final dLng = (b.longitude - a.longitude) * math.pi / 180;
+  final x = math.sin(dLat / 2) * math.sin(dLat / 2) +
+      math.cos(a.latitude  * math.pi / 180) *
+      math.cos(b.latitude  * math.pi / 180) *
+      math.sin(dLng / 2) * math.sin(dLng / 2);
+  return r * 2 * math.atan2(math.sqrt(x), math.sqrt(1 - x));
 }

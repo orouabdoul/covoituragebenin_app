@@ -209,8 +209,8 @@ class TrackingServiceImpl implements TrackingService {
       logger.d('requestBoarding[$tripUuid/$bookingUuid] [${res.statusCode}]');
       if (res.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);
       if (res.statusCode == 200 && res.data['success'] == true) {
-        final expiresAt = res.data['body']?['expires_at'] as String? ?? '';
-        return ApiResult.success(expiresAt);
+        final boardingCode = res.data['body']?['boarding_code'] as String? ?? '';
+        return ApiResult.success(boardingCode);
       }
       return ApiResult.failure(AppError.unexpected);
     } on DioException catch (e) {

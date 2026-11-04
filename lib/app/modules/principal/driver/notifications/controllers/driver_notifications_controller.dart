@@ -216,11 +216,12 @@ class DriverNotificationsController extends GetxController {
       case DriverNotificationType.reservation:
         _goToReservations();
       case DriverNotificationType.payment:
-        BottonNavController.goToTab(2);
+        BottonNavController.goToTab(3);
       case DriverNotificationType.trip:
         BottonNavController.goToTab(1);
       case DriverNotificationType.message:
-        BottonNavController.goToTab(3);
+        BottonNavController.goToTab(0);
+        Get.toNamed(AppRoutes.driverMessages);
       default:
         break;
     }

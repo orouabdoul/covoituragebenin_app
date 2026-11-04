@@ -79,6 +79,7 @@ class _UnauthorizedInterceptor extends Interceptor {
       // expiré — c'est géré par le contrôleur, pas par cet intercepteur.
       final path = response.requestOptions.path;
       if (path != AppApi.register) {
+        _redirecting = true;
         _handleUnauthorized();
       }
     }
@@ -86,7 +87,6 @@ class _UnauthorizedInterceptor extends Interceptor {
   }
 
   Future<void> _handleUnauthorized() async {
-    _redirecting = true;
     try {
       await UserController.instance.logout();
     } catch (_) {}

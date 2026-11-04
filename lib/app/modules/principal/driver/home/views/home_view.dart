@@ -358,15 +358,13 @@ class _HeroCard extends StatelessWidget {
             ],
           ),
 
-          if (dailyGoal > 0) ...[
-            SizedBox(height: responsive.h(16)),
-            _DailyGoalBar(
-              responsive: responsive,
-              todayRaw: todayRaw,
-              dailyGoal: dailyGoal,
-              onEdit: onEditGoal,
-            ),
-          ],
+          SizedBox(height: responsive.h(16)),
+          _DailyGoalBar(
+            responsive: responsive,
+            todayRaw: todayRaw,
+            dailyGoal: dailyGoal,
+            onEdit: onEditGoal,
+          ),
         ],
       ),
     );
@@ -388,7 +386,33 @@ class _DailyGoalBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final progress = dailyGoal > 0 ? (todayRaw / dailyGoal).clamp(0.0, 1.0) : 0.0;
+    if (dailyGoal == 0) {
+      return GestureDetector(
+        onTap: onEdit,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.add_circle_outline_rounded,
+              size: responsive.text(13),
+              color: AppColors.white.withValues(alpha: 0.65),
+            ),
+            SizedBox(width: responsive.w(5)),
+            Text(
+              'Définir mon objectif du jour',
+              style: TextStyle(
+                color: AppColors.white.withValues(alpha: 0.65),
+                fontSize: responsive.text(12),
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final progress = (todayRaw / dailyGoal).clamp(0.0, 1.0);
     final pct = (progress * 100).toStringAsFixed(0);
     final goalStr = dailyGoal >= 1000
         ? '${(dailyGoal / 1000).toStringAsFixed(dailyGoal % 1000 == 0 ? 0 : 1)}k'

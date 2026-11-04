@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:covoiturage_benin_app/app/core/constants/benin_locations.dart';
 import 'package:covoiturage_benin_app/app/core/services/tracking/tracking_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/tracking/local_notification_helper.dart';
 import 'package:covoiturage_benin_app/app/core/services/routing/routing_service.dart';
@@ -97,36 +98,12 @@ class TrajetActifController extends GetxController {
   void onClose() {
     _pollTimer?.cancel();
     _animTimer?.cancel();
+    _routing.close();
     super.onClose();
   }
 
   // ── Arguments ─────────────────────────────────────────────────────────────
 
-  static const _beninCities = <String, LatLng>{
-    'cotonou':       LatLng(6.3654,  2.4183),
-    'porto-novo':    LatLng(6.4969,  2.6289),
-    'porto novo':    LatLng(6.4969,  2.6289),
-    'parakou':       LatLng(9.3394,  2.6280),
-    'bohicon':       LatLng(7.1839,  2.0670),
-    'abomey':        LatLng(7.1827,  1.9876),
-    'abomey-calavi': LatLng(6.4499,  2.3554),
-    'abomey calavi': LatLng(6.4499,  2.3554),
-    'lokossa':       LatLng(6.6419,  1.7175),
-    'natitingou':    LatLng(10.3164, 1.3789),
-    'kandi':         LatLng(11.1322, 2.9401),
-    'djougou':       LatLng(9.7086,  1.6623),
-    'ouidah':        LatLng(6.3609,  2.0860),
-    'savalou':       LatLng(7.9237,  1.9755),
-    'dassa':         LatLng(7.7571,  2.1896),
-    'save':          LatLng(8.0297,  2.4801),
-    'glazoue':       LatLng(7.9753,  2.2501),
-    'malanville':    LatLng(11.8695, 3.3853),
-    'allada':        LatLng(6.6641,  2.1517),
-    'nikki':         LatLng(9.9380,  3.2099),
-    'tchaourou':     LatLng(8.8778,  2.5983),
-    'banikoara':     LatLng(11.3009, 2.4396),
-    'ketou':         LatLng(7.3594,  2.6037),
-  };
 
   void _parseArgs(dynamic args) {
     if (args is! Map) return;
@@ -273,15 +250,7 @@ class TrajetActifController extends GetxController {
     }
   }
 
-  static LatLng? _cityCoord(String name) {
-    if (name.isEmpty) return null;
-    final key = name.toLowerCase().trim();
-    if (_beninCities.containsKey(key)) return _beninCities[key];
-    for (final e in _beninCities.entries) {
-      if (key.contains(e.key) || e.key.contains(key)) return e.value;
-    }
-    return null;
-  }
+  static LatLng? _cityCoord(String name) => BeninLocations.cityCoord(name);
 
   // ── Routes OSRM ────────────────────────────────────────────────────────────
 
