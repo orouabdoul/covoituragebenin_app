@@ -362,6 +362,10 @@ class TrajetActifController extends GetxController {
     _firstPollReceived = true;
 
     if (data.status == 'completed' || data.status == 'ended') {
+      _animTimer?.cancel();
+      vehicleLatLng.value    = arrivalPt.value;
+      progressPct.value      = 1.0;
+      distanceRemainKm.value = 0.0;
       _pollTimer?.cancel();
       tripEnded.value = true;
       _onTripCompleted();
@@ -380,6 +384,7 @@ class TrajetActifController extends GetxController {
       step++;
       if (step >= steps) {
         vehicleLatLng.value = target;
+        _updateDistanceAndEta();
         t.cancel();
         return;
       }
@@ -388,6 +393,7 @@ class TrajetActifController extends GetxController {
         start.latitude  + (target.latitude  - start.latitude)  * p,
         start.longitude + (target.longitude - start.longitude) * p,
       );
+      _updateDistanceAndEta();
     });
     if (cameraFollows.value) {
       try {
