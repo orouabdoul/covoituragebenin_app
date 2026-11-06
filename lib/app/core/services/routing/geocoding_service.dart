@@ -35,10 +35,12 @@ class GeocodingService {
   static const String _beninBbox = '0.773,6.142,3.851,12.409';
 
   final Dio _dio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 10),
-    receiveTimeout: const Duration(seconds: 15),
+    connectTimeout: const Duration(seconds: 5),
+    receiveTimeout: const Duration(seconds: 8),
     headers: {'User-Agent': 'CovoiturageBeninApp/1.0'},
   ));
+
+  void close() => _dio.close(force: true);
 
   Future<GeocodingResult?> geocodeAddress(String query) async {
     if (query.trim().isEmpty) return null;

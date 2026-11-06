@@ -14,6 +14,7 @@ import 'package:covoiturage_benin_app/app/core/constants/benin_locations.dart';
 import 'package:covoiturage_benin_app/app/core/services/app_sync.dart';
 import 'package:covoiturage_benin_app/app/core/services/tracking/tracking_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/routing/routing_service.dart';
+import 'package:covoiturage_benin_app/app/core/services/routing/geocoding_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/phone_utils.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/data/models/tracking/trip_tracking_model.dart';
@@ -21,7 +22,8 @@ import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 class MonTrajetController extends GetxController {
   TrackingService get _svc => Get.find<TrackingService>();
-  final _routing = RoutingService();
+  final _routing   = RoutingService();
+  final _geocoding = GeocodingService();
 
   static const _benin = LatLng(9.3077, 2.3158);
 
@@ -36,10 +38,10 @@ class MonTrajetController extends GetxController {
   final passengers     = <ActivePassengerModel>[].obs;
 
   // ── Embarquement par passager ─────────────────────────────────────────────
-  // Set des bookingUuids en attente de confirmation (FCM envoyé, timer actif)
   final boardingPending = <String>{}.obs;
-  final _boardingTimers = <String, Timer>{};
   final _boardingCodes  = <String, String>{}; // bookingUuid → code 4 chiffres
+  // true pendant que le driver lui-même confirme (évite double Get.back)
+  bool _confirmingBoarding = false;
   // Callback appelé quand on veut ouvrir le dialog de code (injecté par la vue)
   void Function(String bookingUuid, String boardingCode)? onBoardingTimeout;
   // Callback appelé à la fin du trajet avec montant en attente (injecté par la vue)
@@ -80,14 +82,11 @@ class MonTrajetController extends GetxController {
 
   @override
   void onClose() {
-    for (final t in _boardingTimers.values) {
-      t.cancel();
-    }
-    _boardingTimers.clear();
     _boardingCodes.clear();
     _gpsSub?.cancel();
     _gpsPushTimer?.cancel();
     _routing.close();
+    _geocoding.close();
     super.onClose();
   }
 
@@ -137,26 +136,26 @@ class MonTrajetController extends GetxController {
     departureCity.value = trip.departureCity;
     arrivalCity.value   = trip.arrivalCity;
     departureTime.value = trip.departureTime;
-    // Coords brutes depuis l'endpoint de liste (précision ville uniquement)
-    if (trip.departureLat != null && trip.departureLng != null) {
-      departurePt.value = LatLng(trip.departureLat!, trip.departureLng!);
-    }
-    if (trip.arrivalLat != null && trip.arrivalLng != null) {
-      arrivalPt.value = LatLng(trip.arrivalLat!, trip.arrivalLng!);
-    }
-    // Fallback ville si l'endpoint liste n'a pas de coords
-    if (_same(departurePt.value, _benin) && departureCity.value.isNotEmpty) {
-      final c = _cityCoord(departureCity.value);
-      if (c != null) departurePt.value = c;
-    }
-    if (_same(arrivalPt.value, _benin) && arrivalCity.value.isNotEmpty) {
-      final c = _cityCoord(arrivalCity.value);
-      if (c != null) arrivalPt.value = c;
-    }
+
+    // Fallback immédiat à la ville pour affichage rapide
+    final dc = _cityCoord(trip.departureCity);
+    final ac = _cityCoord(trip.arrivalCity);
+    if (dc != null) departurePt.value = dc;
+    if (ac != null) arrivalPt.value   = ac;
+
     passengers.value     = trip.passengers;
     passengerCount.value = trip.passengers.length;
     isLoading.value      = false;
-    // Lance /map en arrière-plan — gère _fitMap() en interne après mise à jour
+
+    for (int i = 0; i < trip.passengers.length; i++) {
+      final p = trip.passengers[i];
+      logger.d('Passager[$i] API city="${p.pickupCity}" arr="${p.pickupArrondissement}" '
+          'nbh="${p.pickupNeighborhood}" lat=${p.pickupLat} lng=${p.pickupLng}');
+    }
+
+    // Géocoder avec adresse complète (commune + arrondissement + quartier) en parallèle
+    _geocodeAllPoints(trip).ignore();
+    // Lance /map en arrière-plan — polyline seulement, sans écraser les coords
     _fetchMapData().ignore();
   }
 
@@ -166,9 +165,7 @@ class MonTrajetController extends GetxController {
       return;
     }
     final result = await _svc.fetchDriverMapData(_tripUuid);
-
-    // Toutes les mises à jour d'observables dans addPostFrameCallback
-    // pour éviter markNeedsBuild() pendant un build en cours.
+    // Uniquement la polyline — les coordonnées sont gérées par _geocodeAllPoints
     SchedulerBinding.instance.addPostFrameCallback((_) {
       if (!result.isSuccess || result.data == null) {
         _fitMap();
@@ -176,39 +173,6 @@ class MonTrajetController extends GetxController {
         return;
       }
       final map = result.data!;
-
-      // Écraser départ/arrivée avec coords GeoHelper-résolues (arrondissement/quartier)
-      if (map.departureLat != null && map.departureLng != null) {
-        departurePt.value = LatLng(map.departureLat!, map.departureLng!);
-      }
-      if (map.arrivalLat != null && map.arrivalLng != null) {
-        arrivalPt.value = LatLng(map.arrivalLat!, map.arrivalLng!);
-      }
-
-      // Écraser les coords pickup/dropoff des passagers avec les coords résolues des stops
-      if (passengers.isNotEmpty && map.stops.isNotEmpty) {
-        final updated = List<ActivePassengerModel>.from(passengers);
-        for (int i = 0; i < updated.length; i++) {
-          final p = updated[i];
-          final pickup = map.stops.where(
-            (s) => s.bookingUuid == p.bookingUuid && s.type == 'pickup',
-          ).firstOrNull;
-          final dropoff = map.stops.where(
-            (s) => s.bookingUuid == p.bookingUuid && s.type == 'dropoff',
-          ).firstOrNull;
-          if ((pickup?.hasCoords ?? false) || (dropoff?.hasCoords ?? false)) {
-            updated[i] = p.copyWith(
-              pickupLat:  pickup?.lat  ?? p.pickupLat,
-              pickupLng:  pickup?.lng  ?? p.pickupLng,
-              dropoffLat: dropoff?.lat ?? p.dropoffLat,
-              dropoffLng: dropoff?.lng ?? p.dropoffLng,
-            );
-          }
-        }
-        passengers.value = updated;
-      }
-
-      // Utiliser la polyline backend (ORS/OSRM) directement si disponible
       if (map.routePolyline.length >= 2) {
         routePoints.value = map.routePolyline
             .map((p) => LatLng(p.lat, p.lng))
@@ -216,9 +180,118 @@ class MonTrajetController extends GetxController {
       } else {
         _loadRoute();
       }
-
       _fitMap();
     });
+  }
+
+  // ── Géocodage adresse complète ────────────────────────────────────────────
+
+  /// Construit la requête Photon : quartier, arrondissement, commune, Bénin
+  static String _buildAddressQuery(
+    String city, {
+    String arrondissement = '',
+    String neighborhood = '',
+  }) {
+    if (city.isEmpty && arrondissement.isEmpty && neighborhood.isEmpty) return '';
+    final parts = <String>[];
+    if (neighborhood.isNotEmpty) parts.add(neighborhood);
+    if (arrondissement.isNotEmpty) parts.add(arrondissement);
+    if (city.isNotEmpty) parts.add(city);
+    parts.add('Bénin');
+    return parts.join(', ');
+  }
+
+  Future<void> _geocodeAllPoints(ActiveDriverTripModel trip) async {
+    final depQuery = _buildAddressQuery(
+      trip.departureCity,
+      arrondissement: trip.departureArrondissement,
+      neighborhood:   trip.departureNeighborhood,
+    );
+    final arrQuery = _buildAddressQuery(
+      trip.arrivalCity,
+      arrondissement: trip.arrivalArrondissement,
+      neighborhood:   trip.arrivalNeighborhood,
+    );
+
+    final paxPickupQueries = trip.passengers.map((p) => _buildAddressQuery(
+      p.pickupCity,
+      arrondissement: p.pickupArrondissement,
+      neighborhood:   p.pickupNeighborhood,
+    )).toList();
+
+    final paxDropoffQueries = trip.passengers.map((p) => _buildAddressQuery(
+      p.dropoffCity,
+      arrondissement: p.dropoffArrondissement,
+      neighborhood:   p.dropoffNeighborhood,
+    )).toList();
+
+    // Toutes les requêtes en parallèle
+    final futures = <Future<GeocodingResult?>>[
+      depQuery.isNotEmpty ? _geocoding.geocodeAddress(depQuery) : Future.value(null),
+      arrQuery.isNotEmpty ? _geocoding.geocodeAddress(arrQuery) : Future.value(null),
+      ...paxPickupQueries.map((q) =>
+          q.isNotEmpty ? _geocoding.geocodeAddress(q) : Future.value(null)),
+      ...paxDropoffQueries.map((q) =>
+          q.isNotEmpty ? _geocoding.geocodeAddress(q) : Future.value(null)),
+    ];
+
+    final results = await Future.wait(futures);
+
+    final depResult = results[0];
+    final arrResult = results[1];
+    final n = trip.passengers.length;
+
+    if (depResult != null) {
+      logger.d('Géocodage départ "$depQuery" → ${depResult.lat}, ${depResult.lng}');
+      departurePt.value = LatLng(depResult.lat, depResult.lng);
+    }
+    if (arrResult != null) {
+      logger.d('Géocodage arrivée "$arrQuery" → ${arrResult.lat}, ${arrResult.lng}');
+      arrivalPt.value = LatLng(arrResult.lat, arrResult.lng);
+    }
+
+    if (n > 0) {
+      final updated = List<ActivePassengerModel>.from(passengers);
+      for (int i = 0; i < n; i++) {
+        final pickupResult  = results[2 + i];
+        final dropoffResult = results[2 + n + i];
+
+        // Priorité : coordonnées du booking (API) car elles sont déjà géocodées
+        // lors de la création de réservation. Photon sert uniquement de fallback
+        // si l'API ne renvoie pas de coords — évite la confusion Sème/Sèmè-Kpodji.
+        final newPickupLat  = updated[i].pickupLat  ?? pickupResult?.lat;
+        final newPickupLng  = updated[i].pickupLng  ?? pickupResult?.lng;
+        final newDropoffLat = updated[i].dropoffLat ?? dropoffResult?.lat;
+        final newDropoffLng = updated[i].dropoffLng ?? dropoffResult?.lng;
+
+        if (pickupResult != null) {
+          logger.d('Passager[$i] pickup API=(${updated[i].pickupLat},${updated[i].pickupLng}) '
+              'Photon=(${pickupResult.lat},${pickupResult.lng}) '
+              '→ garde=${updated[i].pickupLat != null}');
+        }
+        if (dropoffResult != null) {
+          logger.d('Passager[$i] dropoff API=(${updated[i].dropoffLat},${updated[i].dropoffLng}) '
+              'Photon=(${dropoffResult.lat},${dropoffResult.lng}) '
+              '→ garde=${updated[i].dropoffLat != null}');
+        }
+
+        if (newPickupLat != updated[i].pickupLat ||
+            newPickupLng != updated[i].pickupLng ||
+            newDropoffLat != updated[i].dropoffLat ||
+            newDropoffLng != updated[i].dropoffLng) {
+          updated[i] = updated[i].copyWith(
+            pickupLat:  newPickupLat,
+            pickupLng:  newPickupLng,
+            dropoffLat: newDropoffLat,
+            dropoffLng: newDropoffLng,
+          );
+        }
+      }
+      passengers.value = updated;
+    }
+
+    _fitMap();
+    _loadRoute().ignore();
   }
 
   // ── Route OSRM (cache 24h) ─────────────────────────────────────────────
@@ -448,11 +521,12 @@ class MonTrajetController extends GetxController {
 
     boardingPending.add(p.bookingUuid);
 
-    // Timer 60s → fallback saisie code
-    _boardingTimers[p.bookingUuid] = Timer(
-      const Duration(seconds: 60),
-      () => _onBoardingTimeout(p.bookingUuid),
-    );
+    // Ouvrir le dialog IMMÉDIATEMENT : conducteur voit le code sans attendre
+    // et peut confirmer manuellement si le téléphone du passager est hors réseau.
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      final code = _boardingCodes[p.bookingUuid] ?? '';
+      onBoardingTimeout?.call(p.bookingUuid, code);
+    });
   }
 
   String getBoardingCode(String bookingUuid) => _boardingCodes[bookingUuid] ?? '';
@@ -462,18 +536,15 @@ class MonTrajetController extends GetxController {
     onBoardingTimeout?.call(bookingUuid, code);
   }
 
-  void _onBoardingTimeout(String bookingUuid) {
-    _boardingTimers.remove(bookingUuid);
-    boardingPending.remove(bookingUuid);
-    final code = _boardingCodes[bookingUuid] ?? '';
-    onBoardingTimeout?.call(bookingUuid, code);
-  }
 
   void handlePassengerBoarded(String bookingUuid) {
-    _boardingTimers[bookingUuid]?.cancel();
-    _boardingTimers.remove(bookingUuid);
     _boardingCodes.remove(bookingUuid);
     boardingPending.remove(bookingUuid);
+    // Si le passager a confirmé depuis son téléphone (et non via l'action du driver),
+    // fermer le dialog de code qui est peut-être ouvert — sans double Get.back().
+    if (!_confirmingBoarding && (Get.isDialogOpen ?? false)) {
+      Get.back();
+    }
     final idx = passengers.indexWhere((p) => p.bookingUuid == bookingUuid);
     if (idx >= 0) {
       final updated = List<ActivePassengerModel>.from(passengers);
@@ -484,6 +555,7 @@ class MonTrajetController extends GetxController {
 
   Future<void> confirmBoardingByCode(String bookingUuid, String code) async {
     final pos = gpsReady.value ? myLatLng.value : null;
+    _confirmingBoarding = true;
     final result = await _svc.verifyBoardingCode(
       _tripUuid,
       bookingUuid,
@@ -492,9 +564,18 @@ class MonTrajetController extends GetxController {
       driverLng: pos?.longitude,
     );
     if (result.isSuccess) {
+      // _confirmingBoarding = true ici → handlePassengerBoarded ne fera pas Get.back()
       handlePassengerBoarded(bookingUuid);
       Get.back(); // ferme le dialog de code
+      _confirmingBoarding = false;
     } else {
+      _confirmingBoarding = false;
+      // Si le passager a confirmé entre-temps (409/403 "déjà pris en charge"),
+      // fermer le dialog silencieusement au lieu d'afficher "Code incorrect".
+      if (!boardingPending.contains(bookingUuid)) {
+        if (Get.isDialogOpen ?? false) Get.back();
+        return;
+      }
       Get.snackbar('Code incorrect', 'Vérifiez le code à 4 chiffres du passager.',
           snackPosition: SnackPosition.TOP,
           backgroundColor: const Color(0xFFEF4444),
@@ -505,11 +586,14 @@ class MonTrajetController extends GetxController {
   // ── Embarquement manuel (téléphone mort) ─────────────────────────────────
 
   Future<void> confirmBoardingManual(String bookingUuid) async {
+    _confirmingBoarding = true;
     final result = await _svc.confirmBoardingManual(_tripUuid, bookingUuid);
     if (result.isSuccess) {
       handlePassengerBoarded(bookingUuid);
       Get.back(); // ferme le dialog
+      _confirmingBoarding = false;
     } else {
+      _confirmingBoarding = false;
       Get.snackbar('Erreur', 'Confirmation manuelle impossible. Réessayez.',
           snackPosition: SnackPosition.TOP,
           backgroundColor: const Color(0xFFEF4444),

@@ -6,6 +6,8 @@ import 'package:covoiturage_benin_app/app/core/utils/app_errors.dart';
 import 'package:covoiturage_benin_app/app/core/utils/ui_helper.dart';
 import 'package:covoiturage_benin_app/app/data/models/passenger/notification_model.dart';
 import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
+import 'package:covoiturage_benin_app/app/modules/tracking/passenger/trajet_attente/controllers/trajet_attente_controller.dart'
+    show TrajetAttenteController;
 import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
 
@@ -119,22 +121,34 @@ class NotificationsController extends GetxController {
   }
 
   void _navigate(PassengerNotificationModel notif) {
-    final type = notif.type;
-    final data = notif.actionData;
+    final type        = notif.type;
+    final data        = notif.actionData;
+    final tripUuid    = data['trip_uuid']        as String?;
+    final bookingUuid = data['booking_uuid']      as String?;
+    final convUuid    = data['conversation_uuid'] as String?;
 
     switch (type) {
 
       // ── Réservations ─────────────────────────────────────────────────────
       case 'new_booking_request':
       case 'reservation_new':
-      case 'reservation_accepted':
+      case 'booking_created':
       case 'reservation_rejected':
+      case 'reservation_cancelled':
       case 'booking_cancelled':
       case 'trip_cancelled':
+      case 'trip_cancelled_driver_absent':
         BottonNavController.goToTab(1);
 
+      case 'reservation_accepted':
+      case 'reservation_confirmed':
+        Get.toNamed(
+          AppRoutes.passengerWaitingApproval,
+          arguments: bookingUuid != null ? {'bookingUuid': bookingUuid} : null,
+        );
+
+      case 'booking_status':          // backend v2
       case 'booking_status_changed':
-        final bookingUuid = data['booking_uuid'] as String?;
         if (bookingUuid != null) {
           Get.toNamed(
             AppRoutes.passengerReservationDetail,
@@ -144,23 +158,82 @@ class NotificationsController extends GetxController {
           BottonNavController.goToTab(1);
         }
 
-      // ── Trajets ───────────────────────────────────────────────────────────
+      // ── Trajet en attente ─────────────────────────────────────────────────
+      case 'driver_en_route':
+      case 'trip_reminder':
+      case 'departure_reminder':      // backend v2
+        Get.toNamed(
+          AppRoutes.passengerTripPending,
+          arguments: {
+            if (tripUuid    != null) 'tripUuid':    tripUuid,
+            if (bookingUuid != null) 'bookingUuid': bookingUuid,
+          },
+        );
+
+      case 'boarding_request':
+        if (Get.isRegistered<TrajetAttenteController>()) {
+          Get.find<TrajetAttenteController>().onBoardingRequest(
+            bookingUuid:  bookingUuid ?? '',
+            driverLat:    double.tryParse(data['driver_lat']?.toString() ?? ''),
+            driverLng:    double.tryParse(data['driver_lng']?.toString() ?? ''),
+            boardingCode: data['boarding_code'] as String? ?? '',
+          );
+        } else {
+          Get.toNamed(
+            AppRoutes.passengerTripPending,
+            arguments: {
+              if (tripUuid    != null) 'tripUuid':    tripUuid,
+              if (bookingUuid != null) 'bookingUuid': bookingUuid,
+              'openBoarding': true,
+              if ((data['driver_lat'] ?? '').toString().isNotEmpty)
+                'driverLat': data['driver_lat'],
+              if ((data['driver_lng'] ?? '').toString().isNotEmpty)
+                'driverLng': data['driver_lng'],
+              if ((data['boarding_code'] ?? '').toString().isNotEmpty)
+                'boardingCode': data['boarding_code'],
+            },
+          );
+        }
+
+      case 'trip_proximity':
+      case 'driver_nearby':
+      case 'driver_arriving':
+      case 'driver_approaching':      // backend v2
+        Get.toNamed(
+          AppRoutes.passengerDriverArrival,
+          arguments: {
+            if (tripUuid    != null) 'tripUuid':    tripUuid,
+            if (bookingUuid != null) 'bookingUuid': bookingUuid,
+          },
+        );
+
+      // ── Trajet en cours ───────────────────────────────────────────────────
       case 'trip_started':
-        final tripUuid    = data['trip_uuid']   as String?;
-        final bookingUuid = data['booking_uuid'] as String?;
+      case 'passenger_picked_up':
         Get.toNamed(
           AppRoutes.passengerLiveTracking,
-          arguments: {'tripUuid': tripUuid, 'bookingUuid': bookingUuid},
+          arguments: {
+            if (tripUuid    != null) 'tripUuid':    tripUuid,
+            if (bookingUuid != null) 'bookingUuid': bookingUuid,
+          },
+        );
+
+      case 'trip_ended':
+      case 'passenger_dropped_off':
+        Get.toNamed(
+          AppRoutes.passengerTripConfirmation,
+          arguments: {
+            if (tripUuid    != null) 'tripUuid':    tripUuid,
+            if (bookingUuid != null) 'bookingUuid': bookingUuid,
+          },
         );
 
       case 'trip_completed':
-      case 'trip_ended':
         Get.toNamed(AppRoutes.passengerTripHistory);
 
       // ── Paiements ─────────────────────────────────────────────────────────
       case 'payment_confirmed':
       case 'payment_success':
-        final bookingUuid = data['booking_uuid'] as String?;
         if (bookingUuid != null) {
           Get.toNamed(
             AppRoutes.passengerReservationDetail,
@@ -170,8 +243,14 @@ class NotificationsController extends GetxController {
           BottonNavController.goToTab(1);
         }
 
-      // ── Remboursements ────────────────────────────────────────────────────
+      case 'payment_failed':
+      case 'payment_pending':
+        BottonNavController.goToTab(1);
+
+      // ── Remboursements & litiges ──────────────────────────────────────────
       case 'dispute_status_changed':
+      case 'dispute_update':          // backend v2
+      case 'dispute_resolved':        // backend v2
       case 'refund_approved':
       case 'refund_rejected':
         Get.toNamed(AppRoutes.passengerRefundHistory);
@@ -179,7 +258,6 @@ class NotificationsController extends GetxController {
       // ── Messagerie ────────────────────────────────────────────────────────
       case 'new_message':
       case 'message_new':
-        final convUuid = data['conversation_uuid'] as String?;
         BottonNavController.goToTab(2);
         if (convUuid != null) {
           Get.toNamed(AppRoutes.passengerMessageDetail, arguments: {'uuid': convUuid});
@@ -187,9 +265,10 @@ class NotificationsController extends GetxController {
 
       // ── Promo ─────────────────────────────────────────────────────────────
       case 'promo_code_published':
+      case 'promo_published':         // backend v2
         _showPromoSnackbar(
-          data['promo_code'] as String? ?? '',
-          data['discount_value'] as String? ?? '',
+          data['promo_code'] as String? ?? data['code'] as String? ?? '',
+          data['discount_value'] as String? ?? data['discount'] as String? ?? '',
         );
 
       // ── Avis ─────────────────────────────────────────────────────────────
@@ -198,15 +277,30 @@ class NotificationsController extends GetxController {
 
       // ── Compte ───────────────────────────────────────────────────────────
       case 'kyc_status_changed':
+      case 'kyc_status':              // backend v2
         Get.toNamed(AppRoutes.passengerProfile);
 
       case 'account_status_changed':
+      case 'account_status':          // backend v2
       case 'account_blocked':
-        final blocked = (data['is_blocked'] ?? '').toString() == 'true';
-        if (blocked) _showAccountSuspendedDialog();
+        final blocked =
+            (data['is_blocked'] ?? data['is_suspended'] ?? '').toString() == 'true';
+        if (blocked) {
+          _showAccountSuspendedDialog();
+        } else {
+          _showAccountRestoredSnackbar();
+        }
 
       case 'account_verified':
         break;
+
+      // ── SOS ──────────────────────────────────────────────────────────────
+      case 'sos_triggered':
+        Get.toNamed(AppRoutes.passengerSafetyCenter);
+
+      // ── Support ───────────────────────────────────────────────────────────
+      case 'ticket_resolved':
+        Get.toNamed(AppRoutes.passengerSupportCenter);
 
       // ── Fallback catégorie ────────────────────────────────────────────────
       default:
@@ -219,6 +313,20 @@ class NotificationsController extends GetxController {
             break;
         }
     }
+  }
+
+  void _showAccountRestoredSnackbar() {
+    Get.snackbar(
+      'Compte restauré',
+      'Votre compte a été réactivé. Bienvenue de retour !',
+      backgroundColor: AppColors.success,
+      colorText: Colors.white,
+      snackPosition: SnackPosition.TOP,
+      margin: const EdgeInsets.all(16),
+      borderRadius: 12,
+      icon: const Icon(Icons.check_circle_rounded, color: Colors.white),
+      duration: const Duration(seconds: 4),
+    );
   }
 
   void _showPromoSnackbar(String code, String discount) {

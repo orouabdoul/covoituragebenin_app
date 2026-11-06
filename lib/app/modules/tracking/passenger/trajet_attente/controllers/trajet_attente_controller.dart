@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:covoiturage_benin_app/app/core/constants/benin_locations.dart';
 import 'package:covoiturage_benin_app/app/core/services/tracking/tracking_service.dart';
 import 'package:covoiturage_benin_app/app/core/services/routing/routing_service.dart';
+import 'package:covoiturage_benin_app/app/core/services/routing/geocoding_service.dart';
 import 'package:covoiturage_benin_app/app/core/utils/phone_utils.dart';
 import 'package:covoiturage_benin_app/app/core/utils/logger.dart';
 import 'package:covoiturage_benin_app/app/data/models/tracking/trip_tracking_model.dart';
@@ -18,7 +19,8 @@ import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 
 class TrajetAttenteController extends GetxController {
   TrackingService get _service => Get.find<TrackingService>();
-  final _routing = RoutingService();
+  final _routing   = RoutingService();
+  final _geocoding = GeocodingService();
 
   static const _benin = LatLng(9.3077, 2.3158);
 
@@ -47,12 +49,14 @@ class TrajetAttenteController extends GetxController {
   final showBoardingOverlay    = false.obs;
   final boardingDriverLat      = Rxn<double>();
   final boardingDriverLng      = Rxn<double>();
+  final boardingCode           = ''.obs;
   String _pendingBoardingUuid  = '';
 
   // Trigger depuis notification tap (background/terminated)
   bool    _openBoardingOnLoad         = false;
   double? _pendingBoardingDriverLat;
   double? _pendingBoardingDriverLng;
+  String  _pendingBoardingCode        = '';
 
   // ── Transition ────────────────────────────────────────────────────────────
   final isTransitioning = false.obs;
@@ -84,6 +88,7 @@ class TrajetAttenteController extends GetxController {
     _pollTimer?.cancel();
     _countdownTimer?.cancel();
     _routing.close();
+    _geocoding.close();
     super.onClose();
   }
 
@@ -103,6 +108,7 @@ class TrajetAttenteController extends GetxController {
       _openBoardingOnLoad         = true;
       _pendingBoardingDriverLat   = _numArg(m, 'driverLat');
       _pendingBoardingDriverLng   = _numArg(m, 'driverLng');
+      _pendingBoardingCode        = m['boardingCode'] as String? ?? '';
     }
 
     driverName.value    = m['driverName']    as String? ?? '';
@@ -137,8 +143,8 @@ class TrajetAttenteController extends GetxController {
     }
 
     _fitMap();
-    if (_tripUuid.isEmpty) {
-      // UUID absent dans les args → auto-fetch (démarre countdown/poll lui-même)
+    if (_tripUuid.isEmpty || (_openBoardingOnLoad && _bookingUuid.isEmpty)) {
+      // UUID absent ou bookingUuid manquant pour overlay embarquement → auto-fetch
       _fetchActiveBooking();
     } else {
       isLoading.value = false;
@@ -148,8 +154,8 @@ class TrajetAttenteController extends GetxController {
         _startPolling();
         _triggerPendingBoarding();
       });
-      // Refresh coords en arrière-plan pour obtenir la précision quartier
-      Future.microtask(_refreshCoordsFromApi);
+      // Géocoder avec adresse complète (commune + arrondissement + quartier)
+      Future.microtask(_geocodeFromApi);
     }
   }
 
@@ -201,30 +207,56 @@ class TrajetAttenteController extends GetxController {
       _startPolling();
       _triggerPendingBoarding();
     });
+    // Géocoder avec adresse complète maintenant qu'on a le booking
+    _geocodeBookingPoints(b).ignore();
   }
 
-  // Rafraîchit les coords départ/arrivée depuis l'API pour obtenir la précision quartier
-  Future<void> _refreshCoordsFromApi() async {
+  // Récupère le booking puis géocode (chemin _parseArgs sans booking complet)
+  Future<void> _geocodeFromApi() async {
     final result = await _service.fetchPassengerActiveBooking();
     if (!result.isSuccess || result.data == null) return;
-    final b = result.data!;
-    bool changed = false;
+    await _geocodeBookingPoints(result.data!);
+  }
 
-    final fromLat = b.mapFromLat;
-    final fromLng = b.mapFromLng;
-    if (fromLat != null && fromLng != null) {
-      final precise = LatLng(fromLat, fromLng);
-      if (!_same(departurePt.value, precise)) {
-        departurePt.value = precise;
+  Future<void> _geocodeBookingPoints(ActiveBookingModel b) async {
+    final pickupQuery = _buildAddressQuery(
+      b.pickupCity.isNotEmpty ? b.pickupCity : b.departureCity,
+      arrondissement: b.pickupArrondissement,
+      neighborhood:   b.pickupNeighborhood,
+    );
+    final dropoffQuery = _buildAddressQuery(
+      b.dropoffCity.isNotEmpty ? b.dropoffCity : b.arrivalCity,
+      arrondissement: b.dropoffArrondissement,
+      neighborhood:   b.dropoffNeighborhood,
+    );
+
+    final results = await Future.wait([
+      pickupQuery.isNotEmpty  ? _geocoding.geocodeAddress(pickupQuery)  : Future.value(null),
+      dropoffQuery.isNotEmpty ? _geocoding.geocodeAddress(dropoffQuery) : Future.value(null),
+    ]);
+
+    bool changed = false;
+    final pickupResult  = results[0];
+    final dropoffResult = results[1];
+
+    // Ne mettre à jour depuis Photon que si on est encore au centre du Bénin
+    // par défaut (= l'API n'a fourni aucune coords). Évite que Photon écrase
+    // des coords précises du booking avec Sèmè-Kpodji (confusion "Sème"/"Sèmè").
+    if (pickupResult != null) {
+      logger.d('Passager pickup Photon=(${pickupResult.lat},${pickupResult.lng}) '
+          'departurePt=(${departurePt.value.latitude},${departurePt.value.longitude}) '
+          'isDefault=${_same(departurePt.value, _benin)}');
+      if (_same(departurePt.value, _benin)) {
+        departurePt.value = LatLng(pickupResult.lat, pickupResult.lng);
         changed = true;
       }
     }
-    final toLat = b.mapToLat;
-    final toLng = b.mapToLng;
-    if (toLat != null && toLng != null) {
-      final precise = LatLng(toLat, toLng);
-      if (!_same(arrivalPt.value, precise)) {
-        arrivalPt.value = precise;
+    if (dropoffResult != null) {
+      logger.d('Passager dropoff Photon=(${dropoffResult.lat},${dropoffResult.lng}) '
+          'arrivalPt=(${arrivalPt.value.latitude},${arrivalPt.value.longitude}) '
+          'isDefault=${_same(arrivalPt.value, _benin)}');
+      if (_same(arrivalPt.value, _benin)) {
+        arrivalPt.value = LatLng(dropoffResult.lat, dropoffResult.lng);
         changed = true;
       }
     }
@@ -232,6 +264,20 @@ class TrajetAttenteController extends GetxController {
       _fitMap();
       _loadRoute();
     }
+  }
+
+  static String _buildAddressQuery(
+    String city, {
+    String arrondissement = '',
+    String neighborhood = '',
+  }) {
+    if (city.isEmpty && arrondissement.isEmpty && neighborhood.isEmpty) return '';
+    final parts = <String>[];
+    if (neighborhood.isNotEmpty) parts.add(neighborhood);
+    if (arrondissement.isNotEmpty) parts.add(arrondissement);
+    if (city.isNotEmpty) parts.add(city);
+    parts.add('Bénin');
+    return parts.join(', ');
   }
 
   // Extracts a String from the first matching key
@@ -401,10 +447,12 @@ class TrajetAttenteController extends GetxController {
     required String bookingUuid,
     double? driverLat,
     double? driverLng,
+    String? boardingCode,
   }) {
     _pendingBoardingUuid      = bookingUuid;
     boardingDriverLat.value   = driverLat;
     boardingDriverLng.value   = driverLng;
+    this.boardingCode.value   = boardingCode ?? '';
     showBoardingOverlay.value = true;
   }
 
@@ -412,9 +460,10 @@ class TrajetAttenteController extends GetxController {
     if (!_openBoardingOnLoad || _bookingUuid.isEmpty) return;
     _openBoardingOnLoad = false;
     onBoardingRequest(
-      bookingUuid: _bookingUuid,
-      driverLat:   _pendingBoardingDriverLat,
-      driverLng:   _pendingBoardingDriverLng,
+      bookingUuid:  _bookingUuid,
+      driverLat:    _pendingBoardingDriverLat,
+      driverLng:    _pendingBoardingDriverLng,
+      boardingCode: _pendingBoardingCode,
     );
   }
 
@@ -426,7 +475,8 @@ class TrajetAttenteController extends GetxController {
       passengerLng: lng,
     );
     showBoardingOverlay.value = false;
-    _pendingBoardingUuid = '';
+    boardingCode.value        = '';
+    _pendingBoardingUuid      = '';
     // Poll immédiatement — si le trajet est actif on transite vers live tracking
     _pollOnce();
   }
@@ -437,7 +487,8 @@ class TrajetAttenteController extends GetxController {
       _pendingBoardingUuid,
     );
     showBoardingOverlay.value = false;
-    _pendingBoardingUuid = '';
+    boardingCode.value        = '';
+    _pendingBoardingUuid      = '';
   }
 
   // ── Conducteur absent ────────────────────────────────────────────────────

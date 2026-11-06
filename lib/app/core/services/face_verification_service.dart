@@ -150,11 +150,11 @@ class FaceVerificationService {
 
       final selfieFaces = await embedder.detectFacesFromBytes(
         selfieBytes,
-        mode: fdt.FaceDetectionMode.full,
+        mode: fdt.FaceDetectionMode.standard,
       );
       final cardFaces = await embedder.detectFacesFromBytes(
         cardBytes,
-        mode: fdt.FaceDetectionMode.full,
+        mode: fdt.FaceDetectionMode.standard,
       );
 
       if (selfieFaces.isEmpty) {

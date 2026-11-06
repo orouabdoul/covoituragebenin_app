@@ -573,11 +573,13 @@ class PushNotificationService {
         final bUuid = data['booking_uuid'] as String? ?? '';
         final dLat  = double.tryParse(data['driver_lat']?.toString() ?? '');
         final dLng  = double.tryParse(data['driver_lng']?.toString() ?? '');
+        final bCode = data['boarding_code'] as String? ?? '';
         if (Get.isRegistered<TrajetAttenteController>()) {
           Get.find<TrajetAttenteController>().onBoardingRequest(
-            bookingUuid: bUuid,
-            driverLat:   dLat,
-            driverLng:   dLng,
+            bookingUuid:  bUuid,
+            driverLat:    dLat,
+            driverLng:    dLng,
+            boardingCode: bCode,
           );
         }
         return false; // garde la notification visible pour l'alerte sonore
@@ -1069,18 +1071,35 @@ class PushNotificationService {
       // ── Embarquement ─────────────────────────────────────────────────────
       case 'boarding_request':
         if (!isDriver) {
-          Get.toNamed(
-            AppRoutes.passengerTripPending,
-            arguments: {
-              if (tripUuid    != null) 'tripUuid':    tripUuid,
-              if (bookingUuid != null) 'bookingUuid': bookingUuid,
-              'openBoarding': true,
-              if ((data['driver_lat'] ?? '').toString().isNotEmpty)
-                'driverLat': data['driver_lat'],
-              if ((data['driver_lng'] ?? '').toString().isNotEmpty)
-                'driverLng': data['driver_lng'],
-            },
-          );
+          // Si le contrôleur d'attente est déjà actif, déclencher l'overlay
+          // directement — évite de dupliquer la route sur la pile de navigation.
+          if (Get.isRegistered<TrajetAttenteController>()) {
+            final bUuid = data['booking_uuid'] as String? ?? '';
+            final dLat  = double.tryParse(data['driver_lat']?.toString() ?? '');
+            final dLng  = double.tryParse(data['driver_lng']?.toString() ?? '');
+            final bCode = data['boarding_code'] as String? ?? '';
+            Get.find<TrajetAttenteController>().onBoardingRequest(
+              bookingUuid:  bUuid,
+              driverLat:    dLat,
+              driverLng:    dLng,
+              boardingCode: bCode,
+            );
+          } else {
+            Get.toNamed(
+              AppRoutes.passengerTripPending,
+              arguments: {
+                if (tripUuid    != null) 'tripUuid':    tripUuid,
+                if (bookingUuid != null) 'bookingUuid': bookingUuid,
+                'openBoarding': true,
+                if ((data['driver_lat'] ?? '').toString().isNotEmpty)
+                  'driverLat': data['driver_lat'],
+                if ((data['driver_lng'] ?? '').toString().isNotEmpty)
+                  'driverLng': data['driver_lng'],
+                if ((data['boarding_code'] ?? '').toString().isNotEmpty)
+                  'boardingCode': data['boarding_code'],
+              },
+            );
+          }
         }
 
       case 'passenger_boarded':

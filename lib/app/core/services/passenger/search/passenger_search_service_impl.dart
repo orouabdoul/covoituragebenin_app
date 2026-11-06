@@ -160,6 +160,7 @@ class PassengerSearchServiceImpl implements PassengerSearchService {
       waypointNote: j['waypoint_note'] as String?,
       distanceKm: _resolveDistanceKm(j, origin, destination),
       bookingMode: (j['booking_mode'] ?? 'instant').toString(),
+      createdAt: DateTime.tryParse(j['created_at']?.toString() ?? ''),
     );
   }
 

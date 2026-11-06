@@ -912,7 +912,7 @@ class _PhoneInputField extends StatelessWidget {
 					Padding(
 						padding: EdgeInsets.symmetric(horizontal: responsive.w(14)),
 						child: Text(
-							'🇧🇯 +22901',
+							'🇧🇯 +229',
 							style: AppTextStyles.body(responsive).copyWith(color: AppColors.textSecondary),
 						),
 					),
@@ -927,7 +927,7 @@ class _PhoneInputField extends StatelessWidget {
 							keyboardType: TextInputType.phone,
 							inputFormatters: [
 								FilteringTextInputFormatter.digitsOnly,
-								LengthLimitingTextInputFormatter(8),
+								LengthLimitingTextInputFormatter(10),
 							],
 							style: AppTextStyles.subtitle(responsive),
 							decoration: InputDecoration(
@@ -936,7 +936,7 @@ class _PhoneInputField extends StatelessWidget {
 									vertical: responsive.h(14),
 								),
 								border: InputBorder.none,
-								hintText: 'XXXXXXXX',
+								hintText: '01XXXXXXXX',
 								hintStyle: AppTextStyles.subtitle(responsive).copyWith(color: AppColors.textHint),
 							),
 						),

@@ -46,179 +46,210 @@ class MonTrajetView extends GetView<MonTrajetController> {
   }
 
   void _showBoardingCodeDialog(BuildContext context, String bookingUuid, String boardingCode) {
-    final r = AppResponsive(context);
-    final codeCtrl = TextEditingController(text: boardingCode);
-    final isLoading = false.obs;
+    final r             = AppResponsive(context);
+    final codeCtrl      = TextEditingController(text: boardingCode);
+    final isLoading     = false.obs;
     final isManualLoading = false.obs;
+    final showCodeEntry = false.obs; // false = attente passager, true = saisie manuelle
+
+    // Bouton "Téléphone mort" partagé par les deux modes
+    Widget buildManualBtn() => Obx(() => TextButton.icon(
+      onPressed: isManualLoading.value
+          ? null
+          : () async {
+              isManualLoading.value = true;
+              await controller.confirmBoardingManual(bookingUuid);
+              isManualLoading.value = false;
+            },
+      icon: isManualLoading.value
+          ? const SizedBox(
+              width: 14, height: 14,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFF59E0B)),
+            )
+          : const Icon(Icons.phonelink_off_rounded, size: 16, color: Color(0xFFF59E0B)),
+      label: Text(
+        'Téléphone mort / Sans réseau',
+        style: AppTextStyles.bodySmall(r).copyWith(
+          color: const Color(0xFFF59E0B),
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    ));
+
+    // Mode A — En attente de confirmation du passager
+    Widget buildWaiting() => Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const SizedBox(
+          width: 36, height: 36,
+          child: CircularProgressIndicator(strokeWidth: 3, color: Color(0xFF7C3AED)),
+        ),
+        const SizedBox(height: 14),
+        Text(
+          'En attente de la confirmation du passager...',
+          style: AppTextStyles.muted(r),
+          textAlign: TextAlign.center,
+        ),
+        if (boardingCode.isNotEmpty) ...[
+          const SizedBox(height: 18),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF7C3AED).withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF7C3AED).withValues(alpha: 0.25)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('Code : ',
+                  style: AppTextStyles.caption(r)
+                      .copyWith(color: const Color(0xFF7C3AED))),
+                Text(
+                  boardingCode,
+                  style: const TextStyle(
+                    fontSize: 28, fontWeight: FontWeight.w900,
+                    letterSpacing: 10, color: Color(0xFF7C3AED),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        const SizedBox(height: 14),
+        TextButton.icon(
+          onPressed: () => showCodeEntry.value = true,
+          icon: const Icon(Icons.keyboard_rounded, size: 15, color: Color(0xFF7C3AED)),
+          label: Text(
+            'Le passager lit son code à voix haute',
+            style: AppTextStyles.bodySmall(r).copyWith(color: const Color(0xFF7C3AED)),
+          ),
+        ),
+        Divider(color: AppColors.border),
+        buildManualBtn(),
+      ],
+    );
+
+    // Mode B — Saisie manuelle du code
+    Widget buildEntry() => Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Entrez le code affiché sur le téléphone du passager',
+          style: AppTextStyles.muted(r),
+          textAlign: TextAlign.center,
+        ),
+        if (boardingCode.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(
+            'Code de référence : $boardingCode',
+            style: AppTextStyles.caption(r)
+                .copyWith(color: const Color(0xFF7C3AED).withValues(alpha: 0.7)),
+          ),
+        ],
+        const SizedBox(height: 18),
+        TextField(
+          controller: codeCtrl,
+          keyboardType: TextInputType.number,
+          maxLength: 4,
+          textAlign: TextAlign.center,
+          autofocus: true,
+          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: 12),
+          decoration: InputDecoration(
+            counterText: '',
+            hintText: '----',
+            hintStyle: TextStyle(
+              fontSize: 28, fontWeight: FontWeight.w700,
+              letterSpacing: 12, color: AppColors.textHint,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppColors.primary),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppColors.primary, width: 2),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          ),
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        ),
+        const SizedBox(height: 8),
+        Divider(color: AppColors.border),
+        buildManualBtn(),
+      ],
+    );
 
     Get.dialog(
       PopScope(
         canPop: false,
-        child: AlertDialog(
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20)),
-          title: Column(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF7C3AED).withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.pin_rounded,
-                    color: Color(0xFF7C3AED), size: 24),
-              ),
-              const SizedBox(height: 12),
-              Text('Code passager', style: AppTextStyles.h5(r)),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+        child: Obx(() {
+          final isEntry = showCodeEntry.value;
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Column(
               children: [
-              Text(
-                'Le passager n\'a pas répondu en 60 s.\nSaisissez son code ou confirmez manuellement.',
-                style: AppTextStyles.muted(r),
-                textAlign: TextAlign.center,
-              ),
-              if (boardingCode.isNotEmpty) ...[
-                const SizedBox(height: 20),
                 Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  width: 48, height: 48,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF7C3AED).withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: const Color(0xFF7C3AED).withValues(alpha: 0.25),
-                    ),
+                    color: const Color(0xFF7C3AED).withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
                   ),
-                  child: Column(
-                    children: [
-                      Text(
-                        'Code du passager',
-                        style: AppTextStyles.caption(r).copyWith(
-                          color: const Color(0xFF7C3AED).withValues(alpha: 0.70),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        boardingCode,
-                        style: const TextStyle(
-                          fontSize: 40,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 14,
-                          color: Color(0xFF7C3AED),
-                        ),
-                      ),
-                    ],
-                  ),
+                  child: Icon(
+                    isEntry ? Icons.keyboard_rounded : Icons.directions_car_filled_rounded,
+                    color: const Color(0xFF7C3AED), size: 24),
                 ),
+                const SizedBox(height: 12),
+                Text(isEntry ? 'Saisir le code' : 'Embarquement',
+                    style: AppTextStyles.h5(r)),
               ],
-              const SizedBox(height: 20),
-              TextField(
-                controller: codeCtrl,
-                keyboardType: TextInputType.number,
-                maxLength: 4,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 12,
-                ),
-                decoration: InputDecoration(
-                  counterText: '',
-                  hintText: '----',
-                  hintStyle: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 12,
-                    color: AppColors.textHint,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: AppColors.primary),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                        color: AppColors.primary, width: 2),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 14),
-                ),
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                ],
-                autofocus: true,
-              ),
-              const SizedBox(height: 12),
-              Divider(color: AppColors.border),
-              const SizedBox(height: 4),
-              Obx(() => TextButton.icon(
-                onPressed: isManualLoading.value
-                    ? null
-                    : () async {
-                        isManualLoading.value = true;
-                        await controller.confirmBoardingManual(bookingUuid);
-                        isManualLoading.value = false;
-                      },
-                icon: isManualLoading.value
-                    ? const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Color(0xFFF59E0B)),
-                      )
-                    : const Icon(Icons.phonelink_off_rounded,
-                        size: 16, color: Color(0xFFF59E0B)),
-                label: Text(
-                  'Téléphone mort / Sans réseau',
-                  style: AppTextStyles.bodySmall(r).copyWith(
-                    color: const Color(0xFFF59E0B),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              )),
-            ],
-          ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Get.back(),
-              child: Text('Annuler',
-                  style: AppTextStyles.bodyMedium(r)
-                      .copyWith(color: AppColors.textHint)),
             ),
-            Obx(() => ElevatedButton(
-              onPressed: isLoading.value
-                  ? null
-                  : () async {
-                      final code = codeCtrl.text.trim();
-                      if (code.length != 4) return;
-                      isLoading.value = true;
-                      await controller.confirmBoardingByCode(
-                          bookingUuid, code);
-                      isLoading.value = false;
-                    },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF7C3AED),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-              ),
-              child: isLoading.value
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Text('Valider'),
-            )),
-          ],
-        ),
+            content: SingleChildScrollView(
+              child: isEntry ? buildEntry() : buildWaiting(),
+            ),
+            actions: isEntry
+                ? [
+                    TextButton(
+                      onPressed: () => showCodeEntry.value = false,
+                      child: Text('Retour',
+                          style: AppTextStyles.bodyMedium(r)
+                              .copyWith(color: AppColors.textHint)),
+                    ),
+                    Obx(() => ElevatedButton(
+                      onPressed: isLoading.value
+                          ? null
+                          : () async {
+                              final code = codeCtrl.text.trim();
+                              if (code.length != 4) return;
+                              isLoading.value = true;
+                              await controller.confirmBoardingByCode(bookingUuid, code);
+                              isLoading.value = false;
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF7C3AED),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: isLoading.value
+                          ? const SizedBox(
+                              width: 16, height: 16,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white))
+                          : const Text('Valider'),
+                    )),
+                  ]
+                : [
+                    TextButton(
+                      onPressed: () => Get.back(),
+                      child: Text('Annuler',
+                          style: AppTextStyles.bodyMedium(r)
+                              .copyWith(color: AppColors.textHint)),
+                    ),
+                  ],
+          );
+        }),
       ),
       barrierDismissible: false,
     );
@@ -788,7 +819,7 @@ class _ItinerarySection extends StatelessWidget {
                                 isPending: isPending,
                                 bookingUuid: p.bookingUuid,
                                 onTap: isPending
-                                    ? () => c.showBoardingDialog(p.bookingUuid)
+                                    ? () async { c.showBoardingDialog(p.bookingUuid); }
                                     : () => c.initiateBoarding(i),
                               )
                         : null,
@@ -971,7 +1002,7 @@ class _BoardingButton extends StatefulWidget {
   });
   final bool isPending;
   final String bookingUuid;
-  final VoidCallback? onTap;
+  final Future<void> Function()? onTap;
 
   @override
   State<_BoardingButton> createState() => _BoardingButtonState();
@@ -980,12 +1011,13 @@ class _BoardingButton extends StatefulWidget {
 class _BoardingButtonState extends State<_BoardingButton> {
   Timer? _countdownTimer;
   int _secondsLeft = 60;
+  bool _isInitiating = false;
 
   @override
   void didUpdateWidget(_BoardingButton old) {
     super.didUpdateWidget(old);
     if (widget.isPending && !old.isPending) {
-      _secondsLeft = 120;
+      _secondsLeft = 60;
       _countdownTimer?.cancel();
       _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
         if (!mounted) return;
@@ -1018,31 +1050,41 @@ class _BoardingButtonState extends State<_BoardingButton> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           decoration: BoxDecoration(
-            color: AppColors.accent.withValues(alpha: 0.12),
+            color: const Color(0xFFF59E0B).withValues(alpha: 0.14),
             borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: const Color(0xFFF59E0B).withValues(alpha: 0.40),
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               const SizedBox(
-                width: 12,
-                height: 12,
+                width: 11,
+                height: 11,
                 child: CircularProgressIndicator(
                   strokeWidth: 1.5,
                   color: Color(0xFFF59E0B),
                 ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 5),
               Text(
                 _countdownLabel,
                 style: const TextStyle(
-                  fontSize: 11,
+                  fontSize: 10,
                   fontWeight: FontWeight.w600,
                   color: Color(0xFFF59E0B),
                 ),
               ),
-              const SizedBox(width: 6),
-              const Icon(Icons.pin_rounded, size: 11, color: Color(0xFFF59E0B)),
+              const SizedBox(width: 5),
+              const Text(
+                '· Saisir code',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFFF59E0B),
+                ),
+              ),
             ],
           ),
         ),
@@ -1050,7 +1092,16 @@ class _BoardingButtonState extends State<_BoardingButton> {
     }
 
     return GestureDetector(
-      onTap: widget.onTap,
+      onTap: (widget.onTap != null && !_isInitiating)
+          ? () async {
+              setState(() => _isInitiating = true);
+              try {
+                await widget.onTap!();
+              } finally {
+                if (mounted) setState(() => _isInitiating = false);
+              }
+            }
+          : null,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
@@ -1060,15 +1111,22 @@ class _BoardingButtonState extends State<_BoardingButton> {
             color: const Color(0xFF7C3AED).withValues(alpha: 0.30),
           ),
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.how_to_reg_rounded,
-                size: 14, color: Color(0xFF7C3AED)),
-            SizedBox(width: 4),
+            if (_isInitiating)
+              const SizedBox(
+                width: 11, height: 11,
+                child: CircularProgressIndicator(
+                  strokeWidth: 1.5, color: Color(0xFF7C3AED)),
+              )
+            else
+              const Icon(Icons.how_to_reg_rounded,
+                  size: 14, color: Color(0xFF7C3AED)),
+            const SizedBox(width: 4),
             Text(
-              'Embarquer',
-              style: TextStyle(
+              _isInitiating ? 'Envoi...' : 'Embarquer',
+              style: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF7C3AED),

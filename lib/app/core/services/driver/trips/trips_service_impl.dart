@@ -34,6 +34,10 @@ class TripsServiceImpl implements TripsService {
       logger.d('driverTrips [$status] [${response.statusCode}]');
       if (response.statusCode == 200 && response.data['success'] == true) {
         final body = response.data['body'] as Map<String, dynamic>;
+        final firstTrip = (body['trips'] as List?)?.firstOrNull;
+        if (firstTrip is Map) {
+          logger.d('driverTrips firstTrip created_at=${firstTrip['created_at']} published_at=${firstTrip['published_at']} keys=${firstTrip.keys.toList()}');
+        }
         return ApiResult.success(TripsModel.fromJson(body));
       }
       if (response.statusCode == 401) return ApiResult.failure(AppError.unAuthenticated);

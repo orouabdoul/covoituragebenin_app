@@ -185,7 +185,16 @@ class TrajetController extends GetxController {
       TrajetFilterType.canceled: data.filterCounts.cancelled,
     };
 
-    _tripsByFilter[filter] = data.trips.map(_tripItemToCard).toList();
+    final sorted = [...data.trips]
+      ..sort((a, b) {
+        final at = a.createdAt;
+        final bt = b.createdAt;
+        if (at == null && bt == null) return 0;
+        if (at == null) return 1;
+        if (bt == null) return -1;
+        return bt.compareTo(at);
+      });
+    _tripsByFilter[filter] = sorted.map(_tripItemToCard).toList();
     _tripsVersion.value++;
   }
 

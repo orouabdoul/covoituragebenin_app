@@ -230,7 +230,18 @@ class ConfirmationReservationController extends GetxController {
     final userPhone = UserController.instance.user.value?.phone ?? '';
     if (userPhone.isNotEmpty && paymentContactController.text.isEmpty) {
       final d = userPhone.replaceAll(RegExp(r'[^0-9]'), '');
-      paymentContactController.text = d.length >= 8 ? d.substring(d.length - 8) : d;
+      var local = d.startsWith('229') ? d.substring(3) : d;
+      if (local.length > 10) local = local.substring(local.length - 10);
+      if (local.isNotEmpty) {
+        paymentContactController.text = local;
+        paymentContactController.selection =
+            TextSelection.collapsed(offset: local.length);
+      }
+    }
+    if (paymentContactController.text.isEmpty) {
+      paymentContactController.text = '01';
+      paymentContactController.selection = TextSelection.collapsed(
+          offset: paymentContactController.text.length);
     }
 
     _autoLocate();
@@ -343,7 +354,9 @@ class ConfirmationReservationController extends GetxController {
       pickupLat.value = _gpsPosition!.latitude;
       pickupLng.value = _gpsPosition!.longitude;
     }
-    unawaited(_updatePassengerDistance());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => unawaited(_updatePassengerDistance()),
+    );
   }
 
   void onPickupCityTyped() {
@@ -364,14 +377,14 @@ class ConfirmationReservationController extends GetxController {
     pickupArrondissementController.text = arr;
     pickupSelectedNeighborhood.value = null;
     pickupNeighborhoodController.text = '';
-    // Raffine les coordonnées au niveau arrondissement pour un prorata correct
-    // quand pickup et dropoff sont dans la même commune.
     final coords = BeninLocationHelpers.getArrondissementCoords(
         pickupSelectedCity.value, arr);
     if (coords != null) {
       pickupLat.value = coords.lat;
       pickupLng.value = coords.lng;
-      unawaited(_updatePassengerDistance());
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => unawaited(_updatePassengerDistance()),
+      );
     }
   }
 
@@ -390,7 +403,9 @@ class ConfirmationReservationController extends GetxController {
       if (result != null) {
         pickupLat.value = result.lat;
         pickupLng.value = result.lng;
-        unawaited(_updatePassengerDistance());
+        WidgetsBinding.instance.addPostFrameCallback(
+          (_) => unawaited(_updatePassengerDistance()),
+        );
       }
     }
   }
@@ -409,7 +424,9 @@ class ConfirmationReservationController extends GetxController {
     final coords = BeninLocationHelpers.getCityCoords(city);
     dropoffLat.value = coords?.lat;
     dropoffLng.value = coords?.lng;
-    unawaited(_updatePassengerDistance());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => unawaited(_updatePassengerDistance()),
+    );
   }
 
   void onDropoffCityTyped() {
@@ -428,14 +445,14 @@ class ConfirmationReservationController extends GetxController {
     dropoffArrondissementController.text = arr;
     dropoffSelectedNeighborhood.value = null;
     dropoffNeighborhoodController.text = '';
-    // Raffine les coordonnées au niveau arrondissement pour un prorata correct
-    // quand pickup et dropoff sont dans la même commune.
     final coords = BeninLocationHelpers.getArrondissementCoords(
         dropoffSelectedCity.value, arr);
     if (coords != null) {
       dropoffLat.value = coords.lat;
       dropoffLng.value = coords.lng;
-      unawaited(_updatePassengerDistance());
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => unawaited(_updatePassengerDistance()),
+      );
     }
   }
 
@@ -454,7 +471,9 @@ class ConfirmationReservationController extends GetxController {
       if (result != null) {
         dropoffLat.value = result.lat;
         dropoffLng.value = result.lng;
-        unawaited(_updatePassengerDistance());
+        WidgetsBinding.instance.addPostFrameCallback(
+          (_) => unawaited(_updatePassengerDistance()),
+        );
       }
     }
   }
@@ -604,7 +623,13 @@ class ConfirmationReservationController extends GetxController {
     }
     if (ctx.userPhone.isNotEmpty) {
       final d = ctx.userPhone.replaceAll(RegExp(r'[^0-9]'), '');
-      paymentContactController.text = d.length >= 8 ? d.substring(d.length - 8) : d;
+      var local = d.startsWith('229') ? d.substring(3) : d;
+      if (local.length > 10) local = local.substring(local.length - 10);
+      if (local.isNotEmpty) {
+        paymentContactController.text = local;
+        paymentContactController.selection =
+            TextSelection.collapsed(offset: local.length);
+      }
     }
   }
 
@@ -615,6 +640,12 @@ class ConfirmationReservationController extends GetxController {
       paymentContactController.clear();
       cardExpiryController.clear();
       cardCodeController.clear();
+      // Re-préfixe "01" quand on revient au Mobile Money
+      if (index == 0) {
+        paymentContactController.text = '01';
+        paymentContactController.selection = TextSelection.collapsed(
+            offset: paymentContactController.text.length);
+      }
     }
     selectedPaymentIndex.value = index;
   }
@@ -734,7 +765,7 @@ class ConfirmationReservationController extends GetxController {
       }
     } else {
       final phone = paymentContactController.text.trim().replaceAll(RegExp(r'\s'), '');
-      if (phone.length < 8) {
+      if (phone.length < 10) {
         UIHelper().showSnackBar('MINIZON', 'Entrez votre numéro Mobile Money.', 2);
         return false;
       }
@@ -746,6 +777,10 @@ class ConfirmationReservationController extends GetxController {
   // ── Réservation ───────────────────────────────────────────────────────────
 
   Future<void> confirmReservation() async {
+    if (isProcessingPayment.value) return;
+    // Ferme le clavier avant le paiement pour éviter les animations IME
+    // qui bloquent le thread plateforme (~23s de jank / ANR).
+    FocusManager.instance.primaryFocus?.unfocus();
     logger.d('confirmReservation: called — '
         'rawPickup=(${pickupLat.value},${pickupLng.value}) '
         'rawDropoff=(${dropoffLat.value},${dropoffLng.value}) '
@@ -918,7 +953,7 @@ class ConfirmationReservationController extends GetxController {
     if (_bookingUuid.isEmpty) return;
     final uuid = _bookingUuid;
     _bookingUuid = '';
-    await _service.cancelBooking(uuid);
+    unawaited(_service.cancelBooking(uuid));
     AppSync.i.refreshPassenger();
   }
 

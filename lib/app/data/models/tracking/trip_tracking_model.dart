@@ -86,7 +86,13 @@ class ActiveBookingModel {
     this.departureLng,
     this.arrivalLat,
     this.arrivalLng,
-    // Coords précises du passager (pickup → dropoff), priorité sur trip dep/arr
+    // Adresse complète du point de prise et de dépôt du passager
+    this.pickupCity = '',
+    this.pickupArrondissement = '',
+    this.pickupNeighborhood = '',
+    this.dropoffCity = '',
+    this.dropoffArrondissement = '',
+    this.dropoffNeighborhood = '',
     this.pickupLat,
     this.pickupLng,
     this.dropoffLat,
@@ -110,6 +116,12 @@ class ActiveBookingModel {
   final double? departureLng;
   final double? arrivalLat;
   final double? arrivalLng;
+  final String pickupCity;
+  final String pickupArrondissement;
+  final String pickupNeighborhood;
+  final String dropoffCity;
+  final String dropoffArrondissement;
+  final String dropoffNeighborhood;
   final double? pickupLat;
   final double? pickupLng;
   final double? dropoffLat;
@@ -154,7 +166,12 @@ class ActiveBookingModel {
       departureLng:  (trip['departure_longitude'] as num?)?.toDouble(),
       arrivalLat:    (trip['arrival_latitude'] as num?)?.toDouble(),
       arrivalLng:    (trip['arrival_longitude'] as num?)?.toDouble(),
-      // Pickup/dropoff du passager (depuis la réservation elle-même, pas le trajet)
+      pickupCity:           j['pickup_city']?.toString() ?? '',
+      pickupArrondissement: j['pickup_arrondissement']?.toString() ?? '',
+      pickupNeighborhood:   j['pickup_neighborhood']?.toString() ?? '',
+      dropoffCity:          j['dropoff_city']?.toString() ?? '',
+      dropoffArrondissement: j['dropoff_arrondissement']?.toString() ?? '',
+      dropoffNeighborhood:  j['dropoff_neighborhood']?.toString() ?? '',
       pickupLat:   (j['pickup_latitude']  as num?)?.toDouble(),
       pickupLng:   (j['pickup_longitude'] as num?)?.toDouble(),
       dropoffLat:  (j['dropoff_latitude']  as num?)?.toDouble(),
@@ -177,7 +194,11 @@ class ActiveDriverTripModel {
     required this.tripUuid,
     required this.status,
     required this.departureCity,
+    this.departureArrondissement = '',
+    this.departureNeighborhood = '',
     required this.arrivalCity,
+    this.arrivalArrondissement = '',
+    this.arrivalNeighborhood = '',
     required this.departureTime,
     this.departureLat,
     this.departureLng,
@@ -189,7 +210,11 @@ class ActiveDriverTripModel {
   final String tripUuid;
   final String status;
   final String departureCity;
+  final String departureArrondissement;
+  final String departureNeighborhood;
   final String arrivalCity;
+  final String arrivalArrondissement;
+  final String arrivalNeighborhood;
   final String departureTime;
   final double? departureLat;
   final double? departureLng;
@@ -200,15 +225,19 @@ class ActiveDriverTripModel {
   factory ActiveDriverTripModel.fromJson(Map<String, dynamic> j) {
     final bookings = j['bookings'] as List? ?? [];
     return ActiveDriverTripModel(
-      tripUuid:      j['uuid']?.toString() ?? '',
-      status:        j['status']?.toString() ?? 'pending',
-      departureCity: j['departure_city']?.toString() ?? '',
-      arrivalCity:   j['arrival_city']?.toString() ?? '',
-      departureTime: j['departure_time']?.toString() ?? '',
-      departureLat:  (j['departure_latitude'] as num?)?.toDouble(),
-      departureLng:  (j['departure_longitude'] as num?)?.toDouble(),
-      arrivalLat:    (j['arrival_latitude'] as num?)?.toDouble(),
-      arrivalLng:    (j['arrival_longitude'] as num?)?.toDouble(),
+      tripUuid:               j['uuid']?.toString() ?? '',
+      status:                 j['status']?.toString() ?? 'pending',
+      departureCity:          j['departure_city']?.toString() ?? '',
+      departureArrondissement: j['departure_arrondissement']?.toString() ?? '',
+      departureNeighborhood:  j['departure_neighborhood']?.toString() ?? '',
+      arrivalCity:            j['arrival_city']?.toString() ?? '',
+      arrivalArrondissement:  j['arrival_arrondissement']?.toString() ?? '',
+      arrivalNeighborhood:    j['arrival_neighborhood']?.toString() ?? '',
+      departureTime:          j['departure_time']?.toString() ?? '',
+      departureLat:           (j['departure_latitude'] as num?)?.toDouble(),
+      departureLng:           (j['departure_longitude'] as num?)?.toDouble(),
+      arrivalLat:             (j['arrival_latitude'] as num?)?.toDouble(),
+      arrivalLng:             (j['arrival_longitude'] as num?)?.toDouble(),
       passengers: bookings
           .where((b) {
             final s = (b as Map)['status']?.toString();
@@ -226,6 +255,12 @@ class ActivePassengerModel {
     required this.phone,
     required this.seats,
     this.bookingUuid = '',
+    this.pickupCity = '',
+    this.pickupArrondissement = '',
+    this.pickupNeighborhood = '',
+    this.dropoffCity = '',
+    this.dropoffArrondissement = '',
+    this.dropoffNeighborhood = '',
     this.pickupLat,
     this.pickupLng,
     this.dropoffLat,
@@ -240,6 +275,12 @@ class ActivePassengerModel {
   final String phone;
   final int seats;
   final String bookingUuid;
+  final String pickupCity;
+  final String pickupArrondissement;
+  final String pickupNeighborhood;
+  final String dropoffCity;
+  final String dropoffArrondissement;
+  final String dropoffNeighborhood;
   final double? pickupLat;
   final double? pickupLng;
   final double? dropoffLat;
@@ -263,15 +304,21 @@ class ActivePassengerModel {
     final droppedOffRaw = j['dropped_off_at']?.toString();
     final noShowRaw     = j['no_show_at']?.toString();
     return ActivePassengerModel(
-      name:         fullName.isNotEmpty ? fullName : 'Passager',
-      phone:        p['phone']?.toString() ?? '',
-      seats:        (j['seats'] ?? j['seats_booked'] as num?)?.toInt() ?? 1,
-      bookingUuid:  j['uuid']?.toString() ?? '',
-      pickupLat:    (j['pickup_latitude']  as num?)?.toDouble(),
-      pickupLng:    (j['pickup_longitude'] as num?)?.toDouble(),
-      dropoffLat:   (j['dropoff_latitude']  as num?)?.toDouble(),
-      dropoffLng:   (j['dropoff_longitude'] as num?)?.toDouble(),
-      avatar:       profile['avatar']?.toString(),
+      name:                 fullName.isNotEmpty ? fullName : 'Passager',
+      phone:                p['phone']?.toString() ?? '',
+      seats:                (j['seats'] ?? j['seats_booked'] as num?)?.toInt() ?? 1,
+      bookingUuid:          j['uuid']?.toString() ?? '',
+      pickupCity:           j['pickup_city']?.toString() ?? '',
+      pickupArrondissement: j['pickup_arrondissement']?.toString() ?? '',
+      pickupNeighborhood:   j['pickup_neighborhood']?.toString() ?? '',
+      dropoffCity:          j['dropoff_city']?.toString() ?? '',
+      dropoffArrondissement: j['dropoff_arrondissement']?.toString() ?? '',
+      dropoffNeighborhood:  j['dropoff_neighborhood']?.toString() ?? '',
+      pickupLat:            (j['pickup_latitude']  as num?)?.toDouble(),
+      pickupLng:            (j['pickup_longitude'] as num?)?.toDouble(),
+      dropoffLat:           (j['dropoff_latitude']  as num?)?.toDouble(),
+      dropoffLng:           (j['dropoff_longitude'] as num?)?.toDouble(),
+      avatar:               profile['avatar']?.toString(),
       pickedUpAt:   pickedUpRaw   != null ? DateTime.tryParse(pickedUpRaw)   : null,
       droppedOffAt: droppedOffRaw != null ? DateTime.tryParse(droppedOffRaw) : null,
       noShowAt:     noShowRaw     != null ? DateTime.tryParse(noShowRaw)     : null,
@@ -283,6 +330,12 @@ class ActivePassengerModel {
     String? name,
     String? phone,
     int? seats,
+    String? pickupCity,
+    String? pickupArrondissement,
+    String? pickupNeighborhood,
+    String? dropoffCity,
+    String? dropoffArrondissement,
+    String? dropoffNeighborhood,
     double? pickupLat,
     double? pickupLng,
     double? dropoffLat,
@@ -293,18 +346,24 @@ class ActivePassengerModel {
     DateTime? noShowAt,
   }) {
     return ActivePassengerModel(
-      bookingUuid:  bookingUuid  ?? this.bookingUuid,
-      name:         name         ?? this.name,
-      phone:        phone        ?? this.phone,
-      seats:        seats        ?? this.seats,
-      pickupLat:    pickupLat    ?? this.pickupLat,
-      pickupLng:    pickupLng    ?? this.pickupLng,
-      dropoffLat:   dropoffLat   ?? this.dropoffLat,
-      dropoffLng:   dropoffLng   ?? this.dropoffLng,
-      avatar:       avatar       ?? this.avatar,
-      pickedUpAt:   pickedUpAt   ?? this.pickedUpAt,
-      droppedOffAt: droppedOffAt ?? this.droppedOffAt,
-      noShowAt:     noShowAt     ?? this.noShowAt,
+      bookingUuid:          bookingUuid          ?? this.bookingUuid,
+      name:                 name                 ?? this.name,
+      phone:                phone                ?? this.phone,
+      seats:                seats                ?? this.seats,
+      pickupCity:           pickupCity           ?? this.pickupCity,
+      pickupArrondissement: pickupArrondissement ?? this.pickupArrondissement,
+      pickupNeighborhood:   pickupNeighborhood   ?? this.pickupNeighborhood,
+      dropoffCity:          dropoffCity          ?? this.dropoffCity,
+      dropoffArrondissement: dropoffArrondissement ?? this.dropoffArrondissement,
+      dropoffNeighborhood:  dropoffNeighborhood  ?? this.dropoffNeighborhood,
+      pickupLat:            pickupLat            ?? this.pickupLat,
+      pickupLng:            pickupLng            ?? this.pickupLng,
+      dropoffLat:           dropoffLat           ?? this.dropoffLat,
+      dropoffLng:           dropoffLng           ?? this.dropoffLng,
+      avatar:               avatar               ?? this.avatar,
+      pickedUpAt:           pickedUpAt           ?? this.pickedUpAt,
+      droppedOffAt:         droppedOffAt         ?? this.droppedOffAt,
+      noShowAt:             noShowAt             ?? this.noShowAt,
     );
   }
 }

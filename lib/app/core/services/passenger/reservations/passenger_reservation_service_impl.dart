@@ -133,6 +133,8 @@ class PassengerReservationServiceImpl implements PassengerReservationService {
       }
       if (res.statusCode == 422) {
         final msg = res.data is Map ? res.data['message'] as String? : null;
+        final errBody = res.data is Map ? res.data['body'] : null;
+        logger.w('createBooking[$tripUuid] 422 msg=$msg body=$errBody');
         return ApiResult.failure(AppError.tripDataInvalid, message: msg);
       }
       if ((res.statusCode == 200 || res.statusCode == 201) &&

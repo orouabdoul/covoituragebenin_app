@@ -102,6 +102,15 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
 
   /// Vérifie présence du visage ET angle de la tête.
   /// Retourne null = OK, 'no_face' = aucun visage, 'wrong_angle' = mauvais côté.
+  ///
+  /// Convention ML Kit headEulerAngleY :
+  ///   > 0 → visage tourné vers la DROITE de l'image capturée
+  ///   < 0 → visage tourné vers la GAUCHE de l'image capturée
+  ///
+  /// La caméra frontale enregistre l'image en miroir (ce que l'utilisateur
+  /// voit dans le preview est ce qui est sauvegardé). Donc :
+  ///   - "Tournez à GAUCHE" (flèche gauche)  → eulerY > +18 dans le fichier
+  ///   - "Tournez à DROITE" (flèche droite) → eulerY < -18 dans le fichier
   Future<String?> _checkFaceAndAngle(String imagePath) async {
     final detector = FaceDetector(
       options: FaceDetectorOptions(performanceMode: FaceDetectorMode.accurate),
@@ -114,13 +123,16 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
                   b.boundingBox.width * b.boundingBox.height
               ? a
               : b);
-      final eulerY = (face.headEulerAngleY ?? 0.0).abs();
+      final eulerY = face.headEulerAngleY ?? 0.0;
       switch (widget.step) {
         case SelfieStep.front:
-          if (eulerY > 22) return 'wrong_angle';
+          if (eulerY.abs() > 22) return 'wrong_angle';
         case SelfieStep.left:
-        case SelfieStep.right:
+          // Doit être tourné à GAUCHE (eulerY positif dans l'image miroir)
           if (eulerY < 18) return 'wrong_angle';
+        case SelfieStep.right:
+          // Doit être tourné à DROITE (eulerY négatif dans l'image miroir)
+          if (eulerY > -18) return 'wrong_angle';
       }
       return null;
     } catch (_) {

@@ -101,6 +101,7 @@ class TripItemData {
     this.primaryAction,
     this.note,
     this.reviewsSummary,
+    this.createdAt,
   });
 
   final String uuid;
@@ -138,6 +139,7 @@ class TripItemData {
   final TripPrimaryActionData? primaryAction;
   final String? note;
   final TripReviewsSummaryData? reviewsSummary;
+  final DateTime? createdAt;
 
   factory TripItemData.fromJson(Map<String, dynamic> json) => TripItemData(
         uuid: (json['uuid'] as String?) ?? '',
@@ -194,6 +196,8 @@ class TripItemData {
             ? TripReviewsSummaryData.fromJson(
                 Map<String, dynamic>.from(json['reviews_summary'] as Map))
             : null,
+        createdAt: DateTime.tryParse(
+            (json['created_at'] ?? json['published_at'] ?? '').toString()),
       );
 }
 

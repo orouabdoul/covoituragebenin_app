@@ -107,38 +107,61 @@ class DriverNotificationsController extends GetxController {
       return;
     }
 
-    final data    = n.actionData;
-    final rawType = n.rawType;
-
-    // ── Routing par type précis (nouveau backend) ─────────────────────────
+    final data        = n.actionData;
+    final rawType     = n.rawType;
+    final tripUuid    = data['trip_uuid']        as String?;
+    final convUuid    = data['conversation_uuid'] as String?;
 
     switch (rawType) {
 
-      // ── Nouvelles réservations ────────────────────────────────────────────
+      // ── Réservations ──────────────────────────────────────────────────────
       case 'new_booking_request':
       case 'reservation_new':
       case 'booking_status_changed':
+      case 'booking_status':          // backend v2
+      case 'booking_created':
       case 'reservation_accepted':
       case 'booking_cancelled':
+      case 'passenger_cancelled':     // backend v2 — passager annule, conducteur reçoit
       case 'trip_cancelled':
         _goToReservations();
         return;
 
-      // ── Trajets ───────────────────────────────────────────────────────────
+      // ── Trajet actif ──────────────────────────────────────────────────────
       case 'trip_started':
-      case 'trip_completed':
-      case 'trip_ended':
       case 'trip_reminder':
-        final tripUuid = data['trip_uuid'] as String?;
+      case 'departure_reminder':      // backend v2
+      case 'boarding_request':
+      case 'passenger_boarded':
+      case 'passenger_picked_up':
+      case 'passenger_no_show':
+      case 'passenger_dropped_off':
+      case 'boarding_refused':
+      case 'admin_alert':
+      case 'trip_delay':
+      case 'trip_emergency':
         if (tripUuid != null && tripUuid.isNotEmpty) {
-          Get.toNamed(AppRoutes.driverTripDetail, arguments: {'uuid': tripUuid});
+          Get.toNamed(AppRoutes.driverActiveTrip, arguments: {'tripUuid': tripUuid});
         } else {
           BottonNavController.goToTab(1);
         }
         return;
 
+      // ── Trajet terminé → revenus ──────────────────────────────────────────
+      case 'trip_completed':
+      case 'trip_ended':
+        BottonNavController.goToTab(2);
+        return;
+
+      // ── Statut véhicule ───────────────────────────────────────────────────
+      case 'vehicle_status':          // backend v2
+        BottonNavController.goToTab(1);
+        return;
+
       // ── Paiements ─────────────────────────────────────────────────────────
       case 'payment_success':
+      case 'passenger_payment':       // backend v2
+      case 'commission_paid':
         Get.toNamed(AppRoutes.driverPaymentHistory);
         return;
 
@@ -150,21 +173,29 @@ class DriverNotificationsController extends GetxController {
         Get.toNamed(AppRoutes.driverWithdraw);
         return;
 
+      // ── Litiges ───────────────────────────────────────────────────────────
+      case 'dispute_against_driver':  // backend v2
+      case 'dispute_resolved':        // backend v2
+        BottonNavController.goToTab(1);
+        return;
+
       // ── Messagerie ────────────────────────────────────────────────────────
       case 'new_message':
       case 'message_new':
-        final convUuid = data['conversation_uuid'] as String?;
-        BottonNavController.goToTab(3);
+        BottonNavController.goToTab(0);
         if (convUuid != null) {
           Get.toNamed(AppRoutes.driverMessageDetail, arguments: {'uuid': convUuid});
+        } else {
+          Get.toNamed(AppRoutes.driverMessages);
         }
         return;
 
       // ── Code promo ────────────────────────────────────────────────────────
       case 'promo_code_published':
+      case 'promo_published':         // backend v2
         _showPromoSnackbar(
-          data['promo_code'] as String? ?? '',
-          data['discount_value'] as String? ?? '',
+          data['promo_code'] as String? ?? data['code'] as String? ?? '',
+          data['discount_value'] as String? ?? data['discount'] as String? ?? '',
         );
         return;
 
@@ -176,24 +207,48 @@ class DriverNotificationsController extends GetxController {
 
       // ── Compte & KYC ─────────────────────────────────────────────────────
       case 'kyc_status_changed':
+      case 'kyc_status':              // backend v2
       case 'account_verified':
+      case 'document_expiring_soon':
         Get.toNamed(AppRoutes.driverProfile);
         return;
 
       case 'account_status_changed':
+      case 'account_status':          // backend v2
       case 'account_blocked':
-        final blocked = (data['is_blocked'] ?? '').toString() == 'true';
-        if (blocked) _showAccountSuspendedDialog();
+      case 'driver_auto_suspended':
+        final blocked =
+            (data['is_blocked'] ?? data['is_suspended'] ?? '').toString() == 'true';
+        if (blocked) {
+          _showAccountSuspendedDialog();
+        } else {
+          _showAccountRestoredSnackbar();
+        }
+        return;
+
+      case 'driver_warning_issued':
+        BottonNavController.goToTab(0);
+        return;
+
+      // ── SOS ───────────────────────────────────────────────────────────────
+      case 'sos_triggered':
+        Get.toNamed(AppRoutes.driverSafetyCenter);
+        return;
+
+      // ── Support ───────────────────────────────────────────────────────────
+      case 'ticket_resolved':
+        Get.toNamed(AppRoutes.driverSupportCenter);
         return;
     }
 
     // ── Fallback : dériver depuis les clés de actionData (ancien format) ──
 
     if (data.containsKey('conversation_uuid')) {
-      final convUuid = data['conversation_uuid'] as String?;
-      BottonNavController.goToTab(3);
+      BottonNavController.goToTab(0);
       if (convUuid != null) {
         Get.toNamed(AppRoutes.driverMessageDetail, arguments: {'uuid': convUuid});
+      } else {
+        Get.toNamed(AppRoutes.driverMessages);
       }
       return;
     }
@@ -202,9 +257,8 @@ class DriverNotificationsController extends GetxController {
       return;
     }
     if (data.containsKey('trip_uuid')) {
-      final uuid = data['trip_uuid'] as String?;
-      if (uuid != null && uuid.isNotEmpty) {
-        Get.toNamed(AppRoutes.driverTripDetail, arguments: {'uuid': uuid});
+      if (tripUuid != null && tripUuid.isNotEmpty) {
+        Get.toNamed(AppRoutes.driverActiveTrip, arguments: {'tripUuid': tripUuid});
       } else {
         BottonNavController.goToTab(1);
       }
@@ -216,7 +270,7 @@ class DriverNotificationsController extends GetxController {
       case DriverNotificationType.reservation:
         _goToReservations();
       case DriverNotificationType.payment:
-        BottonNavController.goToTab(3);
+        Get.toNamed(AppRoutes.driverPaymentHistory);
       case DriverNotificationType.trip:
         BottonNavController.goToTab(1);
       case DriverNotificationType.message:
@@ -250,6 +304,20 @@ class DriverNotificationsController extends GetxController {
       borderRadius: 12,
       icon: const Icon(Icons.local_offer_rounded, color: Colors.white),
       duration: const Duration(seconds: 5),
+    );
+  }
+
+  void _showAccountRestoredSnackbar() {
+    Get.snackbar(
+      'Compte restauré',
+      'Votre compte a été réactivé. Bienvenue de retour !',
+      backgroundColor: AppColors.success,
+      colorText: Colors.white,
+      snackPosition: SnackPosition.TOP,
+      margin: const EdgeInsets.all(16),
+      borderRadius: 12,
+      icon: const Icon(Icons.check_circle_rounded, color: Colors.white),
+      duration: const Duration(seconds: 4),
     );
   }
 

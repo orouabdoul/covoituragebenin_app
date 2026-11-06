@@ -87,7 +87,15 @@ class SearchController extends GetxController {
 			case SortOption.bestRated:
 				available.sort((a, b) => (double.tryParse(b.rating) ?? 0.0).compareTo(double.tryParse(a.rating) ?? 0.0));
 			case SortOption.relevance:
-				break;
+				// Trajets les plus récemment publiés en tête
+				available.sort((a, b) {
+					final at = a.createdAt;
+					final bt = b.createdAt;
+					if (at == null && bt == null) return 0;
+					if (at == null) return 1;
+					if (bt == null) return -1;
+					return bt.compareTo(at);
+				});
 		}
 		return [...available, ...fullBooked];
 	}
@@ -680,6 +688,7 @@ class SearchRide {
 		this.waypointNote,
 		this.distanceKm = 0.0,
 		this.bookingMode = 'instant',
+		this.createdAt,
 	});
 
 	final String uuid;
@@ -710,6 +719,7 @@ class SearchRide {
 	final String? waypointNote;
 	final double distanceKm;
 	final String bookingMode;
+	final DateTime? createdAt;
 
 	String get displayOrigin {
 		final parts = [origin, departureArrondissement, departureNeighborhood].where((p) => p.isNotEmpty).toList();

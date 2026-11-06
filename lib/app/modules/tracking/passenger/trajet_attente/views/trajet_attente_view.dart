@@ -786,9 +786,9 @@ class _BoardingConfirmationOverlayState
 
     double? lat;
     double? lng;
-    String? warning;
 
     // Récupérer la position GPS du passager (best-effort, non bloquant)
+    // Coordonnées envoyées au backend pour log — pas de blocage côté UI
     try {
       final perm = await Geolocator.checkPermission();
       if (perm != LocationPermission.denied &&
@@ -801,26 +801,9 @@ class _BoardingConfirmationOverlayState
         );
         lat = pos.latitude;
         lng = pos.longitude;
-
-        // Vérifier la distance avec le conducteur si on a ses coordonnées
-        final dLat = widget.c.boardingDriverLat.value;
-        final dLng = widget.c.boardingDriverLng.value;
-        if (dLat != null && dLng != null) {
-          final dist = TrajetAttenteController.haversine(
-              lat, lng, dLat, dLng) * 1000; // en mètres
-          if (dist > 100) {
-            warning = 'Vous semblez à ${dist.round()} m du véhicule. Confirmer quand même ?';
-          }
-        }
       }
     } catch (_) {
       // GPS indisponible — on confirme quand même
-    }
-
-    // Si avertissement GPS → demander confirmation supplémentaire
-    if (warning != null && mounted) {
-      setState(() { _isConfirming = false; _gpsWarning = warning; });
-      return;
     }
 
     await widget.c.confirmBoarding(lat: lat, lng: lng);
@@ -903,6 +886,51 @@ class _BoardingConfirmationOverlayState
                     .copyWith(color: Colors.white70),
                 textAlign: TextAlign.center,
               ),
+              // Code d'identification — affiché si transmis par FCM
+              Obx(() {
+                final code = widget.c.boardingCode.value;
+                if (code.isEmpty) return const SizedBox.shrink();
+                return Column(
+                  children: [
+                    const SizedBox(height: 20),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.white24),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            'Votre code d\'identification',
+                            style: AppTextStyles.caption(r)
+                                .copyWith(color: Colors.white54, fontSize: 11),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            code,
+                            style: const TextStyle(
+                              fontSize: 44,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 16,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Lisez ce code à voix haute si nécessaire',
+                            style: AppTextStyles.caption(r)
+                                .copyWith(color: Colors.white38, fontSize: 10),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              }),
               if (_gpsWarning != null) ...[
                 const SizedBox(height: 16),
                 Container(

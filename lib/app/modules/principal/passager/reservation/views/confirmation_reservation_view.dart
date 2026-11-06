@@ -2238,14 +2238,14 @@ class _PaymentPhoneField extends StatelessWidget {
         TextField(
           controller: controller.paymentContactController,
           keyboardType: TextInputType.number,
-          maxLength: 8,
+          maxLength: 10,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           style: AppTextStyles.body(responsive),
           decoration: InputDecoration(
-            prefixText: '+22901 ',
+            prefixText: '+229 ',
             prefixStyle: AppTextStyles.body(responsive)
                 .copyWith(color: AppColors.textSecondary),
-            hintText: 'XXXXXXXX',
+            hintText: '01XXXXXXXX',
             hintStyle: AppTextStyles.body(responsive)
                 .copyWith(color: AppColors.textHint),
             counterText: '',
