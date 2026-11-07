@@ -866,11 +866,13 @@ class _LocationAutocompleteField extends StatelessWidget {
         ? iconColor
         : AppColors.textHint;
 
-    return GestureDetector(
+    return Opacity(
+      opacity: enabled ? 1.0 : 0.45,
+      child: GestureDetector(
       onTap: enabled ? () => _openPicker(context) : null,
       child: Container(
         decoration: BoxDecoration(
-          color: enabled ? AppColors.surfaceMuted : AppColors.surface,
+          color: AppColors.surfaceMuted,
           borderRadius: BorderRadius.circular(responsive.radius(10)),
           border: Border.all(color: borderColor),
         ),
@@ -937,6 +939,7 @@ class _LocationAutocompleteField extends StatelessWidget {
               ),
           ],
         ),
+      ),
       ),
     );
   }

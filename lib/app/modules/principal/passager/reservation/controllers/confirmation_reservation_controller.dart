@@ -816,19 +816,36 @@ class ConfirmationReservationController extends GetxController {
     final guestBirthStr = (isBookingForOther.value && dob != null)
         ? '${dob.year}-${dob.month.toString().padLeft(2, '0')}-${dob.day.toString().padLeft(2, '0')}'
         : null;
+
+    // Construit l'adresse à partir des champs structurés si le repère libre est vide
+    final pAddr = pickupController.text.trim().isNotEmpty
+        ? pickupController.text.trim()
+        : [
+            pickupNeighborhoodController.text.trim(),
+            pickupSelectedArrondissement.value ?? '',
+            pickupSelectedCity.value ?? '',
+          ].where((s) => s.isNotEmpty).join(', ');
+    final dAddr = dropoffController.text.trim().isNotEmpty
+        ? dropoffController.text.trim()
+        : [
+            dropoffNeighborhoodController.text.trim(),
+            dropoffSelectedArrondissement.value ?? '',
+            dropoffSelectedCity.value ?? '',
+          ].where((s) => s.isNotEmpty).join(', ');
+
     final result = await _service.createBooking(
       tripUuid,
       seats: reservedSeats.value,
       pickupCity: pickupCityController.text.trim(),
       pickupArrondissement: pickupSelectedArrondissement.value,
       pickupNeighborhood: pickupNeighborhoodController.text.trim(),
-      pickupAddress: pickupController.text.trim(),
+      pickupAddress: pAddr,
       pickupLat: effectivePickupLat,
       pickupLng: effectivePickupLng,
       dropoffCity: dropoffCityController.text.trim(),
       dropoffArrondissement: dropoffSelectedArrondissement.value,
       dropoffNeighborhood: dropoffNeighborhoodController.text.trim(),
-      dropoffAddress: dropoffController.text.trim(),
+      dropoffAddress: dAddr,
       dropoffLat: effectiveDropoffLat,
       dropoffLng: effectiveDropoffLng,
       guestFirstName: isBookingForOther.value ? guestFirstNameController.text.trim() : null,
@@ -851,9 +868,10 @@ class ConfirmationReservationController extends GetxController {
         }
         return;
       }
-      if (result.error != AppError.socket) {
-        UIHelper().showSnackBar('MINIZON', result.displayMessage, 2);
-      }
+      final errMsg = result.error == AppError.socket
+          ? 'Connexion impossible. Vérifiez votre réseau et réessayez.'
+          : result.displayMessage;
+      UIHelper().showSnackBar('MINIZON', errMsg, 3);
       return;
     }
 
