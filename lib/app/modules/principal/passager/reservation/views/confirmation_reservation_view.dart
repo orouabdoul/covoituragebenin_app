@@ -403,20 +403,20 @@ class _StopsCard extends StatelessWidget {
               isSelected: controller.pickupSelectedNeighborhood.value != null,
               onSelected: controller.onPickupNeighborhoodSelected,
               onTextChanged: controller.onPickupNeighborhoodTyped,
-              enabled: arrSelected != null,
-              emptyHint: arrSelected == null
-                  ? 'Choisissez d\'abord un arrondissement'
-                  : controller.pickupSelectedCity.value == null
+              enabled: arrSelected != null || !controller.pickupCityHasArrondissements(),
+              emptyHint: controller.pickupSelectedCity.value == null
                   ? 'Choisissez d\'abord une ville'
+                  : (arrSelected == null && controller.pickupCityHasArrondissements())
+                  ? 'Choisissez d\'abord un arrondissement'
                   : 'Saisissez votre quartier',
             );
           }),
           SizedBox(height: responsive.h(8)),
 
-          // Repère (champ libre)
+          // Repère (champ libre — obligatoire)
           _PlainTextField(
             responsive: responsive,
-            label: 'Repère / Adresse (optionnel)',
+            label: 'Point de repère *',
             hint: 'Ex: Face pharmacie du centre',
             controller: controller.pickupController,
           ),
@@ -529,20 +529,20 @@ class _StopsCard extends StatelessWidget {
               isSelected: controller.dropoffSelectedNeighborhood.value != null,
               onSelected: controller.onDropoffNeighborhoodSelected,
               onTextChanged: controller.onDropoffNeighborhoodTyped,
-              enabled: arrSelected != null,
-              emptyHint: arrSelected == null
-                  ? 'Choisissez d\'abord un arrondissement'
-                  : controller.dropoffSelectedCity.value == null
+              enabled: arrSelected != null || !controller.dropoffCityHasArrondissements(),
+              emptyHint: controller.dropoffSelectedCity.value == null
                   ? 'Choisissez d\'abord une ville'
+                  : (arrSelected == null && controller.dropoffCityHasArrondissements())
+                  ? 'Choisissez d\'abord un arrondissement'
                   : 'Saisissez votre quartier',
             );
           }),
           SizedBox(height: responsive.h(8)),
 
-          // Repère (champ libre)
+          // Repère (champ libre — obligatoire)
           _PlainTextField(
             responsive: responsive,
-            label: 'Repère / Adresse (optionnel)',
+            label: 'Point de repère *',
             hint: 'Ex: Carrefour étoile rouge',
             controller: controller.dropoffController,
           ),

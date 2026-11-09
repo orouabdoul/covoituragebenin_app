@@ -706,9 +706,17 @@ class ConfirmationReservationController extends GetxController {
       UIHelper().showSnackBar('MINIZON', 'Choisissez la ville de prise en charge.', 2);
       return false;
     }
+    if (pickupCityHasArrondissements() && pickupSelectedArrondissement.value == null) {
+      UIHelper().showSnackBar('MINIZON', 'Choisissez l\'arrondissement de prise en charge.', 2);
+      return false;
+    }
     if (pNbh.isEmpty) {
       logger.w('_validateForm FAIL: pickup neighborhood empty (arr=${pickupSelectedArrondissement.value}, items=${pickupNeighborhoodItems.length})');
       UIHelper().showSnackBar('MINIZON', 'Choisissez le quartier de prise en charge.', 2);
+      return false;
+    }
+    if (pickupController.text.trim().isEmpty) {
+      UIHelper().showSnackBar('MINIZON', 'Saisissez le point de repère de prise en charge.', 2);
       return false;
     }
     if (dCity.isEmpty) {
@@ -716,9 +724,17 @@ class ConfirmationReservationController extends GetxController {
       UIHelper().showSnackBar('MINIZON', 'Choisissez la ville de dépose.', 2);
       return false;
     }
+    if (dropoffCityHasArrondissements() && dropoffSelectedArrondissement.value == null) {
+      UIHelper().showSnackBar('MINIZON', 'Choisissez l\'arrondissement de dépose.', 2);
+      return false;
+    }
     if (dNbh.isEmpty) {
       logger.w('_validateForm FAIL: dropoff neighborhood empty (arr=${dropoffSelectedArrondissement.value}, items=${dropoffNeighborhoodItems.length})');
       UIHelper().showSnackBar('MINIZON', 'Choisissez le quartier de dépose.', 2);
+      return false;
+    }
+    if (dropoffController.text.trim().isEmpty) {
+      UIHelper().showSnackBar('MINIZON', 'Saisissez le point de repère de dépose.', 2);
       return false;
     }
 
@@ -817,21 +833,8 @@ class ConfirmationReservationController extends GetxController {
         ? '${dob.year}-${dob.month.toString().padLeft(2, '0')}-${dob.day.toString().padLeft(2, '0')}'
         : null;
 
-    // Construit l'adresse à partir des champs structurés si le repère libre est vide
-    final pAddr = pickupController.text.trim().isNotEmpty
-        ? pickupController.text.trim()
-        : [
-            pickupNeighborhoodController.text.trim(),
-            pickupSelectedArrondissement.value ?? '',
-            pickupSelectedCity.value ?? '',
-          ].where((s) => s.isNotEmpty).join(', ');
-    final dAddr = dropoffController.text.trim().isNotEmpty
-        ? dropoffController.text.trim()
-        : [
-            dropoffNeighborhoodController.text.trim(),
-            dropoffSelectedArrondissement.value ?? '',
-            dropoffSelectedCity.value ?? '',
-          ].where((s) => s.isNotEmpty).join(', ');
+    final pAddr = pickupController.text.trim();
+    final dAddr = dropoffController.text.trim();
 
     final result = await _service.createBooking(
       tripUuid,
