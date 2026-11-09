@@ -14,6 +14,7 @@ import 'package:covoiturage_benin_app/app/routes/app_routes.dart';
 import '../../../../../data/models/driver/trip_detail_model.dart';
 import '../../../../../data/models/driver/trip_model.dart';
 import 'package:covoiturage_benin_app/app/core/constants/app_colors.dart';
+import 'package:covoiturage_benin_app/app/modules/principal/botton_nav/controllers/botton_nav_controller.dart';
 
 class TripDetailController extends GetxController {
   TripDetailService get _service => Get.find<TripDetailService>();
@@ -383,8 +384,9 @@ class TripDetailController extends GetxController {
     Get.back();
     final result = await _tripsService.cancelTrip(_tripUuid);
     if (result.isSuccess) {
+      AppSync.i.refreshDriverTrips();
       UIHelper().showSnackBar('MINIZON', 'Trajet annulé avec succès.', 0);
-      Get.back();
+      BottonNavController.goToTab(1);
     } else {
       UIHelper().showSnackBar('MINIZON', result.displayMessage, 2);
     }
